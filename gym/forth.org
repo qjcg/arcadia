@@ -46,7 +46,7 @@ Exercises from [[https://www.forth.com/starting-forth/][Starting Forth by Leo Br
   #+end_src
 
   #+RESULTS:
-  : 5 ones and 2 quarters 
+  : 5 ones and 2 quarters
 
 
 *** CHAPTER 4: Decisions, Decisions...
@@ -64,7 +64,7 @@ Exercises from [[https://www.forth.com/starting-forth/][Starting Forth by Leo Br
  #+end_src
 
  #+RESULTS:
- : 
+ :
  : alacritty
 
 

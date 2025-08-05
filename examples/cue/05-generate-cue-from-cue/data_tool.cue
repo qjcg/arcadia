@@ -12,5 +12,6 @@ command: gen: file.Create & {
 	package main
 
 	generated: \(json.Marshal(output))
+
 	"""
 }
