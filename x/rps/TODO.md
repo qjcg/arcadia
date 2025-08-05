@@ -1,0 +1,4 @@
+- network play
+- web frontend
+    - communicates w/ backend via websocket
+    - otherwise, use webRTC to connect two players?

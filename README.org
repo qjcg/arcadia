@@ -1,0 +1,12 @@
+* Arcadia
+
+A magnificent monorepo containing multitudes.
+
+** Requirements
+
+- [[https://go.dev/][go]]
+
+** Layout
+
+- ~examples~: Various examples.
+- ~x~: eXperimental commands. Unstable, may change at any time.

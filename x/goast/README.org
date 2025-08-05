@@ -1,0 +1,7 @@
+* goast
+
+Reads a Go file and prints its' AST node information.
+
+* Further Reading
+
+- [[https://eli.thegreenplace.net/2021/rewriting-go-source-code-with-ast-tooling/][Eli Bendersky: Rewriting Go Source Code with AST Tooling]]

@@ -1,0 +1,3 @@
+# curl example.com
+exec curl http://example.com
+stdout 'Example Domain'

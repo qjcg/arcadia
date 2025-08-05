@@ -1,0 +1,64 @@
+# https://taskfile.dev
+
+version: '3'
+
+setopt: [globstar]
+
+vars:
+  COVERPROFILE: c.out
+
+  GOCMD_TEST: go tool gotestsum ./...
+  GOCMD_TEST_INTEGRATION: '{{.GOCMD_TEST}} -tags integration'
+  GOCMD_TEST_NOCACHE: '{{.GOCMD_TEST}} -count 1'
+  GOCMD_TEST_INTEGRATION_NOCACHE: '{{.GOCMD_TEST}} -tags integration -count 1'
+
+tasks:
+  default:
+    - task: test:unit
+    - task: vuln
+    - task: lint
+
+  test:
+    - task: test:unit
+
+  test:unit: '{{ .GOCMD_TEST }}'
+  test:unit-nocache: '{{ .GOCMD_TEST_NOCACHE }}'
+  test:integration: '{{ .GOCMD_TEST_INTEGRATION }}'
+  test:integration-nocache: '{{ .GOCMD_TEST_INTEGRATION_NOCACHE }}'
+
+  test:coverprofile:
+    sources:
+      - '**/*.go'
+    generates:
+      - '{{.COVERPROFILE}}'
+    cmds:
+      - go test ./... -coverprofile {{.COVERPROFILE}}
+
+  test:uncover:
+    deps:
+      - test:coverprofile
+    cmds:
+      - go tool uncover {{.COVERPROFILE}}
+
+  lint:
+    cmds:
+      - task: lint:editorconfig
+      #- task: lint:golangci
+
+  #lint:golangci: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.2.1 run
+  lint:editorconfig: go tool editorconfig-checker
+
+  vuln: go tool govulncheck ./...
+
+  build:snapshot: go tool goreleaser build --snapshot --clean
+  release:snapshot: go tool goreleaser release --snapshot --clean
+
+  install: go install ./cmd/...
+
+  update-deps:
+    - go get -u ./...
+    - go mod tidy
+
+  docs: go tool pkgsite
+
+  clean: rm -rf {{.COVERPROFILE}} ./dist

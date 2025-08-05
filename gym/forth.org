@@ -1,0 +1,80 @@
+* Forth
+
+** TODO Testing
+
+Create some words to unit-test the code in this file.
+
+#+begin_src forth
+: TEST -1 = -1 = ; \ TODO add useful code here.
+#+end_src
+
+
+** Starting Forth
+
+Exercises from [[https://www.forth.com/starting-forth/][Starting Forth by Leo Brodie]].
+
+*** CHAPTER 1: Fundamental Forth
+
+**** c1p1
+
+  #+begin_src forth
+    : GIFT ." Bookends" ;
+    : GIVER ." Bob" ;
+    : THANKS ." Dear " GIVER ." , thanks for the " GIFT  ." ." ;
+    THANKS
+  #+end_src
+
+  #+RESULTS:
+  : Dear Bob, thanks for the Bookends.
+
+**** c1p2
+
+ #+begin_src forth
+   : TEN-LESS ( n -- n )   10 - ;
+   assert1( 100 TEN-LESS 90 = ) \ true (-1).
+ #+end_src
+
+
+*** CHAPTER 2: How to Get Results
+
+   - .s prints the stack non-destructively.
+
+  #+begin_src forth
+    \ c2p1
+    : QUARTERS 4 /MOD . ." ones and " . ." quarters " ;
+    22 QUARTERS
+  #+end_src
+
+  #+RESULTS:
+  : 5 ones and 2 quarters 
+
+
+*** CHAPTER 4: Decisions, Decisions...
+
+ #+begin_src forth
+   : ?FULL
+       12 >=
+       IF CR CR ." It's FULL! " CR CR
+       ELSE  CR CR ." NO SIR IT IS NOT FULL!" CR CR
+       THEN ;
+   5 ?FULL
+   12 ?FULL
+
+
+ #+end_src
+
+ #+RESULTS:
+ : 
+ : alacritty
+
+
+** Gforth Manual
+
+   Notes and tutorial from the [[https://gforth.org/manual/index.html][Gforth Manual]].
+
+*** Personal Notes
+
+#+begin_src forth
+   : TERM ( "..." -- )   s" alacritty" system ;
+   TERM
+#+end_src

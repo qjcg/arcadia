@@ -1,0 +1,169 @@
+VERSION 0.8
+
+ARG --global nats_box = natsio/nats-box:0.14.3
+ARG --global alpine = alpine:3
+ARG --global ubuntu = ubuntu:noble
+ARG --global img_golang = golang:1.22-alpine
+
+test-base:
+	FROM $img_golang
+	RUN apk add --no-cache bash curl jq tmux
+	ENV CGO_ENABLED=0
+	LET flags = -ldflags='-s'
+	LET v_nats = 3f6d70ab5c7c079a2ce3606b155fcc5a4e65925f
+	LET v_nk = v0.4.7
+	LET v_nsc = 1989e956430d7f8dbfdb58504e013d1818bf994a
+	LET v_nats_server = v2.10.18
+	RUN go install $flags github.com/nats-io/natscli/nats@$v_nats
+	RUN go install $flags github.com/nats-io/nkeys/nk@$v_nk
+	RUN go install $flags github.com/nats-io/nsc/v2@$v_nsc
+	RUN go install $flags github.com/nats-io/nats-server/v2@$v_nats_server
+	RUN echo 'export PATH=/go/bin:/usr/local/go/bin:$PATH' >> ~/.bash_profile
+	WORKDIR /work
+	SAVE ARTIFACT /go/bin/*
+
+# Creates the following under the `testdata` folder:
+#   - 1x operator with preferred settings
+#   - 1x system account and user
+#   - 2x accounts with preferred settings
+#   - 3x users in each account with preferred settings
+testdata:
+	FROM +test-base
+
+	ARG operator = foocorp
+	ARG server_url = nats://127.0.0.1:4222
+	ARG account1 = team_alfa
+	ARG account2 = team_bravo
+	ARG a1_user1 = foo
+	ARG a1_user2 = bar
+	ARG a1_user3 = baz
+	ARG a2_user1 = foo
+	ARG a2_user2 = bar
+	ARG a2_user3 = baz
+
+	# Create an Operator.
+	RUN nsc create operator $operator \
+	    --generate-signing-key \
+	    --sys
+	RUN nsc edit operator \
+	    --account-jwt-server-url $server_url \
+	    --require-signing-keys \
+	    --tag status:awesome,region:us-east
+
+	# Generate nats-server resolver config file.
+	RUN nsc generate config --nats-resolver --config-file resolver.conf
+
+	# Get the Operator's signing-key.
+	LET operator_sk = $(nsc describe operator $operator --json | jq -r '.nats.signing_keys[0]')
+
+	# Create Account1 using the Operator's signing-key.
+	# Add metadata and configuration settings to the Account.
+	RUN nsc create account $account1 -K $operator_sk
+	RUN nsc edit account $account1 \
+	    --description "The $account1 Team at $operator" \
+	    --info-url "https://$operator.com/$account1" \
+	    --data 5G \
+	    --expiry 1y \
+	    --js-disk-storage 50G \
+	    --js-mem-storage 2G \
+	    --js-tier 3 \
+	    --tag status:awesome,az:us-east
+
+	# Create Account2 using the Operator's signing-key.
+	# Add metadata and configuration settings to the Account.
+	RUN nsc create account $account2 -K $operator_sk
+	RUN nsc edit account $account2 \
+	    --description "The $account2 Team at $operator" \
+	    --info-url "https://$operator.com/$account2" \
+	    --data 5G \
+	    --expiry 1y \
+	    --js-disk-storage 50G \
+	    --js-mem-storage 2G \
+	    --js-tier 3 \
+	    --tag status:awesome,az:us-east
+
+	# Create a signing-key for Account1.
+	# Add a role name and permissions to the signing-key.
+	RUN nsc edit account -n $account1 --sk generate
+	LET account1_sk = $(nsc describe account $account1 --json | jq -r '.nats.signing_keys[0]')
+	RUN nsc edit signing-key \
+	    --account $account1 \
+	    --sk $account1_sk \
+	    --data 4G \
+	    --conn-type STANDARD,WEBSOCKET \
+	    --role chat_user \
+	    --allow-pub "chat.post.{{tag(org)}}.{{name()}}" \
+	    --allow-sub "chat.post.{{tag(org)}}.*" \
+	    --allow-pubsub 'greetings.>' \
+	    --allow-pub-response
+
+	# Create a signing-key for Account2.
+	# Add a role name and permissions to the signing-key.
+	RUN nsc edit account -n $account2 --sk generate
+	LET account2_sk = $(nsc describe account $account2 --json | jq -r '.nats.signing_keys[0]')
+	RUN nsc edit signing-key \
+	    --account $account2 \
+	    --sk $account2_sk \
+	    --data 4G \
+	    --conn-type STANDARD,WEBSOCKET \
+	    --role chat_user \
+	    --allow-pub "chat.post.{{tag(org)}}.{{name()}}" \
+	    --allow-sub "chat.post.{{tag(org)}}.*" \
+	    --allow-pubsub 'greetings.>' \
+	    --allow-pub-response
+
+        # Create Account Users using scoped signing-keys and generate creds files.
+        LET a1u = ""
+        LET a2u = ""
+        FOR i IN 1 2 3
+          SET a1u = $(eval "echo \$a1_user${i}")
+          RUN nsc create user $a1u --account $account1 --private-key $account1_sk
+          RUN nsc generate creds -a $account1 -n $a1u -o ${account1}_${a1u}.creds
+
+          SET a2u = $(eval "echo \$a2_user${i}")
+          RUN nsc create user $a2u --account $account2 --private-key $account2_sk
+          RUN nsc generate creds -a $account2 -n $a2u -o ${account2}_${a2u}.creds
+        END
+
+	# Export all nkeys and JWTs.
+	RUN nsc export keys --all --dir exports --include-jwts
+
+	SAVE ARTIFACT exports AS LOCAL testdata/exports
+	SAVE ARTIFACT *.creds AS LOCAL testdata/user_creds/
+	SAVE ARTIFACT resolver.conf AS LOCAL testdata/resolver.conf
+
+dev:
+	FROM +testdata
+	RUN --interactive /bin/bash --login
+
+clean:
+	LOCALLY
+	RUN rm -rf testdata
+
+import-alpine:
+	FROM $alpine
+	ARG import_dir = ./imports
+	ARG export_dir = exports
+	WORKDIR /work
+	COPY +test-base/nsc /usr/local/bin
+	COPY --dir $import_dir .
+	RUN nsc add operator --url ./$export_dir/O*.jwt
+	RUN for a in ./$export_dir/A*.jwt ; do nsc import account --file $a ; done
+	RUN for u in ./$export_dir/U*.jwt ; do nsc import user --file $u ; done
+	RUN nsc import keys --dir ./$export_dir
+
+	RUN --interactive /bin/sh --login
+
+import-ubuntu:
+	FROM $ubuntu
+	ARG import_dir = ./imports
+	ARG export_dir = exports
+	WORKDIR /work
+	COPY +test-base/nsc /usr/local/bin
+	COPY --dir $import_dir .
+	RUN nsc add operator --url ./$export_dir/O*.jwt
+	RUN for a in ./$export_dir/A*.jwt ; do nsc import account --file $a ; done
+	RUN for u in ./$export_dir/U*.jwt ; do nsc import user --file $u ; done
+	RUN nsc import keys --dir ./$export_dir
+
+	RUN --interactive /bin/bash --login

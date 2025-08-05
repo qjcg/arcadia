@@ -1,0 +1,66 @@
+* Packages to Add
+
+
+** Basics
+*** Standard Library
+- [ ] sync.WaitGroup
+
+*** Logging
+- [X] slog
+
+*** Config
+- [ ] viper
+- [ ] viper-remote-config
+- [ ] flag
+
+*** Testing
+- [X] testcontainers
+
+
+** Multimedia
+*** Images
+
+*** Video
+
+*** Visualizations
+
+
+** Docs
+- [ ] markdown
+- [ ] org-mode
+- [ ] pdf
+
+
+** App Foundations
+
+*** Layered Architecture
+- [ ] Controller
+- [ ] Repository (Store)
+- [ ] Service
+
+*** Database
+
+*** NATS
+
+- [ ] websocket
+
+
+** Web
+*** TLS
+
+** CLI Tools
+- [X] cobra
+- [X] bonzai
+- [ ] survey
+
+** Games
+- [ ] ebiten
+
+** Blockchain
+- [ ] bitcoin
+- [ ] ethereum
+- [ ] gnoland
+
+** AI
+- [ ] openai
+- [ ] ollama

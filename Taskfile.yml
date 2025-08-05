@@ -1,0 +1,16 @@
+# https://taskfile.dev
+
+version: '3'
+
+shopt: [globstar]
+
+tasks:
+  default:
+    - task: test
+    - task: vuln
+    - task: fmt
+
+  fmt: go tool gofumpt -w .
+  test: go test ./...
+  vuln: go tool govulncheck ./...
+  lint:editorconfig: go tool editorconfig-checker

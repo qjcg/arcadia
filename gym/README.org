@@ -1,0 +1,7 @@
+* gym
+
+A place for learning.
+
+Mainly a place to track exercises and tutorials I work through for my own benefit.
+
+If you find anything here useful too, that's great!

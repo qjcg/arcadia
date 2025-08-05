@@ -1,0 +1,11 @@
+out/
+*.db
+*.sqlite
+.env
+internal/playwright/*.png
+c.out
+.task
+thirdparty/playwright/*.png
+.task
+
+dist/

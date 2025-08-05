@@ -1,0 +1,7 @@
+dude
+*.swp
+*.rpm
+*.deb
+*.pkg.tar.xz
+*.1
+*.1.gz
