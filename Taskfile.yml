@@ -9,6 +9,7 @@ tasks:
     - task: test
     - task: vuln
     - task: fmt
+    - task: lint:editorconfig
 
   fmt: go tool gofumpt -w .
   test: go test ./...
