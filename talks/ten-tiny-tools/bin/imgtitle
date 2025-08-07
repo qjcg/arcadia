@@ -1,0 +1,18 @@
+#!/bin/bash
+# Caption image files, e.g. for use in sent presentations.
+
+image=${1:?Must provide an image file.}
+caption="${2:?Must provide a caption.}"
+offset="${3:-+0+50}"
+pointsize="${4:-140}"
+outdir="captioned"
+
+
+convert $image \
+	-fill White \
+	-undercolor '#000000c0' \
+	-gravity North \
+	-font 'Inconsolata' \
+	-pointsize $pointsize \
+	-annotate $offset "$caption" \
+	${outdir}/${image}

@@ -1,0 +1,26 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  SLIDES: ./slides.typ
+  TEMPLATE: ./template.typ
+  SLIDES_PDF: '{{.SLIDES | replace ".typ" ".pdf" }}'
+
+tasks:
+  default:
+    cmds:
+      - task: build
+
+  build:
+    aliases: [compile]
+    sources:
+      - "{{.SLIDES}}"
+      - "{{.TEMPLATE}}"
+    generates:
+      - "{{.SLIDES_PDF}}"
+    cmds:
+      - typst compile {{.SLIDES}}
+
+  watch: typst watch {{.SLIDES}}
+  clean: rm -f {{.SLIDES_PDF}}

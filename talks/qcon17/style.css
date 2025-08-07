@@ -1,0 +1,15 @@
+.slide-content {
+  max-height: 6000px;
+  overflow: visible;
+}
+
+#slide-1 {
+  background: url("imgs/gopher_tr.png");
+  background-size: cover;
+  text-align: center;
+}
+
+#slide-3 {
+  #background: url("imgs/magic_carpet_tr.png");
+  #background-size: cover;
+}

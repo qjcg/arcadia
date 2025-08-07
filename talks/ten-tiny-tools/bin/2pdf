@@ -1,0 +1,53 @@
+#!/bin/bash
+# Convert sent-formatted slides to PDF.
+
+slidesFile=${1:?Must provide slides file as argument.}
+dependencies=(xdotool sent import convert)
+screenshotDir=screenshots
+screenshotDelay=1
+
+# Calculate number of slides from number of
+# non-consecutive empty lines.
+# Add 1 to subshell result, since last slide in
+# file won't have an empty line after it.
+nslides=$(( 1 + $(uniq $slidesFile | grep '^$' | wc -l) ))
+
+
+# Check dependencies.
+for tool in ${dependencies[@]}; do
+	if ! hash $tool 2>/dev/null; then
+		echo Missing dependency: $tool
+		exit 1
+	fi
+done
+
+# Toggle dwm statusbar (to keep it out of
+# screenshots). Assumes statusbar is enabled
+# before this script is run.
+xdotool key Super+b
+
+# Start presentation.
+sent $slidesFile &
+
+# Loop over slides and take a screenshot of each.
+# Insert delays via sleep to prevent incorrect screenshots.
+# Remove any old images in screenshotDir.
+mkdir -p $screenshotDir
+rm -f $screenshotDir/*
+sleep $screenshotDelay
+for i in $(seq -w $nslides); do
+	import -window root ${screenshotDir}/${i}.png
+
+	# Move to next slide.
+	xdotool key n
+	sleep $screenshotDelay
+done
+
+# End presentation.
+xdotool key q
+
+# Generate PDF from screenshots.
+convert ${screenshotDir}/*.png ${slidesFile/.sent/.pdf}
+
+# Toggle statusbar.
+xdotool key Super+b

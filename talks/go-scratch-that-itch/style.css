@@ -1,0 +1,44 @@
+.slide-content img.slimg {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+
+  max-height: 400px;
+  width: auto;
+}
+
+.slide-content img.bioimg {
+  float: right;
+  max-height: 425px;
+  width: auto;
+}
+
+.gsti {
+  background-color: darkblue;
+  color: white;
+}
+
+.cat {
+  background-image: url("img/cat2.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+.tdist {
+  background-image: url("img/tdist.jpg");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+.gomoving {
+  background-image: url("img/gomoving2.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+h1, h2, h3 {
+  font-family: "Droid Sans", "Helvetica Nueue", Arial, sans-serif;
+}

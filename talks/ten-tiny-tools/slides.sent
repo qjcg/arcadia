@@ -1,0 +1,140 @@
+@imgs/captioned/old-toolsL.jpg
+
+What?
+
+Carpentry
+
+Itches
+
+
+How?
+
+"JFDI"
+Just Effin Do It!
+jenniferdewalt.com
+
+New Jersey Style
+"Worse is Better"
+Keep the surface area small
+Prefer fewer moving parts
+
+Done is better
+than perfect
+
+suckless.org
+
+UNIX PHILOSOPHY
+- Write programs that do one thing and do it well.
+- Write programs to work together.
+- Write programs to handle text streams, because
+  that is a universal interface.
+-- Peter H. Salus, A Quarter Century of Unix (1994)
+
+Go is
+Short & Simple for
+Moving & Doing
+
+@imgs/diary.jpg
+
+
+This is
+ALPHA CODE!
+
+Hope you like it :)
+
+"I don't f*ing care
+if you like it!"
+-- Amy Poehler
+
+Ain't gonna
+win no beauty
+contest...
+
+NOT "Your code sucks!"
+BUT "Your code sucks because..."
+AND Patches welcome ;)
+
+github.com/qjcg/___
+
+
+  On to
+the tools...
+
+1. 4d
+Enumerate the
+4th dimension
+
+
+2. horeb
+Speak in tongues
+
+@imgs/captioned/templeos_oracle.png
+
+
+3. megarepo
+Download github
+repos as submodules
+
+
+4. diplomat
+Generate PDF diplomas
+
+
+5. mtlcam
+Download traffic
+cam images
+
+
+6. rps (epicrps)
+Rock Paper Scissors Forever
+(library + cmd)
+
+
+7. servant
+Simply Serve HTTP
+
+
+8. brightness
+Control screen brightness
+
+
+9. elx
+A simple static
+site generator.
+
+
+10. dude
+Table of contents
+and single-section-view
+for man pages.
+
+
+
+
+Takeaways:
+- Go is short & simple, for moving & doing
+- JFDI & GSTI
+- Be humble & keep learning
+- Share! Most of these ten tools
+  were only made public on GitHub today
+
+
+In Conclusion...
+
+
+1. Patches welcome, let's hack together
+
+2. When you get a software itch:
+
+	 REPO
+	README
+	LICENSE
+	  GO!
+
+3. Now tell me about YOUR tools!
+
+Thank you & follow me!
+  Twitter: @jgosset_
+     GitHub: @qjcg
+       LinkedIn: 
+linkedin.com/in/gossetj

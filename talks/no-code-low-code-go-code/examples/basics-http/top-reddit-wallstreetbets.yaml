@@ -1,0 +1,12 @@
+input:
+  http_client:
+    url: https://tradestie.com/api/v1/apps/reddit
+
+pipeline:
+  processors:
+    - unarchive:
+        format: json_array
+
+    - mapping: |
+        root = this
+        root.yolo = true
