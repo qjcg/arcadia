@@ -1,4 +1,5 @@
 //go:build integration
+
 package script_test
 
 import (

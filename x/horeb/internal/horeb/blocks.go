@@ -19,7 +19,6 @@ type UnicodeBlock struct {
 
 // Blocks is a map of short string labels to UnicodeBlock values.
 var Blocks = map[string]UnicodeBlock{
-
 	// Basic Multilingual Plane (0000-ffff)
 	// https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane
 	"hebrew":         {0x0590, 0x05ff},
