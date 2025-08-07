@@ -8,5 +8,5 @@ A magnificent monorepo containing multitudes.
 
 ** Layout
 
-- ~examples~: Various examples.
-- ~x~: eXperimental commands. Unstable, may change at any time.
+- [[examples][examples]]: Various examples.
+- [[x][x]]: eXperimental commands. Unstable, may change at any time.
