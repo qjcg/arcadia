@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/qjcg/horeb/internal/horeb"
+	"github.com/qjcg/arcadia/x/horeb/internal/horeb"
 	"github.com/samber/mo"
 	"golang.org/x/exp/slog"
 )
