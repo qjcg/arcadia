@@ -1,4 +1,4 @@
-package horeb
+package blocks
 
 import (
 	"testing"

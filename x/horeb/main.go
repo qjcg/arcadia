@@ -5,11 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"math/rand"
 	"os"
 	"time"
 
-	"github.com/qjcg/arcadia/x/horeb/internal/horeb"
+	"github.com/qjcg/arcadia/x/horeb/internal/blocks"
 	"github.com/samber/mo"
 	"golang.org/x/exp/slog"
 )
@@ -71,8 +70,6 @@ func main() {
 }
 
 func Main() int {
-	rand.Seed(time.Now().UnixNano())
-
 	conf, err := getConf(os.Stderr, os.Args[1:]).Get()
 	if err != nil {
 		slog.Error("error getting flags", err)
@@ -88,20 +85,20 @@ func Main() int {
 	if conf.blocks[0] == "all" {
 		// remove "all" value after use
 		conf.blocks = conf.blocks[:0]
-		for k := range horeb.Blocks {
+		for k := range blocks.Blocks {
 			conf.blocks = append(conf.blocks, k)
 		}
 	}
 
 	switch {
 	case *conf.listBlocks:
-		horeb.ListBlocks(os.Stdout)
+		blocks.ListBlocks(os.Stdout)
 	case *conf.listBlocksWithContents:
-		horeb.ListBlocksWithContents(os.Stdout)
+		blocks.ListBlocksWithContents(os.Stdout)
 
 	// PrintRandom or StreamRandom from a _single_ block.
 	case len(conf.blocks) == 1:
-		b, ok := horeb.Blocks[conf.blocks[0]]
+		b, ok := blocks.Blocks[conf.blocks[0]]
 		if !ok {
 			err := errors.New("unknown block")
 			slog.Error("Unknown block", err, "block", conf.blocks[0])
@@ -116,9 +113,9 @@ func Main() int {
 
 	// Print a RandomRune or stream from two or more blocks.
 	case len(conf.blocks) > 1:
-		bm := map[string]horeb.UnicodeBlock{}
+		bm := map[string]blocks.UnicodeBlock{}
 		for _, b := range conf.blocks {
-			val, ok := horeb.Blocks[b]
+			val, ok := blocks.Blocks[b]
 			if !ok {
 				slog.Warn("Unknown block", "block", b)
 				continue
@@ -131,7 +128,7 @@ func Main() int {
 				ticker := time.NewTicker(*conf.streamDelay)
 				for range ticker.C {
 
-					block, err := horeb.RandomBlock(bm)
+					block, err := blocks.RandomBlock(bm)
 					if err != nil {
 						slog.Error("Error getting random block", err)
 						return 1
@@ -140,7 +137,7 @@ func Main() int {
 				}
 			} else {
 				for i := 0; i < *conf.nChars; i++ {
-					block, err := horeb.RandomBlock(bm)
+					block, err := blocks.RandomBlock(bm)
 					if err != nil {
 						slog.Error("Error getting random block", err)
 						return 1
