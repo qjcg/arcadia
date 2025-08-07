@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+<link rel="stylesheet" href="leaflet.css">
+<script src="leaflet.js"></script>
+
+<div id="map1" style="height: 500px;"></div>
+<script>
+ {
+  const lat = 45.5
+  const long = -73.6
+  const zoomLevel = 12
+  const points = [{"title":"Bonsecours Market","description":"350 Rue Saint-Paul E, Montréal, QC H2Y 1H2","lat":"45.5089549","long":"-73.5540657"}]
+  const map = L.map("map1").setView([lat, long], zoomLevel)
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+   attribution: '<a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
+   maxZoom: 18
+  }).addTo(map)
+  points.forEach(point => {
+   L.marker([point.lat, point.long])
+    .addTo(map)
+    .bindPopup("<b>" +point.title + "</b><br />" + point.description)
+  })
+ }
+</script>
+</body>
+</html>

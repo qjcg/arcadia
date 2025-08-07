@@ -1,0 +1,24 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task: build
+
+  install:
+    cmds:
+      - bun install
+
+  build:
+    sources:
+      - '**/*.scroll'
+    generates:
+      - '*/main.html'
+    cmds:
+      - bunx scroll list | bunx scroll build
+
+  clean:
+    cmds:
+      - rm -rf */main.html

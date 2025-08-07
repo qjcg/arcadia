@@ -1,0 +1,17 @@
+replace TITLE An example stamp
+
+// stamp is a mini-language for project templates
+// See https://scroll.pub/blog/stamp.html
+
+stamp
+ build/
+  .gitignore
+   *.html
+  README.md
+   # TITLE
+   
+   Welcome to my great README!
+   
+   I hope you enjoy it :)
+  main.go
+   import main.go

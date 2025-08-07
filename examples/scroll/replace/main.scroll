@@ -1,0 +1,7 @@
+replace SOME_DATA
+ - foo
+  https://example.com/foo
+ - bar
+  https://example.com/bar
+
+SOME_DATA

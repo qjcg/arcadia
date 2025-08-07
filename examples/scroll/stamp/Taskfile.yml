@@ -1,0 +1,43 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  SCROLL: main.scroll
+  TXTAR: main_comparison.txtar
+  HTML: '{{.SCROLL | replace ".scroll" ".html"}}'
+  OUTDIR: build
+  OUTDIR_TXTAR: build_txtar
+
+tasks:
+  default:
+    cmds:
+      - task: build
+
+  build:
+    sources:
+      - '{{.SCROLL}}'
+    generates:
+      - '{{.OUTDIR}}/.gitignore'
+      - '{{.OUTDIR}}/**.md'
+      - '{{.OUTDIR}}/**.go'
+      - '{{.HTML}}'
+    cmds:
+      - bunx scroll build
+
+  build:txtar:
+    sources:
+      - '{{.TXTAR}}'
+    generates:
+      - '{{.OUTDIR_TXTAR}}/.gitignore'
+      - '{{.OUTDIR_TXTAR}}/**.md'
+      - '{{.OUTDIR_TXTAR}}/**.go'
+      - '{{.HTML}}'
+    cmds:
+      - txtar -extract <{{.TXTAR}}
+    env:
+      OUTDIR: '{{.OUTDIR_TXTAR}}'
+
+  clean:
+    cmds:
+      - rm -rf {{.OUTDIR}} {{.OUTDIR_TXTAR}} {{.HTML}}

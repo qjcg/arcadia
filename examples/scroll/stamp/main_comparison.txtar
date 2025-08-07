@@ -1,0 +1,20 @@
+// A txtar archive that mirrors the stamp implementation, for comparison.
+
+-- $OUTDIR/.gitignore --
+*.html
+
+-- $OUTDIR/README.md --
+# TITLE
+   
+Welcome to my great README!
+   
+I hope you enjoy it :)
+
+-- $OUTDIR/main.go --
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello, txtar!")
+}
