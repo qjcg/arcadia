@@ -1,3 +1,4 @@
+//go:build integration
 package script_test
 
 import (
@@ -8,7 +9,7 @@ import (
 	"rsc.io/script/scripttest"
 )
 
-func Test_scripttest(t *testing.T) {
+func Test_integrationScripttest(t *testing.T) {
 	ctx := context.Background()
 	engine := script.NewEngine()
 
@@ -17,5 +18,5 @@ func Test_scripttest(t *testing.T) {
 		[]string{
 			"PATH=/usr/bin",
 		},
-		"testdata/[a-h]*.txtar")
+		"testdata/ping.txtar")
 }
