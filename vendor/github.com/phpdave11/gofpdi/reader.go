@@ -6,12 +6,13 @@ import (
 	"compress/zlib"
 	"encoding/binary"
 	"fmt"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"math"
 	"os"
 	"strconv"
+
+	"github.com/pkg/errors"
 )
 
 type PdfReader struct {
@@ -31,12 +32,12 @@ type PdfReader struct {
 	pageCount      int
 }
 
-func NewPdfReaderFromStream(rs io.ReadSeeker) (*PdfReader, error) {
+func NewPdfReaderFromStream(sourceFile string, rs io.ReadSeeker) (*PdfReader, error) {
 	length, err := rs.Seek(0, 2)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to determine stream length")
 	}
-	parser := &PdfReader{f: rs, nBytes: length}
+	parser := &PdfReader{f: rs, sourceFile: sourceFile, nBytes: length}
 	if err := parser.init(); err != nil {
 		return nil, errors.Wrap(err, "Failed to initialize parser")
 	}
@@ -1137,11 +1138,18 @@ func (this *PdfReader) readXref() error {
 				return errors.New("Expected objStatus to be 'n' or 'f', got: " + objStatus)
 			}
 
-			// Append map[int]int
-			this.xref[i] = make(map[int]int, 1)
+			// Since the XREF table is read from newest to oldest, make sure an xref entry does not already exist for an object.
+			// If it already exists, that means a newer version of the object has already been added to the table.
+			// Replacing it would be using the old version of the object.
+			// https://github.com/phpdave11/gofpdi/issues/71
+			_, ok := this.xref[i]
+			if !ok {
+				// Append map[int]int
+				this.xref[i] = make(map[int]int, 1)
 
-			// Set object id, generation, and position
-			this.xref[i][objGen] = objPos
+				// Set object id, generation, and position
+				this.xref[i][objGen] = objPos
+			}
 		}
 	}
 

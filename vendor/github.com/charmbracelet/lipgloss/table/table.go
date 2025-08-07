@@ -1,3 +1,4 @@
+// Package table provides a styled table renderer for terminals.
 package table
 
 import (
@@ -346,16 +347,25 @@ func (t *Table) constructBottomBorder() string {
 // constructHeaders constructs the headers for the table given it's current
 // header configuration and data.
 func (t *Table) constructHeaders() string {
+	height := t.heights[HeaderRow+1]
+
 	var s strings.Builder
 	if t.borderLeft {
 		s.WriteString(t.borderStyle.Render(t.border.Left))
 	}
 	for i, header := range t.headers {
-		s.WriteString(t.style(HeaderRow, i).
-			MaxHeight(1).
-			Width(t.widths[i]).
+		cellStyle := t.style(HeaderRow, i)
+
+		if !t.wrap {
+			header = t.truncateCell(header, HeaderRow, i)
+		}
+
+		s.WriteString(cellStyle.
+			Height(height - cellStyle.GetVerticalMargins()).
+			MaxHeight(height).
+			Width(t.widths[i] - cellStyle.GetHorizontalMargins()).
 			MaxWidth(t.widths[i]).
-			Render(ansi.Truncate(header, t.widths[i], "…")))
+			Render(t.truncateCell(header, HeaderRow, i)))
 		if i < len(t.headers)-1 && t.borderColumn {
 			s.WriteString(t.borderStyle.Render(t.border.Left))
 		}
@@ -435,8 +445,6 @@ func (t *Table) constructRow(index int, isOverflow bool) string {
 	}
 
 	for c := 0; c < t.data.Columns(); c++ {
-		cellWidth := t.widths[c]
-
 		cell := "…"
 		if !isOverflow {
 			cell = t.data.At(index, c)
@@ -444,8 +452,7 @@ func (t *Table) constructRow(index int, isOverflow bool) string {
 
 		cellStyle := t.style(index, c)
 		if !t.wrap {
-			length := (cellWidth * height) - cellStyle.GetHorizontalPadding()
-			cell = ansi.Truncate(cell, length, "…")
+			cell = t.truncateCell(cell, index, c)
 		}
 		cells = append(cells, cellStyle.
 			// Account for the margins in the cell sizing.
@@ -471,7 +478,7 @@ func (t *Table) constructRow(index int, isOverflow bool) string {
 
 	s.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, cells...) + "\n")
 
-	if t.borderRow && index < t.data.Rows()-1 {
+	if t.borderRow && index < t.data.Rows()-1 && !isOverflow {
 		s.WriteString(t.borderStyle.Render(t.border.MiddleLeft))
 		for i := 0; i < len(t.widths); i++ {
 			s.WriteString(t.borderStyle.Render(strings.Repeat(t.border.Bottom, t.widths[i])))
@@ -483,4 +490,14 @@ func (t *Table) constructRow(index int, isOverflow bool) string {
 	}
 
 	return s.String()
+}
+
+func (t *Table) truncateCell(cell string, rowIndex, colIndex int) string {
+	hasHeaders := len(t.headers) > 0
+	height := t.heights[rowIndex+btoi(hasHeaders)]
+	cellWidth := t.widths[colIndex]
+	cellStyle := t.style(rowIndex, colIndex)
+
+	length := (cellWidth * height) - cellStyle.GetHorizontalPadding() - cellStyle.GetHorizontalMargins()
+	return ansi.Truncate(cell, length, "…")
 }
