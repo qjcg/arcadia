@@ -1,0 +1,7 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default: [{task: vet}]
+  vet: cue vet data.json data-schema.cue

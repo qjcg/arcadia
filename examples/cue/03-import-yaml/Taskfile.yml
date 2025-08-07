@@ -1,0 +1,28 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default: [{task: import}]
+
+  fetch-manifest:
+    status:
+      - test -f manifest.yml
+    cmds:
+      - kubectl kustomize https://github.com/stefanprodan/podinfo/kustomize?ref={{.VERSION}} > manifest.yml
+    vars:
+      VERSION: 6.1.8
+
+  import:
+    deps: [fetch-manifest]
+    cmd: >
+      cue import manifest.yml \
+        --package podinfo \
+        --files \
+        --force \
+        --path 'KubernetesResources:' \
+        --path 'strings.ToLower(kind)' \
+        --path 'strings.ToLower(metadata.name)' \
+        --path 'deploymentEnv: common:'
+
+  clean: rm -rf manifest*.cue
