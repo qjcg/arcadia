@@ -1,0 +1,71 @@
+before:
+  hooks:
+    - go mod tidy
+
+release:
+  github:
+    owner: qjcg
+    name: horeb
+  draft: true
+  replace_existing_draft: true
+
+builds:
+  - main: ./cmd/horeb
+    ldflags:
+      - -s -w -X main.Version={{ .Version }}
+    env:
+      - CGO_ENABLED=0
+    # targets:
+    #   - go_first_class
+    goos:
+      - linux
+      - darwin
+    goamd64:
+      - v1
+      - v3
+    hooks:
+      post:
+        - upx "{{ .Path }}"
+
+archives:
+  - replacements:
+      linux: Linux
+      darwin: Darwin
+      windows: Windows
+      386: i386
+      amd64: x86_64
+    format_overrides:
+      - goos: windows
+        format: zip
+
+nfpms:
+  - maintainer: ${NFPM_MAINTAINER}
+    license: MIT
+    formats:
+      - apk
+      - deb
+      - rpm
+
+dockers:
+  - image_templates:
+      - qjcg/horeb:{{ .Version }}
+      - qjcg/horeb:latest
+
+sboms:
+  - artifacts: archive
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+# modelines, feel free to remove those if you don't want/use them:
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json

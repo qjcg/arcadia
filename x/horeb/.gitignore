@@ -1,0 +1,9 @@
+*.swp
+.dbg_history
+debug
+*.pkg.tar.xz
+build/
+result
+coverprofile.out
+.env
+dist/

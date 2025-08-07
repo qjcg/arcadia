@@ -2394,6 +2394,9 @@ github.com/protocolbuffers/txtpbfmt/wrap
 # github.com/puzpuzpuz/xsync/v3 v3.5.1
 ## explicit; go 1.18
 github.com/puzpuzpuz/xsync/v3
+# github.com/qjcg/horeb v0.15.8
+## explicit; go 1.19
+github.com/qjcg/horeb/internal/horeb
 # github.com/rakyll/hey v0.1.4
 ## explicit; go 1.13
 github.com/rakyll/hey
@@ -2498,6 +2501,12 @@ github.com/saintfish/chardet
 # github.com/sajari/fuzzy v1.0.0
 ## explicit
 github.com/sajari/fuzzy
+# github.com/samber/lo v1.38.1
+## explicit; go 1.18
+github.com/samber/lo
+# github.com/samber/mo v1.14.0
+## explicit; go 1.18
+github.com/samber/mo
 # github.com/sassoftware/relic v7.2.1+incompatible
 ## explicit
 github.com/sassoftware/relic/lib/pkcs7
@@ -3065,6 +3074,9 @@ golang.org/x/crypto/ssh/terminal
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
 golang.org/x/exp/slices
+golang.org/x/exp/slog
+golang.org/x/exp/slog/internal
+golang.org/x/exp/slog/internal/buffer
 # golang.org/x/image v0.0.0-20220302094943-723b81ca9867
 ## explicit; go 1.12
 golang.org/x/image/ccitt
