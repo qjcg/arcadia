@@ -1,6 +1,6 @@
 * Arcadia
 
-A magnificent monorepo containing multitudes.
+Magnificent monorepo containing multitudes.
 
 ** Requirements
 
