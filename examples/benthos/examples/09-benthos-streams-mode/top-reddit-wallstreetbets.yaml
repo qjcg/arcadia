@@ -1,0 +1,9 @@
+input:
+  http_client:
+    url: https://tradestie.com/api/v1/apps/reddit
+    rate_limit: reddit
+
+pipeline:
+  processors:
+    - unarchive:
+        format: json_array

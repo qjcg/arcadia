@@ -1,0 +1,11 @@
+input:
+  label: fake_slack_server
+  http_server:
+    path: /slack
+
+pipeline:
+  processors:
+    - mapping: |
+        root = this
+        root.received_on_slack = now()
+    - sync_response: {}

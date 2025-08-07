@@ -1,0 +1,28 @@
+# Benthos pipeline demonstrating the basics of `encode()`.
+#
+# See https://www.benthos.dev/docs/guides/bloblang/methods#encode
+
+input:
+  generate:
+    mapping: |
+      root = "https://www.example.com/demo?foo=some random text"
+    count: 1
+
+pipeline:
+  processors:
+    - mapping: |
+        root.content_raw = content()
+        root.content_as_base64 = content().encode("base64")
+        root.content_as_base64url = content().encode("base64url")
+        root.content_as_base64rawurl = content().encode("base64rawurl")
+        root.content_as_hex = content().encode("hex")
+        root.content_as_ascii85 = content().encode("ascii85")
+        root.received_at = now()
+
+# tests:
+#   - name: Output object should have expected values
+#     input_batch:
+#       - foo
+#     output_batches:
+#       -
+#         -

@@ -1,0 +1,24 @@
+input:
+  generate:
+    interval: 3s
+    mapping: |
+      let adjectives = file("adjectives.json").parse_json()
+      let stocks = file("stocks.json").parse_json()
+      let sayings = file("sayings.json").parse_json()
+
+      let idx = random_int(seed: timestamp_unix_nano()) % $stocks.length()
+      let stock = $stocks.index($idx)
+
+      let idx = random_int(seed: timestamp_unix_nano()) % $sayings.length()
+      let saying = $sayings.index($idx)
+
+      let idx = random_int(seed: timestamp_unix_nano()) % $adjectives.length()
+      let adjective = $adjectives.index($idx)
+
+
+      root.id = ulid()
+      root.action = ["buy", "sell", "hold"].index(random_int(seed: timestamp_unix_nano()) % 3)
+      root.received_at = now()
+      root.symbol = $stock
+      root.commentary = $saying
+      root.mood = $adjective

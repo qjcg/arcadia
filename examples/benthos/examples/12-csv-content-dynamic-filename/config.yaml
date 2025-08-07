@@ -1,0 +1,16 @@
+input:
+  label: generate_csv
+  generate:
+    count: 1
+    mapping: |
+      """ID,FIRST_NAME,EMAIL
+      1,Jerry,jerry@seinfeld.com
+      2,George,costanza@vandelay.com
+      3,Kramer,cosmo@nobagel.com
+      4,Elaine,ebenes@jpeterman.com
+      """
+
+output:
+  label: write_to_file
+  file:
+    path: ${! "demo-%d.csv".format(timestamp_unix()) }

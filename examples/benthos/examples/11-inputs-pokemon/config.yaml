@@ -1,0 +1,15 @@
+input:
+  generate:
+    mapping: |
+      root.pokemon_id = random_int(min: 1, max: 1025, seed: timestamp_unix_nano())
+    interval: 5s
+
+pipeline:
+  processors:
+    - http:
+        url: https://pokeapi.co/api/v2/pokemon/${! pokemon_id }
+        verb: GET
+
+    - mapping: |
+        root.id = this.id
+        root.name = this.name

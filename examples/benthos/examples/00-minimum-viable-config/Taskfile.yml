@@ -1,0 +1,21 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  TEST_STRING: foo
+
+tasks:
+  default:
+    aliases: [test]
+    cmds:
+      - task: test_no_config
+      - task: test_empty_config
+
+  test_no_config:
+    cmds:
+      - echo {{.TEST_STRING}} | benthos | grep {{.TEST_STRING}}
+
+  test_empty_config:
+    cmds:
+      - echo {{.TEST_STRING}} | benthos --chilled -c config.yaml | grep {{.TEST_STRING}}

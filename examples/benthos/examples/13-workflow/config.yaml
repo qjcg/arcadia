@@ -1,0 +1,27 @@
+input:
+  generate:
+    mapping: root = {}
+    interval: 3s
+
+pipeline:
+  processors:
+    - workflow:
+        order: [ [bar], [baz, foo] ]
+        branches:
+          foo:
+            processors:
+              - mapping: |
+                  root.message = "foo"
+            result_map: root = this
+
+          bar:
+            processors:
+              - mapping: |
+                  root.message = "bar"
+            result_map: root = this
+
+          baz:
+            processors:
+              - mapping: |
+                  root.message = "baz"
+            result_map: root = this

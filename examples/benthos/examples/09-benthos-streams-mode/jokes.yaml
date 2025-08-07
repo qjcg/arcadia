@@ -1,0 +1,28 @@
+input:
+  broker:
+    inputs:
+      - http_client:
+          url: https://api.chucknorris.io/jokes/random
+          rate_limit: chuck_norris
+        processors:
+          - mapping: |
+              root.source = "api.chucknorris.io"
+              root.response = this
+
+      - http_client:
+          url: "https://v2.jokeapi.dev/joke/Any?format=json"
+          rate_limit: jokes_misc
+        processors:
+          - mapping: |
+              root.source = "v2.jokeapi.dev"
+              root.response = this
+
+      - http_client:
+          url: https://icanhazdadjoke.com/
+          headers:
+            Accept: application/json
+          rate_limit: jokes_misc
+        processors:
+          - mapping: |
+              root.source = "icanhazdadjoke.com"
+              root.response = this

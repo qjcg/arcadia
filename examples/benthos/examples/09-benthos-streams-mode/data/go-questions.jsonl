@@ -1,0 +1,30 @@
+{"category": "Go questions", "question": "What is the keyword used for defining a function?", "answer": "func"}
+{"category": "Go questions", "question": "How do you declare a variable in Go?", "answer": "var"}
+{"category": "Go questions", "question": "What is the syntax to import a package in Go?", "answer": "import"}
+{"category": "Go questions", "question": "How do you run a Go program?", "answer": "go run"}
+{"category": "Go questions", "question": "What is the command to format Go code?", "answer": "go fmt"}
+{"category": "Go questions", "question": "How do you compile a Go program?", "answer": "go build"}
+{"category": "Go questions", "question": "What package is used for printing to the console?", "answer": "fmt"}
+{"category": "Go questions", "question": "What is the syntax for creating a slice in Go?", "answer": "make([]type, length, capacity)"}
+{"category": "Go questions", "question": "How do you specify that a function takes a variable number of arguments?", "answer": "..."}
+{"category": "Go questions", "question": "What is the interface that all types implement?", "answer": "interface{}"}
+{"category": "Go questions", "question": "How do you declare a constant in Go?", "answer": "const"}
+{"category": "Go questions", "question": "What is the command to get external packages in Go?", "answer": "go get"}
+{"category": "Go questions", "question": "What is the default value of an uninitialized boolean in Go?", "answer": "false"}
+{"category": "Go questions", "question": "What keyword is used to create a new instance of a struct?", "answer": "new"}
+{"category": "Go questions", "question": "How do you specify an interface in Go?", "answer": "type Name interface {}"}
+{"category": "Go questions", "question": "What is the syntax for a for loop in Go?", "answer": "for init; condition; post {}"}
+{"category": "Go questions", "question": "How do you declare a map in Go?", "answer": "map[keyType]valueType"}
+{"category": "Go questions", "question": "What is the syntax to defer the execution of a function until the surrounding function returns?", "answer": "defer"}
+{"category": "Go questions", "question": "What is the built-in function to get the length of a collection?", "answer": "len"}
+{"category": "Go questions", "question": "How do you explicitly convert a variable to another type in Go?", "answer": "Type(value)"}
+{"category": "Go questions", "question": "What is the keyword for embedding a struct within another struct?", "answer": "type StructName struct {EmbeddedStruct}"}
+{"category": "Go questions", "question": "How do you implement error handling in Go?", "answer": "if err != nil {}"}
+{"category": "Go questions", "question": "What is the syntax for a switch statement in Go?", "answer": "switch expression {}"}
+{"category": "Go questions", "question": "How can you specify a block of code to execute in case of a panic?", "answer": "defer func() { if r := recover(); r != nil {} }()"}
+{"category": "Go questions", "question": "What built-in function is used to allocate memory for a variable?", "answer": "make"}
+{"category": "Go questions", "question": "What is the syntax to declare a function that returns multiple values?", "answer": "func functionName() (type1, type2) {}"}
+{"category": "Go questions", "question": "How do you write a comment in Go?", "answer": "// for single line, /* */ for multiple lines"}
+{"category": "Go questions", "question": "What is the convention for naming packages in Go?", "answer": "lowercase, single-word names"}
+{"category": "Go questions", "question": "How do you stop the execution of a loop before it naturally terminates?", "answer": "break"}
+{"category": "Go questions", "question": "What is the syntax to update a slice?", "answer": "slice = append(slice, value)"}

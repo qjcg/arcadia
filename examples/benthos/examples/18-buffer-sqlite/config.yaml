@@ -1,0 +1,28 @@
+input:
+  generate:
+    mapping: |
+      root.id = counter()
+      root.ulid = ulid()
+      root.created_at = now()
+      root.after_sqlite = false
+    interval: 5s
+    count: 10
+
+buffer:
+  sqlite:
+    path: benthos_buffer.sqlite
+    post_processors:
+      - mapping: |
+          root = this
+          root.after_sqlite = true
+
+pipeline:
+  processors:
+    - rate_limit:
+        resource: slow_trickle
+
+rate_limit_resources:
+  - label: slow_trickle
+    local:
+      count: 1
+      interval: 1s

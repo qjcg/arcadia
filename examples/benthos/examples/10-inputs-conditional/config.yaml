@@ -1,0 +1,6 @@
+input:
+  generate:
+    count: 1
+    mapping: |
+      root.created = now()
+      root.mode = if ${DEV:1} == 1 { "dev" } else { "prod" }

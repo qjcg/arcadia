@@ -1,0 +1,27 @@
+input:
+  generate:
+    mapping: root = null
+    count: 1
+
+pipeline:
+  processors:
+    - label: http_get_uuid
+      http:
+        url: https://httpbin.org/uuid
+        verb: GET
+    - catch:
+        - log:
+            level: error
+            message: An HTTP error occurred
+
+tests:
+  # A UUID contains 32 hex digits and 4 dashes, 36 characters in total.
+  - name: UUID must be the right length
+    mocks:
+      http_get_uuid:
+        mapping: |
+          root.uuid = "11111111-2222-3333-4444-555566666666"
+    input_batch:
+      - content: null
+    output_batches:
+      - - bloblang: "this.uuid.length() == 36"

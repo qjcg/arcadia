@@ -1,0 +1,7 @@
+input:
+  generate:
+    mapping: |
+      root.id = counter()
+      root.created_at = now()
+    interval: 5s
+    batch_size: 3

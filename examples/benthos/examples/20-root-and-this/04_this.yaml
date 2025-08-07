@@ -1,0 +1,19 @@
+# Benthos pipeline demonstrating the basics of `this`.
+#
+# See https://www.benthos.dev/docs/guides/bloblang/about/#assignment
+
+input:
+  generate:
+    count: 1
+    mapping: |
+      root.greeting = "Hello Benthos!"
+      root.created_at = now()
+
+pipeline:
+  processors:
+    # The value of `this` is the JSON object produced by the `generate` input.
+    # Assigning `root = this` allows us to work with the previously generated object.
+    # In this case, we extend the `input` object by adding a new `answer` field.
+    - mapping: |
+        root = this
+        root.answer = 42

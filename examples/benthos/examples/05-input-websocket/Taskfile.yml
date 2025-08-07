@@ -1,0 +1,30 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  CONFIG: config.yaml
+  WS_ADDR: localhost:4195
+  WS_PATH: /ws
+  WS_URL: ws://{{.WS_ADDR}}{{.WS_PATH}}
+
+tasks:
+  default:
+    cmds:
+      - task: clean
+      - task: serve
+
+  serve:
+    desc: Run benthos listening for websocket input.
+    cmds:
+      - benthos -c {{.CONFIG}}
+
+  test:
+    desc: Run benthos listening for websocket input.
+    cmds:
+      - websocat {{.WS_URL}} <<< "hello world"
+
+  clean:
+    desc: Use killall to halt all running benthos processes.
+    cmds:
+      - killall benthos || true

@@ -1,0 +1,9 @@
+# Benthos pipeline demonstrating the basics of `root`.
+#
+# See https://www.benthos.dev/docs/guides/bloblang/about/#assignment
+
+input:
+  generate:
+    mapping: |
+      root = "Hello Benthos!"
+    count: 1

@@ -1,0 +1,20 @@
+rate_limit_resources:
+  - label: reddit
+    local:
+      count: 1
+      interval: 15m
+
+  - label: chuck_norris
+    local:
+      count: 1
+      interval: 5s
+
+  - label: jokes_misc
+    local:
+      count: 1
+      interval: 5s
+
+  - label: trivia
+    local:
+      count: 1
+      interval: 60s

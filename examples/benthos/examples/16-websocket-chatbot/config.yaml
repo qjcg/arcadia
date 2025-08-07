@@ -1,0 +1,47 @@
+input:
+  http_server:
+    ws_path: /ws
+    ws_welcome_message: |
+      Welcome to the websocket chatbot. Enter "/?" for help.
+
+pipeline:
+  processors:
+    - mapping: |
+        meta username = "%s%d".format(fake("first_name"), random_int(min: 1, max: 99))
+        meta message_raw = content().string().trim()
+        meta command = content().string().trim().split(" ").index(0)
+        meta message = content().string().trim().split(" ").slice(1).join(" ")
+
+    - mapping: |
+        root = "***> %s has joined the chat!".format(meta("username"))
+
+    - switch:
+        - check: meta("command") == "/?"
+          processors:
+            - mapping: |
+                root = """Chatbot Help
+
+                /mirror <message> - mirror input message
+                /upper <message> - return text uppercased
+                /me <message> - perform an action as your user
+                <default> - print random int
+
+                """
+
+        - check: meta("command") == "/mirror"
+          processors:
+            - mapping: |
+                root = meta("message")
+
+        - check: meta("command") == "/upper"
+          processors:
+            - mapping: |
+                root = meta("message").uppercase()
+
+        - check: meta("command") == "/me"
+          processors:
+            - mapping: |
+                root = "*%s*".format(meta("message"))
+
+        - processors:
+            - mapping: root = random_int()

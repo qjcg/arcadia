@@ -1,0 +1,13 @@
+input:
+  generate:
+    mapping: |
+      root.title = fake("sentence")
+      root.description = fake("paragraph")
+    count: 1
+
+output:
+  http_client:
+    # NOTE: Folder ID obtained via request to GET /folders with permalink filter.
+    url: https://www.wrike.com/api/v4/folders/IEABLHXAI5HWM3IS/tasks?title=${! this.title }&description=${! this.description }
+    headers:
+      Authorization: bearer ${WRIKE_PERMANENT_ACCESS_TOKEN}

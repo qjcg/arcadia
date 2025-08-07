@@ -1,0 +1,13 @@
+input:
+  file:
+    paths:
+      - data/go-questions.jsonl
+    scanner:
+      lines: {}
+
+pipeline:
+  processors:
+    - mapping: content().parse_json()
+    - mapping: |
+        root.question = this.question
+        root.answer = this.answer

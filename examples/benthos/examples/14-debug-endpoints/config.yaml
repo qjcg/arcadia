@@ -1,0 +1,14 @@
+# See https://www.benthos.dev/docs/components/http/about/#debug-endpoints
+http:
+  debug_endpoints: true
+
+input:
+  generate:
+    count: 1
+    mapping: root = {}
+
+pipeline:
+  processors:
+    - label: get_benthos_config
+      http:
+        url: http://localhost:4195/debug/config/json

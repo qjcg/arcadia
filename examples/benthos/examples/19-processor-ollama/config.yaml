@@ -1,0 +1,33 @@
+input:
+  label: generate_llm_completion_request
+  generate:
+    interval: 1s
+
+    # Ollama can be used via either its' "native" REST API or an OpenAI-compatible REST API.
+    # See:
+    #   - Native API: https://github.com/ollama/ollama/blob/main/docs/api.md
+    #   - OpenAI-compatible API: https://github.com/ollama/ollama/blob/main/docs/openai.md
+    # See also:
+    #   - OpenAPI API docs (Chat): https://platform.openai.com/docs/api-reference/chat
+    mapping: |
+      model = "llama3"
+      stream = false
+
+      messages = [
+        {"role": "system", "content": "You are a fun and quirky haiku writer. You always write haiku in the 5-7-5 style. Always respond only with the requested haiku and nothing more."},
+        {"role": "user", "content": "Write a haiku. The theme should be either one or two of the following three things: the benthos stream processing tool, the NATS message bus, and Go microservices."},
+      ]
+
+pipeline:
+  processors:
+    - label: request_llm_completion
+      http:
+        url: "${API_ENDPOINT_COMPLETIONS:http://localhost:11434/v1/chat/completions}"
+        verb: POST
+        headers:
+          Content-Type: application/json
+
+    - label: extract_completion_content
+      mapping: |
+        id = now()
+        haiku = this.choices.0.message.content

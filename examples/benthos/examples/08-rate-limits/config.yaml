@@ -1,0 +1,16 @@
+input:
+  http_client:
+    url: https://httpbingo.org/uuid
+    rate_limit: http_requests
+
+pipeline:
+  processors:
+    - mapping: |
+        root = this
+        received_at = now()
+
+rate_limit_resources:
+  - label: http_requests
+    local:
+      count: 1
+      interval: 5s

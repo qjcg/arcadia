@@ -1,0 +1,38 @@
+input:
+  generate:
+    mapping: |
+      let data = random_int(min: 1, max: 10)
+
+      meta original = $data
+      root.data = $data
+
+pipeline:
+  processors:
+    - label: validate_input
+      command:
+        name: cue
+        args_mapping: '["vet", "--concrete", "schema.cue", "-"]'
+
+    - switch:
+        - check: errored()
+          processors:
+            - label: log_invalid_input
+              log:
+                level: ERROR
+                fields_mapping: |
+                  root.data = this.data
+                  root.schema_file = "schema.cue"
+                message: ❌ Invalid message (cue validation unsuccessful)
+
+            - mapping: root = deleted()
+
+        - processors:
+            - label: log_valid_input
+              log:
+                level: INFO
+                fields_mapping: |
+                  root.data = meta("original")
+                  root.schema_file = "schema.cue"
+                message: ✅ Valid message!
+
+            - mapping: root = deleted()

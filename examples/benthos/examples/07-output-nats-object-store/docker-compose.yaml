@@ -1,0 +1,38 @@
+services:
+  nats:
+    image: nats:2-alpine
+    command:
+      - --jetstream
+    volumes:
+      - nats-obj-example:/tmp/nats/jetstream
+
+  init_nats:
+    image: natsio/nats-box:0.14.3
+    command: [nats, obj, add, $MY_BUCKET]
+    environment:
+      NATS_URL: "nats://nats:4222"
+      MY_BUCKET: EGI
+    depends_on:
+      nats:
+        condition: service_started
+
+  natsbox:
+    image: natsio/nats-box:0.14.3
+    command: sleep infinity
+    environment:
+      NATS_URL: "nats://nats:4222"
+
+  benthos:
+    image: qjcg/benthosnats
+    build: .
+    volumes:
+      - ./benthos.yaml:/benthos.yaml:ro
+    environment:
+      PATH: "/:$PATH"
+      NATS_URL: "nats://nats:4222"
+    depends_on:
+      init_nats:
+        condition: service_completed_successfully
+
+volumes:
+  nats-obj-example: {}

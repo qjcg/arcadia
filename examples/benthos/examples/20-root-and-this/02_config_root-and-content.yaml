@@ -1,0 +1,26 @@
+# Benthos pipeline demonstrating the basics of `content()`.
+#
+# See https://www.benthos.dev/docs/guides/bloblang/functions/#content
+
+input:
+  generate:
+    mapping: |
+      root = "Hello Benthos!"
+    count: 1
+
+pipeline:
+  processors:
+    - mapping: |
+        root.content_raw = content()
+        root.content_as_string = content().string()
+        root.received_at = now()
+
+tests:
+  - name: Output must match expected values
+    input_batch:
+      - content: "Hello Benthos!"
+    output_batches:
+      -
+        - json_contains:
+            content_raw: SGVsbG8gQmVudGhvcyE=
+            content_as_string: "Hello Benthos!"

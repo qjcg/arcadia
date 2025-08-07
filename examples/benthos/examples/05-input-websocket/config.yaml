@@ -1,0 +1,17 @@
+input:
+  http_server:
+    ws_path: /ws
+    ws_welcome_message: |
+      Welcome to the UPPERCASE chatbot. Enter some text and I will respond in UPPERCASE.
+
+pipeline:
+  processors:
+    - mapping: |
+        root = content().string().trim().uppercase()
+
+tests:
+  - name: Output must be uppercase
+    input_batch:
+      - content: hello benthos!
+    output_batches:
+      - - content_equals: HELLO BENTHOS!

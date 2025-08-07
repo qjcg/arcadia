@@ -1,0 +1,32 @@
+input:
+  generate:
+    count: 1
+    mapping: |
+      root = """
+      id,first_name
+      1,jerry
+      2,george
+      3,kramer
+      4,elaine
+      """
+
+pipeline:
+  processors:
+    - mapping: |
+        meta file_name = "demo-%d.csv".format(timestamp_unix())
+
+    - command:
+        name: nats
+        args_mapping: |
+          ["obj", "put", "${MY_NATS_BUCKET_NAME:DEMO}", "--name", meta("file_name")]
+
+    - switch:
+        - check: errored()
+          processors:
+            - log:
+                level: ERROR
+                message: failed writing data to NATS object store
+
+        - processors:
+            - log:
+                message: succeeded writing data to NATS object store

@@ -1,0 +1,13 @@
+input:
+  generate:
+    mapping: |
+      root.generated_at = now()
+      root.email = fake("email")
+      root.username = fake("username")
+      root.message = fake("paragraph")
+    interval: 1s
+
+output:
+  label: fake_slack_client
+  http_client:
+    url: http://localhost:4195/server/slack

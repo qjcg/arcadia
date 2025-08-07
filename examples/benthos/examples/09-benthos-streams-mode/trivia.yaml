@@ -1,0 +1,16 @@
+input:
+  broker:
+    inputs:
+      - http_client:
+          url: https://opentdb.com/api.php?amount=10
+          rate_limit: trivia
+        processors:
+          - mapping: |
+              root.source = "opentdb.com"
+              root.response = this
+
+pipeline:
+  processors:
+    - mapping: root = this.response.results
+    - unarchive:
+        format: json_array

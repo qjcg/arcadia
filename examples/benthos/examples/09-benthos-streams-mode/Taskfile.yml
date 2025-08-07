@@ -1,0 +1,16 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - benthos -r ./resources/* streams *.yaml
+
+  jokes:
+    cmds:
+      - benthos -r ./resources/* streams jokes.yaml
+
+  jokes-text:
+    cmds:
+      - benthos -r ./resources/* streams jokes.yaml
