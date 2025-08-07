@@ -15,26 +15,14 @@ builds:
       - -s -w -X main.Version={{ .Version }}
     env:
       - CGO_ENABLED=0
-    # targets:
-    #   - go_first_class
-    goos:
-      - linux
-      - darwin
-    goamd64:
-      - v1
-      - v3
+    targets:
+      - go_first_class
     hooks:
       post:
-        - upx "{{ .Path }}"
+        - test $(uname -s) != Darwin && upx "{{ .Path }}"
 
 archives:
-  - replacements:
-      linux: Linux
-      darwin: Darwin
-      windows: Windows
-      386: i386
-      amd64: x86_64
-    format_overrides:
+  - format_overrides:
       - goos: windows
         format: zip
 
@@ -45,6 +33,7 @@ nfpms:
       - apk
       - deb
       - rpm
+      - archlinux
 
 dockers:
   - image_templates:

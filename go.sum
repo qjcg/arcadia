@@ -1106,8 +1106,6 @@ github.com/protocolbuffers/txtpbfmt v0.0.0-20250627152318-f293424e46b5 h1:WWs1ZF
 github.com/protocolbuffers/txtpbfmt v0.0.0-20250627152318-f293424e46b5/go.mod h1:BnHogPTyzYAReeQLZrOxyxzS739DaTNtTvohVdbENmA=
 github.com/puzpuzpuz/xsync/v3 v3.5.1 h1:GJYJZwO6IdxN/IKbneznS6yPkVC+c3zyY/j19c++5Fg=
 github.com/puzpuzpuz/xsync/v3 v3.5.1/go.mod h1:VjzYrABPabuM4KyBh1Ftq6u8nhwY5tBPKP9jpmh0nnA=
-github.com/qjcg/horeb v0.15.8 h1:Hqk46dozwRg0vQOP8HdTuXvE7Yn9OZYNvawB6i6S65Q=
-github.com/qjcg/horeb v0.15.8/go.mod h1:ShGAJGJhrfinsO4SNB1o9uXETF7JY78GfupMZLHycxU=
 github.com/rakyll/hey v0.1.4 h1:hhc8GIqHN4+rPFZvkM9lkCQGi7da0sINM83xxpFkbPA=
 github.com/rakyll/hey v0.1.4/go.mod h1:nAOTOo+L52KB9SZq/M6J18kxjto4yVtXQDjU2HgjUPI=
 github.com/redis/go-redis/v9 v9.7.3 h1:YpPyAayJV+XErNsatSElgRZZVCwXX9QzkKYNvO7x0wM=
@@ -1174,10 +1172,6 @@ github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d h1:hrujxIzL1woJ7
 github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d/go.mod h1:uugorj2VCxiV1x+LzaIdVa9b4S4qGAcH6cbhh4qVxOU=
 github.com/sajari/fuzzy v1.0.0 h1:+FmwVvJErsd0d0hAPlj4CxqxUtQY/fOoY0DwX4ykpRY=
 github.com/sajari/fuzzy v1.0.0/go.mod h1:OjYR6KxoWOe9+dOlXeiCJd4dIbED4Oo8wpS89o0pwOo=
-github.com/samber/lo v1.38.1 h1:j2XEAqXKb09Am4ebOg31SpvzUTTs6EN3VfgeLUhPdXM=
-github.com/samber/lo v1.38.1/go.mod h1:+m/ZKRl6ClXCE2Lgf3MsQlWfh4bn1bz6CXEOxnEXnEA=
-github.com/samber/mo v1.14.0 h1:lRKVxkmlfN1m+i7kjycraJ78JdPcuxTm0pXOSh1+vl4=
-github.com/samber/mo v1.14.0/go.mod h1:BfkrCPuYzVG3ZljnZB783WIJIGk1mcZr9c9CPf8tAxs=
 github.com/sassoftware/go-rpmutils v0.4.0 h1:ojND82NYBxgwrV+mX1CWsd5QJvvEZTKddtCdFLPWhpg=
 github.com/sassoftware/go-rpmutils v0.4.0/go.mod h1:3goNWi7PGAT3/dlql2lv3+MSN5jNYPjT5mVcQcIsYzI=
 github.com/sassoftware/relic v7.2.1+incompatible h1:Pwyh1F3I0r4clFJXkSI8bOyJINGqpgjJU3DYAZeI05A=
