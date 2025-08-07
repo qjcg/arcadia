@@ -1,0 +1,166 @@
+// Copyright 2023 The CUE Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package cmd
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/spf13/cobra"
+	"golang.org/x/oauth2"
+
+	"cuelang.org/go/internal/cueconfig"
+	"cuelang.org/go/internal/httplog"
+	"cuelang.org/go/internal/mod/modresolve"
+)
+
+// TODO: We need a testscript to cover "cue login" with its oauth2 device flow.
+// Perhaps with a small net/http/httptest server to mock the basics of the oauth2 flow?
+//
+// It should also test edge cases like:
+//  * succeed whether or not a keychain is available
+//  * load either plaintext or encrypted files, preferring the encrypted one
+//  * existing login entries are kept when adding a new one
+//  * using the well-known endpoint to locate oauth2 endpoints
+//  * obtaining a new access token when it expires via the refresh token, and store the refreshed one
+//  * asking the user to re-run "cue login" if the access token expires without a refresh token
+//  * registry strings with a path prefix or an insecure option
+//
+// We will have end-to-end tests which will cover authentication with registry.cue.works,
+// but they will use an existing token stored as a secret to avoid the human device flow in "cue login".
+
+func newLoginCmd(c *Command) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "login [registry]",
+		Short: "log into a CUE registry",
+		Long: `
+Log into a CUE registry via the OAuth 2.0 Device Authorization Grant.
+Without an argument, CUE_REGISTRY is used if it points to a single registry.
+
+Use the --token flag to provide a token generated via the web interface,
+removing the need for a human to interact with the OAuth device flow.
+
+Once the authorization is successful, a token is stored in a logins.json file
+inside $CUE_CONFIG_DIR; see 'cue help environment'.
+`[1:],
+		Args: cobra.MaximumNArgs(1),
+		RunE: mkRunE(c, func(cmd *Command, args []string) error {
+			var locResolver modresolve.LocationResolver
+			var err error
+			if len(args) > 0 {
+				locResolver, err = modresolve.ParseCUERegistry(args[0], "")
+				if err != nil {
+					return err
+				}
+			} else {
+				locResolver, err = getRegistryResolver()
+				if err != nil {
+					return err
+				}
+			}
+			registryHosts := locResolver.AllHosts()
+			if len(registryHosts) > 1 {
+				return fmt.Errorf("need a single CUE registry to log into")
+			}
+			// TODO(mvdan): should we refuse to log into a CUE registry where host.Insecure==true?
+			// It is useful for local testing or debugging, but is otherwise pretty dangerous.
+			host := registryHosts[0]
+			loginsPath, err := cueconfig.LoginConfigPath(os.Getenv)
+			if err != nil {
+				return fmt.Errorf("cannot find the path to store CUE registry logins: %v", err)
+			}
+			var tok *oauth2.Token
+
+			switch tokenStr := flagToken.String(cmd); {
+			case tokenStr == "":
+				// By default, we perform the OAuth 2.0 device flow to obtain a new token.
+				// Note that we refuse to continue if the user set --token="",
+				// because that can be an easy mistake to make via --token=${UNSET_VAR}.
+				if flagToken.IsSet(cmd) {
+					return fmt.Errorf("the --token flag needs a non-empty string")
+				}
+
+				ctx := cmd.Context()
+				// Cause the oauth2 logic to log HTTP requests when logging is enabled.
+				// TODO(mvdan): test that these debug logs actually work.
+				ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{
+					Transport: httpTransport(),
+				})
+				// Elide request and response bodies because they're likely to include sensitive information.
+				ctx = httplog.RedactRequestBody(ctx, "request body can contain sensitive data when logging in")
+				ctx = httplog.RedactResponseBody(ctx, "response body can contain sensitive data when logging in")
+
+				oauthCfg := cueconfig.RegistryOAuthConfig(host)
+				resp, err := oauthCfg.DeviceAuth(ctx)
+				if err != nil {
+					return fmt.Errorf("cannot start the OAuth2 device flow: %v", err)
+				}
+				// TODO: we could try using $BROWSER or xdg-open here,
+				// falling back to the text instructions below
+				fmt.Printf("Enter the code %s via: %s\n", resp.UserCode, resp.VerificationURI)
+				fmt.Printf("Or just open: %s\n", resp.VerificationURIComplete)
+				fmt.Println()
+				tok, err = oauthCfg.DeviceAccessToken(ctx, resp)
+				if err != nil {
+					return fmt.Errorf("cannot obtain the OAuth2 token: %v", err)
+				}
+
+			case strings.HasPrefix(tokenStr, "appv1_"):
+				// appv1 tokens generated by the CUE registry are valid for one year.
+				// The token string itself does not contain the expiry timestamp,
+				// so we don't store any such timestamp in the logins.json file.
+				tok = &oauth2.Token{AccessToken: tokenStr}
+
+			case tokenStr == "stdin", tokenStr == "clipboard":
+				// Since tokens easily get long and hard to input or paste directly,
+				// other tools support password or token flags which accept stdin.
+				// Reserve special token strings to consume stdin or the clipboard.
+				fallthrough
+
+			default:
+				// For now, reject any unknown token formats.
+				// We could consider handling any arbitrary access tokens just like
+				// we do appv1, only storing the access token and nothing else,
+				// but for now that doesn't seem to be necessary.
+				return fmt.Errorf("unknown token format, expected an appv1_ prefix")
+			}
+
+			// For consistency, store timestamps in UTC.
+			tok.Expiry = tok.Expiry.UTC()
+			// OAuth2 measures expiry in seconds via the expires_in JSON wire format field,
+			// so any sub-second units add unnecessary verbosity.
+			tok.Expiry = tok.Expiry.Truncate(time.Second)
+
+			_, err = cueconfig.UpdateRegistryLogin(loginsPath, host.Name, tok)
+			if err != nil {
+				return fmt.Errorf("cannot store CUE registry logins: %v", err)
+			}
+			fmt.Printf("Login for %s stored in %s\n", host.Name, loginsPath)
+			// TODO: Once we support encryption, we should print a warning if it's not available.
+			return nil
+		}),
+	}
+	cmd.Flags().String(string(flagToken), "",
+		"provide an access token rather than starting the OAuth device flow")
+	return cmd
+}
+
+const (
+	flagToken flagName = "token"
+)

@@ -10,8 +10,10 @@ tasks:
     - task: vuln
     - task: fmt
     - task: lint:editorconfig
+    - task: vendor
 
   fmt: go tool gofumpt -w .
   test: go test ./...
   vuln: go tool govulncheck ./...
   lint:editorconfig: go tool editorconfig-checker
+  vendor: go mod vendor

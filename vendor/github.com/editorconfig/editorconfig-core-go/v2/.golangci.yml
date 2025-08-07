@@ -1,0 +1,40 @@
+linters-settings:
+  depguard:
+    rules:
+      main:
+        files:
+        - "!**/internal/**/*.go"
+        - "!$test"
+        allow:
+        - $gostd
+        - "github.com/editorconfig/editorconfig-core-go/v2"
+        - "github.com/hashicorp/go-multierror"
+        - "golang.org/x/mod/semver"
+        - "gopkg.in/ini.v1"
+        deny: []
+      internal:
+        files:
+        - "**/internal/**/*.go"
+        - "!$test"
+        allow:
+        - $gostd
+        - "github.com/google/go-cmp"
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/editorconfig/editorconfig-core-go)
+  cyclop:
+    max-complexity: 15
+    package-average: 10
+
+linters:
+  enable-all: true
+  disable:
+    - exhaustruct
+    - mnd
+    - tagliatelle
+    - tenv
+    - typecheck
+    - varnamelen
+  fast: false
