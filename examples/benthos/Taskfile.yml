@@ -2,11 +2,8 @@
 
 version: '3'
 
-tasks:
-  default:
-    cmds:
-      - task: test
+shopt: [globstar]
 
-  test:
-    cmds:
-      - benthos test ./examples/*/*.yaml
+tasks:
+  default: [{task: test}]
+  test: benthos test ./**/*.yaml
