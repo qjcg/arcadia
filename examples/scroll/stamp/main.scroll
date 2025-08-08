@@ -9,9 +9,15 @@ stamp
    *.html
   README.md
    # TITLE
-   
+
    Welcome to my great README!
-   
+
    I hope you enjoy it :)
   main.go
-   import main.go
+   package main
+
+   import "fmt"
+
+   func main() {
+     fmt.Println("Hello, stamp!")
+   }
