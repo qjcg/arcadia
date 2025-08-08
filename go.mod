@@ -32,12 +32,15 @@ require (
 	github.com/rwxrob/bonzai/cmds/help v0.8.2
 	github.com/rwxrob/bonzai/comp v0.10.0
 	github.com/rwxrob/bonzai/vars v0.12.0
+	github.com/samber/lo v1.38.1
+	github.com/samber/mo v1.14.1
 	github.com/signintech/gopdf v0.33.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/testcontainers/testcontainers-go v0.38.0
 	github.com/testcontainers/testcontainers-go/modules/nats v0.38.0
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
 	golang.org/x/text v0.27.0
 	rsc.io/script v0.0.2
 )
@@ -521,7 +524,6 @@ require (
 	go.yaml.in/yaml/v3 v3.0.3 // indirect
 	gocloud.dev v0.42.0 // indirect
 	golang.org/x/crypto v0.40.0 // indirect
-	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	golang.org/x/image v0.0.0-20220302094943-723b81ca9867 // indirect
 	golang.org/x/mod v0.26.0 // indirect
 	golang.org/x/net v0.42.0 // indirect
