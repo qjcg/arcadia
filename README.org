@@ -1,5 +1,7 @@
 * Arcadia
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/qjcg/arcadia.svg)](https://pkg.go.dev/github.com/qjcg/arcadia)
+
 Magnificent monorepo containing multitudes.
 
 ** Requirements
