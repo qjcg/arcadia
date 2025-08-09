@@ -18,3 +18,11 @@ tasks:
   vuln: go tool govulncheck ./...
   lint:editorconfig: go tool editorconfig-checker
   vendor: go mod vendor
+
+  tag:
+    desc: Add next semver git tag
+    cmds:
+      - echo git tag -a -m {{.TAG_NEXT}} {{.TAG_NEXT}}
+    vars:
+      TAG_NEXT:
+        sh: go tool svu next
