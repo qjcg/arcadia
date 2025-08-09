@@ -41,10 +41,20 @@ func TrustedFSFromTrustedSource(ts TrustedSource) TrustedFS {
 	return TrustedFS{fsys: os.DirFS(ts.src)}
 }
 
+// Sub returns a TrustedFS at a subdirectory of the receiver.
+// It works by calling fs.Sub on the receiver's fs.FS.
+func (tf TrustedFS) Sub(dir TrustedSource) (TrustedFS, error) {
+	subfs, err := fs.Sub(tf.fsys, dir.String())
+	return TrustedFS{fsys: subfs}, err
+}
+
 // ParseFS is like ParseFiles or ParseGlob but reads from the TrustedFS
 // instead of the host operating system's file system.
 // It accepts a list of glob patterns.
 // (Note that most file names serve as glob patterns matching only themselves.)
+//
+// The same behaviors listed for ParseFiles() apply to ParseFS too (e.g. using the base name
+// of the file as the template name).
 func ParseFS(tfs TrustedFS, patterns ...string) (*Template, error) {
 	return parseFS(nil, tfs.fsys, patterns)
 }
@@ -53,6 +63,9 @@ func ParseFS(tfs TrustedFS, patterns ...string) (*Template, error) {
 // instead of the host operating system's file system.
 // It accepts a list of glob patterns.
 // (Note that most file names serve as glob patterns matching only themselves.)
+//
+// The same behaviors listed for ParseFiles() apply to ParseFS too (e.g. using the base name
+// of the file as the template name).
 func (t *Template) ParseFS(tfs TrustedFS, patterns ...string) (*Template, error) {
 	return parseFS(t, tfs.fsys, patterns)
 }

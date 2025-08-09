@@ -35,16 +35,23 @@ type FeedDefs_FeedViewPost struct {
 	Post        *FeedDefs_PostView            `json:"post" cborgen:"post"`
 	Reason      *FeedDefs_FeedViewPost_Reason `json:"reason,omitempty" cborgen:"reason,omitempty"`
 	Reply       *FeedDefs_ReplyRef            `json:"reply,omitempty" cborgen:"reply,omitempty"`
+	// reqId: Unique identifier per request that may be passed back alongside interactions.
+	ReqId *string `json:"reqId,omitempty" cborgen:"reqId,omitempty"`
 }
 
 type FeedDefs_FeedViewPost_Reason struct {
 	FeedDefs_ReasonRepost *FeedDefs_ReasonRepost
+	FeedDefs_ReasonPin    *FeedDefs_ReasonPin
 }
 
 func (t *FeedDefs_FeedViewPost_Reason) MarshalJSON() ([]byte, error) {
 	if t.FeedDefs_ReasonRepost != nil {
 		t.FeedDefs_ReasonRepost.LexiconTypeID = "app.bsky.feed.defs#reasonRepost"
 		return json.Marshal(t.FeedDefs_ReasonRepost)
+	}
+	if t.FeedDefs_ReasonPin != nil {
+		t.FeedDefs_ReasonPin.LexiconTypeID = "app.bsky.feed.defs#reasonPin"
+		return json.Marshal(t.FeedDefs_ReasonPin)
 	}
 	return nil, fmt.Errorf("cannot marshal empty enum")
 }
@@ -58,6 +65,9 @@ func (t *FeedDefs_FeedViewPost_Reason) UnmarshalJSON(b []byte) error {
 	case "app.bsky.feed.defs#reasonRepost":
 		t.FeedDefs_ReasonRepost = new(FeedDefs_ReasonRepost)
 		return json.Unmarshal(b, t.FeedDefs_ReasonRepost)
+	case "app.bsky.feed.defs#reasonPin":
+		t.FeedDefs_ReasonPin = new(FeedDefs_ReasonPin)
+		return json.Unmarshal(b, t.FeedDefs_ReasonPin)
 
 	default:
 		return nil
@@ -72,6 +82,7 @@ type FeedDefs_GeneratorView struct {
 	AcceptsInteractions *bool                              `json:"acceptsInteractions,omitempty" cborgen:"acceptsInteractions,omitempty"`
 	Avatar              *string                            `json:"avatar,omitempty" cborgen:"avatar,omitempty"`
 	Cid                 string                             `json:"cid" cborgen:"cid"`
+	ContentMode         *string                            `json:"contentMode,omitempty" cborgen:"contentMode,omitempty"`
 	Creator             *ActorDefs_ProfileView             `json:"creator" cborgen:"creator"`
 	Description         *string                            `json:"description,omitempty" cborgen:"description,omitempty"`
 	DescriptionFacets   []*RichtextFacet                   `json:"descriptionFacets,omitempty" cborgen:"descriptionFacets,omitempty"`
@@ -92,9 +103,11 @@ type FeedDefs_GeneratorViewerState struct {
 // FeedDefs_Interaction is a "interaction" in the app.bsky.feed.defs schema.
 type FeedDefs_Interaction struct {
 	Event *string `json:"event,omitempty" cborgen:"event,omitempty"`
-	// feedContext: Context on a feed item that was orginally supplied by the feed generator on getFeedSkeleton.
+	// feedContext: Context on a feed item that was originally supplied by the feed generator on getFeedSkeleton.
 	FeedContext *string `json:"feedContext,omitempty" cborgen:"feedContext,omitempty"`
 	Item        *string `json:"item,omitempty" cborgen:"item,omitempty"`
+	// reqId: Unique identifier per request that may be passed back alongside interactions.
+	ReqId *string `json:"reqId,omitempty" cborgen:"reqId,omitempty"`
 }
 
 // FeedDefs_NotFoundPost is a "notFoundPost" in the app.bsky.feed.defs schema.
@@ -117,6 +130,7 @@ type FeedDefs_PostView struct {
 	IndexedAt     string                             `json:"indexedAt" cborgen:"indexedAt"`
 	Labels        []*comatprototypes.LabelDefs_Label `json:"labels,omitempty" cborgen:"labels,omitempty"`
 	LikeCount     *int64                             `json:"likeCount,omitempty" cborgen:"likeCount,omitempty"`
+	QuoteCount    *int64                             `json:"quoteCount,omitempty" cborgen:"quoteCount,omitempty"`
 	Record        *util.LexiconTypeDecoder           `json:"record" cborgen:"record"`
 	ReplyCount    *int64                             `json:"replyCount,omitempty" cborgen:"replyCount,omitempty"`
 	RepostCount   *int64                             `json:"repostCount,omitempty" cborgen:"repostCount,omitempty"`
@@ -127,6 +141,7 @@ type FeedDefs_PostView struct {
 
 type FeedDefs_PostView_Embed struct {
 	EmbedImages_View          *EmbedImages_View
+	EmbedVideo_View           *EmbedVideo_View
 	EmbedExternal_View        *EmbedExternal_View
 	EmbedRecord_View          *EmbedRecord_View
 	EmbedRecordWithMedia_View *EmbedRecordWithMedia_View
@@ -136,6 +151,10 @@ func (t *FeedDefs_PostView_Embed) MarshalJSON() ([]byte, error) {
 	if t.EmbedImages_View != nil {
 		t.EmbedImages_View.LexiconTypeID = "app.bsky.embed.images#view"
 		return json.Marshal(t.EmbedImages_View)
+	}
+	if t.EmbedVideo_View != nil {
+		t.EmbedVideo_View.LexiconTypeID = "app.bsky.embed.video#view"
+		return json.Marshal(t.EmbedVideo_View)
 	}
 	if t.EmbedExternal_View != nil {
 		t.EmbedExternal_View.LexiconTypeID = "app.bsky.embed.external#view"
@@ -161,6 +180,9 @@ func (t *FeedDefs_PostView_Embed) UnmarshalJSON(b []byte) error {
 	case "app.bsky.embed.images#view":
 		t.EmbedImages_View = new(EmbedImages_View)
 		return json.Unmarshal(b, t.EmbedImages_View)
+	case "app.bsky.embed.video#view":
+		t.EmbedVideo_View = new(EmbedVideo_View)
+		return json.Unmarshal(b, t.EmbedVideo_View)
 	case "app.bsky.embed.external#view":
 		t.EmbedExternal_View = new(EmbedExternal_View)
 		return json.Unmarshal(b, t.EmbedExternal_View)
@@ -176,13 +198,22 @@ func (t *FeedDefs_PostView_Embed) UnmarshalJSON(b []byte) error {
 	}
 }
 
+// FeedDefs_ReasonPin is a "reasonPin" in the app.bsky.feed.defs schema.
+//
+// RECORDTYPE: FeedDefs_ReasonPin
+type FeedDefs_ReasonPin struct {
+	LexiconTypeID string `json:"$type,const=app.bsky.feed.defs#reasonPin" cborgen:"$type,const=app.bsky.feed.defs#reasonPin"`
+}
+
 // FeedDefs_ReasonRepost is a "reasonRepost" in the app.bsky.feed.defs schema.
 //
 // RECORDTYPE: FeedDefs_ReasonRepost
 type FeedDefs_ReasonRepost struct {
 	LexiconTypeID string                      `json:"$type,const=app.bsky.feed.defs#reasonRepost" cborgen:"$type,const=app.bsky.feed.defs#reasonRepost"`
 	By            *ActorDefs_ProfileViewBasic `json:"by" cborgen:"by"`
+	Cid           *string                     `json:"cid,omitempty" cborgen:"cid,omitempty"`
 	IndexedAt     string                      `json:"indexedAt" cborgen:"indexedAt"`
+	Uri           *string                     `json:"uri,omitempty" cborgen:"uri,omitempty"`
 }
 
 // FeedDefs_ReplyRef is a "replyRef" in the app.bsky.feed.defs schema.
@@ -289,12 +320,17 @@ type FeedDefs_SkeletonFeedPost struct {
 
 type FeedDefs_SkeletonFeedPost_Reason struct {
 	FeedDefs_SkeletonReasonRepost *FeedDefs_SkeletonReasonRepost
+	FeedDefs_SkeletonReasonPin    *FeedDefs_SkeletonReasonPin
 }
 
 func (t *FeedDefs_SkeletonFeedPost_Reason) MarshalJSON() ([]byte, error) {
 	if t.FeedDefs_SkeletonReasonRepost != nil {
 		t.FeedDefs_SkeletonReasonRepost.LexiconTypeID = "app.bsky.feed.defs#skeletonReasonRepost"
 		return json.Marshal(t.FeedDefs_SkeletonReasonRepost)
+	}
+	if t.FeedDefs_SkeletonReasonPin != nil {
+		t.FeedDefs_SkeletonReasonPin.LexiconTypeID = "app.bsky.feed.defs#skeletonReasonPin"
+		return json.Marshal(t.FeedDefs_SkeletonReasonPin)
 	}
 	return nil, fmt.Errorf("cannot marshal empty enum")
 }
@@ -308,10 +344,20 @@ func (t *FeedDefs_SkeletonFeedPost_Reason) UnmarshalJSON(b []byte) error {
 	case "app.bsky.feed.defs#skeletonReasonRepost":
 		t.FeedDefs_SkeletonReasonRepost = new(FeedDefs_SkeletonReasonRepost)
 		return json.Unmarshal(b, t.FeedDefs_SkeletonReasonRepost)
+	case "app.bsky.feed.defs#skeletonReasonPin":
+		t.FeedDefs_SkeletonReasonPin = new(FeedDefs_SkeletonReasonPin)
+		return json.Unmarshal(b, t.FeedDefs_SkeletonReasonPin)
 
 	default:
 		return nil
 	}
+}
+
+// FeedDefs_SkeletonReasonPin is a "skeletonReasonPin" in the app.bsky.feed.defs schema.
+//
+// RECORDTYPE: FeedDefs_SkeletonReasonPin
+type FeedDefs_SkeletonReasonPin struct {
+	LexiconTypeID string `json:"$type,const=app.bsky.feed.defs#skeletonReasonPin" cborgen:"$type,const=app.bsky.feed.defs#skeletonReasonPin"`
 }
 
 // FeedDefs_SkeletonReasonRepost is a "skeletonReasonRepost" in the app.bsky.feed.defs schema.
@@ -322,6 +368,13 @@ type FeedDefs_SkeletonReasonRepost struct {
 	Repost        string `json:"repost" cborgen:"repost"`
 }
 
+// FeedDefs_ThreadContext is a "threadContext" in the app.bsky.feed.defs schema.
+//
+// Metadata about this post within the context of the thread it is in.
+type FeedDefs_ThreadContext struct {
+	RootAuthorLike *string `json:"rootAuthorLike,omitempty" cborgen:"rootAuthorLike,omitempty"`
+}
+
 // FeedDefs_ThreadViewPost is a "threadViewPost" in the app.bsky.feed.defs schema.
 //
 // RECORDTYPE: FeedDefs_ThreadViewPost
@@ -330,6 +383,7 @@ type FeedDefs_ThreadViewPost struct {
 	Parent        *FeedDefs_ThreadViewPost_Parent         `json:"parent,omitempty" cborgen:"parent,omitempty"`
 	Post          *FeedDefs_PostView                      `json:"post" cborgen:"post"`
 	Replies       []*FeedDefs_ThreadViewPost_Replies_Elem `json:"replies,omitempty" cborgen:"replies,omitempty"`
+	ThreadContext *FeedDefs_ThreadContext                 `json:"threadContext,omitempty" cborgen:"threadContext,omitempty"`
 }
 
 type FeedDefs_ThreadViewPost_Parent struct {
@@ -430,8 +484,10 @@ type FeedDefs_ThreadgateView struct {
 //
 // Metadata about the requesting account's relationship with the subject content. Only has meaningful content for authed requests.
 type FeedDefs_ViewerState struct {
-	Like          *string `json:"like,omitempty" cborgen:"like,omitempty"`
-	ReplyDisabled *bool   `json:"replyDisabled,omitempty" cborgen:"replyDisabled,omitempty"`
-	Repost        *string `json:"repost,omitempty" cborgen:"repost,omitempty"`
-	ThreadMuted   *bool   `json:"threadMuted,omitempty" cborgen:"threadMuted,omitempty"`
+	EmbeddingDisabled *bool   `json:"embeddingDisabled,omitempty" cborgen:"embeddingDisabled,omitempty"`
+	Like              *string `json:"like,omitempty" cborgen:"like,omitempty"`
+	Pinned            *bool   `json:"pinned,omitempty" cborgen:"pinned,omitempty"`
+	ReplyDisabled     *bool   `json:"replyDisabled,omitempty" cborgen:"replyDisabled,omitempty"`
+	Repost            *string `json:"repost,omitempty" cborgen:"repost,omitempty"`
+	ThreadMuted       *bool   `json:"threadMuted,omitempty" cborgen:"threadMuted,omitempty"`
 }

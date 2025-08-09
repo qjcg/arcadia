@@ -8,7 +8,6 @@ import (
 	"context"
 
 	"github.com/bluesky-social/indigo/lex/util"
-	"github.com/bluesky-social/indigo/xrpc"
 )
 
 // RepoCreateRecord_Input is the input argument to a com.atproto.repo.createRecord call.
@@ -23,20 +22,22 @@ type RepoCreateRecord_Input struct {
 	Rkey *string `json:"rkey,omitempty" cborgen:"rkey,omitempty"`
 	// swapCommit: Compare and swap with the previous commit by CID.
 	SwapCommit *string `json:"swapCommit,omitempty" cborgen:"swapCommit,omitempty"`
-	// validate: Can be set to 'false' to skip Lexicon schema validation of record data.
+	// validate: Can be set to 'false' to skip Lexicon schema validation of record data, 'true' to require it, or leave unset to validate only for known Lexicons.
 	Validate *bool `json:"validate,omitempty" cborgen:"validate,omitempty"`
 }
 
 // RepoCreateRecord_Output is the output of a com.atproto.repo.createRecord call.
 type RepoCreateRecord_Output struct {
-	Cid string `json:"cid" cborgen:"cid"`
-	Uri string `json:"uri" cborgen:"uri"`
+	Cid              string               `json:"cid" cborgen:"cid"`
+	Commit           *RepoDefs_CommitMeta `json:"commit,omitempty" cborgen:"commit,omitempty"`
+	Uri              string               `json:"uri" cborgen:"uri"`
+	ValidationStatus *string              `json:"validationStatus,omitempty" cborgen:"validationStatus,omitempty"`
 }
 
 // RepoCreateRecord calls the XRPC method "com.atproto.repo.createRecord".
-func RepoCreateRecord(ctx context.Context, c *xrpc.Client, input *RepoCreateRecord_Input) (*RepoCreateRecord_Output, error) {
+func RepoCreateRecord(ctx context.Context, c util.LexClient, input *RepoCreateRecord_Input) (*RepoCreateRecord_Output, error) {
 	var out RepoCreateRecord_Output
-	if err := c.Do(ctx, xrpc.Procedure, "application/json", "com.atproto.repo.createRecord", nil, input, &out); err != nil {
+	if err := c.LexDo(ctx, util.Procedure, "application/json", "com.atproto.repo.createRecord", nil, input, &out); err != nil {
 		return nil, err
 	}
 

@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"slices"
 
+	expcolor "github.com/charmbracelet/x/exp/color"
 	"github.com/lucasb-eyer/go-colorful"
 )
 
@@ -65,6 +66,7 @@ const (
 	Citron
 	Zest
 	Pepper
+	BBQ
 	Charcoal
 	Iron
 	Oyster
@@ -73,6 +75,22 @@ const (
 	Ash
 	Salt
 	Butter
+
+	// Diffs: additions. The brightest color in this set is Julep, defined
+	// above.
+	Pickle
+	Gator
+	Spinach
+
+	// Diffs: deletions. The brightest color in this set is Cherry, defined
+	// above.
+	Pom
+	Steak
+	Toast
+
+	// Provisional.
+	NeueGuac
+	NeueZinc
 )
 
 // RGBA returns the red, green, blue, and alpha values of the color. It
@@ -138,6 +156,7 @@ func (k Key) String() string {
 		Citron:   "Citron",
 		Zest:     "Zest",
 		Pepper:   "Pepper",
+		BBQ:      "BBQ",
 		Charcoal: "Charcoal",
 		Iron:     "Iron",
 		Oyster:   "Oyster",
@@ -146,6 +165,20 @@ func (k Key) String() string {
 		Salt:     "Salt",
 		Ash:      "Ash",
 		Butter:   "Butter",
+
+		// Diffs: additions.
+		Pickle:  "Pickle",
+		Gator:   "Gator",
+		Spinach: "Spinach",
+
+		// Diffs: deletions.
+		Pom:   "Pom",
+		Steak: "Steak",
+		Toast: "Toast",
+
+		// Provisional.
+		NeueGuac: "Neue Guac",
+		NeueZinc: "Neue Zinc",
 	}[k]
 }
 
@@ -201,6 +234,7 @@ func (k Key) Hex() string {
 		Citron:   "#E8FF27",
 		Zest:     "#E8FE96",
 		Pepper:   "#201F26",
+		BBQ:      "#2d2c35",
 		Charcoal: "#3A3943",
 		Iron:     "#4D4C57",
 		Oyster:   "#605F6B",
@@ -209,6 +243,20 @@ func (k Key) Hex() string {
 		Ash:      "#DFDBDD",
 		Salt:     "#F1EFEF",
 		Butter:   "#FFFAF1",
+
+		// Diffs: additions.
+		Pickle:  "#00A475",
+		Gator:   "#18463D",
+		Spinach: "#1C3634",
+
+		// Diffs: deletions.
+		Pom:   "#AB2454",
+		Steak: "#582238",
+		Toast: "#412130",
+
+		// Provisional.
+		NeueGuac: "#00b875",
+		NeueZinc: "#0e9996",
 	}[k]
 }
 
@@ -264,6 +312,7 @@ func Keys() []Key {
 		Citron,
 		Zest,
 		Pepper,
+		BBQ,
 		Charcoal,
 		Iron,
 		Oyster,
@@ -272,6 +321,8 @@ func Keys() []Key {
 		Ash,
 		Salt,
 		Butter,
+
+		// XXX: additions and deletions are not included, yet.
 	}
 }
 
@@ -307,52 +358,12 @@ func (k Key) IsTertiary() bool {
 	}, k)
 }
 
-// BlendColors returns a slice of colors blended between the given keys.
-// Blending is done as Hcl to stay in gamut.
-func BlendColors(size int, keys ...Key) []color.Color {
-	if len(keys) < 2 {
-		return nil
-	}
-
-	stops := make([]colorful.Color, len(keys))
+// Blend returns a slice of colors blended between the given Keys. Blending is
+// done as Hcl to stay in gamut.
+func Blend(size int, keys ...Key) []color.Color {
+	colors := make([]color.Color, len(keys))
 	for i, k := range keys {
-		stops[i], _ = colorful.Hex(k.Hex())
+		colors[i] = color.Color(k)
 	}
-
-	numSegments := len(stops) - 1
-	if numSegments == 0 {
-		return nil
-	}
-	blended := make([]color.Color, 0, size)
-
-	// Calculate how many colors each segment should have.
-	segmentSizes := make([]int, numSegments)
-	baseSize := size / numSegments
-	remainder := size % numSegments
-
-	// Distribute the remainder across segments.
-	for i := range numSegments {
-		segmentSizes[i] = baseSize
-		if i < remainder {
-			segmentSizes[i]++
-		}
-	}
-
-	// Generate colors for each segment.
-	for i := range numSegments {
-		c1 := stops[i]
-		c2 := stops[i+1]
-		segmentSize := segmentSizes[i]
-
-		for j := range segmentSize {
-			if segmentSize == 0 {
-				continue
-			}
-			t := float64(j) / float64(segmentSize)
-			c := c1.BlendHcl(c2, t)
-			blended = append(blended, c)
-		}
-	}
-
-	return blended
+	return expcolor.Blend(size, colors...)
 }

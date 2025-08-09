@@ -114,18 +114,10 @@ func (j *johnson) unblock(u int) {
 	}
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 // tarjan implements Tarjan's strongly connected component finding
 // algorithm. The implementation is from the pseudocode at
 //
 // http://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm?oldid=642744644
-//
 type tarjan struct {
 	g graph
 

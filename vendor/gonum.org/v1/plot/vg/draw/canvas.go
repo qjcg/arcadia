@@ -293,11 +293,11 @@ func New(c vg.CanvasSizer) Canvas {
 // image format. Supported formats need to be registered by importing one or
 // more of the following packages:
 //
-//     gonum.org/v1/plot/vg/vgeps // provides eps
-//     gonum.org/v1/plot/vg/vgimg // provides png, jpg|jpeg, tif|tiff
-//     gonum.org/v1/plot/vg/vgpdf // provides pdf
-//     gonum.org/v1/plot/vg/vgsvg // provides svg
-//     gonum.org/v1/plot/vg/vgtex // provides tex
+//   - gonum.org/v1/plot/vg/vgeps: provides eps
+//   - gonum.org/v1/plot/vg/vgimg: provides png, jpg|jpeg, tif|tiff
+//   - gonum.org/v1/plot/vg/vgpdf: provides pdf
+//   - gonum.org/v1/plot/vg/vgsvg: provides svg
+//   - gonum.org/v1/plot/vg/vgtex: provides tex
 func NewFormattedCanvas(w, h vg.Length, format string) (vg.CanvasWriterTo, error) {
 	formats.RLock()
 	defer formats.RUnlock()
@@ -572,7 +572,7 @@ func (c *Canvas) ClipPolygonY(pts []vg.Point) []vg.Point {
 // and in function.
 func clipPoly(in func(vg.Point, vg.Point) bool, clip, norm vg.Point, pts []vg.Point) (clipped []vg.Point) {
 	clipped = make([]vg.Point, 0, len(pts))
-	for i := 0; i < len(pts); i++ {
+	for i := range pts {
 		j := i + 1
 		if i == len(pts)-1 {
 			j = 0

@@ -1,4 +1,8 @@
-# Sling [![Build Status](https://github.com/dghubble/sling/workflows/test/badge.svg)](https://github.com/dghubble/oauth1/actions?query=workflow%3Atest+branch%3Amaster) [![Coverage](https://gocover.io/_badge/github.com/dghubble/sling)](https://gocover.io/github.com/dghubble/sling) [![GoDoc](https://godoc.org/github.com/dghubble/sling?status.svg)](https://godoc.org/github.com/dghubble/sling)
+# Sling
+[![GoDoc](https://pkg.go.dev/badge/github.com/dghubble/sling.svg)](https://pkg.go.dev/github.com/dghubble/sling)
+[![Workflow](https://github.com/dghubble/sling/actions/workflows/test.yaml/badge.svg)](https://github.com/dghubble/sling/actions/workflows/test.yaml?query=branch%3Amain)
+[![Sponsors](https://img.shields.io/github/sponsors/dghubble?logo=github)](https://github.com/sponsors/dghubble)
+[![Mastodon](https://img.shields.io/badge/follow-news-6364ff?logo=mastodon)](https://fosstodon.org/@typhoon)
 
 <img align="right" src="https://storage.googleapis.com/dghubble/small-gopher-with-sling.png">
 
@@ -276,6 +280,7 @@ func (s *IssueService) ListByRepo(owner, repo string, params *IssueListParams) (
 * Swagger Generator [swagger-api/swagger-codegen](https://github.com/swagger-api/swagger-codegen)
 * Twitter [dghubble/go-twitter](https://github.com/dghubble/go-twitter)
 * Stacksmith [jesustinoco/go-smith](https://github.com/jesustinoco/go-smith)
+* Spotify [omegastreamtv/Spotify](https://github.com/omegastreamtv/Spotify)
 
 Create a Pull Request to add a link to your own API.
 

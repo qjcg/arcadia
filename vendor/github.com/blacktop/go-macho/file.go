@@ -1259,6 +1259,51 @@ func NewFile(r io.ReaderAt, config ...FileConfig) (*File, error) {
 			l.Offset = led.Offset
 			l.Size = led.Size
 			f.Loads = append(f.Loads, l)
+		case types.LC_FUNCTION_VARIANTS:
+			var led types.LinkEditDataCmd
+			b := bytes.NewReader(cmddat)
+			if err := binary.Read(b, bo, &led); err != nil {
+				return nil, fmt.Errorf("failed to read LC_FUNCTION_VARIANTS: %v", err)
+			}
+			l := new(FunctionVariants)
+			l.LoadBytes = cmddat
+			l.LoadCmd = cmd
+			l.Len = siz
+			l.Offset = led.Offset
+			l.Size = led.Size
+			f.Loads = append(f.Loads, l)
+		case types.LC_FUNCTION_VARIANT_FIXUPS:
+			var led types.LinkEditDataCmd
+			b := bytes.NewReader(cmddat)
+			if err := binary.Read(b, bo, &led); err != nil {
+				return nil, fmt.Errorf("failed to read LC_FUNCTION_VARIANT_FIXUPS: %v", err)
+			}
+			l := new(FunctionVariants)
+			l.LoadBytes = cmddat
+			l.LoadCmd = cmd
+			l.Len = siz
+			l.Offset = led.Offset
+			l.Size = led.Size
+			f.Loads = append(f.Loads, l)
+		case types.LC_TARGET_TRIPLE:
+			var hdr types.TargetTripleCmd
+			b := bytes.NewReader(cmddat)
+			if err := binary.Read(b, bo, &hdr); err != nil {
+				return nil, fmt.Errorf("failed to read LC_TARGET_TRIPLE: %v", err)
+			}
+			l := new(TargetTriple)
+			if hdr.TargetOffset >= uint32(len(cmddat)) {
+				return nil, &FormatError{offset, "invalid target in target triple command", hdr.TargetOffset}
+			}
+			l.LoadBytes = cmddat
+			l.LoadCmd = cmd
+			l.Len = siz
+			l.TargetOffset = hdr.TargetOffset
+			if hdr.TargetOffset >= uint32(len(cmddat)) {
+				return nil, &FormatError{offset, "invalid target in target triple command", hdr.TargetOffset}
+			}
+			l.Target = cstring(cmddat[hdr.TargetOffset:])
+			f.Loads = append(f.Loads, l)
 		case types.LC_SEP_CACHE_SLIDE:
 			var led types.LinkEditDataCmd
 			b := bytes.NewReader(cmddat)
@@ -1493,6 +1538,10 @@ func (f *File) ReadAt(p []byte, off int64) (n int, err error) {
 	return f.cr.ReadAt(p, off) // TODO: should this be f.cr  or f.sr?
 }
 
+func (f *File) ReadAtAddr(p []byte, addr uint64) (n int, err error) {
+	return f.cr.ReadAtAddr(p, addr)
+}
+
 // GetOffset returns the file offset for a given virtual address
 func (f *File) GetOffset(address uint64) (uint64, error) {
 	return f.vma.GetOffset(address)
@@ -1678,12 +1727,17 @@ func (f *File) GetCStrings() (map[string]map[string]uint64, error) {
 				s = strings.Trim(s, "\x00")
 
 				if len(s) > 0 {
+					// Check if string contains printable characters (including Unicode like emojis)
+					isPrintable := true
 					for _, r := range s {
-						if r > unicode.MaxASCII || !unicode.IsPrint(r) {
-							continue // skip non-ascii strings
+						if !unicode.IsPrint(r) && !unicode.IsSpace(r) {
+							isPrintable = false
+							break
 						}
 					}
-					strs[section][s] = pos
+					if isPrintable {
+						strs[section][s] = pos
+					}
 				}
 			}
 		}
@@ -2388,14 +2442,33 @@ func (f *File) GetEmbeddedLLVMBitcode() (*xar.Reader, error) {
 // DWARF returns the DWARF debug information for the Mach-O file.
 func (f *File) DWARF() (*dwarf.Data, error) {
 	dwarfSuffix := func(s *types.Section) string {
+		sectname := s.Name
+		var pfx int
 		switch {
-		case strings.HasPrefix(s.Name, "__debug_"):
-			return s.Name[8:]
-		case strings.HasPrefix(s.Name, "__zdebug_"):
-			return s.Name[9:]
+		case strings.HasPrefix(sectname, "__debug_"):
+			pfx = 8
+		case strings.HasPrefix(sectname, "__zdebug_"):
+			pfx = 9
 		default:
 			return ""
 		}
+		// Mach-O executables truncate section names to 16 characters, mangling some DWARF sections.
+		// As of DWARFv5 these are the only problematic section names (see DWARFv5 Appendix G).
+		for _, longname := range []string{
+			"__debug_str_offsets",
+			"__zdebug_line_str",
+			"__zdebug_loclists",
+			"__zdebug_pubnames",
+			"__zdebug_pubtypes",
+			"__zdebug_rnglists",
+			"__zdebug_str_offsets",
+		} {
+			if sectname == longname[:16] {
+				sectname = longname
+				break
+			}
+		}
+		return sectname[pfx:]
 	}
 	appleSuffix := func(s *types.Section) string {
 		switch {
@@ -2471,6 +2544,10 @@ func (f *File) DWARF() (*dwarf.Data, error) {
 
 		if suffix == "types" {
 			err = d.AddTypes(fmt.Sprintf("types-%d", i), b)
+		} else if suffix == "names" {
+			if err := d.AddNames(suffix, b); err != nil {
+				return nil, err
+			}
 		} else {
 			err = d.AddSection(".debug_"+suffix, b)
 		}

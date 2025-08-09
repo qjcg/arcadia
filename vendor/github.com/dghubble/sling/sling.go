@@ -3,7 +3,6 @@ package sling
 import (
 	"encoding/base64"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -55,9 +54,9 @@ func New() *Sling {
 // New returns a copy of a Sling for creating a new Sling with properties
 // from a parent Sling. For example,
 //
-// 	parentSling := sling.New().Client(client).Base("https://api.io/")
-// 	fooSling := parentSling.New().Get("foo/")
-// 	barSling := parentSling.New().Get("bar/")
+//	parentSling := sling.New().Client(client).Base("https://api.io/")
+//	fooSling := parentSling.New().Get("foo/")
+//	barSling := parentSling.New().Get("bar/")
 //
 // fooSling and barSling will both use the same client, but send requests to
 // https://api.io/foo/ and https://api.io/bar/ respectively.
@@ -390,7 +389,7 @@ func (s *Sling) Do(req *http.Request, successV, failureV interface{}) (*http.Res
 	// reuse HTTP/1.x "keep-alive" TCP connections if the Body is
 	// not read to completion and closed.
 	// See: https://golang.org/pkg/net/http/#Response
-	defer io.Copy(ioutil.Discard, resp.Body)
+	defer io.Copy(io.Discard, resp.Body)
 
 	// Don't try to decode on 204s or Content-Length is 0
 	if resp.StatusCode == http.StatusNoContent || resp.ContentLength == 0 {

@@ -1,6 +1,7 @@
 /*
 Package twitter provides a Client for the Twitter API.
 
+Deprecated: This package will no longer be developed.
 
 The twitter package provides a Client for accessing the Twitter API. Here are
 some example requests.
@@ -22,7 +23,7 @@ some example requests.
 Required parameters are passed as positional arguments. Optional parameters
 are passed in a typed params struct (or pass nil).
 
-Authentication
+# Authentication
 
 By design, the Twitter Client accepts any http.Client so user auth (OAuth1) or
 application auth (OAuth2) requests can be made by using the appropriate
@@ -70,6 +71,5 @@ application auth.
 	client := twitter.NewClient(httpClient)
 
 To implement Login with Twitter, see https://github.com/dghubble/gologin.
-
 */
 package twitter
