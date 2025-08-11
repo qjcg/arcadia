@@ -1,51 +1,58 @@
 package blocks
 
 import (
-	"bufio"
-	"bytes"
-	"os/exec"
-	"strings"
+	"errors"
+	"fmt"
+
+	"github.com/mdlayher/wifi"
 )
 
 type WifiData struct {
-	ESSID string
+	SSID string
 }
 
 // String implements the fmt.Stringer interface.
 func (w *WifiData) String() string {
-	err := w.getESSID()
-	if err != nil || w.ESSID == "" {
+	err := w.getSSID()
+	if err != nil || w.SSID == "" {
 		return ""
 	}
 
-	return w.ESSID
+	return w.SSID
 }
 
-// getESSID updates w.ESSID value based on the output of the "iw dev" command.
-//
-// NOTE: "iw" help output says: "Do NOT screenscrape this tool, we don't
-// consider its output stable." Until a better solution comes along, we'll
-// screenscrape it anyway!
-func (w *WifiData) getESSID() error {
-	out, err := exec.Command("iw", "dev").Output()
-	if e, ok := err.(*exec.ExitError); ok {
-		return e
-	}
+// getSSID updates w.SSID value using the first listed wireless interface.
+func (w *WifiData) getSSID() error {
+	client, err := wifi.New()
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating new wifi client: %w", err)
 	}
 
-	r := bytes.NewReader(out)
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.Contains(line, "ssid") {
-			w.ESSID = strings.Join(strings.Fields(line)[1:], " ")
+	interfaces, err := client.Interfaces()
+	if err != nil {
+		return fmt.Errorf("error listing network interfaces: %w", err)
+	}
+
+	var usableInterfaces []*wifi.Interface
+	var primaryWifiInterface *wifi.Interface
+	for _, f := range interfaces {
+		if f.Name != "" {
+			usableInterfaces = append(usableInterfaces, f)
 		}
 	}
-	if err = scanner.Err(); err != nil {
-		return err
+
+	if len(usableInterfaces) == 0 {
+		return errors.New("no usable wifi interfaces")
 	}
+
+	primaryWifiInterface = usableInterfaces[0]
+
+	bss, err := client.BSS(primaryWifiInterface)
+	if err != nil {
+		return fmt.Errorf("error getting BSS: %w", err)
+	}
+
+	w.SSID = bss.SSID
 
 	return nil
 }
