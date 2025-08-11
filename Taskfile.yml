@@ -13,8 +13,11 @@ tasks:
     - task: vendor
 
   fmt: go tool gofumpt -w .
-  test: go test ./...
-  test:gotestsum: go tool gotestsum
+  test:
+    - task: test:unit
+  test:integration: go test -tags integration ./...
+  test:unit: go test ./...
+  test:unit-gotestsum: go tool gotestsum
   vuln: go tool govulncheck ./...
   lint:editorconfig: go tool editorconfig-checker
   vendor: go mod vendor
