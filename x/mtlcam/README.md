@@ -1,12 +1,13 @@
-* mtlcam
+# mtlcam
 
-Pull down the latest Montreal traffic camera images using the [[https://donnees.ville.montreal.qc.ca/dataset/cameras-observation-routiere][open
-GeoJSON data]] provided by the City of Montreal.
+Pull down the latest Montreal traffic camera images using the
+[open GeoJSON data](https://donnees.ville.montreal.qc.ca/dataset/cameras-observation-routiere)
+provided by the City of Montreal.
 
 
-** Usage
+## Usage
 
-#+begin_src shell
+```sh
 $ mtlcam -h
 
 mtlcam: Download Montreal traffic camera images
@@ -24,4 +25,4 @@ $ mtlcam
 
 $ ls -R images
 [...]
-#+end_src
+```

@@ -1,4 +1,4 @@
-* gym
+# gym
 
 A place for learning.
 
