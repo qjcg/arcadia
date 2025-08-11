@@ -13483,7 +13483,7 @@ function rebuild(node, intervals) {
 function rebuildWithInterval(node, interval) {
   var intervals = node.intervals([]);
   intervals.push(interval);
-  rebuild(node, intervals);    
+  rebuild(node, intervals);
 }
 
 function rebuildWithoutInterval(node, interval) {
@@ -13736,7 +13736,7 @@ function createIntervalTree(intervals) {
   leftPoints.sort(compareBegin);
   rightPoints.sort(compareEnd);
 
-  return new IntervalTreeNode(mid, 
+  return new IntervalTreeNode(mid,
     createIntervalTree(leftIntervals),
     createIntervalTree(rightIntervals),
     leftPoints,

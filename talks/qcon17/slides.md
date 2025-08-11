@@ -76,7 +76,7 @@ https://qjcg.github.io/talks/qcon17/
 - [Installing Go and your Workspace](https://www.goinggo.net/2016/05/installing-go-and-your-workspace.html)
 
 To get the code and exercises for today's workshop:
-    
+
 ```
 go get github.com/qjcg/gotraining
 ```
