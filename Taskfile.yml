@@ -10,7 +10,6 @@ tasks:
     - task: vuln
     - task: fmt
     - task: lint:editorconfig
-    - task: vendor
 
   fmt: go tool gofumpt -w .
   test:
@@ -22,10 +21,6 @@ tasks:
   lint:editorconfig: go tool editorconfig-checker
 
   go:mod-tidy: go mod tidy
-  go:mod-vendor:
-    aliases: [vendor]
-    deps: [go:mod-tidy]
-    cmd: go mod vendor
 
   tag:
     desc: Add next semver git tag
