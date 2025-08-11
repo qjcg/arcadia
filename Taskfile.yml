@@ -20,12 +20,30 @@ tasks:
   test:unit-gotestsum: go tool gotestsum
   vuln: go tool govulncheck ./...
   lint:editorconfig: go tool editorconfig-checker
-  vendor: go mod vendor
+
+  go:mod-tidy: go mod tidy
+  go:mod-vendor:
+    aliases: [vendor]
+    deps: [go:mod-tidy]
+    cmd: go mod vendor
 
   tag:
     desc: Add next semver git tag
+    cmds:
+      - git tag -a -m {{.TAG_NEXT}} {{.TAG_NEXT}}
+    vars:
+      TAG_NEXT:
+        sh: go tool svu next
+
+  tag:dryrun:
+    desc: Add next semver git tag (dry-run, do not actually tag)
     cmds:
       - echo git tag -a -m {{.TAG_NEXT}} {{.TAG_NEXT}}
     vars:
       TAG_NEXT:
         sh: go tool svu next
+
+  tag:push:
+    deps: [tag]
+    cmds:
+      - git push --tags
