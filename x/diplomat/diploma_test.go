@@ -8,7 +8,7 @@ import (
 
 	"github.com/gosimple/slug"
 
-	"github.com/qjcg/arcadia/x/diplomat"
+	main "github.com/qjcg/arcadia/x/diplomat"
 )
 
 //go:embed fonts/DroidSans.ttf

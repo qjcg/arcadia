@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/qjcg/arcadia/examples/go/cmd/basics-concurrency-visualization"
+	main "github.com/qjcg/arcadia/examples/go/cmd/basics-concurrency-visualization"
 )
 
 func TestUp(t *testing.T) {
