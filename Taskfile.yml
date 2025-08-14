@@ -4,6 +4,12 @@ version: '3'
 
 shopt: [globstar]
 
+vars:
+  TAG_CURRENT:
+    sh: go tool svu current
+  TAG_NEXT:
+    sh: go tool svu next
+
 tasks:
   default:
     - task: test
@@ -26,22 +32,11 @@ tasks:
     desc: Add next semver git tag
     cmds:
       - git tag -a -m {{.TAG_NEXT}} {{.TAG_NEXT}}
-    vars:
-      TAG_NEXT:
-        sh: go tool svu next
-
-  tag:dryrun:
-    desc: Add next semver git tag (dry-run, do not actually tag)
-    cmds:
-      - echo {{.TAG_CURRENT}} -> {{.TAG_NEXT}}
-      - echo git tag -a -m {{.TAG_NEXT}} {{.TAG_NEXT}}
-    vars:
-      TAG_CURRENT:
-        sh: go tool svu current
-      TAG_NEXT:
-        sh: go tool svu next
+    status:
+      - test {{.TAG_NEXT}} = {{.TAG_CURRENT}}
 
   tag:push:
+    desc: Push git tags
     deps: [tag]
     cmds:
       - git push --tags
