@@ -40,27 +40,24 @@ func PrintMetalSucksTitles(c *colly.Collector, w io.Writer) *colly.Collector {
 
 func main() {
 	var wg sync.WaitGroup
-	wg.Add(2)
 
-	go func() {
+	wg.Go(func() {
 		c := colly.NewCollector()
 		c = PrintThumbnailURLs(c, os.Stdout)
 		err := c.Visit(urls["reddit"])
 		if err != nil {
 			log.Fatal(err)
 		}
-		wg.Done()
-	}()
+	})
 
-	go func() {
+	wg.Go(func() {
 		cMetalSucks := colly.NewCollector()
 		cMetalSucks = PrintMetalSucksTitles(cMetalSucks, os.Stdout)
 		err := cMetalSucks.Visit(urls["metalsucks"])
 		if err != nil {
 			log.Fatal(err)
 		}
-		wg.Done()
-	}()
+	})
 
 	wg.Wait()
 }

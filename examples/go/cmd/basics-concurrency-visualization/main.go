@@ -61,18 +61,10 @@ func Down(w io.Writer) {
 
 func main() {
 	var wg sync.WaitGroup
-	wg.Add(2)
 
-	go func() {
-		Up(os.Stdout)
-		wg.Done()
-	}()
-
-	go func() {
-		Down(os.Stdout)
-		wg.Done()
-	}()
-
+	wg.Go(func() { Up(os.Stdout) })
+	wg.Go(func() { Down(os.Stdout) })
 	wg.Wait()
+
 	fmt.Println()
 }
