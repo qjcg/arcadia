@@ -38,7 +38,7 @@ func newNATSContainer(ctx context.Context) (testcontainers.Container, error) {
 
 func TestPubSub_testcontainer(t *testing.T) {
 	ctx := context.Background()
-	natsContainer, err := tcNATS.Run(ctx, "nats:2.10-alpine")
+	natsContainer, err := tcNATS.Run(ctx, "nats:2.11-alpine")
 	if err != nil {
 		t.Fatalf("failed to create NATS container: %s", err)
 	}
@@ -88,7 +88,7 @@ func TestPubSub_testcontainer(t *testing.T) {
 	}
 }
 
-func ExampleMicroService() {
+func Example_microService() {
 	nc, err := nats.Connect("127.0.0.1:4222")
 	if err != nil {
 		log.Fatal(err)
