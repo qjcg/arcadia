@@ -20,7 +20,13 @@ tasks:
   fmt: go tool gofumpt -w .
   test:
     - task: test:unit
-  test:integration: go test -tags integration ./...
+
+  test:integration:
+    cmd: go test -tags integration,{{.ARCHLINUX_TAG}} ./...
+    vars:
+      ARCHLINUX_TAG:
+        sh: grep ID=arch /etc/os-release >/dev/null && echo archlinux || echo ''
+
   test:unit: go test ./...
   test:unit-gotestsum: go tool gotestsum
   vuln: go tool govulncheck ./...

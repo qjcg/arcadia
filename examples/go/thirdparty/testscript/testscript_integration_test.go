@@ -8,7 +8,7 @@ import (
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
-func TestRunTestscripts(t *testing.T) {
+func TestRunIntegrationTestscripts(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir: "integration",
 	})
