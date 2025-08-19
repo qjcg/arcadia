@@ -22,7 +22,7 @@ require (
 	github.com/knadh/koanf/v2 v2.2.2
 	github.com/mdlayher/wifi v0.6.0
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
-	github.com/nats-io/nats-server/v2 v2.11.7
+	github.com/nats-io/nats-server/v2 v2.11.8
 	github.com/nats-io/nats.go v1.44.0
 	github.com/nats-io/nkeys v0.4.11
 	github.com/ncruces/go-sqlite3 v0.27.1
@@ -50,7 +50,7 @@ require (
 	al.essio.dev/pkg/shellescape v1.6.0 // indirect
 	cel.dev/expr v0.24.0 // indirect
 	cloud.google.com/go v0.121.6 // indirect
-	cloud.google.com/go/auth v0.16.4 // indirect
+	cloud.google.com/go/auth v0.16.5 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.8.0 // indirect
 	cloud.google.com/go/iam v1.5.2 // indirect
@@ -116,7 +116,7 @@ require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/antchfx/htmlquery v1.3.4 // indirect
 	github.com/antchfx/xmlquery v1.4.4 // indirect
-	github.com/antchfx/xpath v1.3.4 // indirect
+	github.com/antchfx/xpath v1.3.5 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/atc0005/go-teams-notify/v2 v2.13.0 // indirect
@@ -182,9 +182,9 @@ require (
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta1 // indirect
 	github.com/charmbracelet/x/ansi v0.10.1 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
-	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250812135814-932da4e322f4 // indirect
-	github.com/charmbracelet/x/exp/color v0.0.0-20250812135814-932da4e322f4 // indirect
-	github.com/charmbracelet/x/exp/slice v0.0.0-20250812135814-932da4e322f4 // indirect
+	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250818131617-61d774aefe53 // indirect
+	github.com/charmbracelet/x/exp/color v0.0.0-20250818131617-61d774aefe53 // indirect
+	github.com/charmbracelet/x/exp/slice v0.0.0-20250818131617-61d774aefe53 // indirect
 	github.com/charmbracelet/x/exp/strings v0.0.0-20241004173542-8f764644629a // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/chrismellard/docker-credential-acr-env v0.0.0-20230304212654-82a0ddb27589 // indirect
@@ -314,7 +314,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/invopop/jsonschema v0.13.0 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
-	github.com/ipfs/boxo v0.33.1 // indirect
+	github.com/ipfs/boxo v0.34.0 // indirect
 	github.com/ipfs/go-block-format v0.2.2 // indirect
 	github.com/ipfs/go-cid v0.5.0 // indirect
 	github.com/ipfs/go-datastore v0.8.3 // indirect
@@ -402,7 +402,7 @@ require (
 	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect
-	github.com/multiformats/go-varint v0.0.7 // indirect
+	github.com/multiformats/go-varint v0.1.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nats-io/jwt/v2 v2.8.0 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
@@ -421,7 +421,7 @@ require (
 	github.com/pingcap/errors v0.11.5-0.20250523034308-74f78ae071ee // indirect
 	github.com/pingcap/failpoint v0.0.0-20240528011301-b51a646c7c86 // indirect
 	github.com/pingcap/log v1.1.0 // indirect
-	github.com/pingcap/tidb/pkg/parser v0.0.0-20250814124012-a6b139988dbb // indirect
+	github.com/pingcap/tidb/pkg/parser v0.0.0-20250819083811-ec45f18b5d1c // indirect
 	github.com/pjbgf/sha1cd v0.4.0 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -494,7 +494,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/tomnomnom/linkheader v0.0.0-20250811210735-e5fe3b51442e // indirect
-	github.com/transparency-dev/formats v0.0.0-20250814091139-7bd08832a8cf // indirect
+	github.com/transparency-dev/formats v0.0.0-20250818160439-a47ebf5a6162 // indirect
 	github.com/transparency-dev/merkle v0.0.2 // indirect
 	github.com/transparency-dev/tessera v1.0.0-rc1.0.20250813103158-d62fc3a7519b // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
@@ -516,7 +516,7 @@ require (
 	github.com/zeebo/errs v1.4.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	gitlab.com/digitalxero/go-conventional-commit v1.0.7 // indirect
-	gitlab.com/gitlab-org/api/client-go v0.139.2 // indirect
+	gitlab.com/gitlab-org/api/client-go v0.141.1 // indirect
 	go.mongodb.org/mongo-driver v1.17.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
@@ -540,10 +540,10 @@ require (
 	golang.org/x/mod v0.27.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/pkgsite v0.0.0-20250808145627-259676f24e15 // indirect
+	golang.org/x/pkgsite v0.0.0-20250814150923-ed9d06afb3a5 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/telemetry v0.0.0-20250813145757-41cd51e6ab6a // indirect
+	golang.org/x/telemetry v0.0.0-20250818163834-19f67fecc6ff // indirect
 	golang.org/x/term v0.34.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
@@ -552,9 +552,9 @@ require (
 	gonum.org/v1/plot v0.16.0 // indirect
 	google.golang.org/api v0.247.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/genproto v0.0.0-20250811230008-5f3141c8851a // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250811230008-5f3141c8851a // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250811230008-5f3141c8851a // indirect
+	google.golang.org/genproto v0.0.0-20250818200422-3122310a409c // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250818200422-3122310a409c // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c // indirect
 	google.golang.org/grpc v1.74.2 // indirect
 	google.golang.org/protobuf v1.36.7 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
