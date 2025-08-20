@@ -574,6 +574,7 @@ require (
 	modernc.org/sqlite v1.38.2 // indirect
 	mvdan.cc/gofumpt v0.8.0 // indirect
 	mvdan.cc/sh/v3 v3.12.0 // indirect
+	mvdan.cc/xurls/v2 v2.6.0 // indirect
 	rsc.io/markdown v0.0.0-20241212154241-6bf72452917f // indirect
 	rsc.io/uncover v0.0.2 // indirect
 	sigs.k8s.io/kind v0.29.0 // indirect
@@ -599,5 +600,6 @@ tool (
 	golang.org/x/vuln/cmd/govulncheck
 	gotest.tools/gotestsum
 	mvdan.cc/gofumpt
+	mvdan.cc/xurls/v2/cmd/xurls
 	rsc.io/uncover
 )

@@ -15,7 +15,7 @@ tasks:
     - task: test
     - task: vuln
     - task: fmt
-    - task: lint:editorconfig
+    - task: lint
 
   fmt: go tool gofumpt -w .
   test:
@@ -30,9 +30,13 @@ tasks:
   test:unit: go test ./...
   test:unit-gotestsum: go tool gotestsum
   vuln: go tool govulncheck ./...
-  lint:editorconfig: go tool editorconfig-checker
 
-  go:mod-tidy: go mod tidy
+  lint:
+    - task: lint:editorconfig
+    - task: lint:check-links
+
+  lint:editorconfig: go tool editorconfig-checker
+  lint:check-links: fd -0 .md | xargs -0 go tool xurls -fix
 
   tag:
     desc: Add next semver git tag
