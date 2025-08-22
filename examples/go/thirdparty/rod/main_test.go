@@ -4,28 +4,13 @@ package main_test
 
 import (
 	"image"
+	_ "image/png"
 	"os"
 	"path"
 	"testing"
-	_ "image/png"
 
 	"github.com/go-rod/rod"
 )
-
-func isPNGByDecode(path string) (bool, error) {
-f, err := os.Open(path)
-	if err != nil {
-		return false, err
-	}
-	defer f.Close()
-
-	_, format, err := image.DecodeConfig(f)
-	if err != nil {
-		// not a recognizable image format / corrupt
-		return false, nil
-	}
-	return format == "png", nil
-}
 
 func Test_MustScreenshot(t *testing.T) {
 	page := rod.
@@ -50,4 +35,19 @@ func Test_MustScreenshot(t *testing.T) {
 	}
 
 	t.Logf("screenshot decoded as png and saved (%v): %s", isPNG, screenshotPath)
+}
+
+func isPNGByDecode(path string) (bool, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	_, format, err := image.DecodeConfig(f)
+	if err != nil {
+		// not a recognizable image format / corrupt
+		return false, nil
+	}
+	return format == "png", nil
 }
