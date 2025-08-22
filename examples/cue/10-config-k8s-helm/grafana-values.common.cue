@@ -1,14 +1,18 @@
 package grafana
 
 #CommonValues: {
+	// Copyright Broadcom, Inc. All Rights Reserved.
+	// SPDX-License-Identifier: APACHE-2.0
 	//# @section Global parameters
 	//# Global Docker image parameters
 	//# Please, note that this will override the image parameters, including dependencies, configured to use the global value
 	//# Current available global Docker image parameters: imageRegistry, imagePullSecrets and storageClass
 	//# @param global.imageRegistry Global Docker image registry
 	//# @param global.imagePullSecrets Global Docker registry secret names as an array
-	//# @param global.storageClass Global StorageClass for Persistent Volume(s)
+	//# @param global.defaultStorageClass Global default StorageClass for Persistent Volume(s)
+	//# @param global.storageClass DEPRECATED: use global.defaultStorageClass instead
 	//#
+	//# @section Common parameters
 	global: {
 		imageRegistry: ""
 		//# E.g.
@@ -16,10 +20,27 @@ package grafana
 		//#   - myRegistryKeySecretName
 		//#
 		imagePullSecrets: []
-		storageClass: ""
+		defaultStorageClass: ""
+		storageClass:        ""
+		//# Security parameters
+		//#
+		security: {
+			//# @param global.security.allowInsecureImages Allows skipping image verification
+			allowInsecureImages: false
+		}
+		//# Compatibility adaptations for Kubernetes platforms
+		//#
+		compatibility: {
+			//# Compatibility adaptations for Openshift
+			//#
+			openshift: {
+				//# @param global.compatibility.openshift.adaptSecurityContext Adapt the securityContext sections of the deployment to make them compatible with Openshift restricted-v2 SCC: remove runAsUser, runAsGroup and fsGroup and let the platform use their allowed default IDs. Possible values: auto (apply if the detected running cluster is Openshift), force (perform the adaptation always), disabled (do not perform adaptation)
+				//#
+				adaptSecurityContext: "auto"
+			}
+		}
 	}
 
-	//# @section Common parameters
 	//# @param kubeVersion Force target Kubernetes version (using Helm capabilities if not set)
 	//#
 	kubeVersion: ""
@@ -32,6 +53,9 @@ package grafana
 	//# @param fullnameOverride String to fully override grafana.fullname template
 	//#
 	fullnameOverride: ""
+	//# @param namespaceOverride String to fully override common.names.namespace
+	//#
+	namespaceOverride: ""
 	//# @param clusterDomain Default Kubernetes cluster domain
 	//#
 	clusterDomain: "cluster.local"
@@ -41,23 +65,27 @@ package grafana
 	//# @param commonAnnotations Annotations to add to all deployed objects
 	//#
 	commonAnnotations: {}
-
+	//# @param usePasswordFiles Mount credentials as files instead of using environment variables
+	//#
 	//# @section Grafana parameters
+	usePasswordFiles: true
+
 	//# Bitnami Grafana image version
 	//# ref: https://hub.docker.com/r/bitnami/grafana/tags/
-	//# @param image.registry Grafana image registry
-	//# @param image.repository Grafana image repository
-	//# @param image.tag Grafana image tag (immutable tags are recommended)
+	//# @param image.registry [default: REGISTRY_NAME] Grafana image registry
+	//# @param image.repository [default: REPOSITORY_NAME/grafana] Grafana image repository
+	//# @skip image.tag Grafana image tag (immutable tags are recommended)
+	//# @param image.digest Grafana image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag
 	//# @param image.pullPolicy Grafana image pull policy
 	//# @param image.pullSecrets Grafana image pull secrets
 	//#
 	image: {
 		registry:   "docker.io"
 		repository: "bitnami/grafana"
-		tag:        "9.0.5-debian-11-r1"
+		tag:        "12.1.1-debian-12-r1"
+		digest:     ""
 		//# Specify a imagePullPolicy
-		//# Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
-		//# ref: https://kubernetes.io/docs/user-guide/images/#pre-pulling-images
+		//# ref: https://kubernetes.io/docs/concepts/containers/images/#pre-pulled-images
 		//#
 		pullPolicy: "IfNotPresent"
 		//# Optionally specify an array of imagePullSecrets.
@@ -205,7 +233,19 @@ package grafana
 			certKeyFilename:       ""
 		}
 	}
-
+	//# Grafana Image Renderer configuration for Grafana
+	//#
+	imageRenderer: {
+		//# @param imageRenderer.enabled Enable using a remote rendering service to render PNG images
+		//#
+		enabled: false
+		//# @param imageRenderer.serverURL URL of the remote rendering service
+		//#
+		serverURL: ""
+		//# @param imageRenderer.callbackURL URL of the callback service
+		//#
+		callbackURL: ""
+	}
 	//# Parameters to override the default grafana.ini file.
 	//# It is needed to create a configmap or a secret containing the grafana.ini file.
 	//# @param config.useGrafanaIniFile Allows to load a `grafana.ini` file
@@ -243,14 +283,25 @@ package grafana
 	//#     fileName: myotherdashboard.json
 	//#
 	dashboardsConfigMaps: []
-	//# Create datasources from a custom secret
-	//# The secret must contain the files
-	//# @param datasources.secretName Secret name containing custom datasource files
+	//# Import datasources from an externally-managed secret, or a secret definition set via Helm values.
 	//#
 	datasources: {
+		//# @param datasources.secretName The name of an externally-managed secret containing custom datasource files.
+		//#
 		secretName: ""
+		//# @param datasources.secretDefinition The contents of a secret defining a custom datasource file. Only used if datasources.secretName is empty or not defined.
+		//# Example:
+		//# secretDefinition:
+		//#   apiVersion: 1
+		//#   datasources:
+		//#   - name: Prometheus
+		//#     type: prometheus
+		//#     url: http://prometheus-prometheus-server
+		//#     access: proxy
+		//#     isDefault: true
+		//#
+		secretDefinition: {}
 	}
-
 	//# Create notifiers from a configMap
 	//# The notifiersName must contain the files
 	//# @param notifiers.configMapName Name of a ConfigMap containing Grafana notifiers configuration
@@ -258,13 +309,26 @@ package grafana
 	notifiers: {
 		configMapName: ""
 	}
-
+	//# Create alerting rules, contact points, notification policies, templates, and mute timings from a configMap
+	//# @param alerting.configMapName Name of a ConfigMap containing Grafana alerting configuration
+	//#
+	alerting: {
+		configMapName: ""
+	}
 	//# @section Grafana Deployment parameters
-
+	//# @section Persistence parameters
 	grafana: {
 		//# @param grafana.replicaCount Number of Grafana nodes
 		//#
 		replicaCount: 1
+		//# @param grafana.kind Use either Deployment or StatefulSet (default)
+		//# ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
+		//#
+		kind: "Deployment"
+		//# @param grafana.podManagementPolicy StatefulSet pod management policy
+		//# ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies
+		//#
+		podManagementPolicy: "Parallel"
 		//# @param grafana.updateStrategy.type Set up update strategy for Grafana installation.
 		//# Set to Recreate if you use persistent volume that cannot be mounted by more than one pods to make sure the pods is destroyed first.
 		//# ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
@@ -278,6 +342,9 @@ package grafana
 		updateStrategy: {
 			type: "RollingUpdate"
 		}
+		//# @param grafana.automountServiceAccountToken Mount Service Account token in pod
+		//#
+		automountServiceAccountToken: false
 		//# @param grafana.hostAliases Add deployment host aliases
 		//# https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
 		//#
@@ -315,6 +382,9 @@ package grafana
 		containerPorts: {
 			grafana: 3000
 		}
+		//# @param grafana.extraPorts Extra ports for Grafana deployment
+		//#
+		extraPorts: []
 		//# Node affinity preset
 		//# Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
 		//# @param grafana.nodeAffinityPreset.type Node affinity preset type. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
@@ -340,7 +410,7 @@ package grafana
 		//#
 		affinity: {}
 		//# @param grafana.nodeSelector Node labels for pod assignment
-		//# Ref: https://kubernetes.io/docs/user-guide/node-selection/
+		//# Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
 		//#
 		nodeSelector: {}
 		//# @param grafana.tolerations Tolerations for pod assignment
@@ -357,51 +427,67 @@ package grafana
 		//#
 		topologySpreadConstraints: []
 		//# @param grafana.podSecurityContext.enabled Enable securityContext on for Grafana deployment
+		//# @param grafana.podSecurityContext.fsGroupChangePolicy Set filesystem group change policy
+		//# @param grafana.podSecurityContext.sysctls Set kernel settings using the sysctl interface
+		//# @param grafana.podSecurityContext.supplementalGroups Set filesystem extra groups
 		//# @param grafana.podSecurityContext.fsGroup Group to configure permissions for volumes
-		//# @param grafana.podSecurityContext.runAsUser User for the security context
-		//# @param grafana.podSecurityContext.runAsNonRoot Run containers as non-root users
 		//#
 		podSecurityContext: {
-			enabled:      true
-			runAsUser:    1001
-			fsGroup:      1001
-			runAsNonRoot: true
+			enabled:             true
+			fsGroupChangePolicy: "Always"
+			sysctls: []
+			supplementalGroups: []
+			fsGroup: 1001
 		}
 		//# Configure Container Security Context
 		//# ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
-		//# @param grafana.containerSecurityContext.enabled Enabled Grafana Image Renderer containers' Security Context
-		//# @param grafana.containerSecurityContext.runAsUser Set Grafana Image Renderer containers' Security Context runAsUser
+		//# @param grafana.containerSecurityContext.enabled Enabled containers' Security Context
+		//# @param grafana.containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
+		//# @param grafana.containerSecurityContext.runAsUser Set containers' Security Context runAsUser
+		//# @param grafana.containerSecurityContext.runAsGroup Set containers' Security Context runAsGroup
+		//# @param grafana.containerSecurityContext.runAsNonRoot Set container's Security Context runAsNonRoot
+		//# @param grafana.containerSecurityContext.privileged Set container's Security Context privileged
+		//# @param grafana.containerSecurityContext.readOnlyRootFilesystem Set container's Security Context readOnlyRootFilesystem
+		//# @param grafana.containerSecurityContext.allowPrivilegeEscalation Set container's Security Context allowPrivilegeEscalation
+		//# @param grafana.containerSecurityContext.capabilities.drop List of capabilities to be dropped
+		//# @param grafana.containerSecurityContext.seccompProfile.type Set container's Security Context seccomp profile
 		//#
 		containerSecurityContext: {
-			enabled:   true
-			runAsUser: 1001
+			enabled: true
+			seLinuxOptions: {}
+			runAsUser:                1001
+			runAsGroup:               1001
+			runAsNonRoot:             true
+			privileged:               false
+			readOnlyRootFilesystem:   true
+			allowPrivilegeEscalation: false
+			capabilities: drop: ["ALL"]
+			seccompProfile: type: "RuntimeDefault"
 		}
 		//# Grafana containers' resource requests and limits
-		//# ref: https://kubernetes.io/docs/user-guide/compute-resources/
+		//# ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
 		//# We usually recommend not to specify default resources and to leave this as a conscious
 		//# choice for the user. This also increases chances charts run on environments with little
 		//# resources, such as Minikube. If you do want to specify resources, uncomment the following
 		//# lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-		//# @param grafana.resources.limits The resources limits for Grafana containers
-		//# @param grafana.resources.requests The requested resources for Grafana containers
+		//# @param grafana.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if grafana.resources is set (grafana.resources is recommended for production).
+		//# More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
 		//#
-		resources: {
-			//# Example:
-			//# limits:
-			//#    cpu: 500m
-			//#    memory: 1Gi
-			limits: {}
-			//# Examples:
-			//# requests:
-			//#    cpu: 250m
-			//#    memory: 256Mi
-			requests: {}
-		}
+		resourcesPreset: "nano"
+		//# @param grafana.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
+		//# Example:
+		//# resources:
+		//#   requests:
+		//#     cpu: 2
+		//#     memory: 512Mi
+		//#   limits:
+		//#     cpu: 3
+		//#     memory: 1024Mi
+		//#
+		resources: {}
 		//# Grafana containers' liveness probe
 		//# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
 		//# @param grafana.livenessProbe.enabled Enable livenessProbe
-		//# @param grafana.livenessProbe.path Path for livenessProbe
-		//# @param grafana.livenessProbe.scheme Scheme for livenessProbe
 		//# @param grafana.livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
 		//# @param grafana.livenessProbe.periodSeconds Period seconds for livenessProbe
 		//# @param grafana.livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
@@ -410,8 +496,6 @@ package grafana
 		//#
 		livenessProbe: {
 			enabled:             true
-			path:                "/api/health"
-			scheme:              "HTTP"
 			initialDelaySeconds: 120
 			periodSeconds:       10
 			timeoutSeconds:      5
@@ -491,6 +575,11 @@ package grafana
 		//#    command: ['sh', '-c', 'echo "hello world"']
 		//#
 		initContainers: []
+		//# @param grafana.enableServiceLinks Whether information about services should be injected into pod's environment variable
+		//# The environment variables injected by service links are not used, but can lead to slow boot times or slow running of the scripts when there are many services in the current namespace.
+		//# If you experience slow pod startups or slow running of the scripts you probably want to set this to `false`.
+		//#
+		enableServiceLinks: true
 		//# @param grafana.extraVolumes Additional volumes for the Grafana pod
 		//# Example:
 		//# extraVolumes:
@@ -508,9 +597,15 @@ package grafana
 		//# @param grafana.extraEnvVarsCM Name of existing ConfigMap containing extra env vars for Grafana nodes
 		//#
 		extraEnvVarsCM: ""
+		//# @param grafana.extraEnvVarsCMOptional Whether to still run the Grafana node if the ConfigMap does not exist
+		//#
+		extraEnvVarsCMOptional: false
 		//# @param grafana.extraEnvVarsSecret Name of existing Secret containing extra env vars for Grafana nodes
 		//#
 		extraEnvVarsSecret: ""
+		//# @param grafana.extraEnvVarsSecretOptional Whether to still run the Grafana node if the Secret does not exist
+		//#
+		extraEnvVarsSecretOptional: false
 		//# @param grafana.extraEnvVars Array containing extra env vars to configure Grafana
 		//# For example:
 		//# extraEnvVars:
@@ -533,19 +628,30 @@ package grafana
 		//# @param grafana.args Override default container args (useful when using custom images)
 		//#
 		args: []
+		//# Pod Disruption Budget configuration
+		//# ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb
+		//# @param grafana.pdb.create Enable/disable a Pod Disruption Budget creation
+		//# @param grafana.pdb.minAvailable Minimum number/percentage of pods that should remain scheduled
+		//# @param grafana.pdb.maxUnavailable Maximum number/percentage of pods that may be made unavailable. Defaults to `1` if both `grafana.pdb.minAvailable` and `grafana.pdb.maxUnavailable` are empty.
+		//#
+		pdb: {
+			create:         true
+			minAvailable:   ""
+			maxUnavailable: ""
+		}
 	}
 
-	//# @section Persistence parameters
 	//# Enable persistence using Persistent Volume Claims
-	//# ref: https://kubernetes.io/docs/user-guide/persistent-volumes/
+	//# ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
 	//# @param persistence.enabled Enable persistence
 	//# @param persistence.annotations Persistent Volume Claim annotations
 	//# @param persistence.accessMode Persistent Volume Access Mode
 	//# @param persistence.accessModes Persistent Volume Access Modes
 	//# @param persistence.storageClass Storage class to use with the PVC
-	//# @param persistence.existingClaim If you want to reuse an existing claim, you can pass the name of the PVC using the existingClaim variable
+	//# @param persistence.existingClaim If you want to reuse an existing claim, you can pass the name of the PVC using the existingClaim variable. Please note that this setting will be ignored when `grafana.kind` is set to `StatefulSet`.
 	//# @param persistence.size Size for the PV
 	//#
+	//# @section RBAC parameters
 	persistence: {
 		enabled: true
 		//# If defined, storageClassName: <storageClass>
@@ -562,11 +668,11 @@ package grafana
 		size: "10Gi"
 	}
 
-	//# @section RBAC parameters
 	//# @param serviceAccount.create Specifies whether a ServiceAccount should be created
 	//# @param serviceAccount.name The name of the ServiceAccount to use. If not set and create is true, a name is generated using the fullname template
 	//# @param serviceAccount.annotations Annotations to add to the ServiceAccount Metadata
 	//# @param serviceAccount.automountServiceAccountToken Automount service account token for the application controller service account
+	//# @section Traffic exposure parameters
 	serviceAccount: {
 		create: true
 		name:   ""
@@ -574,7 +680,6 @@ package grafana
 		automountServiceAccountToken: false
 	}
 
-	//# @section Traffic exposure parameters
 	//# Service parameters
 	//#
 	service: {
@@ -598,11 +703,15 @@ package grafana
 			grafana: ""
 		}
 		//# @param service.loadBalancerIP loadBalancerIP if Grafana service type is `LoadBalancer` (optional, cloud specific)
-		//# ref: https://kubernetes.io/docs/user-guide/services/#type-loadbalancer
+		//# ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-loadbalancer
 		//#
 		loadBalancerIP: ""
+		//# @param service.loadBalancerClass loadBalancerClass if Grafana service type is `LoadBalancer` (optional, cloud specific)
+		//# ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-loadbalancer
+		//#
+		loadBalancerClass: ""
 		//# @param service.loadBalancerSourceRanges loadBalancerSourceRanges if Grafana service type is `LoadBalancer` (optional, cloud specific)
-		//# ref: https://kubernetes.io/docs/user-guide/services/#type-loadbalancer
+		//# ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-loadbalancer
 		//# e.g:
 		//# loadBalancerSourceRanges:
 		//#   - 10.10.10.0/24
@@ -617,7 +726,7 @@ package grafana
 		//# ref https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
 		//#
 		externalTrafficPolicy: "Cluster"
-		//# @param service.extraPorts Extra port to expose on Redmine service
+		//# @param service.extraPorts Extra port to expose on Grafana service
 		//#
 		extraPorts: []
 		//# @param service.sessionAffinity Session Affinity for Kubernetes service, can be "None" or "ClientIP"
@@ -632,17 +741,84 @@ package grafana
 		//#
 		sessionAffinityConfig: {}
 	}
+	//# Network Policies
+	//# Ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+	//#
+	networkPolicy: {
+		//# @param networkPolicy.enabled Specifies whether a NetworkPolicy should be created
+		//#
+		enabled: true
+		//# @param networkPolicy.allowExternal Don't require server label for connections
+		//# The Policy model to apply. When set to false, only pods with the correct
+		//# server label will have network access to the ports server is listening
+		//# on. When true, server will accept connections from any source
+		//# (with the correct destination port).
+		//#
+		allowExternal: true
+		//# @param networkPolicy.allowExternalEgress Allow the pod to access any range of port and all destinations.
+		//#
+		allowExternalEgress: true
+		//# @param networkPolicy.addExternalClientAccess Allow access from pods with client label set to "true". Ignored if `networkPolicy.allowExternal` is true.
+		//#
+		addExternalClientAccess: true
+		//# @param networkPolicy.extraIngress [array] Add extra ingress rules to the NetworkPolicy
+		//# e.g:
+		//# extraIngress:
+		//#   - ports:
+		//#       - port: 1234
+		//#     from:
+		//#       - podSelector:
+		//#           - matchLabels:
+		//#               - role: frontend
+		//#       - podSelector:
+		//#           - matchExpressions:
+		//#               - key: role
+		//#                 operator: In
+		//#                 values:
+		//#                   - frontend
+		extraIngress: []
+		//# @param networkPolicy.extraEgress [array] Add extra ingress rules to the NetworkPolicy
+		//# e.g:
+		//# extraEgress:
+		//#   - ports:
+		//#       - port: 1234
+		//#     to:
+		//#       - podSelector:
+		//#           - matchLabels:
+		//#               - role: frontend
+		//#       - podSelector:
+		//#           - matchExpressions:
+		//#               - key: role
+		//#                 operator: In
+		//#                 values:
+		//#                   - frontend
+		//#
+		extraEgress: []
+		//# @param networkPolicy.ingressPodMatchLabels [object] Labels to match to allow traffic from other pods. Ignored if `networkPolicy.allowExternal` is true.
+		//# e.g:
+		//# ingressPodMatchLabels:
+		//#   my-client: "true"
+		//
+		ingressPodMatchLabels: {}
+		//# @param networkPolicy.ingressNSMatchLabels [object] Labels to match to allow traffic from other namespaces. Ignored if `networkPolicy.allowExternal` is true.
+		//# @param networkPolicy.ingressNSPodMatchLabels [object] Pod labels to match to allow traffic from other namespaces. Ignored if `networkPolicy.allowExternal` is true.
+		//#
+		ingressNSMatchLabels: {}
+		ingressNSPodMatchLabels: {}
+	}
 	//# Configure the ingress resource that allows you to access the
 	//# Grafana installation. Set up the URL
-	//# ref: https://kubernetes.io/docs/user-guide/ingress/
+	//# ref: https://kubernetes.io/docs/concepts/services-networking/ingress/
 	//#
+	//# @section Metrics parameters
 	ingress: {
 		//# @param ingress.enabled Set to true to enable ingress record generation
 		//#
-		enabled: false
 		//# DEPRECATED: Use ingress.annotations instead of ingress.certManager
 		//# certManager: false
 		//#
+		enabled: false
+
 		//# @param ingress.pathType Ingress Path type
 		//#
 		pathType: "ImplementationSpecific"
@@ -658,7 +834,7 @@ package grafana
 		path: "/"
 		//# @param ingress.annotations Additional annotations for the Ingress resource. To enable certificate autogeneration, place here your cert-manager annotations.
 		//# For a full list of possible ingress annotations, please see
-		//# ref: https://github.com/kubernetes/ingress-nginx/blob/master/docs/user-guide/nginx-configuration/annotations.md
+		//# ref: https://github.com/kubernetes/ingress-nginx/blob/main/docs/user-guide/nginx-configuration/annotations.md
 		//# Use this parameter to set the required annotations for cert-manager, see
 		//# ref: https://cert-manager.io/docs/usage/ingress/#supported-annotations
 		//#
@@ -733,9 +909,9 @@ package grafana
 		extraRules: []
 	}
 
-	//# @section Metrics parameters
 	//# Prometheus metrics
 	//#
+	//# @section Volume permissions init Container Parameters
 	metrics: {
 		//# @param metrics.enabled Enable the export of Prometheus metrics
 		//#
@@ -770,7 +946,7 @@ package grafana
 			//#
 			scrapeTimeout: ""
 			//# @param metrics.serviceMonitor.selector Prometheus instance selector labels
-			//# ref: https://github.com/bitnami/charts/tree/master/bitnami/prometheus-operator#prometheus-configuration
+			//# ref: https://github.com/bitnami/charts/tree/main/bitnami/prometheus-operator#prometheus-configuration
 			//# e.g:
 			//# selector:
 			//#   prometheus: my-prometheus
@@ -822,374 +998,31 @@ package grafana
 			rules: []
 		}
 	}
-	//# @section Grafana Image Renderer parameters
 
-	imageRenderer: {
-		//# @param imageRenderer.enabled Enable using a remote rendering service to render PNG images
-		//#
-		enabled: false
-		//# Bitnami Grafana Image Renderer image
-		//# ref: https://hub.docker.com/r/bitnami/grafana-image-renderer/tags/
-		//# @param imageRenderer.image.registry Grafana Image Renderer image registry
-		//# @param imageRenderer.image.repository Grafana Image Renderer image repository
-		//# @param imageRenderer.image.tag Grafana Image Renderer image tag (immutable tags are recommended)
-		//# @param imageRenderer.image.pullPolicy Grafana Image Renderer image pull policy
-		//# @param imageRenderer.image.pullSecrets Grafana image Renderer pull secrets
-		//#
-		image: {
-			registry:   "docker.io"
-			repository: "bitnami/grafana-image-renderer"
-			tag:        "3.5.0-debian-11-r3"
-			//# Specify a imagePullPolicy
-			//# Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
-			//# ref: https://kubernetes.io/docs/user-guide/images/#pre-pulling-images
-			//#
-			pullPolicy: "IfNotPresent"
-			//# Optionally specify an array of imagePullSecrets (secrets must be manually created in the namespace)
-			//# ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-			//# Example:
-			//# pullSecrets:
-			//#   - myRegistryKeySecretName
-			//#
-			pullSecrets: []
-		}
-		//# @param imageRenderer.replicaCount Number of Grafana Image Renderer Pod replicas
-		//#
-		replicaCount: 1
-		//# @param imageRenderer.updateStrategy.type Grafana Image Renderer deployment strategy type.
-		//# ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
-		//# e.g:
-		//# updateStrategy:
-		//#  type: RollingUpdate
-		//#  rollingUpdate:
-		//#    maxSurge: 25%
-		//#    maxUnavailable: 25%
-		//#
-		updateStrategy: {
-			type: "RollingUpdate"
-		}
-		//# @param imageRenderer.podAnnotations Grafana Image Renderer Pod annotations
-		//# ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
-		//#
-		podAnnotations: {}
-		//# @param imageRenderer.podLabels Extra labels for Grafana Image Renderer pods
-		//# ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-		//#
-		podLabels: {}
-		//# @param imageRenderer.nodeSelector Node labels for pod assignment
-		//# Ref: https://kubernetes.io/docs/user-guide/node-selection/
-		//#
-		nodeSelector: {}
-		//# @param imageRenderer.hostAliases Grafana Image Renderer pods host aliases
-		//# https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
-		//#
-		hostAliases: []
-		//# @param imageRenderer.tolerations Tolerations for pod assignment
-		//# Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
-		//#
-		tolerations: []
-		//# @param imageRenderer.priorityClassName Grafana Image Renderer pods' priorityClassName
-		//#
-		priorityClassName: ""
-		//# @param imageRenderer.schedulerName Name of the k8s scheduler (other than default)
-		//# ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
-		//#
-		schedulerName: ""
-		//# @param imageRenderer.terminationGracePeriodSeconds In seconds, time the given to the Grafana Image Renderer pod needs to terminate gracefully
-		//# ref: https://kubernetes.io/docs/concepts/workloads/pods/pod/#termination-of-pods
-		//#
-		terminationGracePeriodSeconds: ""
-		//# @param imageRenderer.topologySpreadConstraints Topology Spread Constraints for pod assignment
-		//# https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
-		//# The value is evaluated as a template
-		//#
-		topologySpreadConstraints: []
-		//# @param imageRenderer.podAffinityPreset Pod affinity preset. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
-		//# ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
-		//#
-		podAffinityPreset: ""
-		//# @param imageRenderer.podAntiAffinityPreset Pod anti-affinity preset. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
-		//# Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
-		//#
-		podAntiAffinityPreset: "soft"
-		//# Node affinity preset
-		//# Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
-		//# @param imageRenderer.nodeAffinityPreset.type Node affinity preset type. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
-		//# @param imageRenderer.nodeAffinityPreset.key Node label key to match Ignored if `affinity` is set.
-		//# @param imageRenderer.nodeAffinityPreset.values Node label values to match. Ignored if `affinity` is set.
-		//#
-		nodeAffinityPreset: {
-			type: ""
-			//# E.g.
-			//# key: "kubernetes.io/e2e-az-name"
-			//#
-			key: ""
-			//# E.g.
-			//# values:
-			//#   - e2e-az1
-			//#   - e2e-az2
-			//#
-			values: []
-		}
-		//# @param imageRenderer.extraEnvVars Array containing extra env vars to configure Grafana
-		//# For example:
-		//# extraEnvVars:
-		//#  - name: GF_DEFAULT_INSTANCE_NAME
-		//#    value: my-instance
-		//#
-		extraEnvVars: {}
-		//# @param imageRenderer.affinity Affinity for pod assignment
-		//# Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
-		//# Note: podAffinityPreset, podAntiAffinityPreset, and  nodeAffinityPreset will be ignored when it's set
-		//#
-		affinity: {}
-		//# Grafana Image Renderer containers' resource requests and limits
-		//# ref: https://kubernetes.io/docs/user-guide/compute-resources/
-		//# We usually recommend not to specify default resources and to leave this as a conscious
-		//# choice for the user. This also increases chances charts run on environments with little
-		//# resources, such as Minikube. If you do want to specify resources, uncomment the following
-		//# lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-		//# @param imageRenderer.resources.limits The resources limits for Grafana containers
-		//# @param imageRenderer.resources.requests The requested resources for Grafana containers
-		//#
-		resources: {
-			//# Example:
-			//# limits:
-			//#    cpu: 500m
-			//#    memory: 1Gi
-			limits: {}
-			//# Examples:
-			//# requests:
-			//#    cpu: 250m
-			//#    memory: 256Mi
-			requests: {}
-		}
-		//# SecurityContext configuration
-		//# @param imageRenderer.podSecurityContext.enabled Enable securityContext on for Grafana Image Renderer deployment
-		//# @param imageRenderer.podSecurityContext.fsGroup Group to configure permissions for volumes
-		//# @param imageRenderer.podSecurityContext.runAsUser User for the security context
-		//# @param imageRenderer.podSecurityContext.runAsNonRoot Run containers as non-root users
-		//#
-		podSecurityContext: {
-			enabled:      true
-			runAsUser:    1001
-			fsGroup:      1001
-			runAsNonRoot: true
-		}
-		//# Configure Container Security Context
-		//# ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
-		//# @param imageRenderer.containerSecurityContext.enabled Enabled Grafana Image Renderer containers' Security Context
-		//# @param imageRenderer.containerSecurityContext.runAsUser Set Grafana Image Renderer containers' Security Context runAsUser
-		//#
-		containerSecurityContext: {
-			enabled:   true
-			runAsUser: 1001
-		}
-		service: {
-			//# @param imageRenderer.service.type Kubernetes Service type
-			//#
-			type: "ClusterIP"
-			//# @param imageRenderer.service.clusterIP Grafana service Cluster IP
-			//# e.g.:
-			//# clusterIP: None
-			//#
-			clusterIP: ""
-			//# @param imageRenderer.service.ports.imageRenderer Grafana Image Renderer metrics port
-			//#
-			ports: {
-				imageRenderer: 8080
-			}
-			//# @param imageRenderer.service.nodePorts.grafana Specify the nodePort value for the LoadBalancer and NodePort service types
-			//# ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
-			//#
-			nodePorts: {
-				grafana: ""
-			}
-			//# @param imageRenderer.service.loadBalancerIP loadBalancerIP if Grafana service type is `LoadBalancer` (optional, cloud specific)
-			//# ref: https://kubernetes.io/docs/user-guide/services/#type-loadbalancer
-			//#
-			loadBalancerIP: ""
-			//# @param imageRenderer.service.loadBalancerSourceRanges loadBalancerSourceRanges if Grafana service type is `LoadBalancer` (optional, cloud specific)
-			//# ref: https://kubernetes.io/docs/user-guide/services/#type-loadbalancer
-			//# e.g:
-			//# loadBalancerSourceRanges:
-			//#   - 10.10.10.0/24
-			//#
-			loadBalancerSourceRanges: []
-			//# @param imageRenderer.service.annotations Provide any additional annotations which may be required.
-			//# This can be used to set the LoadBalancer service type to internal only.
-			//# ref: https://kubernetes.io/docs/concepts/services-networking/service/#internal-load-balancer
-			//#
-			annotations: {}
-			//# @param imageRenderer.service.externalTrafficPolicy Grafana service external traffic policy
-			//# ref https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
-			//#
-			externalTrafficPolicy: "Cluster"
-			//# @param imageRenderer.service.extraPorts Extra port to expose on Redmine service
-			//#
-			extraPorts: []
-			//# @param imageRenderer.service.sessionAffinity Session Affinity for Kubernetes service, can be "None" or "ClientIP"
-			//# If "ClientIP", consecutive client requests will be directed to the same Pod
-			//# ref: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
-			//#
-			sessionAffinity: "None"
-			//# @param imageRenderer.service.sessionAffinityConfig Additional settings for the sessionAffinity
-			//# sessionAffinityConfig:
-			//#   clientIP:
-			//#     timeoutSeconds: 300
-			//#
-			sessionAffinityConfig: {}
-		}
-		//# Enable Prometheus metrics endpoint
-		//#
-		metrics: {
-			//# @param imageRenderer.metrics.enabled Enable the export of Prometheus metrics
-			//#
-			enabled: false
-			//# @param imageRenderer.metrics.annotations [object] Annotations for Prometheus metrics service[object] Prometheus annotations
-			//#
-			annotations: {
-				"prometheus.io/scrape": "true"
-				"prometheus.io/port":   "8080"
-				"prometheus.io/path":   "/metrics"
-			}
-			//# Prometheus Operator ServiceMonitor configuration
-			//#
-			serviceMonitor: {
-				//# @param imageRenderer.metrics.serviceMonitor.enabled if `true`, creates a Prometheus Operator ServiceMonitor (also requires `metrics.enabled` to be `true`)
-				//#
-				enabled: false
-				//# @param imageRenderer.metrics.serviceMonitor.namespace Namespace in which Prometheus is running
-				//#
-				namespace: ""
-				//# @param imageRenderer.metrics.serviceMonitor.jobLabel The name of the label on the target service to use as the job name in prometheus.
-				//#
-				jobLabel: ""
-				//# @param imageRenderer.metrics.serviceMonitor.interval Interval at which metrics should be scraped.
-				//# ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
-				//# e.g:
-				//# interval: 10s
-				//#
-				interval: ""
-				//# @param imageRenderer.metrics.serviceMonitor.scrapeTimeout Timeout after which the scrape is ended
-				//# ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
-				//# e.g:
-				//# scrapeTimeout: 10s
-				//#
-				scrapeTimeout: ""
-				//# @param imageRenderer.metrics.serviceMonitor.relabelings RelabelConfigs to apply to samples before scraping
-				//# ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#relabelconfig
-				//#
-				relabelings: []
-				//# @param imageRenderer.metrics.serviceMonitor.metricRelabelings MetricRelabelConfigs to apply to samples before ingestion
-				//# ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#relabelconfig
-				//#
-				metricRelabelings: []
-				//# @param imageRenderer.metrics.serviceMonitor.selector ServiceMonitor selector labels
-				//# ref: https://github.com/bitnami/charts/tree/master/bitnami/prometheus-operator#prometheus-configuration
-				//#
-				//# selector:
-				//#   prometheus: my-prometheus
-				//#
-				selector: {}
-				//# @param imageRenderer.metrics.serviceMonitor.labels Extra labels for the ServiceMonitor
-				//#
-				labels: {}
-				//# @param imageRenderer.metrics.serviceMonitor.honorLabels honorLabels chooses the metric's labels on collisions with target labels
-				//#
-				honorLabels: false
-			}
-			//# Prometheus Operator PrometheusRule configuration
-			//#
-			prometheusRule: {
-				//# @param imageRenderer.metrics.prometheusRule.enabled if `true`, creates a Prometheus Operator PrometheusRule (also requires `metrics.enabled` to be `true` and `metrics.prometheusRule.rules`)
-				//#
-				enabled: false
-				//# @param imageRenderer.metrics.prometheusRule.namespace Namespace for the PrometheusRule Resource (defaults to the Release Namespace)
-				//#
-				namespace: ""
-				//# @param imageRenderer.metrics.prometheusRule.additionalLabels Additional labels that can be used so PrometheusRule will be discovered by Prometheus
-				//#
-				additionalLabels: {}
-				//# @param imageRenderer.metrics.prometheusRule.rules Prometheus Rule definitions
-				//#      - alert: Grafana-Image-Renderer-Down
-				//#        expr: absent(up{job="grafana-image-renderer"} == 1)
-				//#        for: 1s
-				//#        labels:
-				//#          severity: critical
-				//#        annotations:
-				//#          summary: Grafana Image Renderer Down
-				//#          description: "Grafana Image Renderer is down. There are no values coming from grafana-image-renderer."
-				//#
-				rules: []
-			}
-		}
-		//# @param imageRenderer.initContainers Add additional init containers to the Grafana Image Renderer pod(s)
-		//# ref: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
-		//# e.g:
-		//# initContainers:
-		//#  - name: your-image-name
-		//#    image: your-image
-		//#    imagePullPolicy: Always
-		//#    command: ['sh', '-c', 'echo "hello world"']
-		//#
-		initContainers: []
-		//# @param imageRenderer.sidecars Add additional sidecar containers to the Grafana Image Renderer pod(s)
-		//# e.g:
-		//# sidecars:
-		//#   - name: your-image-name
-		//#     image: your-image
-		//#     imagePullPolicy: Always
-		//#     ports:
-		//#       - name: portname
-		//#         containerPort: 1234
-		//#
-		sidecars: []
-		//# @param imageRenderer.extraEnvVarsCM Name of existing ConfigMap containing extra env vars for Grafana Image Renderer nodes
-		//#
-		extraEnvVarsCM: ""
-		//# @param imageRenderer.extraEnvVarsSecret Name of existing Secret containing extra env vars for Grafana Image Renderer nodes
-		//#
-		extraEnvVarsSecret: ""
-		//# @param imageRenderer.extraVolumes Optionally specify extra list of additional volumes for the Grafana Image Renderer pod(s)
-		//#
-		extraVolumes: []
-		//# @param imageRenderer.extraVolumeMounts Optionally specify extra list of additional volumeMounts for the Grafana Image Renderer container(s)
-		//#
-		extraVolumeMounts: []
-		//# @param imageRenderer.command Override default container command (useful when using custom images)
-		//#
-		command: []
-		//# @param imageRenderer.args Override default container args (useful when using custom images)
-		//#
-		args: []
-		//# @param imageRenderer.lifecycleHooks for the Grafana Image Renderer container(s) to automate configuration before or after startup
-		//#
-		lifecycleHooks: {}
-	}
-
-	//# @section Volume permissions init Container Parameters
 	//# 'volumePermissions' init container parameters
 	//# Changes the owner and group of the persistent volume mount point to runAsUser:fsGroup values
 	//#   based on the `grafana:podSecurityContext`/`grafana:containerSecurityContext`` parameters
 	//# May require setting `grafana:podSecurityContext:runAsNonRoot` to false
 	//#
+	//# @section Diagnostic Mode Parameters
 	volumePermissions: {
 		//# @param volumePermissions.enabled Enable init container that changes the owner/group of the PV mount point to `runAsUser:fsGroup`
 		//#
 		enabled: false
-		//# Bitnami Shell image
-		//# ref: https://hub.docker.com/r/bitnami/bitnami-shell/tags/
-		//# @param volumePermissions.image.registry Bitnami Shell image registry
-		//# @param volumePermissions.image.repository Bitnami Shell image repository
-		//# @param volumePermissions.image.tag Bitnami Shell image tag (immutable tags are recommended)
-		//# @param volumePermissions.image.pullPolicy Bitnami Shell image pull policy
-		//# @param volumePermissions.image.pullSecrets Bitnami Shell image pull secrets
+		//# OS Shell + Utility image
+		//# ref: https://hub.docker.com/r/bitnami/os-shell/tags/
+		//# @param volumePermissions.image.registry [default: REGISTRY_NAME] OS Shell + Utility image registry
+		//# @param volumePermissions.image.repository [default: REPOSITORY_NAME/os-shell] OS Shell + Utility image repository
+		//# @skip volumePermissions.image.tag OS Shell + Utility image tag (immutable tags are recommended)
+		//# @param volumePermissions.image.digest OS Shell + Utility image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag
+		//# @param volumePermissions.image.pullPolicy OS Shell + Utility image pull policy
+		//# @param volumePermissions.image.pullSecrets OS Shell + Utility image pull secrets
 		//#
 		image: {
 			registry:   "docker.io"
-			repository: "bitnami/bitnami-shell"
-			tag:        "11-debian-11-r19"
+			repository: "bitnami/os-shell"
+			tag:        "12-debian-12-r50"
+			digest:     ""
 			pullPolicy: "IfNotPresent"
 			//# Optionally specify an array of imagePullSecrets.
 			//# Secrets must be manually created in the namespace.
@@ -1201,27 +1034,36 @@ package grafana
 			pullSecrets: []
 		}
 		//# Init container's resource requests and limits
-		//# ref: https://kubernetes.io/docs/user-guide/compute-resources/
-		//# @param volumePermissions.resources.limits The resources limits for the init container
-		//# @param volumePermissions.resources.requests The requested resources for the init container
+		//# ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+		//# @param volumePermissions.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if volumePermissions.resources is set (volumePermissions.resources is recommended for production).
+		//# More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
 		//#
-		resources: {
-			limits: {}
-			requests: {}
-		}
+		resourcesPreset: "nano"
+		//# @param volumePermissions.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
+		//# Example:
+		//# resources:
+		//#   requests:
+		//#     cpu: 2
+		//#     memory: 512Mi
+		//#   limits:
+		//#     cpu: 3
+		//#     memory: 1024Mi
+		//#
+		resources: {}
 		//# Init container Container Security Context
 		//# ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+		//# @param volumePermissions.containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
 		//# @param volumePermissions.containerSecurityContext.runAsUser Set init container's Security Context runAsUser
 		//# NOTE: when runAsUser is set to special value "auto", init container will try to chown the
 		//#   data folder to auto-determined user&group, using commands: `id -u`:`id -G | cut -d" " -f2`
 		//#   "auto" is especially useful for OpenShift which has scc with dynamic user ids (and 0 is not allowed)
 		//#
 		containerSecurityContext: {
+			seLinuxOptions: {}
 			runAsUser: 0
 		}
 	}
 
-	//# @section Diagnostic Mode Parameters
 	//# Enable diagnostic mode in the deployment
 	//#
 	diagnosticMode: {
@@ -1230,9 +1072,7 @@ package grafana
 		enabled: false
 		//# @param diagnosticMode.command Command to override all containers in the deployment
 		//#
-		command: [
-			"sleep",
-		]
+		command: ["sleep"]
 		//# @param diagnosticMode.args Args to override all containers in the deployment
 		//#
 		args: ["infinity"]
