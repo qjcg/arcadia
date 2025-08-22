@@ -1,0 +1,35 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  CHART: grafana
+
+tasks:
+  default:
+    - task: charts
+    - task: imports
+
+  charts:
+    cmds:
+      - go tool helm repo add bitnami https://charts.bitnami.com/bitnami
+      - go tool helm pull --untar bitnami/grafana
+
+  imports:
+    cmds:
+      - cue import grafana/values.yaml --package grafana --path '#CommonValues:' --force --outfile grafana-values.common.cue
+      - cue import grafana/values.yaml --package grafana --path '#DevValues:' --force --outfile grafana-values.dev.cue
+      - cue import grafana/values.yaml --package grafana --path '#UATValues:' --force --outfile grafana-values.uat.cue
+      - cue import grafana/values.yaml --package grafana --path '#ProdValues:' --force --outfile grafana-values.prod.cue
+
+  cluster: k3d cluster create --servers 3 --agents 3 --port 8888:3000@loadbalancer helm-example
+
+  cluster:install:
+    cmds:
+      - go tool helm install --create-namespace --namespace dev -f grafana-values.common.yaml grafana-dev bitnami/grafana
+      - go tool helm install --create-namespace --namespace uat -f grafana-values.common.yaml grafana-uat bitnami/grafana
+      - go tool helm install --create-namespace --namespace prod -f grafana-values.common.yaml grafana-prod bitnami/grafana
+
+  cluster:delete: k3d cluster delete helm-example
+
+  clean: rm -rf {{.CHART}}
