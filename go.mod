@@ -591,6 +591,7 @@ tool (
 	github.com/go-task/task/v3/cmd/task
 	github.com/goreleaser/chglog/cmd/chglog
 	github.com/goreleaser/goreleaser/v2
+	github.com/k3d-io/k3d/v5
 	github.com/rakyll/hey
 	github.com/rogerwelin/cassowary/cmd/cassowary
 	github.com/rs/curlie
@@ -599,6 +600,7 @@ tool (
 	golang.org/x/tools/cmd/goimports
 	golang.org/x/vuln/cmd/govulncheck
 	gotest.tools/gotestsum
+	helm.sh/helm/v4/cmd/helm
 	mvdan.cc/gofumpt
 	mvdan.cc/xurls/v2/cmd/xurls
 	rsc.io/uncover
