@@ -1,0 +1,77 @@
+:PROPERTIES:
+:ID:       be19a46e-d44f-4488-a6b9-efbb51373f42
+:END:
+#+title: typst slides
+#+filetags:
+#+cite_export: typst nature
+#+options: ^:{} toc:nil num:nil
+#+TYPST_HEADER: #import "@preview/slydst:0.1.4": *
+#+TYPST_HEADER:
+#+TYPST_HEADER: // Function to add ordinal suffix to day
+#+TYPST_HEADER: #let ordinal(day) = {
+#+TYPST_HEADER:   let day-num = int(day)
+#+TYPST_HEADER:   let suffix = if day-num >= 11 and day-num <= 13 {
+#+TYPST_HEADER:     "th"
+#+TYPST_HEADER:   } else if calc.rem(day-num, 10) == 1 {
+#+TYPST_HEADER:     "st"
+#+TYPST_HEADER:   } else if calc.rem(day-num, 10) == 2 {
+#+TYPST_HEADER:     "nd"
+#+TYPST_HEADER:   } else if calc.rem(day-num, 10) == 3 {
+#+TYPST_HEADER:     "rd"
+#+TYPST_HEADER:   } else {
+#+TYPST_HEADER:     "th"
+#+TYPST_HEADER:   }
+#+TYPST_HEADER:   [#day#super[#suffix]]
+#+TYPST_HEADER: }
+#+TYPST_HEADER: // Function to format date with ordinal
+#+TYPST_HEADER: #let format-date(date) = {
+#+TYPST_HEADER:   let day = date.display("[day]")
+#+TYPST_HEADER:   let month = date.display("[month repr:long]")
+#+TYPST_HEADER:   let year = date.display("[year]")
+#+TYPST_HEADER:   [#ordinal(day) #month #year]
+#+TYPST_HEADER: }
+#+TYPST_HEADER: #show: slides.with(
+#+TYPST_HEADER:   title: "Slydst: Slides with Typst",
+#+TYPST_HEADER:   subtitle: none,
+#+TYPST_HEADER:   date: format-date(datetime.today()),
+#+TYPST_HEADER:   authors: ("Joe Fakename",),
+#+TYPST_HEADER:   layout: "medium",
+#+TYPST_HEADER:   ratio: 4/3,
+#+TYPST_HEADER:   title-color: none,
+#+TYPST_HEADER: )
+
+
+
+* Introduction
+
+This is your first content slide.
+
+- Clean bullet points
+- Minimalist design
+- Easy to read
+
+* Section Break
+
+Show some code examples!
+
+#+BEGIN_SRC python
+import pandas as pd
+
+#+END_SRC
+
+* Another Slide
+** Sub heading
+#+begin_src
+Add a citation [cite:@Frank_2023]
+#+end_src
+
+** Sub heading 2
+
+#+begin_src
+Another citation [cite:@Abramson_2024]
+#+end_src
+
+* Finally
+
+** References
+#+print_bibliography:
