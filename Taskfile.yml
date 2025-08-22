@@ -36,7 +36,8 @@ tasks:
     - task: lint:check-links
 
   lint:editorconfig: go tool editorconfig-checker
-  lint:check-links: fd -0 .md | xargs -0 go tool xurls -fix
+
+  lint:check-links: fd -0 .md | grep -v localhost | xargs -0 go tool xurls -fix
 
   tag:
     desc: Add next semver git tag
