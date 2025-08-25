@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/benthosdev/benthos/v4/public/service"
+	"github.com/warpstreamlabs/bento/public/service"
 )
 
 func init() {
