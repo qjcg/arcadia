@@ -36,8 +36,9 @@ tasks:
     - task: lint:check-links
 
   lint:editorconfig: go tool editorconfig-checker
-
-  lint:check-links: fd -0 .md | grep -v localhost | xargs -0 go tool xurls -fix
+  lint:check-links: fd .md | xargs go tool xurls -fix
+  lint:trivy: go run github.com/aquasecurity/trivy/cmd/trivy@v0.65.0 fs .
+  lint:modernize: go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -fix -test ./...
 
   tag:
     desc: Add next semver git tag
