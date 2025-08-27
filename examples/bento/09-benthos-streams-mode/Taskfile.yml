@@ -1,0 +1,8 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default: go tool bento -r ./resources/* streams *.yaml
+  jokes: go tool bento -r ./resources/* streams jokes.yaml
+  jokes:text: go tool bento -r ./resources/* streams jokes.yaml

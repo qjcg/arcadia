@@ -1,0 +1,10 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default:
+    - task: test
+    - task: test:dox
+  test: go test
+  test:dox: go run github.com/bitfield/gotestdox/cmd/gotestdox@v0.2.2

@@ -1,0 +1,9 @@
+# https://taskfile.dev
+
+version: '3'
+
+shopt: [globstar]
+
+tasks:
+  default: [{task: test}]
+  test: go tool bento test **/*.yaml

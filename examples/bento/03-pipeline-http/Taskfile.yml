@@ -1,0 +1,16 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  CONFIG: config.yaml
+
+tasks:
+  default:
+    aliases: [test]
+    cmds:
+      - go tool bento test {{.CONFIG}}
+
+  run:
+    cmds:
+      - go tool bento -c {{.CONFIG}}

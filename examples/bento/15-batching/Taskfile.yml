@@ -1,0 +1,9 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default:
+    desc: An example of message batching.
+    cmds:
+      - go tool bento -c config.yaml

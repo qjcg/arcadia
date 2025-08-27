@@ -1,0 +1,17 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - go tool bento test 0*.yaml
+
+  run:
+    cmds:
+    - for:
+        - 01*
+        - 02*
+        - 03*
+        - 04*
+      cmd: go tool bento --log.level warn -c {{.ITEM}}

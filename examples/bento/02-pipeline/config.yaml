@@ -1,0 +1,15 @@
+input:
+  generate:
+    mapping: root = "Hello, Bento!"
+    count: 1
+
+pipeline:
+  processors:
+    - mapping: content().uppercase()
+
+tests:
+  - name: Content must be uppercase
+    input_batch:
+      - content: hello
+    output_batches:
+      - - content_equals: HELLO
