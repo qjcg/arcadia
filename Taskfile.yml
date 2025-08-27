@@ -22,14 +22,14 @@ tasks:
     - task: test:unit
 
   test:integration:
-    cmd: go test -tags integration,{{.ARCHLINUX_TAG}} ./...
+    cmd: go test -tags integration,{{.ARCHLINUX_TAG}} work
     vars:
       ARCHLINUX_TAG:
         sh: grep ID=arch /etc/os-release >/dev/null && echo archlinux || echo ''
 
-  test:unit: go test ./...
-  test:unit-gotestsum: go tool gotestsum
-  vuln: go tool govulncheck ./...
+  test:unit: go test work
+  test:unit-gotestsum: go tool gotestsum work
+  vuln: go tool govulncheck work
 
   lint:
     - task: lint:editorconfig
