@@ -82,10 +82,10 @@ func TestPubSub_testcontainer(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	got := strings.TrimSpace(buf.String())
-	t.Logf("received %v", got)
 	if want != got {
 		t.Fatalf("want %v got %v", want, got)
 	}
+	t.Attr("got", got)
 }
 
 func Example_microService() {

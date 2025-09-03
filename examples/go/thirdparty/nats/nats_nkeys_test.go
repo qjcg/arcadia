@@ -25,14 +25,14 @@ func TestCreateTeamKeys(t *testing.T) {
 
 	operatorSeed, err := operatorKP.Seed()
 	check(err)
-	t.Logf("operatorSeed: %s\n", operatorSeed)
+	t.Attr("operatorSeed", string(operatorSeed))
 
 	// Create operator signing KP.
 	operatorSigningKP, err := nkeys.FromSeed(operatorSeed)
 	check(err)
 	operatorSigningSeed, err := operatorSigningKP.Seed()
 	check(err)
-	t.Logf("operatorSigningSeed: %s\n", operatorSigningSeed)
+	t.Attr("operatorSigningSeed", string(operatorSigningSeed))
 
 	// Create account KP.
 	accountKP, err := nkeys.CreateAccount()
@@ -41,5 +41,5 @@ func TestCreateTeamKeys(t *testing.T) {
 	accountSeed, err := accountKP.Seed()
 	check(err)
 
-	t.Logf("accountSeed: %s\n", accountSeed)
+	t.Attr("accountSeed", string(accountSeed))
 }

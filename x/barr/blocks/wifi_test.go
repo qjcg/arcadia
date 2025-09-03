@@ -12,5 +12,5 @@ func TestWifiString(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("current SSID: %s", w.SSID)
+	t.Attr("SSID", w.SSID)
 }

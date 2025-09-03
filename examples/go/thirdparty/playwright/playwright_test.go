@@ -75,7 +75,7 @@ func TestScreenshot(t *testing.T) {
 			t.Fatalf("could not create screenshot: %v", err)
 		}
 
-		t.Logf("SCREENSHOT %s", ssFileName)
+		t.Attr("screenshot", ssFileName)
 
 		if err = browser.Close(); err != nil {
 			t.Fatalf("could not close browser: %v", err)

@@ -34,7 +34,7 @@ INSERT INTO users(email) VALUES ('foo@example.com'), ('bar@example.com'), ('baz@
 		if err := rows.Scan(&email); err != nil {
 			t.Fatal(err)
 		}
-		t.Logf("email: %s", email)
+		t.Attr("email", email)
 	}
 
 	rerr := rows.Close()
