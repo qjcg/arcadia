@@ -29,7 +29,7 @@ style: style.css
   Foundation] to help research scientists learn programming fundamentals.
 - Believe programming can be for everybody.
 
-[RedHat]: https://www.redhat.com
+[RedHat]: https://www.redhat.com/en
 [Software Carpentry Foundation]: https://software-carpentry.org
 
 ---
@@ -147,7 +147,7 @@ Who?
 
 ### Jennifer Dewalt
 
-- [180 websites in 180 days](http://jenniferdewalt.com/)
+- [180 websites in 180 days](https://jenniferdewalt.com/)
 - Each day a new small, self-contained project, open-sourced on GitHub & blogged
 - Approach: JFDI (Just F'n Do It!)
 - Inspirational!
@@ -189,7 +189,7 @@ Who?
 - Consider existing tools
 - The [Unix Philosophy](https://en.wikipedia.org/wiki/Unix_philosophy)
 - YAGNI
-- Make your objectives clear (see eg.: [README-driven development](http://tom.preston-werner.com/2010/08/23/readme-driven-development.html))
+- Make your objectives clear (see eg.: [README-driven development](https://tom.preston-werner.com/2010/08/23/readme-driven-development.html))
 
 ---
 
@@ -199,7 +199,7 @@ Who?
 > Write programs to work together. Write programs to handle text streams, because
 > that is a universal interface. -- Doug McIlroy
 
-- [Rob Pike's Five Rules of Programming](http://users.ece.utexas.edu/~adnan/pike.html)
+- [Rob Pike's Five Rules of Programming](https://users.ece.utexas.edu/~adnan/pike.html)
 - [Plan9's](https://en.wikipedia.org/wiki/Plan_9_from_Bell_Labs) [Acme], an
   *"Integrating"* Development Environment
     - Watch [Russ Cox's Tour of Acme screencast](https://www.youtube.com/watch?v=dP1xVpMPn8M)
@@ -225,14 +225,14 @@ You Ain't Gonna Need It
 <img height=400px src="img/gomoving2.png" />
 
 - Consider the name "Go": short & simple, moving & doing
-- [The Go Spec](https://golang.org/ref/spec) is short and readable
+- [The Go Spec](https://go.dev/ref/spec) is short and readable
 
 ---
 
 ### Go Says "No"
 
 - [RSC on Generics](http://research.swtch.com/generic)
-- [Go FAQ: Exceptions](https://golang.org/doc/faq#exceptions)
+- [Go FAQ: Exceptions](https://go.dev/doc/faq#exceptions)
 - Go is implemented as a procedural language (not e.g. primarily
 functional)
 
@@ -258,7 +258,7 @@ functional)
 
 <img class="slimg" src="img/jig.jpg" />
 
-- [Blog post by Rob Napier](http://robnapier.net/go-is-a-shop-built-jig)
+- [Blog post by Rob Napier](https://robnapier.net/go-is-a-shop-built-jig)
 
 > Go feels under-engineered because it only solves real problems.
 
@@ -289,7 +289,7 @@ functional)
 ### Key Takeaways
 
 Principles when programming in the small:
-- Write down what you want (eg: [README driven development](http://tom.preston-werner.com/2010/08/23/readme-driven-development.html))
+- Write down what you want (eg: [README driven development](https://tom.preston-werner.com/2010/08/23/readme-driven-development.html))
 - Solve the problem in the concrete first
 - Keep the [Unix Philosophy](https://en.wikipedia.org/wiki/Unix_philosophy) in mind
 - YAGNI
@@ -324,12 +324,12 @@ Go features good for programming in the small:
 ### References
 
 - Background
-    - [README Driven Development](http://tom.preston-werner.com/2010/08/23/readme-driven-development.html)
+    - [README Driven Development](https://tom.preston-werner.com/2010/08/23/readme-driven-development.html)
     - [Programming in the large and programming in the small]
     - [Unix Philosophy](https://en.wikipedia.org/wiki/Unix_philosophy)
     - [Worse is Better](https://en.wikipedia.org/wiki/Worse_is_better)
     - [When in doubt, use brute force](http://www.catb.org/jargon/html/B/brute-force.html)
-    - [Stephen J Gould: Size and Shape](http://www.naturalhistorymag.com/editors_pick/1974_01_pick.html)
+    - [Stephen J Gould: Size and Shape](https://www.naturalhistorymag.com/editors_pick/1974_01_pick.html)
     - [The Art of Unix Programming: The Right Size of Software](http://www.catb.org/esr/writings/taoup/html/ch13s04.html)
 
 [Programming in the large and programming in the small]: https://en.wikipedia.org/wiki/Programming_in_the_large_and_programming_in_the_small
@@ -339,10 +339,10 @@ Go features good for programming in the small:
 ### References (cont'd)
 
 - Itches
-    - [The Story of Unix & Space Travel](https://www.bell-labs.com/usr/dmr/www/spacetravel.html)
+    - [The Story of Unix & Space Travel](https://en.wikipedia.org/wiki/Space_Travel_(video_game))
     - [Jennifer Dewalt: 180 Websites in 180 days](https://jenniferdewalt.com/)
     - [horeb](https://github.com/qjcg/horeb)
 - Go
-    - [The Go Spec](https://golang.org/ref/spec)
+    - [The Go Spec](https://go.dev/ref/spec)
     - [Go Proverbs](https://go-proverbs.github.io/)
-    - [Go is a shop-built jig](http://robnapier.net/go-is-a-shop-built-jig)
+    - [Go is a shop-built jig](https://robnapier.net/go-is-a-shop-built-jig)
