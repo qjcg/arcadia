@@ -12,8 +12,6 @@ style: style.css
 # Building Web Applications in Go
 ## QCon SF 2017 / Ardan Labs / John Gosset
 
-https://qjcg.github.io/talks/qcon17/
-
 --
 
 # Introduction
