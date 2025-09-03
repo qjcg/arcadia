@@ -1,0 +1,37 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  INPUT: 20
+  IN: data.cue
+  OUT_PREFIX: generated
+  OUT_CUE: '{{.OUT_PREFIX}}.cue'
+  OUT_JSON: '{{.OUT_PREFIX}}.json'
+  OUT_YAML: '{{.OUT_PREFIX}}.yaml'
+  OUT_TOML: '{{.OUT_PREFIX}}.toml'
+  OUT_ALL: '{{.OUT_CUE}} {{.OUT_JSON}} {{.OUT_YAML}} {{.OUT_TOML}}'
+
+tasks:
+  default: [{task: gen}]
+
+  gen:
+    cmd:
+      - cue export -e output -s -t input={{.INPUT}} --outfile {{.OUT_CUE}} --force {{.IN}}
+      - cue cmd genJSON
+      - cue cmd genYAML
+      - cue cmd genTOML
+    sources:
+      - data*.cue
+    generates:
+      - '{{.OUT_ALL}}'
+
+  gen:cue-tool:
+    cmds:
+      - cue cmd gen
+    sources:
+      - data*.cue
+    generates:
+      - '{{.OUT_ALL}}'
+
+  clean: rm -f {{.OUT_ALL}}
