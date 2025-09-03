@@ -1,3 +1,5 @@
+//go:build brokenGoVulnCheck
+
 package main
 
 import (
