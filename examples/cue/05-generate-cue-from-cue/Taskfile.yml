@@ -16,22 +16,15 @@ tasks:
   default: [{task: gen}]
 
   gen:
-    cmd:
-      - cue export -e output -s -t input={{.INPUT}} --outfile {{.OUT_CUE}} --force {{.IN}}
-      - cue cmd genJSON
-      - cue cmd genYAML
-      - cue cmd genTOML
-    sources:
-      - data*.cue
-    generates:
-      - '{{.OUT_ALL}}'
-
-  gen:cue-tool:
     cmds:
+      - cue export -e output -s -t input={{.INPUT}} --outfile {{.OUT_CUE}} --force {{.IN}}
       - cue cmd gen
     sources:
       - data*.cue
     generates:
-      - '{{.OUT_ALL}}'
+      - '{{.OUT_CUE}}'
+      - '{{.OUT_JSON}}'
+      - '{{.OUT_YAML}}'
+      - '{{.OUT_TOML}}'
 
   clean: rm -f {{.OUT_ALL}}
