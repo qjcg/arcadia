@@ -14,6 +14,9 @@ import (
 #ScaleSpec: {
 	// desired number of instances for the scaled object.
 	// +optional
+	// +k8s:optional
+	// +default=0
+	// +k8s:minimum=0
 	replicas?: int32 @go(Replicas) @protobuf(1,varint,opt)
 }
 
@@ -22,7 +25,7 @@ import (
 	// actual number of observed instances of the scaled object.
 	replicas: int32 @go(Replicas) @protobuf(1,varint,opt)
 
-	// label query over pods that should match the replicas count. More info: http://kubernetes.io/docs/user-guide/labels#label-selectors
+	// selector is a label query over pods that should match the replicas count. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 	// +optional
 	// +mapType=atomic
 	selector?: {[string]: string} @go(Selector,map[string]string) @protobuf(2,bytes,rep)
@@ -217,19 +220,19 @@ import (
 	// +optional
 	observedGeneration?: int64 @go(ObservedGeneration) @protobuf(1,varint,opt)
 
-	// Total number of non-terminated pods targeted by this deployment (their labels match the selector).
+	// Total number of non-terminating pods targeted by this deployment (their labels match the selector).
 	// +optional
 	replicas?: int32 @go(Replicas) @protobuf(2,varint,opt)
 
-	// Total number of non-terminated pods targeted by this deployment that have the desired template spec.
+	// Total number of non-terminating pods targeted by this deployment that have the desired template spec.
 	// +optional
 	updatedReplicas?: int32 @go(UpdatedReplicas) @protobuf(3,varint,opt)
 
-	// Total number of ready pods targeted by this deployment.
+	// Total number of non-terminating pods targeted by this Deployment with a Ready Condition.
 	// +optional
 	readyReplicas?: int32 @go(ReadyReplicas) @protobuf(7,varint,opt)
 
-	// Total number of available pods (ready for at least minReadySeconds) targeted by this deployment.
+	// Total number of available non-terminating pods (ready for at least minReadySeconds) targeted by this deployment.
 	// +optional
 	availableReplicas?: int32 @go(AvailableReplicas) @protobuf(4,varint,opt)
 
@@ -239,9 +242,18 @@ import (
 	// +optional
 	unavailableReplicas?: int32 @go(UnavailableReplicas) @protobuf(5,varint,opt)
 
+	// Total number of terminating pods targeted by this deployment. Terminating pods have a non-null
+	// .metadata.deletionTimestamp and have not yet reached the Failed or Succeeded .status.phase.
+	//
+	// This is an alpha field. Enable DeploymentReplicaSetTerminatingReplicas to be able to use this field.
+	// +optional
+	terminatingReplicas?: null | int32 @go(TerminatingReplicas,*int32) @protobuf(9,varint,opt)
+
 	// Represents the latest available observations of a deployment's current state.
 	// +patchMergeKey=type
 	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
 	conditions?: [...#DeploymentCondition] @go(Conditions,[]DeploymentCondition) @protobuf(6,bytes,rep)
 
 	// Count of hash collisions for the Deployment. The Deployment controller uses this
@@ -367,7 +379,7 @@ import (
 	// pod is available (Ready for at least minReadySeconds) the old DaemonSet pod
 	// on that node is marked deleted. If the old pod becomes unavailable for any
 	// reason (Ready transitions to false, is evicted, or is drained) an updated
-	// pod is immediatedly created on that node without considering surge limits.
+	// pod is immediately created on that node without considering surge limits.
 	// Allowing surge implies the possibility that the resources consumed by the
 	// daemonset on any given node can double if the readiness check fails, and
 	// so resource intensive daemonsets should take into account that they may
@@ -468,6 +480,8 @@ import (
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
 	conditions?: [...#DaemonSetCondition] @go(Conditions,[]DaemonSetCondition) @protobuf(10,bytes,rep)
 }
 
@@ -608,11 +622,13 @@ import (
 	// through the SNI TLS extension, if the ingress controller fulfilling the
 	// ingress supports SNI.
 	// +optional
+	// +listType=atomic
 	tls?: [...#IngressTLS] @go(TLS,[]IngressTLS) @protobuf(2,bytes,rep)
 
 	// A list of host rules used to configure the Ingress. If unspecified, or
 	// no rule matches, all traffic is sent to the default backend.
 	// +optional
+	// +listType=atomic
 	rules?: [...#IngressRule] @go(Rules,[]IngressRule) @protobuf(3,bytes,rep)
 }
 
@@ -623,6 +639,7 @@ import (
 	// wildcard host setting for the loadbalancer controller fulfilling this
 	// Ingress, if left unspecified.
 	// +optional
+	// +listType=atomic
 	hosts?: [...string] @go(Hosts,[]string) @protobuf(1,bytes,rep)
 
 	// SecretName is the name of the secret used to terminate SSL traffic on 443.
@@ -638,7 +655,55 @@ import (
 #IngressStatus: {
 	// LoadBalancer contains the current status of the load-balancer.
 	// +optional
-	loadBalancer?: v1.#LoadBalancerStatus @go(LoadBalancer) @protobuf(1,bytes,opt)
+	loadBalancer?: #IngressLoadBalancerStatus @go(LoadBalancer) @protobuf(1,bytes,opt)
+}
+
+// LoadBalancerStatus represents the status of a load-balancer.
+#IngressLoadBalancerStatus: {
+	// Ingress is a list containing ingress points for the load-balancer.
+	// +optional
+	// +listType=atomic
+	ingress?: [...#IngressLoadBalancerIngress] @go(Ingress,[]IngressLoadBalancerIngress) @protobuf(1,bytes,rep)
+}
+
+// IngressLoadBalancerIngress represents the status of a load-balancer ingress point.
+#IngressLoadBalancerIngress: {
+	// IP is set for load-balancer ingress points that are IP based.
+	// +optional
+	ip?: string @go(IP) @protobuf(1,bytes,opt)
+
+	// Hostname is set for load-balancer ingress points that are DNS based.
+	// +optional
+	hostname?: string @go(Hostname) @protobuf(2,bytes,opt)
+
+	// Ports provides information about the ports exposed by this LoadBalancer.
+	// +listType=atomic
+	// +optional
+	ports?: [...#IngressPortStatus] @go(Ports,[]IngressPortStatus) @protobuf(4,bytes,rep)
+}
+
+// IngressPortStatus represents the error condition of a service port
+#IngressPortStatus: {
+	// Port is the port number of the ingress port.
+	port: int32 @go(Port) @protobuf(1,varint,opt)
+
+	// Protocol is the protocol of the ingress port.
+	// The supported values are: "TCP", "UDP", "SCTP"
+	protocol: v1.#Protocol @go(Protocol) @protobuf(2,bytes,opt,casttype=Protocol)
+
+	// Error is to record the problem with the service port
+	// The format of the error shall comply with the following rules:
+	// - built-in error values shall be specified in this file and those shall use
+	//   CamelCase names
+	// - cloud provider specific error values must have names that comply with the
+	//   format foo.example.com/CamelCase.
+	// ---
+	// The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+	// +optional
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
+	// +kubebuilder:validation:MaxLength=316
+	error?: null | string @go(Error,*string) @protobuf(3,bytes,opt)
 }
 
 // IngressRule represents the rules mapping the paths under a specified host to
@@ -651,8 +716,8 @@ import (
 	// 1. IPs are not allowed. Currently an IngressRuleValue can only apply to
 	//    the IP in the Spec of the parent Ingress.
 	// 2. The `:` delimiter is not respected because ports are not allowed.
-	//   Currently the port of an Ingress is implicitly :80 for http and
-	//   :443 for https.
+	//	  Currently the port of an Ingress is implicitly :80 for http and
+	//	  :443 for https.
 	// Both these may change in the future.
 	// Incoming requests are matched against the host before the
 	// IngressRuleValue. If the host is unspecified, the Ingress routes all
@@ -694,6 +759,7 @@ import (
 // or '#'.
 #HTTPIngressRuleValue: {
 	// A collection of paths that map requests to backends.
+	// +listType=atomic
 	paths: [...#HTTPIngressPath] @go(Paths,[]HTTPIngressPath) @protobuf(1,bytes,rep)
 }
 
@@ -815,16 +881,16 @@ import (
 	metadata?: metav1.#ListMeta @go(ListMeta) @protobuf(1,bytes,opt)
 
 	// List of ReplicaSets.
-	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller
+	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset
 	items: [...#ReplicaSet] @go(Items,[]ReplicaSet) @protobuf(2,bytes,rep)
 }
 
 // ReplicaSetSpec is the specification of a ReplicaSet.
 #ReplicaSetSpec: {
-	// Replicas is the number of desired replicas.
+	// Replicas is the number of desired pods.
 	// This is a pointer to distinguish between explicit zero and unspecified.
 	// Defaults to 1.
-	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/#what-is-a-replicationcontroller
+	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset
 	// +optional
 	replicas?: null | int32 @go(Replicas,*int32) @protobuf(1,varint,opt)
 
@@ -843,28 +909,35 @@ import (
 
 	// Template is the object that describes the pod that will be created if
 	// insufficient replicas are detected.
-	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller#pod-template
+	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/#pod-template
 	// +optional
 	template?: v1.#PodTemplateSpec @go(Template) @protobuf(3,bytes,opt)
 }
 
 // ReplicaSetStatus represents the current status of a ReplicaSet.
 #ReplicaSetStatus: {
-	// Replicas is the most recently oberved number of replicas.
-	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/#what-is-a-replicationcontroller
+	// Replicas is the most recently observed number of non-terminating pods.
+	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset
 	replicas: int32 @go(Replicas) @protobuf(1,varint,opt)
 
-	// The number of pods that have labels matching the labels of the pod template of the replicaset.
+	// The number of non-terminating pods that have labels matching the labels of the pod template of the replicaset.
 	// +optional
 	fullyLabeledReplicas?: int32 @go(FullyLabeledReplicas) @protobuf(2,varint,opt)
 
-	// The number of ready replicas for this replica set.
+	// The number of non-terminating pods targeted by this ReplicaSet with a Ready Condition.
 	// +optional
 	readyReplicas?: int32 @go(ReadyReplicas) @protobuf(4,varint,opt)
 
-	// The number of available replicas (ready for at least minReadySeconds) for this replica set.
+	// The number of available non-terminating pods (ready for at least minReadySeconds) for this replica set.
 	// +optional
 	availableReplicas?: int32 @go(AvailableReplicas) @protobuf(5,varint,opt)
+
+	// The number of terminating pods for this replica set. Terminating pods have a non-null .metadata.deletionTimestamp
+	// and have not yet reached the Failed or Succeeded .status.phase.
+	//
+	// This is an alpha field. Enable DeploymentReplicaSetTerminatingReplicas to be able to use this field.
+	// +optional
+	terminatingReplicas?: null | int32 @go(TerminatingReplicas,*int32) @protobuf(7,varint,opt)
 
 	// ObservedGeneration reflects the generation of the most recently observed ReplicaSet.
 	// +optional
@@ -874,6 +947,8 @@ import (
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
 	conditions?: [...#ReplicaSetCondition] @go(Conditions,[]ReplicaSetCondition) @protobuf(6,bytes,rep)
 }
 
@@ -908,447 +983,6 @@ import (
 	message?: string @go(Message) @protobuf(5,bytes,opt)
 }
 
-// PodSecurityPolicy governs the ability to make requests that affect the Security Context
-// that will be applied to a pod and container.
-// Deprecated: use PodSecurityPolicy from policy API Group instead.
-#PodSecurityPolicy: {
-	metav1.#TypeMeta
-
-	// Standard object's metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
-	// +optional
-	metadata?: metav1.#ObjectMeta @go(ObjectMeta) @protobuf(1,bytes,opt)
-
-	// spec defines the policy enforced.
-	// +optional
-	spec?: #PodSecurityPolicySpec @go(Spec) @protobuf(2,bytes,opt)
-}
-
-// PodSecurityPolicySpec defines the policy enforced.
-// Deprecated: use PodSecurityPolicySpec from policy API Group instead.
-#PodSecurityPolicySpec: {
-	// privileged determines if a pod can request to be run as privileged.
-	// +optional
-	privileged?: bool @go(Privileged) @protobuf(1,varint,opt)
-
-	// defaultAddCapabilities is the default set of capabilities that will be added to the container
-	// unless the pod spec specifically drops the capability.  You may not list a capability in both
-	// defaultAddCapabilities and requiredDropCapabilities. Capabilities added here are implicitly
-	// allowed, and need not be included in the allowedCapabilities list.
-	// +optional
-	defaultAddCapabilities?: [...v1.#Capability] @go(DefaultAddCapabilities,[]v1.Capability) @protobuf(2,bytes,rep,casttype=k8s.io/api/core/v1.Capability)
-
-	// requiredDropCapabilities are the capabilities that will be dropped from the container.  These
-	// are required to be dropped and cannot be added.
-	// +optional
-	requiredDropCapabilities?: [...v1.#Capability] @go(RequiredDropCapabilities,[]v1.Capability) @protobuf(3,bytes,rep,casttype=k8s.io/api/core/v1.Capability)
-
-	// allowedCapabilities is a list of capabilities that can be requested to add to the container.
-	// Capabilities in this field may be added at the pod author's discretion.
-	// You must not list a capability in both allowedCapabilities and requiredDropCapabilities.
-	// +optional
-	allowedCapabilities?: [...v1.#Capability] @go(AllowedCapabilities,[]v1.Capability) @protobuf(4,bytes,rep,casttype=k8s.io/api/core/v1.Capability)
-
-	// volumes is an allowlist of volume plugins. Empty indicates that
-	// no volumes may be used. To allow all volumes you may use '*'.
-	// +optional
-	volumes?: [...#FSType] @go(Volumes,[]FSType) @protobuf(5,bytes,rep,casttype=FSType)
-
-	// hostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
-	// +optional
-	hostNetwork?: bool @go(HostNetwork) @protobuf(6,varint,opt)
-
-	// hostPorts determines which host port ranges are allowed to be exposed.
-	// +optional
-	hostPorts?: [...#HostPortRange] @go(HostPorts,[]HostPortRange) @protobuf(7,bytes,rep)
-
-	// hostPID determines if the policy allows the use of HostPID in the pod spec.
-	// +optional
-	hostPID?: bool @go(HostPID) @protobuf(8,varint,opt)
-
-	// hostIPC determines if the policy allows the use of HostIPC in the pod spec.
-	// +optional
-	hostIPC?: bool @go(HostIPC) @protobuf(9,varint,opt)
-
-	// seLinux is the strategy that will dictate the allowable labels that may be set.
-	seLinux: #SELinuxStrategyOptions @go(SELinux) @protobuf(10,bytes,opt)
-
-	// runAsUser is the strategy that will dictate the allowable RunAsUser values that may be set.
-	runAsUser: #RunAsUserStrategyOptions @go(RunAsUser) @protobuf(11,bytes,opt)
-
-	// RunAsGroup is the strategy that will dictate the allowable RunAsGroup values that may be set.
-	// If this field is omitted, the pod's RunAsGroup can take any value. This field requires the
-	// RunAsGroup feature gate to be enabled.
-	// +optional
-	runAsGroup?: null | #RunAsGroupStrategyOptions @go(RunAsGroup,*RunAsGroupStrategyOptions) @protobuf(22,bytes,opt)
-
-	// supplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.
-	supplementalGroups: #SupplementalGroupsStrategyOptions @go(SupplementalGroups) @protobuf(12,bytes,opt)
-
-	// fsGroup is the strategy that will dictate what fs group is used by the SecurityContext.
-	fsGroup: #FSGroupStrategyOptions @go(FSGroup) @protobuf(13,bytes,opt)
-
-	// readOnlyRootFilesystem when set to true will force containers to run with a read only root file
-	// system.  If the container specifically requests to run with a non-read only root file system
-	// the PSP should deny the pod.
-	// If set to false the container may run with a read only root file system if it wishes but it
-	// will not be forced to.
-	// +optional
-	readOnlyRootFilesystem?: bool @go(ReadOnlyRootFilesystem) @protobuf(14,varint,opt)
-
-	// defaultAllowPrivilegeEscalation controls the default setting for whether a
-	// process can gain more privileges than its parent process.
-	// +optional
-	defaultAllowPrivilegeEscalation?: null | bool @go(DefaultAllowPrivilegeEscalation,*bool) @protobuf(15,varint,opt)
-
-	// allowPrivilegeEscalation determines if a pod can request to allow
-	// privilege escalation. If unspecified, defaults to true.
-	// +optional
-	allowPrivilegeEscalation?: null | bool @go(AllowPrivilegeEscalation,*bool) @protobuf(16,varint,opt)
-
-	// allowedHostPaths is an allowlist of host paths. Empty indicates
-	// that all host paths may be used.
-	// +optional
-	allowedHostPaths?: [...#AllowedHostPath] @go(AllowedHostPaths,[]AllowedHostPath) @protobuf(17,bytes,rep)
-
-	// allowedFlexVolumes is an allowlist of Flexvolumes.  Empty or nil indicates that all
-	// Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes
-	// is allowed in the "volumes" field.
-	// +optional
-	allowedFlexVolumes?: [...#AllowedFlexVolume] @go(AllowedFlexVolumes,[]AllowedFlexVolume) @protobuf(18,bytes,rep)
-
-	// AllowedCSIDrivers is an allowlist of inline CSI drivers that must be explicitly set to be embedded within a pod spec.
-	// An empty value indicates that any CSI driver can be used for inline ephemeral volumes.
-	// +optional
-	allowedCSIDrivers?: [...#AllowedCSIDriver] @go(AllowedCSIDrivers,[]AllowedCSIDriver) @protobuf(23,bytes,rep)
-
-	// allowedUnsafeSysctls is a list of explicitly allowed unsafe sysctls, defaults to none.
-	// Each entry is either a plain sysctl name or ends in "*" in which case it is considered
-	// as a prefix of allowed sysctls. Single * means all unsafe sysctls are allowed.
-	// Kubelet has to allowlist all unsafe sysctls explicitly to avoid rejection.
-	//
-	// Examples:
-	// e.g. "foo/*" allows "foo/bar", "foo/baz", etc.
-	// e.g. "foo.*" allows "foo.bar", "foo.baz", etc.
-	// +optional
-	allowedUnsafeSysctls?: [...string] @go(AllowedUnsafeSysctls,[]string) @protobuf(19,bytes,rep)
-
-	// forbiddenSysctls is a list of explicitly forbidden sysctls, defaults to none.
-	// Each entry is either a plain sysctl name or ends in "*" in which case it is considered
-	// as a prefix of forbidden sysctls. Single * means all sysctls are forbidden.
-	//
-	// Examples:
-	// e.g. "foo/*" forbids "foo/bar", "foo/baz", etc.
-	// e.g. "foo.*" forbids "foo.bar", "foo.baz", etc.
-	// +optional
-	forbiddenSysctls?: [...string] @go(ForbiddenSysctls,[]string) @protobuf(20,bytes,rep)
-
-	// AllowedProcMountTypes is an allowlist of allowed ProcMountTypes.
-	// Empty or nil indicates that only the DefaultProcMountType may be used.
-	// This requires the ProcMountType feature flag to be enabled.
-	// +optional
-	allowedProcMountTypes?: [...v1.#ProcMountType] @go(AllowedProcMountTypes,[]v1.ProcMountType) @protobuf(21,bytes,opt)
-
-	// runtimeClass is the strategy that will dictate the allowable RuntimeClasses for a pod.
-	// If this field is omitted, the pod's runtimeClassName field is unrestricted.
-	// Enforcement of this field depends on the RuntimeClass feature gate being enabled.
-	// +optional
-	runtimeClass?: null | #RuntimeClassStrategyOptions @go(RuntimeClass,*RuntimeClassStrategyOptions) @protobuf(24,bytes,opt)
-}
-
-// AllowedHostPath defines the host volume conditions that will be enabled by a policy
-// for pods to use. It requires the path prefix to be defined.
-// Deprecated: use AllowedHostPath from policy API Group instead.
-#AllowedHostPath: {
-	// pathPrefix is the path prefix that the host volume must match.
-	// It does not support `*`.
-	// Trailing slashes are trimmed when validating the path prefix with a host path.
-	//
-	// Examples:
-	// `/foo` would allow `/foo`, `/foo/` and `/foo/bar`
-	// `/foo` would not allow `/food` or `/etc/foo`
-	pathPrefix?: string @go(PathPrefix) @protobuf(1,bytes,rep)
-
-	// when set to true, will allow host volumes matching the pathPrefix only if all volume mounts are readOnly.
-	// +optional
-	readOnly?: bool @go(ReadOnly) @protobuf(2,varint,opt)
-}
-
-// FSType gives strong typing to different file systems that are used by volumes.
-// Deprecated: use FSType from policy API Group instead.
-#FSType: string // #enumFSType
-
-#enumFSType:
-	#AzureFile |
-	#Flocker |
-	#FlexVolume |
-	#HostPath |
-	#EmptyDir |
-	#GCEPersistentDisk |
-	#AWSElasticBlockStore |
-	#GitRepo |
-	#Secret |
-	#NFS |
-	#ISCSI |
-	#Glusterfs |
-	#PersistentVolumeClaim |
-	#RBD |
-	#Cinder |
-	#CephFS |
-	#DownwardAPI |
-	#FC |
-	#ConfigMap |
-	#Quobyte |
-	#AzureDisk |
-	#CSI |
-	#All
-
-#AzureFile:             #FSType & "azureFile"
-#Flocker:               #FSType & "flocker"
-#FlexVolume:            #FSType & "flexVolume"
-#HostPath:              #FSType & "hostPath"
-#EmptyDir:              #FSType & "emptyDir"
-#GCEPersistentDisk:     #FSType & "gcePersistentDisk"
-#AWSElasticBlockStore:  #FSType & "awsElasticBlockStore"
-#GitRepo:               #FSType & "gitRepo"
-#Secret:                #FSType & "secret"
-#NFS:                   #FSType & "nfs"
-#ISCSI:                 #FSType & "iscsi"
-#Glusterfs:             #FSType & "glusterfs"
-#PersistentVolumeClaim: #FSType & "persistentVolumeClaim"
-#RBD:                   #FSType & "rbd"
-#Cinder:                #FSType & "cinder"
-#CephFS:                #FSType & "cephFS"
-#DownwardAPI:           #FSType & "downwardAPI"
-#FC:                    #FSType & "fc"
-#ConfigMap:             #FSType & "configMap"
-#Quobyte:               #FSType & "quobyte"
-#AzureDisk:             #FSType & "azureDisk"
-#CSI:                   #FSType & "csi"
-#All:                   #FSType & "*"
-
-// AllowedFlexVolume represents a single Flexvolume that is allowed to be used.
-// Deprecated: use AllowedFlexVolume from policy API Group instead.
-#AllowedFlexVolume: {
-	// driver is the name of the Flexvolume driver.
-	driver: string @go(Driver) @protobuf(1,bytes,opt)
-}
-
-// AllowedCSIDriver represents a single inline CSI Driver that is allowed to be used.
-#AllowedCSIDriver: {
-	// Name is the registered name of the CSI driver
-	name: string @go(Name) @protobuf(1,bytes,opt)
-}
-
-// HostPortRange defines a range of host ports that will be enabled by a policy
-// for pods to use.  It requires both the start and end to be defined.
-// Deprecated: use HostPortRange from policy API Group instead.
-#HostPortRange: {
-	// min is the start of the range, inclusive.
-	min: int32 @go(Min) @protobuf(1,varint,opt)
-
-	// max is the end of the range, inclusive.
-	max: int32 @go(Max) @protobuf(2,varint,opt)
-}
-
-// SELinuxStrategyOptions defines the strategy type and any options used to create the strategy.
-// Deprecated: use SELinuxStrategyOptions from policy API Group instead.
-#SELinuxStrategyOptions: {
-	// rule is the strategy that will dictate the allowable labels that may be set.
-	rule: #SELinuxStrategy @go(Rule) @protobuf(1,bytes,opt,casttype=SELinuxStrategy)
-
-	// seLinuxOptions required to run as; required for MustRunAs
-	// More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-	// +optional
-	seLinuxOptions?: null | v1.#SELinuxOptions @go(SELinuxOptions,*v1.SELinuxOptions) @protobuf(2,bytes,opt)
-}
-
-// SELinuxStrategy denotes strategy types for generating SELinux options for a
-// Security Context.
-// Deprecated: use SELinuxStrategy from policy API Group instead.
-#SELinuxStrategy: string // #enumSELinuxStrategy
-
-#enumSELinuxStrategy:
-	#SELinuxStrategyMustRunAs |
-	#SELinuxStrategyRunAsAny
-
-// SELinuxStrategyMustRunAs means that container must have SELinux labels of X applied.
-// Deprecated: use SELinuxStrategyMustRunAs from policy API Group instead.
-#SELinuxStrategyMustRunAs: #SELinuxStrategy & "MustRunAs"
-
-// SELinuxStrategyRunAsAny means that container may make requests for any SELinux context labels.
-// Deprecated: use SELinuxStrategyRunAsAny from policy API Group instead.
-#SELinuxStrategyRunAsAny: #SELinuxStrategy & "RunAsAny"
-
-// RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.
-// Deprecated: use RunAsUserStrategyOptions from policy API Group instead.
-#RunAsUserStrategyOptions: {
-	// rule is the strategy that will dictate the allowable RunAsUser values that may be set.
-	rule: #RunAsUserStrategy @go(Rule) @protobuf(1,bytes,opt,casttype=RunAsUserStrategy)
-
-	// ranges are the allowed ranges of uids that may be used. If you would like to force a single uid
-	// then supply a single range with the same start and end. Required for MustRunAs.
-	// +optional
-	ranges?: [...#IDRange] @go(Ranges,[]IDRange) @protobuf(2,bytes,rep)
-}
-
-// RunAsGroupStrategyOptions defines the strategy type and any options used to create the strategy.
-// Deprecated: use RunAsGroupStrategyOptions from policy API Group instead.
-#RunAsGroupStrategyOptions: {
-	// rule is the strategy that will dictate the allowable RunAsGroup values that may be set.
-	rule: #RunAsGroupStrategy @go(Rule) @protobuf(1,bytes,opt,casttype=RunAsGroupStrategy)
-
-	// ranges are the allowed ranges of gids that may be used. If you would like to force a single gid
-	// then supply a single range with the same start and end. Required for MustRunAs.
-	// +optional
-	ranges?: [...#IDRange] @go(Ranges,[]IDRange) @protobuf(2,bytes,rep)
-}
-
-// IDRange provides a min/max of an allowed range of IDs.
-// Deprecated: use IDRange from policy API Group instead.
-#IDRange: {
-	// min is the start of the range, inclusive.
-	min: int64 @go(Min) @protobuf(1,varint,opt)
-
-	// max is the end of the range, inclusive.
-	max: int64 @go(Max) @protobuf(2,varint,opt)
-}
-
-// RunAsUserStrategy denotes strategy types for generating RunAsUser values for a
-// Security Context.
-// Deprecated: use RunAsUserStrategy from policy API Group instead.
-#RunAsUserStrategy: string // #enumRunAsUserStrategy
-
-#enumRunAsUserStrategy:
-	#RunAsUserStrategyMustRunAs |
-	#RunAsUserStrategyMustRunAsNonRoot |
-	#RunAsUserStrategyRunAsAny
-
-// RunAsUserStrategyMustRunAs means that container must run as a particular uid.
-// Deprecated: use RunAsUserStrategyMustRunAs from policy API Group instead.
-#RunAsUserStrategyMustRunAs: #RunAsUserStrategy & "MustRunAs"
-
-// RunAsUserStrategyMustRunAsNonRoot means that container must run as a non-root uid.
-// Deprecated: use RunAsUserStrategyMustRunAsNonRoot from policy API Group instead.
-#RunAsUserStrategyMustRunAsNonRoot: #RunAsUserStrategy & "MustRunAsNonRoot"
-
-// RunAsUserStrategyRunAsAny means that container may make requests for any uid.
-// Deprecated: use RunAsUserStrategyRunAsAny from policy API Group instead.
-#RunAsUserStrategyRunAsAny: #RunAsUserStrategy & "RunAsAny"
-
-// RunAsGroupStrategy denotes strategy types for generating RunAsGroup values for a
-// Security Context.
-// Deprecated: use RunAsGroupStrategy from policy API Group instead.
-#RunAsGroupStrategy: string // #enumRunAsGroupStrategy
-
-#enumRunAsGroupStrategy:
-	#RunAsGroupStrategyMayRunAs |
-	#RunAsGroupStrategyMustRunAs |
-	#RunAsGroupStrategyRunAsAny
-
-// RunAsGroupStrategyMayRunAs means that container does not need to run with a particular gid.
-// However, when RunAsGroup are specified, they have to fall in the defined range.
-#RunAsGroupStrategyMayRunAs: #RunAsGroupStrategy & "MayRunAs"
-
-// RunAsGroupStrategyMustRunAs means that container must run as a particular gid.
-// Deprecated: use RunAsGroupStrategyMustRunAs from policy API Group instead.
-#RunAsGroupStrategyMustRunAs: #RunAsGroupStrategy & "MustRunAs"
-
-// RunAsGroupStrategyRunAsAny means that container may make requests for any gid.
-// Deprecated: use RunAsGroupStrategyRunAsAny from policy API Group instead.
-#RunAsGroupStrategyRunAsAny: #RunAsGroupStrategy & "RunAsAny"
-
-// FSGroupStrategyOptions defines the strategy type and options used to create the strategy.
-// Deprecated: use FSGroupStrategyOptions from policy API Group instead.
-#FSGroupStrategyOptions: {
-	// rule is the strategy that will dictate what FSGroup is used in the SecurityContext.
-	// +optional
-	rule?: #FSGroupStrategyType @go(Rule) @protobuf(1,bytes,opt,casttype=FSGroupStrategyType)
-
-	// ranges are the allowed ranges of fs groups.  If you would like to force a single
-	// fs group then supply a single range with the same start and end. Required for MustRunAs.
-	// +optional
-	ranges?: [...#IDRange] @go(Ranges,[]IDRange) @protobuf(2,bytes,rep)
-}
-
-// FSGroupStrategyType denotes strategy types for generating FSGroup values for a
-// SecurityContext
-// Deprecated: use FSGroupStrategyType from policy API Group instead.
-#FSGroupStrategyType: string // #enumFSGroupStrategyType
-
-#enumFSGroupStrategyType:
-	#FSGroupStrategyMustRunAs |
-	#FSGroupStrategyRunAsAny
-
-// FSGroupStrategyMustRunAs meant that container must have FSGroup of X applied.
-// Deprecated: use FSGroupStrategyMustRunAs from policy API Group instead.
-#FSGroupStrategyMustRunAs: #FSGroupStrategyType & "MustRunAs"
-
-// FSGroupStrategyRunAsAny means that container may make requests for any FSGroup labels.
-// Deprecated: use FSGroupStrategyRunAsAny from policy API Group instead.
-#FSGroupStrategyRunAsAny: #FSGroupStrategyType & "RunAsAny"
-
-// SupplementalGroupsStrategyOptions defines the strategy type and options used to create the strategy.
-// Deprecated: use SupplementalGroupsStrategyOptions from policy API Group instead.
-#SupplementalGroupsStrategyOptions: {
-	// rule is the strategy that will dictate what supplemental groups is used in the SecurityContext.
-	// +optional
-	rule?: #SupplementalGroupsStrategyType @go(Rule) @protobuf(1,bytes,opt,casttype=SupplementalGroupsStrategyType)
-
-	// ranges are the allowed ranges of supplemental groups.  If you would like to force a single
-	// supplemental group then supply a single range with the same start and end. Required for MustRunAs.
-	// +optional
-	ranges?: [...#IDRange] @go(Ranges,[]IDRange) @protobuf(2,bytes,rep)
-}
-
-// SupplementalGroupsStrategyType denotes strategy types for determining valid supplemental
-// groups for a SecurityContext.
-// Deprecated: use SupplementalGroupsStrategyType from policy API Group instead.
-#SupplementalGroupsStrategyType: string // #enumSupplementalGroupsStrategyType
-
-#enumSupplementalGroupsStrategyType:
-	#SupplementalGroupsStrategyMustRunAs |
-	#SupplementalGroupsStrategyRunAsAny
-
-// SupplementalGroupsStrategyMustRunAs means that container must run as a particular gid.
-// Deprecated: use SupplementalGroupsStrategyMustRunAs from policy API Group instead.
-#SupplementalGroupsStrategyMustRunAs: #SupplementalGroupsStrategyType & "MustRunAs"
-
-// SupplementalGroupsStrategyRunAsAny means that container may make requests for any gid.
-// Deprecated: use SupplementalGroupsStrategyRunAsAny from policy API Group instead.
-#SupplementalGroupsStrategyRunAsAny: #SupplementalGroupsStrategyType & "RunAsAny"
-
-// RuntimeClassStrategyOptions define the strategy that will dictate the allowable RuntimeClasses
-// for a pod.
-#RuntimeClassStrategyOptions: {
-	// allowedRuntimeClassNames is an allowlist of RuntimeClass names that may be specified on a pod.
-	// A value of "*" means that any RuntimeClass name is allowed, and must be the only item in the
-	// list. An empty list requires the RuntimeClassName field to be unset.
-	allowedRuntimeClassNames: [...string] @go(AllowedRuntimeClassNames,[]string) @protobuf(1,bytes,rep)
-
-	// defaultRuntimeClassName is the default RuntimeClassName to set on the pod.
-	// The default MUST be allowed by the allowedRuntimeClassNames list.
-	// A value of nil does not mutate the Pod.
-	// +optional
-	defaultRuntimeClassName?: null | string @go(DefaultRuntimeClassName,*string) @protobuf(2,bytes,opt)
-}
-
-#AllowAllRuntimeClassNames: "*"
-
-// PodSecurityPolicyList is a list of PodSecurityPolicy objects.
-// Deprecated: use PodSecurityPolicyList from policy API Group instead.
-#PodSecurityPolicyList: {
-	metav1.#TypeMeta
-
-	// Standard list metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
-	// +optional
-	metadata?: metav1.#ListMeta @go(ListMeta) @protobuf(1,bytes,opt)
-
-	// items is a list of schema objects.
-	items: [...#PodSecurityPolicy] @go(Items,[]PodSecurityPolicy) @protobuf(2,bytes,rep)
-}
-
 // DEPRECATED 1.9 - This group version of NetworkPolicy is deprecated by networking/v1/NetworkPolicy.
 // NetworkPolicy describes what network traffic is allowed for a set of Pods
 #NetworkPolicy: {
@@ -1362,11 +996,6 @@ import (
 	// Specification of the desired behavior for this NetworkPolicy.
 	// +optional
 	spec?: #NetworkPolicySpec @go(Spec) @protobuf(2,bytes,opt)
-
-	// Status is the current state of the NetworkPolicy.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
-	// +optional
-	status?: #NetworkPolicyStatus @go(Status) @protobuf(3,bytes,opt)
 }
 
 // DEPRECATED 1.9 - This group version of PolicyType is deprecated by networking/v1/PolicyType.
@@ -1401,6 +1030,7 @@ import (
 	// If this field is empty then this NetworkPolicy does not allow any traffic
 	// (and serves solely to ensure that the pods it selects are isolated by default).
 	// +optional
+	// +listType=atomic
 	ingress?: [...#NetworkPolicyIngressRule] @go(Ingress,[]NetworkPolicyIngressRule) @protobuf(2,bytes,rep)
 
 	// List of egress rules to be applied to the selected pods. Outgoing traffic is
@@ -1411,6 +1041,7 @@ import (
 	// solely to ensure that the pods it selects are isolated by default).
 	// This field is beta-level in 1.8
 	// +optional
+	// +listType=atomic
 	egress?: [...#NetworkPolicyEgressRule] @go(Egress,[]NetworkPolicyEgressRule) @protobuf(3,bytes,rep)
 
 	// List of rule types that the NetworkPolicy relates to.
@@ -1424,6 +1055,7 @@ import (
 	// an Egress section and would otherwise default to just [ "Ingress" ]).
 	// This field is beta-level in 1.8
 	// +optional
+	// +listType=atomic
 	policyTypes?: [...#PolicyType] @go(PolicyTypes,[]PolicyType) @protobuf(4,bytes,rep,casttype=PolicyType)
 }
 
@@ -1436,6 +1068,7 @@ import (
 	// If this field is present and contains at least one item, then this rule allows traffic
 	// only if the traffic matches at least one port in the list.
 	// +optional
+	// +listType=atomic
 	ports?: [...#NetworkPolicyPort] @go(Ports,[]NetworkPolicyPort) @protobuf(1,bytes,rep)
 
 	// List of sources which should be able to access the pods selected for this rule.
@@ -1444,6 +1077,7 @@ import (
 	// If this field is present and contains at least one item, this rule allows traffic only if the
 	// traffic matches at least one item in the from list.
 	// +optional
+	// +listType=atomic
 	from?: [...#NetworkPolicyPeer] @go(From,[]NetworkPolicyPeer) @protobuf(2,bytes,rep)
 }
 
@@ -1458,6 +1092,7 @@ import (
 	// If this field is present and contains at least one item, then this rule allows
 	// traffic only if the traffic matches at least one port in the list.
 	// +optional
+	// +listType=atomic
 	ports?: [...#NetworkPolicyPort] @go(Ports,[]NetworkPolicyPort) @protobuf(1,bytes,rep)
 
 	// List of destinations for outgoing traffic of pods selected for this rule.
@@ -1466,6 +1101,7 @@ import (
 	// destination). If this field is present and contains at least one item, this rule
 	// allows traffic only if the traffic matches at least one item in the to list.
 	// +optional
+	// +listType=atomic
 	to?: [...#NetworkPolicyPeer] @go(To,[]NetworkPolicyPeer) @protobuf(2,bytes,rep)
 }
 
@@ -1487,25 +1123,24 @@ import (
 	// should be allowed by the policy. This field cannot be defined if the port field
 	// is not defined or if the port field is defined as a named (string) port.
 	// The endPort must be equal or greater than port.
-	// This feature is in Beta state and is enabled by default.
-	// It can be disabled using the Feature Gate "NetworkPolicyEndPort".
 	// +optional
 	endPort?: null | int32 @go(EndPort,*int32) @protobuf(3,bytes,opt)
 }
 
 // DEPRECATED 1.9 - This group version of IPBlock is deprecated by networking/v1/IPBlock.
-// IPBlock describes a particular CIDR (Ex. "192.168.1.1/24","2001:db9::/64") that is allowed
+// IPBlock describes a particular CIDR (Ex. "192.168.1.0/24","2001:db8::/64") that is allowed
 // to the pods matched by a NetworkPolicySpec's podSelector. The except entry describes CIDRs
 // that should not be included within this rule.
 #IPBlock: {
 	// CIDR is a string representing the IP Block
-	// Valid examples are "192.168.1.1/24" or "2001:db9::/64"
+	// Valid examples are "192.168.1.0/24" or "2001:db8::/64"
 	cidr: string @go(CIDR) @protobuf(1,bytes)
 
 	// Except is a slice of CIDRs that should not be included within an IP Block
-	// Valid examples are "192.168.1.1/24" or "2001:db9::/64"
+	// Valid examples are "192.168.1.0/24" or "2001:db8::/64"
 	// Except values will be rejected if they are outside the CIDR range
 	// +optional
+	// +listType=atomic
 	except?: [...string] @go(Except,[]string) @protobuf(2,bytes,rep)
 }
 
@@ -1533,52 +1168,6 @@ import (
 	// neither of the other fields can be.
 	// +optional
 	ipBlock?: null | #IPBlock @go(IPBlock,*IPBlock) @protobuf(3,bytes,rep)
-}
-
-// NetworkPolicyConditionType is the type for status conditions on
-// a NetworkPolicy. This type should be used with the
-// NetworkPolicyStatus.Conditions field.
-#NetworkPolicyConditionType: string // #enumNetworkPolicyConditionType
-
-#enumNetworkPolicyConditionType:
-	#NetworkPolicyConditionStatusAccepted |
-	#NetworkPolicyConditionStatusPartialFailure |
-	#NetworkPolicyConditionStatusFailure
-
-// NetworkPolicyConditionStatusAccepted represents status of a Network Policy that could be properly parsed by
-// the Network Policy provider and will be implemented in the cluster
-#NetworkPolicyConditionStatusAccepted: #NetworkPolicyConditionType & "Accepted"
-
-// NetworkPolicyConditionStatusPartialFailure represents status of a Network Policy that could be partially
-// parsed by the Network Policy provider and may not be completely implemented due to a lack of a feature or some
-// other condition
-#NetworkPolicyConditionStatusPartialFailure: #NetworkPolicyConditionType & "PartialFailure"
-
-// NetworkPolicyConditionStatusFailure represents status of a Network Policy that could not be parsed by the
-// Network Policy provider and will not be implemented in the cluster
-#NetworkPolicyConditionStatusFailure: #NetworkPolicyConditionType & "Failure"
-
-// NetworkPolicyConditionReason defines the set of reasons that explain why a
-// particular NetworkPolicy condition type has been raised.
-#NetworkPolicyConditionReason: string // #enumNetworkPolicyConditionReason
-
-#enumNetworkPolicyConditionReason:
-	#NetworkPolicyConditionReasonFeatureNotSupported
-
-// NetworkPolicyConditionReasonFeatureNotSupported represents a reason where the Network Policy may not have been
-// implemented in the cluster due to a lack of some feature not supported by the Network Policy provider
-#NetworkPolicyConditionReasonFeatureNotSupported: #NetworkPolicyConditionReason & "FeatureNotSupported"
-
-// NetworkPolicyStatus describe the current state of the NetworkPolicy.
-#NetworkPolicyStatus: {
-	// Conditions holds an array of metav1.Condition that describe the state of the NetworkPolicy.
-	// Current service state
-	// +optional
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	// +listType=map
-	// +listMapKey=type
-	conditions?: [...metav1.#Condition] @go(Conditions,[]metav1.Condition) @protobuf(1,bytes,rep)
 }
 
 // DEPRECATED 1.9 - This group version of NetworkPolicyList is deprecated by networking/v1/NetworkPolicyList.

@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: alpine
+    deploymentEnv: dev
+spec:
+  selector:
+    matchLabels:
+      app: alpine
+      deploymentEnv: dev
+  template:
+    metadata:
+      labels:
+        app: alpine
+        deploymentEnv: dev
+    spec:
+      containers:
+        - name: myalpine
+          image: alpine:3

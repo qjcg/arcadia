@@ -1,0 +1,35 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GO_PKG_VERSION: v0.34.0
+  # NOTE: Must also get apimachinery package or `cue get go` exits with an error.
+  # See https://github.com/cue-lang/cue/discussions/1497#discussioncomment-2071985
+  GO_PKGS: k8s.io/api@{{.GO_PKG_VERSION}} k8s.io/apimachinery@{{.GO_PKG_VERSION}} k8s.io/api/apps/v1@{{.GO_PKG_VERSION}}
+  CUE_PKGS: k8s.io/api/core/v1 k8s.io/api/extensions/v1beta1 k8s.io/api/apps/v1
+
+  EXP_IN: data.cue
+  EXP_OUT: deployment.yaml
+
+tasks:
+  default:
+    - task: godefs
+    - task: export
+
+  godefs:
+    cmds:
+      - cue mod init example.com/mypkg
+      - go get {{.GO_PKGS}}
+      - cue get go {{.CUE_PKGS}}
+    status:
+      - test -d cue.mod
+
+  export:
+    cmd: cue export -e deployments.alpine --out yaml --outfile {{.EXP_OUT}}
+    sources:
+      - '{{.EXP_IN}}'
+    generates:
+      - '{{.EXP_OUT}}'
+
+  clean: rm -rf cue.mod {{.EXP_OUT}}
