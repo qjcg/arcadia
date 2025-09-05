@@ -39,7 +39,7 @@ tasks:
   lint:check-links:
     cmd: go tool xurls **/*.md | grep -Ev '{{.EXCLUDE}}' | sort -u | go tool xurls -fix >/dev/null
     vars:
-      EXCLUDE: localhost|twitter|9p.io
+      EXCLUDE: localhost|twitter|9p.io|cluster.local
   lint:trivy: go run github.com/aquasecurity/trivy/cmd/trivy@v0.65.0 fs .
   lint:modernize: go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -fix -test ./...
 
