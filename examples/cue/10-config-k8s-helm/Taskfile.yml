@@ -4,6 +4,7 @@ version: '3'
 
 vars:
   CHART: grafana
+  OUTFILES: grafana-values.common.cue grafana-values.dev.cue grafana-values.uat.cue grafana-values.prod.cue
 
 tasks:
   default:
@@ -14,13 +15,23 @@ tasks:
     cmds:
       - go tool helm repo add bitnami https://charts.bitnami.com/bitnami
       - go tool helm pull --untar bitnami/grafana
+    status:
+      - test -r grafana/values.yaml
 
   imports:
     cmds:
-      - cue import grafana/values.yaml --package grafana --path '#CommonValues:' --force --outfile grafana-values.common.cue
-      - cue import grafana/values.yaml --package grafana --path '#DevValues:' --force --outfile grafana-values.dev.cue
-      - cue import grafana/values.yaml --package grafana --path '#UATValues:' --force --outfile grafana-values.uat.cue
-      - cue import grafana/values.yaml --package grafana --path '#ProdValues:' --force --outfile grafana-values.prod.cue
+      - cue import grafana/values.yaml --package grafana --path '#CommonValues:' --outfile grafana-values.common.cue
+      - cue import grafana/values.yaml --package grafana --path '#DevValues:' --outfile grafana-values.dev.cue
+      - cue import grafana/values.yaml --package grafana --path '#UATValues:' --outfile grafana-values.uat.cue
+      - cue import grafana/values.yaml --package grafana --path '#ProdValues:' --outfile grafana-values.prod.cue
+    sources:
+      - grafana/values.yaml
+    generates:
+      - grafana-values.common.cue
+      - grafana-values.dev.cue
+      - grafana-values.uat.cue
+      - grafana-values.prod.cue
+
 
   cluster: k3d cluster create --servers 3 --agents 3 --port 8888:3000@loadbalancer helm-example
 
@@ -32,4 +43,4 @@ tasks:
 
   cluster:delete: k3d cluster delete helm-example
 
-  clean: rm -rf {{.CHART}}
+  clean: rm -rf {{.CHART}} {{.OUTFILES}}

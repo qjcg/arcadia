@@ -1,1 +1,1 @@
-answer: 42
+answer: 42  # constraint not met, expecting an error from `cue vet`

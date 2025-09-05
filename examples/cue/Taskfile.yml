@@ -1,0 +1,14 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default: [{task: test}]
+
+  test:
+    cmds:
+      - for: {var: MY_DIRS}
+        cmd: cd {{.ITEM}} && task
+    vars:
+      MY_DIRS:
+        sh: find -maxdepth 1 -mindepth 1 -type d

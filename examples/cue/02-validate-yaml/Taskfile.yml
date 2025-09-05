@@ -4,4 +4,4 @@ version: '3'
 
 tasks:
   default: [{task: vet}]
-  vet: cue vet data.yml data-schema.cue
+  vet: go tool cue vet data.yml data-schema.cue || echo cue vet error as expected
