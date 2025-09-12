@@ -26,8 +26,10 @@ cloud.google.com/go/accesscontextmanager v1.9.6/go.mod h1:884XHwy1AQpCX5Cj2VqYse
 cloud.google.com/go/aiplatform v1.68.0/go.mod h1:105MFA3svHjC3Oazl7yjXAmIR89LKhRAeNdnDKJczME=
 cloud.google.com/go/aiplatform v1.69.0/go.mod h1:nUsIqzS3khlnWvpjfJbP+2+h+VrFyYsTm7RNCAViiY8=
 cloud.google.com/go/aiplatform v1.99.0/go.mod h1:bOuku89ZrJVGkCUbEV3JHWRtOlneAXXMGMvaPhWVqfo=
+cloud.google.com/go/aiplatform v1.100.0/go.mod h1:oZUOTz6+cMt9eVNe62CXPfIQQQ+QjR4rW3GBGD9r6Fg=
 cloud.google.com/go/analytics v0.25.2/go.mod h1:th0DIunqrhI1ZWVlT3PH2Uw/9ANX8YHfFDEPqf/+7xM=
 cloud.google.com/go/analytics v0.29.0/go.mod h1:NysnqKYB3101TBxuyEciW+wxmcGn44tmbq/pu9IsHcY=
+cloud.google.com/go/analytics v0.30.0/go.mod h1:dneJtsGmmK6EkEPg59vRlncKFWt3xzmKNOc9aKXCTrI=
 cloud.google.com/go/apigateway v1.7.2/go.mod h1:+weId+9aR9J6GRwDka7jIUSrKEX60XGcikX7dGU8O7M=
 cloud.google.com/go/apigateway v1.7.7/go.mod h1:j1bCmrUK1BzVHpiIyTApxB7cRyhivKzltqLmp6j6i7U=
 cloud.google.com/go/apigeeconnect v1.7.2/go.mod h1:he/SWi3A63fbyxrxD6jb67ak17QTbWjva1TFbT5w8Kw=
@@ -71,6 +73,7 @@ cloud.google.com/go/bigquery v1.69.0 h1:rZvHnjSUs5sHK3F9awiuFk2PeOaB8suqNuim21Gb
 cloud.google.com/go/bigquery v1.69.0/go.mod h1:TdGLquA3h/mGg+McX+GsqG9afAzTAcldMjqhdjHTLew=
 cloud.google.com/go/bigtable v1.33.0/go.mod h1:HtpnH4g25VT1pejHRtInlFPnN5sjTxbQlsYBjh9t5l0=
 cloud.google.com/go/bigtable v1.38.0/go.mod h1:o/lntJarF3Y5C0XYLMJLjLYwxaRbcrtM0BiV57ymXbI=
+cloud.google.com/go/bigtable v1.39.0/go.mod h1:zgL2Vxux9Bx+TcARDJDUxVyE+BCUfP2u4Zm9qeHF+g0=
 cloud.google.com/go/billing v1.19.2/go.mod h1:AAtih/X2nka5mug6jTAq8jfh1nPye0OjkHbZEZgU59c=
 cloud.google.com/go/billing v1.20.4/go.mod h1:hBm7iUmGKGCnBm6Wp439YgEdt+OnefEq/Ib9SlJYxIU=
 cloud.google.com/go/binaryauthorization v1.9.2/go.mod h1:T4nOcRWi2WX4bjfSRXJkUnpliVIqjP38V88Z10OvEv4=
@@ -95,6 +98,7 @@ cloud.google.com/go/compute v1.43.0 h1:6gRrxftrqe5llEyTvwPGGEqTnetXOrlLhPPyU4oTd
 cloud.google.com/go/compute v1.43.0/go.mod h1:CVU1vblYdyi+kDBwugna5cHxDVAZ7FHMqKT9/aRHIJs=
 cloud.google.com/go/compute v1.44.0 h1:jE7DWf3k1Yqt/6fxFiG0B3DAZ3kk2H9+V5LIoTqYVvc=
 cloud.google.com/go/compute v1.44.0/go.mod h1:CVU1vblYdyi+kDBwugna5cHxDVAZ7FHMqKT9/aRHIJs=
+cloud.google.com/go/compute v1.45.0/go.mod h1:wQjjP1m9aYkZAPbYxilUyJ0RSAAb+/PFNGHBVLzDiRM=
 cloud.google.com/go/compute/metadata v0.3.0/go.mod h1:zFmK7XCadkQkj6TtorcaGlCW1hT1fIilQDwofLpJ20k=
 cloud.google.com/go/compute/metadata v0.5.0/go.mod h1:aHnloV2TPI38yx4s9+wAZhHykWvVCfu7hQbF+9CWoiY=
 cloud.google.com/go/compute/metadata v0.6.0/go.mod h1:FjyFAW1MW0C203CEOMDTu3Dk1FlqW3Rga40jzHL4hfg=
@@ -221,6 +225,7 @@ cloud.google.com/go/policytroubleshooter v1.11.6/go.mod h1:jdjYGIveoYolk38Dm2JjS
 cloud.google.com/go/privatecatalog v0.10.2/go.mod h1:o124dHoxdbO50ImR3T4+x3GRwBSTf4XTn6AatP8MgsQ=
 cloud.google.com/go/privatecatalog v0.10.7/go.mod h1:Fo/PF/B6m4A9vUYt0nEF1xd0U6Kk19/Je3eZGrQ6l60=
 cloud.google.com/go/profiler v0.4.3/go.mod h1:3xFodugWfPIQZWFcXdUmfa+yTiiyQ8fWrdT+d2Sg4J0=
+cloud.google.com/go/pubsub v1.50.1/go.mod h1:6YVJv3MzWJUVdvQXG081sFvS0dWQOdnV+oTo++q/xFk=
 cloud.google.com/go/pubsublite v1.8.2/go.mod h1:4r8GSa9NznExjuLPEJlF1VjOPOpgf3IT6k8x/YgaOPI=
 cloud.google.com/go/recaptchaenterprise/v2 v2.17.3/go.mod h1:vnbA2SpVPPwKeoFrCQxR+5a0JFRRytwBBG69Zj9pGfk=
 cloud.google.com/go/recaptchaenterprise/v2 v2.19.0/go.mod h1:vnbA2SpVPPwKeoFrCQxR+5a0JFRRytwBBG69Zj9pGfk=
@@ -246,6 +251,7 @@ cloud.google.com/go/secretmanager v1.14.2/go.mod h1:Q18wAPMM6RXLC/zVpWTlqq2IBSbb
 cloud.google.com/go/secretmanager v1.15.0/go.mod h1:1hQSAhKK7FldiYw//wbR/XPfPc08eQ81oBsnRUHEvUc=
 cloud.google.com/go/security v1.18.2/go.mod h1:3EwTcYw8554iEtgK8VxAjZaq2unFehcsgFIF9nOvQmU=
 cloud.google.com/go/security v1.19.0/go.mod h1:ks6NsA9Q6UODfLLgXr4MrxC/p7Bc5k15zqcfwvqlIlw=
+cloud.google.com/go/security v1.19.1/go.mod h1:+T4yyeDXqBYESnCzswqbq/Oip+IYkIrTfRF4UmeT4Bk=
 cloud.google.com/go/securitycenter v1.35.2/go.mod h1:AVM2V9CJvaWGZRHf3eG+LeSTSissbufD27AVBI91C8s=
 cloud.google.com/go/securitycenter v1.37.0/go.mod h1:DdQi6OEzw1rmLtPpqtUx6bqnQq8ZdCVuG9eZRYz2QAE=
 cloud.google.com/go/servicedirectory v1.12.2/go.mod h1:F0TJdFjqqotiZRlMXgIOzszaplk4ZAmUV8ovHo08M2U=
@@ -268,6 +274,7 @@ cloud.google.com/go/talent v1.8.3/go.mod h1:oD3/BilJpJX8/ad8ZUAxlXHCslTg2YBbafFH
 cloud.google.com/go/texttospeech v1.9.0/go.mod h1:215FpCOyRxxrS7DSb2t7f4ylMz8dXsQg8+Vdup5IhP4=
 cloud.google.com/go/texttospeech v1.10.0/go.mod h1:215FpCOyRxxrS7DSb2t7f4ylMz8dXsQg8+Vdup5IhP4=
 cloud.google.com/go/texttospeech v1.13.0/go.mod h1:g/tW/m0VJnulGncDrAoad6WdELMTes8eb77Idz+4HCo=
+cloud.google.com/go/texttospeech v1.14.0/go.mod h1:l25ywjIgXS+mSE2f5LQdXdU7r3MOLwVOGaYZQMiYIWE=
 cloud.google.com/go/tpu v1.7.2/go.mod h1:0Y7dUo2LIbDUx0yQ/vnLC6e18FK6NrDfAhYS9wZ/2vs=
 cloud.google.com/go/tpu v1.8.3/go.mod h1:Do6Gq+/Jx6Xs3LcY2WhHyGwKDKVw++9jIJp+X+0rxRE=
 cloud.google.com/go/translate v1.10.3/go.mod h1:GW0vC1qvPtd3pgtypCv4k4U8B7EdgK9/QEF2aJEUovs=
@@ -275,6 +282,7 @@ cloud.google.com/go/translate v1.12.2/go.mod h1:jjLVf2SVH2uD+BNM40DYvRRKSsuyKxVv
 cloud.google.com/go/translate v1.12.6/go.mod h1:nB3AXuX+iHbV8ZURmElcW85qkEDWZw68sf4kqMT/E5o=
 cloud.google.com/go/video v1.23.2/go.mod h1:rNOr2pPHWeCbW0QsOwJRIe0ZiuwHpHtumK0xbiYB1Ew=
 cloud.google.com/go/video v1.25.0/go.mod h1:6oXm0hVxVkg/182cx6IVsz6Z2ag5bVdfodrNzuMYFWc=
+cloud.google.com/go/video v1.26.0/go.mod h1:iqsrblPUfkxvyH31rnS02Z0dp9p5lySdq7+I0XzozQI=
 cloud.google.com/go/videointelligence v1.12.2/go.mod h1:8xKGlq0lNVyT8JgTkkCUCpyNJnYYEJVWGdqzv+UcwR8=
 cloud.google.com/go/videointelligence v1.12.6/go.mod h1:/l34WMndN5/bt04lHodxiYchLVuWPQjCU6SaiTswrIw=
 cloud.google.com/go/vision/v2 v2.9.2/go.mod h1:WuxjVQdAy4j4WZqY5Rr655EdAgi8B707Vdb5T8c90uo=
@@ -331,6 +339,7 @@ github.com/Jorropo/jsync v1.0.1/go.mod h1:jCOZj3vrBCri3bSU3ErUYvevKlnbssrXeCivyb
 github.com/MakeNowJust/heredoc/v2 v2.0.1/go.mod h1:6/2Abh5s+hc3g9nbWLe9ObDIOhaRrqsyY9MWy+4JdRM=
 github.com/Microsoft/go-winio v0.4.21/go.mod h1:JPGBdM1cNvN/6ISo+n8V5iA4v8pBzdOpzfwIujj1a84=
 github.com/Microsoft/hcsshim v0.11.4/go.mod h1:smjE4dvqPX9Zldna+t5FG3rnoHhaB7QYxPRqGcpAD9w=
+github.com/NYTimes/gziphandler v1.1.1/go.mod h1:n/CVRwUEOgIxrgPvAQhUUr9oeUtvrhMomdKFjzJNB0c=
 github.com/PuerkitoBio/purell v1.2.1/go.mod h1:ZwHcC/82TOaovDi//J/804umJFFmbOHPngi8iYYv/Eo=
 github.com/RobinUS2/golang-moving-average v1.0.0/go.mod h1:MdzhY+KoEvi+OBygTPH0OSaKrOJzvILWN2SPQzaKVsY=
 github.com/RussellLuo/slidingwindow v0.0.0-20200528002341-535bb99d338b/go.mod h1:4+EPqMRApwwE/6yo6CxiHoSnBzjRr3jsqer7frxP8y4=
@@ -501,6 +510,7 @@ github.com/go-kit/log v0.2.0/go.mod h1:NwTd00d/i8cPZ3xOwwiv2PO5MOcx78fFErGNcVmBj
 github.com/go-kit/log v0.2.1/go.mod h1:NwTd00d/i8cPZ3xOwwiv2PO5MOcx78fFErGNcVmBjv0=
 github.com/go-logfmt/logfmt v0.5.1/go.mod h1:WYhtIu8zTZfxdn5+rREduYbwxfcBr/Vr6KEVveWlfTs=
 github.com/go-logfmt/logfmt v0.6.0/go.mod h1:WYhtIu8zTZfxdn5+rREduYbwxfcBr/Vr6KEVveWlfTs=
+github.com/go-logr/logr v1.2.0/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/go-logr/logr v1.4.1/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
 github.com/go-logr/logr v1.4.2/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
 github.com/go-martini/martini v0.0.0-20170121215854-22fa46961aab/go.mod h1:/P9AEU963A2AYjv4d1V5eVL1CQbEJq6aCNHDDjibzu8=
@@ -549,6 +559,7 @@ github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8/go.mod h1:K1liHPHnj73
 github.com/google/pprof v0.0.0-20240827171923-fa2c70bbbfe5/go.mod h1:vavhavw2zAxS5dIdcRluK6cSGGPlZynqzFM8NdvU144=
 github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db/go.mod h1:vavhavw2zAxS5dIdcRluK6cSGGPlZynqzFM8NdvU144=
 github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e/go.mod h1:boTsfXsheKC2y+lKOCMpSfarhxDeIzfZG1jqGcPl3cA=
+github.com/google/pprof v0.0.0-20250403155104-27863c87afa6/go.mod h1:boTsfXsheKC2y+lKOCMpSfarhxDeIzfZG1jqGcPl3cA=
 github.com/google/renameio/v2 v2.0.0/go.mod h1:BtmJXm5YlszgC+TD4HOEEUFgkJP3nLxehU6hfe7jRt4=
 github.com/google/safetext v0.0.0-20240722112252-5a72de7e7962/go.mod h1:H3K1Iu/utuCfa10JO+GsmKUYSWi7ug57Rk6GaDRHaaQ=
 github.com/google/subcommands v1.2.0/go.mod h1:ZjhPrFU+Olkh9WazFPsl27BQ4UPiG37m3yTrtFlrHVk=
@@ -663,6 +674,7 @@ github.com/libp2p/go-yamux/v5 v5.0.1/go.mod h1:en+3cdX51U0ZslwRdRLrvQsdayFt3TSUK
 github.com/lithammer/fuzzysearch v1.1.8/go.mod h1:IdqeyBClc3FFqSzYq/MXESsS4S0FsZ5ajtkr5xPLts4=
 github.com/lyft/protoc-gen-star/v2 v2.0.4-0.20230330145011-496ad1ac90a4/go.mod h1:amey7yeodaJhXSbf/TlLvWiqQfLOSpEk//mLlc+axEk=
 github.com/mailgun/raymond/v2 v2.0.48/go.mod h1:lsgvL50kgt1ylcFJYZiULi5fjPBkkhNfj4KA0W54Z18=
+github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd/go.mod h1:QuCEs1Nt24+FYQEqAAncTDPJIuGs+LxK1MCiFL25pMU=
 github.com/matoous/go-nanoid v1.5.0 h1:VRorl6uCngneC4oUQqOYtO3S0H5QKFtKuKycFG3euek=
 github.com/mattn/go-oci8 v0.1.1/go.mod h1:wjDx6Xm9q7dFtHJvIlrI99JytznLw5wQ4R+9mNXJwGI=
@@ -703,6 +715,7 @@ github.com/olekukonko/ts v0.0.0-20171002115256-78ecb04241c0/go.mod h1:F/7q8/HZz+
 github.com/onsi/ginkgo/v2 v2.19.0/go.mod h1:rlwLi9PilAFJ8jCg9UE1QP6VBpd6/xj3SRC0d6TU0To=
 github.com/onsi/ginkgo/v2 v2.20.1/go.mod h1:lG9ey2Z29hR41WMVthyJBGUBcBhGOtoPF2VFMvBXFCI=
 github.com/onsi/ginkgo/v2 v2.21.0/go.mod h1:7Du3c42kxCUegi0IImZ1wUQzMBVecgIHjR1C+NkhLQo=
+github.com/onsi/ginkgo/v2 v2.25.1/go.mod h1:ppTWQ1dh9KM/F1XgpeRqelR+zHVwV81DGRSDnFxK7Sk=
 github.com/onsi/gomega v1.33.1/go.mod h1:U4R44UsT+9eLIaYRB2a5qajjtQYn0hauxvRm16AVYg0=
 github.com/onsi/gomega v1.34.2/go.mod h1:v1xfxRgk0KIsG+QOdm7p8UosrOzPYRo60fd3B/1Dukc=
 github.com/open-policy-agent/opa v1.6.0/go.mod h1:zFmw4P+W62+CWGYRDDswfVYSCnPo6oYaktQnfIaRFC4=
@@ -786,6 +799,7 @@ github.com/smartystreets/gunit v1.4.2/go.mod h1:ZjM1ozSIMJlAz/ay4SG8PeKF00ckUp+z
 github.com/spf13/afero v1.10.0/go.mod h1:UBogFpq8E9Hx+xc5CNTTEpTnuHVmXDwZcZcE1eb/UhQ=
 github.com/spf13/cobra v1.5.0/go.mod h1:dWXEIy2H428czQCjInthrTRUg7yKbok+2Qi/yBIJoUM=
 github.com/spf13/cobra v1.8.1/go.mod h1:wHxEcudfqmLYa8iTfL+OuZPbBZkmvliBWKIezN3kD9Y=
+github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/spiffe/go-spiffe/v2 v2.5.0 h1:N2I01KCUkv1FAjZXJMwh95KK1ZIQLYbPfhaxw8WS0hE=
 github.com/spiffe/go-spiffe/v2 v2.5.0/go.mod h1:P+NxobPc6wXhVtINNtFjNWGBTreew1GBUCwT2wPmb7g=
 github.com/spyzhov/ajson v0.9.6/go.mod h1:a6oSw0MMb7Z5aD2tPoPO+jq11ETKgXUr2XktHdT8Wt8=
