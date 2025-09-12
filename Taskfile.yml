@@ -12,10 +12,11 @@ vars:
 
 tasks:
   default:
-    - task: test
-    - task: vuln
-    - task: fmt
-    - task: lint
+    deps:
+      - task: test
+      - task: vuln
+      - task: fmt
+      - task: lint
 
   fmt: go tool gofumpt -w .
   test:
