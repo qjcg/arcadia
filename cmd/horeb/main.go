@@ -70,7 +70,7 @@ func getConf(w io.Writer, args []string) mo.Result[*config] {
 func main() {
 	conf, err := getConf(os.Stderr, os.Args[1:]).Get()
 	if err != nil {
-		slog.Error("error getting flags", err)
+		slog.Error("error getting flags", "error", err)
 		os.Exit(1)
 	}
 
@@ -105,7 +105,7 @@ func main() {
 		b, ok := blocks.Blocks[conf.blocks[0]]
 		if !ok {
 			err := errors.New("unknown block")
-			slog.Error("Unknown block", err, "block", conf.blocks[0])
+			slog.Error("Unknown block", "error", err, "block", conf.blocks[0])
 			os.Exit(1)
 		}
 
@@ -134,7 +134,7 @@ func main() {
 
 					block, err := blocks.RandomBlock(bm)
 					if err != nil {
-						slog.Error("Error getting random block", err)
+						slog.Error("error getting random block", "error", err)
 						os.Exit(1)
 					}
 					fmt.Printf("%c%s", block.RandomRune(), *conf.ofs)
@@ -143,7 +143,7 @@ func main() {
 				for i := 0; i < *conf.nChars; i++ {
 					block, err := blocks.RandomBlock(bm)
 					if err != nil {
-						slog.Error("Error getting random block", err)
+						slog.Error("error getting random block", "error", err)
 						os.Exit(1)
 					}
 					fmt.Printf("%c%s", block.RandomRune(), *conf.ofs)
