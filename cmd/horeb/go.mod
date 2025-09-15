@@ -6,7 +6,6 @@ require (
 	github.com/rogpeppe/go-internal v1.14.1
 	github.com/samber/lo v1.51.0
 	github.com/samber/mo v1.15.0
-	golang.org/x/exp v0.0.0-20250911091902-df9299821621
 )
 
 require (

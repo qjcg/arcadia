@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"log/slog"
 	"time"
 	"runtime/debug"
 
 	"github.com/qjcg/arcadia/cmd/horeb/internal/blocks"
 	"github.com/samber/mo"
-	"golang.org/x/exp/slog"
 )
 
 const (
