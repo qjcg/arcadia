@@ -1,0 +1,20 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default: echo TODO
+
+  install:
+    desc: install binary
+    cmds:
+      - CGO_ENABLED=0 go install -ldflags '-s -w' .
+      - upx $GOBIN/horeb
+
+  test: go test -tags integration ./...
+  cover:
+    cmds:
+      - mkdir -p tmp
+      - go test -tags integration -coverprofile tmp/coverprofile.out ./...
+      - go tool cover -func tmp/coverprofile.out
+      - go tool cover -html tmp/coverprofile.out
