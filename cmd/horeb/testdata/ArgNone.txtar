@@ -1,4 +1,4 @@
 # No arguments
 
-exec horebMain
+exec main
 ! stderr .

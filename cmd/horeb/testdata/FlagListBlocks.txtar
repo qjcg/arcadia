@@ -1,4 +1,4 @@
-exec horebMain -l
+exec main -l
 cmp stdout golden.txt
 
 -- golden.txt --

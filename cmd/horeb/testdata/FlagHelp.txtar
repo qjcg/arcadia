@@ -1,7 +1,7 @@
 # Help flag
 
-exec horebMain -h
+exec main -h
 stderr 'number of runes'
 
-exec horebMain --help
+exec main --help
 stderr 'number of runes'

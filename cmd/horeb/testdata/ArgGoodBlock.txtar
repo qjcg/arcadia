@@ -1,0 +1,5 @@
+# Good single block arguments
+
+exec main geometric
+exec main mahjong
+exec main emoji

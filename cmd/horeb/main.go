@@ -1,3 +1,4 @@
+// A CLI tool for generating random sequences of characters from various Unicode blocks.
 package main
 
 import (
@@ -7,8 +8,9 @@ import (
 	"io"
 	"os"
 	"time"
+	"runtime/debug"
 
-	"github.com/qjcg/arcadia/x/horeb/internal/blocks"
+	"github.com/qjcg/arcadia/cmd/horeb/internal/blocks"
 	"github.com/samber/mo"
 	"golang.org/x/exp/slog"
 )
@@ -66,19 +68,21 @@ func getConf(w io.Writer, args []string) mo.Result[*config] {
 }
 
 func main() {
-	os.Exit(Main())
-}
-
-func Main() int {
 	conf, err := getConf(os.Stderr, os.Args[1:]).Get()
 	if err != nil {
 		slog.Error("error getting flags", err)
-		return 1
+		os.Exit(1)
 	}
 
 	if *conf.version {
-		fmt.Println(Version)
-		return 0
+		buildInfo, ok := debug.ReadBuildInfo()
+		if !ok {
+			slog.Error("error reading build info")
+			os.Exit(1)
+		}
+
+		fmt.Println(buildInfo.Main.Version)
+		os.Exit(0)
 	}
 
 	// special value means all blocks
@@ -102,7 +106,7 @@ func Main() int {
 		if !ok {
 			err := errors.New("unknown block")
 			slog.Error("Unknown block", err, "block", conf.blocks[0])
-			return 1
+			os.Exit(1)
 		}
 
 		if *conf.stream {
@@ -131,7 +135,7 @@ func Main() int {
 					block, err := blocks.RandomBlock(bm)
 					if err != nil {
 						slog.Error("Error getting random block", err)
-						return 1
+						os.Exit(1)
 					}
 					fmt.Printf("%c%s", block.RandomRune(), *conf.ofs)
 				}
@@ -140,13 +144,11 @@ func Main() int {
 					block, err := blocks.RandomBlock(bm)
 					if err != nil {
 						slog.Error("Error getting random block", err)
-						return 1
+						os.Exit(1)
 					}
 					fmt.Printf("%c%s", block.RandomRune(), *conf.ofs)
 				}
 			}
 		}
 	}
-
-	return 0
 }
