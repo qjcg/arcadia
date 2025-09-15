@@ -1,0 +1,12 @@
+# svu configuration.
+#
+# https://github.com/caarlos0/svu
+verbose: false
+tag.pattern: "cmd/horeb/v*"
+tag.prefix: "cmd/horeb/v"
+tag.mode: all
+log.directory:
+  - "."
+metadata: ""
+always: false
+v0: false
