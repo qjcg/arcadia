@@ -99,6 +99,7 @@ cloud.google.com/go/compute v1.43.0 h1:6gRrxftrqe5llEyTvwPGGEqTnetXOrlLhPPyU4oTd
 cloud.google.com/go/compute v1.43.0/go.mod h1:CVU1vblYdyi+kDBwugna5cHxDVAZ7FHMqKT9/aRHIJs=
 cloud.google.com/go/compute v1.44.0 h1:jE7DWf3k1Yqt/6fxFiG0B3DAZ3kk2H9+V5LIoTqYVvc=
 cloud.google.com/go/compute v1.44.0/go.mod h1:CVU1vblYdyi+kDBwugna5cHxDVAZ7FHMqKT9/aRHIJs=
+cloud.google.com/go/compute v1.45.0 h1:bcq5kVYiC6O62afoM/rh40jnLpLUw6GP1O+8a8NiI+Y=
 cloud.google.com/go/compute v1.45.0/go.mod h1:wQjjP1m9aYkZAPbYxilUyJ0RSAAb+/PFNGHBVLzDiRM=
 cloud.google.com/go/compute/metadata v0.3.0/go.mod h1:zFmK7XCadkQkj6TtorcaGlCW1hT1fIilQDwofLpJ20k=
 cloud.google.com/go/compute/metadata v0.5.0/go.mod h1:aHnloV2TPI38yx4s9+wAZhHykWvVCfu7hQbF+9CWoiY=
@@ -226,6 +227,7 @@ cloud.google.com/go/policytroubleshooter v1.11.6/go.mod h1:jdjYGIveoYolk38Dm2JjS
 cloud.google.com/go/privatecatalog v0.10.2/go.mod h1:o124dHoxdbO50ImR3T4+x3GRwBSTf4XTn6AatP8MgsQ=
 cloud.google.com/go/privatecatalog v0.10.7/go.mod h1:Fo/PF/B6m4A9vUYt0nEF1xd0U6Kk19/Je3eZGrQ6l60=
 cloud.google.com/go/profiler v0.4.3/go.mod h1:3xFodugWfPIQZWFcXdUmfa+yTiiyQ8fWrdT+d2Sg4J0=
+cloud.google.com/go/pubsub v1.50.1 h1:fzbXpPyJnSGvWXF1jabhQeXyxdbCIkXTpjXHy7xviBM=
 cloud.google.com/go/pubsub v1.50.1/go.mod h1:6YVJv3MzWJUVdvQXG081sFvS0dWQOdnV+oTo++q/xFk=
 cloud.google.com/go/pubsublite v1.8.2/go.mod h1:4r8GSa9NznExjuLPEJlF1VjOPOpgf3IT6k8x/YgaOPI=
 cloud.google.com/go/recaptchaenterprise/v2 v2.17.3/go.mod h1:vnbA2SpVPPwKeoFrCQxR+5a0JFRRytwBBG69Zj9pGfk=
@@ -422,6 +424,7 @@ github.com/cavaliercoder/go-rpm v0.0.0-20200122174316-8cb9fd9c31a8/go.mod h1:AZI
 github.com/cenkalti/backoff v2.2.1+incompatible h1:tNowT99t7UNflLxfYYSlKYsBpXdEet03Pg2g16Swow4=
 github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
 github.com/cenkalti/backoff/v5 v5.0.2/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=
+github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
 github.com/chainguard-dev/clog v1.7.0/go.mod h1:4+WFhRMsGH79etYXY3plYdp+tCz/KCkU8fAr0HoaPvs=
 github.com/charmbracelet/harmonica v0.2.0/go.mod h1:KSri/1RMQOZLbw7AHqgcBycp8pgJnQMYYT8QZRqZ1Ao=
 github.com/charmbracelet/x/ansi v0.9.3/go.mod h1:3RQDQ6lDnROptfpWuUVIUG64bD2g2BgntdxH0Ya5TeE=
@@ -457,6 +460,7 @@ github.com/containerd/console v1.0.5/go.mod h1:YynlIjWYF8myEu6sdkwKIvGQq+cOckRm6
 github.com/containerd/containerd v1.7.19/go.mod h1:h4FtNYUUMB4Phr6v+xG89RYKj9XccvbNSCKjdufCrkc=
 github.com/containerd/containerd v1.7.27/go.mod h1:xZmPnl75Vc+BLGt4MIfu6bp+fy03gdHAn9bz+FreFR0=
 github.com/containerd/typeurl/v2 v2.2.0/go.mod h1:8XOOxnyatxSWuG8OfsZXVnAF4iZfedjS/8UHSPJnX4g=
+github.com/coreos/go-oidc v2.3.0+incompatible h1:+5vEsrgprdLjjQ9FzIKAzQz1wwPD+83hQRfUIPh7rO0=
 github.com/coreos/go-oidc v2.3.0+incompatible/go.mod h1:CgnwVTmzoESiwO9qyAFEMiHoZ1nMCKZlZ9V6mm3/LKc=
 github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f h1:JOrtw2xFKzlg+cbHpyrpLDmnN1HqhBfnX7WDiW7eG2c=
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
