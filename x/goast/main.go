@@ -1,3 +1,4 @@
+// Reads a Go file and prints its' AST node information.
 package main
 
 import (
