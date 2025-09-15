@@ -1,8 +1,7 @@
 # Horeb
 
-![Build Status](https://img.shields.io/github/workflow/status/qjcg/horeb/Test%20and%20Lint/main)
-[![Go Report Card](https://goreportcard.com/badge/github.com/qjcg/horeb)](https://goreportcard.com/report/github.com/qjcg/horeb)
-![License](https://img.shields.io/github/license/qjcg/horeb)
+[![Go Report Card](https://goreportcard.com/badge/github.com/qjcg/arcadia)](https://goreportcard.com/report/github.com/qjcg/arcadia)
+![License](https://img.shields.io/github/license/qjcg/arcadia)
 
 ![Mt. Horeb][mt-horeb]
 
@@ -18,7 +17,7 @@ One source of inspiration for this tool is the [TempleOS](https://templeos.org)
 ## Install
 
 ```sh
-go install github.com/qjcg/horeb@latest
+go install github.com/qjcg/arcadia/cmd/horeb@latest
 ```
 
 
