@@ -2,19 +2,58 @@
 
 version: '3'
 
+shopt: [globstar]
+
 tasks:
-  default: echo TODO
+  default:
+    - task: test
 
   install:
     desc: install binary
     cmds:
       - CGO_ENABLED=0 go install -ldflags '-s -w' .
       - upx $GOBIN/horeb
+    sources:
+      - '**/*.go'
+      - go.mod
+      - go.sum
+    generates:
+      - $GOBIN/horeb
 
-  test: go test -tags integration ./...
+  test:
+    cmd: go test -tags integration ./...
+
+  build:
+    cmds:
+      - go tool goreleaser build --snapshot --clean
+    sources:
+      - '**/*.go'
+      - go.mod
+      - go.sum
+    generates:
+      - ./dist/artifacts.json
+
+  build:docker:
+    cmds:
+      - echo docker build -t {{.IMG}}:{{.TAG_CUR}} .
+      - echo docker tag {{.IMG}}:{{.TAG_CUR}} {{.IMG}}:latest
+    vars:
+      IMG: qjcg/horeb
+      TAG_CUR:
+        sh: basename $(svu current) | tr -d v
+
   cover:
     cmds:
       - mkdir -p tmp
       - go test -tags integration -coverprofile tmp/coverprofile.out ./...
       - go tool cover -func tmp/coverprofile.out
       - go tool cover -html tmp/coverprofile.out
+    sources:
+      - '**/*.go'
+    generates:
+      - tmp/coverprofile.out
+
+  clean:
+    cmd: rm -rf ./dist
+    status:
+      - '! test -d ./dist'
