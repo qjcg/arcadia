@@ -53,5 +53,6 @@ tasks:
 
   tag:push:
     desc: Push git tags
+    deps: [tag]
     cmds:
       - git push --tags
