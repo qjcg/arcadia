@@ -1,60 +1,57 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+
+# The lines below are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/need to use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
 before:
   hooks:
     - go mod tidy
 
-release:
-  github:
-    owner: qjcg
-    name: horeb
-  draft: true
-  replace_existing_draft: true
+project_name: horeb
 
 builds:
-  - main: ./cmd/horeb
-    ldflags:
-      - -s -w -X main.Version={{ .Version }}
+  - binary: horeb
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s -w
     targets:
       - go_first_class
     hooks:
       post:
-        - test $(uname -s) != Darwin && upx "{{ .Path }}"
+        - test $(uname -s) != Darwin && upx "{{.Path}}"
 
 archives:
-  - format_overrides:
+  - formats: [tar.gz]
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64_
+      {{- else if eq .Arch "386" }}i386_
+      {{- else }}{{ .Arch }}_{{ end }}
+      {{- if .Arm }}v{{ .Arm }}_{{ end }}
+      {{- .Version }}
+    # use zip for windows archives
+    format_overrides:
       - goos: windows
-        format: zip
-
-nfpms:
-  - maintainer: ${NFPM_MAINTAINER}
-    license: MIT
-    formats:
-      - apk
-      - deb
-      - rpm
-      - archlinux
-
-dockers:
-  - image_templates:
-      - qjcg/horeb:{{ .Version }}
-      - qjcg/horeb:latest
-
-sboms:
-  - artifacts: archive
-
-checksum:
-  name_template: 'checksums.txt'
-
-snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+        formats: [zip]
 
 changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
+      - "^docs:"
+      - "^test:"
 
-# modelines, feel free to remove those if you don't want/use them:
-# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+release:
+  footer: >-
+
+    ---
+
+    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
