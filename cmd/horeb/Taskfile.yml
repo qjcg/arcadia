@@ -25,7 +25,17 @@ tasks:
 
   build:
     cmds:
-      - go tool goreleaser build --snapshot --clean
+      - go tool goreleaser build --auto-snapshot --clean
+    sources:
+      - '**/*.go'
+      - go.mod
+      - go.sum
+    generates:
+      - ./dist/artifacts.json
+
+  build:release:
+    cmds:
+      - go tool goreleaser release --auto-snapshot --clean
     sources:
       - '**/*.go'
       - go.mod
