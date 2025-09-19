@@ -1,0 +1,86 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  OMARCHY_VERSION: 3.0.1
+  ISO_URL: https://iso.omarchy.org/omarchy-{{.OMARCHY_VERSION}}.iso
+  ISO: '{{ base .ISO_URL }}'
+  DISK: disk.qcow2
+  DISK_SIZE: 20G
+  MEM: 8192
+  CPUS:
+    sh: nproc
+
+tasks:
+  default:
+    desc: Run Omarchy installer.
+    cmds:
+      - task: installer
+
+  iso:
+    desc: Download Omarchy ISO.
+    cmd: aria2c -c {{.ISO_URL}}
+    status:
+     - test -f {{.ISO}}
+
+  bios:
+    deps: [packages]
+    cmds:
+      - cp /usr/share/edk2/x64/OVMF_VARS.4m.fd .
+    sources:
+      - /usr/share/edk2/x64/OVMF_VARS.4m.fd
+    generates:
+      -  OVMF_VARS.4m.fd
+
+  disk:
+    desc: Create a qcow2 hard disk file
+    cmds:
+      - qemu-img create -f qcow2 {{.DISK}} {{.DISK_SIZE}}
+    status:
+      - test -f {{.DISK}}
+
+  packages:
+    run: once
+    cmds:
+      - sudo pacman -S {{.DEPS}}
+    status:
+      - pacman -Q {{.DEPS}}
+    vars:
+      DEPS: qemu-full edk2-ovmf
+
+  # FIXME: Broken, bootable drive(s) not detected.
+  # See https://github.com/omacom-io/omarchy-iso/blob/main/bin/omarchy-iso-boot
+  # See https://wiki.archlinux.org/title/QEMU#Booting_in_UEFI_mode
+  installer:
+    desc: Run Omarchy installer.
+    deps: [iso, disk, bios, packages]
+    cmds:
+      - |
+        qemu-system-x86_64 \
+        -d int \
+        -cpu host \
+        -enable-kvm \
+        -machine q35,accel=kvm \
+        -m {{.MEM}} \
+        -smp {{.CPUS}} \
+        \
+        -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd \
+        -drive if=pflash,format=raw,file=OVMF_VARS.4m.fd \
+        \
+        -drive file={{.ISO}},media=cdrom,if=none,format=raw,id=cdrom0 \
+        -device ide-cd,drive=cdrom0,bootindex=1 \
+        \
+        -drive file={{.DISK}},format=qcow2,if=none,id=drive0 \
+        -device virtio-blk-pci,drive=drive0,bootindex=2 \
+        \
+        -device virtio-vga-gl \
+        -display gtk,gl=on \
+        -usb -device usb-tablet \
+        -netdev user,id=net0 \
+        -device virtio-net-pci,netdev=net0
+
+  clean:
+    desc: Remove build artifacts.
+    cmds:
+      - rm -f {{.DISK}} OVMF_VARS.4m.fd
