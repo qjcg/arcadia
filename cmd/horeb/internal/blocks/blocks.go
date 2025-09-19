@@ -108,7 +108,7 @@ func (b UnicodeBlock) Print(w io.Writer) {
 
 // PrintRandom prints n random runes from UnicodeBlock.
 func (b UnicodeBlock) PrintRandom(w io.Writer, n int, ofs string) {
-	for i := 0; i < n; i++ {
+	for range n {
 		fmt.Fprintf(w, "%c%s", b.RandomRune(), ofs)
 	}
 	fmt.Fprintln(w)

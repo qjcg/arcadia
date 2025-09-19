@@ -33,10 +33,10 @@ func (s *OrderService) Total() float64 {
 	}
 
 	var total float64
-	for i := 0; i < len(orders); i++ {
+	for i := range orders {
 		items := orders[i].Items
 
-		for j := 0; j < len(items); j++ {
+		for j := range items {
 			total += items[j].Price
 		}
 	}

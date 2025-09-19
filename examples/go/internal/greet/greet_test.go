@@ -27,7 +27,7 @@ func TestGreet(t *testing.T) {
 }
 
 func BenchmarkGreet(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		greet.Greet("Jerry")
 	}
 }
