@@ -22,7 +22,7 @@ tasks:
     desc: Download Omarchy ISO.
     cmd: aria2c -c {{.ISO_URL}}
     status:
-     - test -f {{.ISO}}
+      - test -f {{.ISO}}
 
   bios:
     deps: [packages]
