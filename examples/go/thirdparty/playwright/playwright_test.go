@@ -1,4 +1,4 @@
-//go:build integration && !archlinux
+//go:build integration && brokenOnArch
 
 package playwright
 
