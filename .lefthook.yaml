@@ -1,0 +1,31 @@
+# See https://lefthook.dev/configuration/
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: gofumpt
+      run: go tool gofumpt -w .
+      glob: "*.go"
+
+    - name: editorconfig-checker
+      run: go tool editorconfig-checker
+
+    - name: modernize
+      run: go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.20.0 -fix -test work
+      glob: ".go"
+
+    - name: test
+      run: go test work
+      glob: "*.go"
+
+pre-push:
+  parallel: true
+  jobs:
+    - name: govulncheck
+      run: go tool govulncheck work
+
+    - name: trivy
+      run: go run github.com/aquasecurity/trivy/cmd/trivy@v0.66.0 fs .
+
+    - name: integration tests
+      run: go test -tags integration work
