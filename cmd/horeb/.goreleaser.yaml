@@ -42,7 +42,22 @@ archives:
       - goos: windows
         formats: [zip]
 
+dockers:
+  - image_templates:
+      - qjcg/horeb:{{ .Version }}
+      - qjcg/horeb:latest
+
+nfpms:
+  - maintainer: ${NFPM_MAINTAINER}
+    license: MIT
+    formats:
+      - apk
+      - deb
+      - rpm
+      - archlinux
+
 changelog:
+
   sort: asc
   filters:
     exclude:
