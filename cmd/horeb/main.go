@@ -6,10 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"os"
 	"log/slog"
-	"time"
+	"os"
 	"runtime/debug"
+	"time"
 
 	"github.com/qjcg/arcadia/cmd/horeb/internal/blocks"
 	"github.com/samber/mo"
