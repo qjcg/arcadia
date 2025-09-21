@@ -13,7 +13,7 @@ type APIResponse struct {
 	Result struct {
 		Pair struct {
 			P [2]string
-		} `json:"XXBTZCAD"`
+		} `json:"XXBTZCAD"` // FIXME: generalize
 	} `json:"result"`
 }
 
