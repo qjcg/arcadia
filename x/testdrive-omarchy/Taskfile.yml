@@ -65,9 +65,6 @@ tasks:
         -m {{.MEM}} \
         -smp {{.CPUS}} \
         \
-        -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd \
-        -drive if=pflash,format=raw,file=OVMF_VARS.4m.fd \
-        \
         -drive file={{.ISO}},media=cdrom,if=none,format=raw,id=cdrom0 \
         -device ide-cd,drive=cdrom0,bootindex=1 \
         \
