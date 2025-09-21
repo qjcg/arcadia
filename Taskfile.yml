@@ -12,7 +12,8 @@ vars:
 
 tasks:
   default:
-    deps: [githook:pre-commit]
+    deps:
+      - githook:pre-commit
 
   githook:pre-commit:
     deps:
