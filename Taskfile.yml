@@ -12,13 +12,18 @@ vars:
 
 tasks:
   default:
-    deps:
-      - task: test
-      - task: vuln
-      - task: fmt
-      - task: lint
+    deps: [githook:pre-commit]
 
-  fmt: go tool gofumpt -w .
+  githook:pre-commit:
+    deps:
+      - test
+      - lint
+
+  githook:pre-push:
+    deps:
+      - test:integration
+      - security:trivy
+      - security:govulncheck
 
   test: [task: test:unit]
   test:unit: go test work
@@ -26,19 +31,23 @@ tasks:
   test:gotestsum: go tool gotestsum -- work
   test:gotestsum-integration: go tool gotestsum -- -tags integration work
 
-  vuln: go tool govulncheck work
-
   lint:
-    - task: lint:editorconfig
-    - task: lint:check-links
+    deps:
+      - lint:gofumpt
+      - lint:editorconfig
+      - lint:check-links
+      - lint:modernize
 
+  lint:gofumpt: go tool gofumpt -w .
   lint:editorconfig: go tool editorconfig-checker
   lint:check-links:
     cmd: go tool xurls **/*.md | grep -Ev '{{.EXCLUDE}}' | sort -u | go tool xurls -fix >/dev/null
     vars:
       EXCLUDE: localhost|twitter|9p.io|cluster.local
-  lint:trivy: go run github.com/aquasecurity/trivy/cmd/trivy@v0.66.0 fs .
-  lint:modernize: go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -fix -test ./...
+  lint:modernize: go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.20.0 -fix -test ./...
+
+  security:govulncheck: go tool govulncheck work
+  security:trivy: go run github.com/aquasecurity/trivy/cmd/trivy@v0.66.0 fs .
 
   tag:
     desc: Add next semver git tag
