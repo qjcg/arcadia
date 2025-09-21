@@ -16,6 +16,7 @@ require (
 	github.com/go-task/task/v3 v3.44.1
 	github.com/gocolly/colly/v2 v2.2.0
 	github.com/gosimple/slug v1.15.0
+	github.com/joliv/spark v0.0.0-20220827214902-be9742b47479
 	github.com/knadh/koanf/providers/env v1.1.0
 	github.com/knadh/koanf/v2 v2.3.0
 	github.com/nats-io/nats-server/v2 v2.11.9
