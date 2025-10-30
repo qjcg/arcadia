@@ -1,31 +1,50 @@
 # See https://lefthook.dev/configuration/
 
+_gofiles: &gofiles
+  - "*.go"
+  - "go.{mod,sum,work,work.sum}"
+
 pre-commit:
   parallel: true
   jobs:
-    - name: gofumpt
-      run: go tool gofumpt -w .
-      glob: "*.go"
+    - name: formatters
+      group:
+        parallel: true
+        jobs:
+          - name: gofumpt
+            run: go tool gofumpt -w .
+            glob: "*.go"
+            stage_fixed: true
 
-    - name: editorconfig-checker
-      run: go tool editorconfig-checker
+          - name: modernize
+            run: go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.20.0 -fix -test work
+            glob: ".go"
 
-    - name: modernize
-      run: go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.20.0 -fix -test work
-      glob: ".go"
+          - name: cue fmt
+            run: go tool cue fmt --files {staged_files}
+            glob: "*.cue"
+            stage_fixed: true
 
-    - name: test
+          - name: editorconfig-checker
+            run: go tool editorconfig-checker {staged_files}
+
+    - name: unit-tests
       run: go test work
-      glob: "*.go"
+      glob:
+        *gofiles
 
 pre-push:
   parallel: true
   jobs:
     - name: govulncheck
       run: go tool govulncheck work
+      glob:
+        *gofiles
 
     - name: trivy
       run: go run github.com/aquasecurity/trivy/cmd/trivy@v0.66.0 fs .
 
-    - name: integration tests
+    - name: integration-tests
       run: go test -tags integration work
+      glob:
+        *gofiles
