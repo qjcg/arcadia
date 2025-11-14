@@ -10,17 +10,17 @@ import (
 )
 
 // GET and return contents from URL.
-func download(URL string) []byte {
-	resp, err := http.Get(URL)
-	defer resp.Body.Close()
-
+func download(url string) []byte {
+	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatal("Couldn't GET file.")
 	}
+	defer resp.Body.Close()
 
 	contents, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal("Couldn't read reesponse body.")
+		log.Error("Couldn't read response body.")
+		return nil
 	}
 
 	return contents

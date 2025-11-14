@@ -3,6 +3,7 @@ package blocks
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -15,7 +16,8 @@ type Volume struct {
 }
 
 func (v *Volume) String() string {
-	output, err := exec.Command("pactl", "list", "sinks").Output()
+	ctx := context.Background()
+	output, err := exec.CommandContext(ctx, "pactl", "list", "sinks").Output()
 	if err != nil {
 		return "pactl error"
 	}

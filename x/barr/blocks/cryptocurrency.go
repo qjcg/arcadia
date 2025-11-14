@@ -6,8 +6,7 @@ import (
 	"net/http"
 )
 
-// See https://www.kraken.com/en-gb/features/api#get-ticker-info
-const URLTemplate = `https://api.kraken.com/0/public/Ticker?pair=%s`
+const URLTemplate = `https://api.kraken.com/0/public/Ticker?pair=%s` // See https://www.kraken.com/en-gb/features/api#get-ticker-info
 
 type APIResponse struct {
 	Result struct {

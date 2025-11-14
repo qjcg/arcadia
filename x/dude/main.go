@@ -4,6 +4,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -20,12 +21,14 @@ func main() {
 	// heading: e.g. EXAMPLES, BUGS
 	var subject, section, heading string
 
+	ctx := context.Background()
+
 	// Detect the arguments (excluding the command itself) and call the man
 	// command accordingly.
 	switch len(os.Args) - 1 {
 	case 1:
 		subject = os.Args[1]
-		out, err = exec.Command("man", subject).Output()
+		out, err = exec.CommandContext(ctx, "man", subject).Output()
 	case 2:
 
 		// With two arguments, there are two possible syntaxes:
@@ -36,19 +39,19 @@ func main() {
 		if matched, _ := regexp.MatchString(`\d+`, os.Args[1]); matched {
 			section = os.Args[1]
 			subject = os.Args[2]
-			out, err = exec.Command("man", section, subject).Output()
+			out, err = exec.CommandContext(ctx, "man", section, subject).Output()
 			break
 		}
 
 		// Using the subject + heading syntax.
 		subject = os.Args[1]
 		heading = os.Args[2]
-		out, err = exec.Command("man", subject).Output()
+		out, err = exec.CommandContext(ctx, "man", subject).Output()
 	case 3:
 		section = os.Args[1]
 		subject = os.Args[2]
 		heading = os.Args[3]
-		out, err = exec.Command("man", section, subject).Output()
+		out, err = exec.CommandContext(ctx, "man", section, subject).Output()
 	default:
 		log.Fatal("USAGE MESSAGE")
 	}
@@ -58,8 +61,8 @@ func main() {
 
 	// Regular expressions defining what is considered a heading line in
 	// "man" output.
-	Heading := regexp.MustCompile(`^( {3})?[A-Z]`)
-	NotHeading := regexp.MustCompile(` {4}`)
+	reHeading := regexp.MustCompile(`^( {3})?[A-Z]`)
+	reNotHeading := regexp.MustCompile(` {4}`)
 
 	// Whether we are printing the contents of a heading (ex: EXAMPLES).
 	var printHeadingContents bool
@@ -69,7 +72,7 @@ func main() {
 		b := scanner.Bytes()
 
 		// Line is a heading.
-		if Heading.Match(b) && !NotHeading.Match(b) {
+		if reHeading.Match(b) && !reNotHeading.Match(b) {
 
 			// We set printSection to true the FIRST time a heading is
 			// seen, so this conditional will be true ONLY when we
@@ -89,12 +92,10 @@ func main() {
 					continue
 				}
 			}
-		} else {
+		} else if !printHeadingContents {
 			// When the line is not a heading and we're not
 			// printing heading contents, move on to next line.
-			if !printHeadingContents {
-				continue
-			}
+			continue
 		}
 
 		// Print the current line.

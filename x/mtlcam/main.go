@@ -23,7 +23,7 @@ const (
 
 var reDigits = regexp.MustCompile(`\d+`)
 
-// Create date/timestampped subdirectories for saving images
+// MakeTimeStampDir creates date/timestampped subdirectories for saving images.
 func MakeTimeStampDir(parentDir string) string {
 	timeStampDir := time.Now().Format(path.Join(parentDir, "060102/150405"))
 	err := os.MkdirAll(timeStampDir, 0o755)

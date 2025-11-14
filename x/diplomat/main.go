@@ -50,9 +50,9 @@ func main() {
 	// create JSON config file
 	confPath := filepath.Join(d.OutputDir, "diplomas.json")
 	conf, err := os.Create(confPath)
-	defer conf.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer conf.Close()
 	d.Dump(conf)
 }

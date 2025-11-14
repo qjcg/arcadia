@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	RockAscii     = "0"
-	PaperAscii    = "#"
-	ScissorsAscii = "X"
+	RockASCII     = "0"
+	PaperASCII    = "#"
+	ScissorsASCII = "X"
 
 	RockLetter     = "R"
 	PaperLetter    = "P"
@@ -39,9 +39,9 @@ func (s *ScoreBoard) Percentages() {
 }
 
 func main() {
-	HandSymbols := map[int]string{
-		Rock:     RockAscii,
-		Paper:    PaperAscii,
+	handSymbols := map[int]string{
+		Rock:     RockASCII,
+		Paper:    PaperASCII,
 		Scissors: ScissorsSymbol,
 	}
 
@@ -84,7 +84,7 @@ func main() {
 			sb.Percentages()
 			fmt.Printf("\r(%.1f%%) %v  %s %s  %v (%.1f%%)  ties: %v (%.1f%%)  games: %v/%d ",
 				sb.pctP1, sb.p1,
-				paleBlue(HandSymbols[handP1]), paleBlue(HandSymbols[handP2]),
+				paleBlue(handSymbols[handP1]), paleBlue(handSymbols[handP2]),
 				sb.p2, sb.pctP2,
 				sb.ties, sb.pctTies,
 				sb.games, *ngames)

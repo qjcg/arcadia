@@ -3,7 +3,7 @@ package main
 type FeatureCollection struct {
 	Features []struct {
 		Geometry struct {
-			Coordinates [2]float64 `json:"coordinates,Number"`
+			Coordinates [2]float64 `json:"coordinates"`
 			Type        string
 		}
 
@@ -12,9 +12,9 @@ type FeatureCollection struct {
 			AxeRoutierEstOuest     string `json:"axe-routier-est-ouest"`
 			AxeRoutierNordSud      string `json:"axe-routier-nord-sud"`
 			Description            string `json:"description,omitempty"`
-			IdArrondissement       int    `json:"id-arrondissement,Number"`
-			IdCamera               int    `json:"id-camera,Number"`
-			Nid                    int    `json:"nid,Number"`
+			IDArrondissement       int    `json:"id-arrondissement"`
+			IDCamera               int    `json:"id-camera"`
+			Nid                    int    `json:"nid"`
 			Titre                  string
 			URL                    string
 			URLImageDirectionEst   string `json:"url-image-direction-est"`

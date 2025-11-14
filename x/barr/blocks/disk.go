@@ -3,18 +3,20 @@ package blocks
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
 )
 
-// DiskInfo represents hard disk info.
+// Disk represents hard disk info.
 type Disk struct {
 	Dir string
 }
 
 func (d *Disk) String() string {
-	output, err := exec.Command("df", "-h", d.Dir).Output()
+	ctx := context.Background()
+	output, err := exec.CommandContext(ctx, "df", "-h", d.Dir).Output()
 	if err != nil {
 		return "df error"
 	}

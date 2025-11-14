@@ -2,7 +2,7 @@ package blocks
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strconv"
 
 	"github.com/distatus/battery"
@@ -38,7 +38,7 @@ func (b *Battery) String() string {
 
 // Charging returns true if power supply AC is online.
 func Charging() (bool, error) {
-	online, err := ioutil.ReadFile("/sys/class/power_supply/AC/online")
+	online, err := os.ReadFile("/sys/class/power_supply/AC/online")
 	if err != nil {
 		return false, err
 	}

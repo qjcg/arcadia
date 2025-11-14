@@ -52,14 +52,13 @@ func (d *DiplomaSet) Dump(w io.Writer) {
 
 // Load reads config from JSON file, populating a DiplomaSet.
 func (d *DiplomaSet) Load(configFile string) {
-	return
 }
 
 // ToPDF renders a DiplomaSet to PDF files.
 // FIXME: Make this DRY by writing a utility function
 func (d *DiplomaSet) ToPDF(fontFamily string, fontData []byte) {
 	// Create OutputDir for PDFs
-	os.MkdirAll(d.OutputDir, 0o700)
+	check(os.MkdirAll(d.OutputDir, 0o700))
 
 	for _, s := range d.Recipients {
 		pdf := gopdf.GoPdf{}
@@ -73,7 +72,7 @@ func (d *DiplomaSet) ToPDF(fontFamily string, fontData []byte) {
 		}
 
 		// TODO: confirm this needs to be a .jpg, not .png?
-		pdf.Image(d.Image, d.Overlay["Image"][0], d.Overlay["Image"][1], nil)
+		check(pdf.Image(d.Image, d.Overlay["Image"][0], d.Overlay["Image"][1], nil))
 
 		// Recipient
 		err = pdf.SetFont(fontFamily, "", 26)
@@ -82,7 +81,7 @@ func (d *DiplomaSet) ToPDF(fontFamily string, fontData []byte) {
 		}
 		pdf.SetX(d.Overlay["Recipient"][0])
 		pdf.SetY(d.Overlay["Recipient"][1])
-		pdf.Cell(nil, s)
+		check(pdf.Cell(nil, s))
 
 		// Course
 		err = pdf.SetFont(fontFamily, "", 13)
@@ -91,7 +90,7 @@ func (d *DiplomaSet) ToPDF(fontFamily string, fontData []byte) {
 		}
 		pdf.SetX(d.Overlay["Course"][0])
 		pdf.SetY(d.Overlay["Course"][1])
-		pdf.Cell(nil, d.Course)
+		check(pdf.Cell(nil, d.Course))
 
 		// Period
 		err = pdf.SetFont(fontFamily, "", 11)
@@ -100,15 +99,21 @@ func (d *DiplomaSet) ToPDF(fontFamily string, fontData []byte) {
 		}
 		pdf.SetX(d.Overlay["Period"][0])
 		pdf.SetY(d.Overlay["Period"][1])
-		pdf.Cell(nil, d.Period)
+		check(pdf.Cell(nil, d.Period))
 
 		// Instructor
 		pdf.SetX(d.Overlay["Instructor"][0])
 		pdf.SetY(d.Overlay["Instructor"][1])
-		pdf.Cell(nil, d.Instructor)
+		check(pdf.Cell(nil, d.Instructor))
 
 		// FIXME: do this via a separate function for greater testability?
 		pdfPath := filepath.Join(d.OutputDir, slug.Make(s)+".pdf")
-		pdf.WritePdf(pdfPath)
+		check(pdf.WritePdf(pdfPath))
+	}
+}
+
+func check(err error) {
+	if err != nil {
+		log.Fatal(err)
 	}
 }
