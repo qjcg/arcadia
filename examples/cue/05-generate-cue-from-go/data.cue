@@ -11,7 +11,7 @@ deployments: [Name=string]: {
 	kind:       "Deployment"
 
 	metadata: labels: {
-		app: *Name | string
+		app:           *Name | string
 		deploymentEnv: *"dev" | "uat" | "prod"
 	}
 

@@ -12,8 +12,8 @@ command: gen: {
 	_prefix: "generated"
 
 	genCUE: exec.Run & {
-		$short:   "Generate a CUE file from CUE."
-		cmd: "cue export data.cue -p main -e output --outfile \(_prefix).cue --force"
+		$short: "Generate a CUE file from CUE."
+		cmd:    "cue export data.cue -p main -e output --outfile \(_prefix).cue --force"
 	}
 
 	genJSON: file.Create & {
