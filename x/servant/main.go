@@ -24,8 +24,8 @@ func main() {
 	flag.Parse()
 
 	var dir string
-	switch d := flag.Arg(0); {
-	case d == "":
+	switch d := flag.Arg(0); d {
+	case "":
 		dir = "."
 	default:
 		if _, err := os.Stat(d); os.IsNotExist(err) {
