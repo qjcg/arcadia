@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"time"
 )
@@ -42,9 +43,13 @@ func Countdown(w io.Writer, ticker *time.Ticker, d time.Duration) {
 		// added 1s to the "end" time above, so this ensures the
 		// duration of our countdown is accurate.
 		if remaining >= time.Millisecond*1500 {
-			fmt.Fprint(w, fmtDuration(remaining))
+			if _, err := fmt.Fprint(w, fmtDuration(remaining)); err != nil {
+				log.Fatal(err)
+			}
 		} else {
-			fmt.Fprintln(w)
+			if _, err := fmt.Fprintln(w); err != nil {
+				log.Fatal(err)
+			}
 			break
 		}
 	}
@@ -54,7 +59,9 @@ func Countdown(w io.Writer, ticker *time.Ticker, d time.Duration) {
 // specified by the provided ticker.
 func Elapsed(w io.Writer, ticker *time.Ticker, start time.Time) {
 	for ; true; <-ticker.C {
-		fmt.Fprint(w, fmtDuration(time.Since(start)))
+		if _, err := fmt.Fprint(w, fmtDuration(time.Since(start))); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 

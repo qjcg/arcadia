@@ -59,10 +59,10 @@ func TestToPDF(t *testing.T) {
 func TestDump(t *testing.T) {
 	for _, d := range diplomaSetTests {
 		f, err := os.Create(d.OutputDir + "/diplomas.json")
-		defer f.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer f.Close()
 		d.Dump(f)
 	}
 }

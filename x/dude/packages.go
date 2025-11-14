@@ -1,5 +1,4 @@
 //go:build packages
-// +build packages
 
 //go:generate go build
 //go:generate upx dude
