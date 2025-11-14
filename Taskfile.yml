@@ -11,48 +11,16 @@ vars:
     sh: go tool svu next
 
 tasks:
-  default:
-    deps:
-      - githook:pre-commit
-
+  default: [{task: githook:pre-commit}]
   ai: go run github.com/charmbracelet/crush@latest
+  githook:pre-commit: go tool lefthook run pre-commit --all-files
+  githook:pre-push: go tool lefthook run pre-push --all-files
 
-  githook:pre-commit:
-    deps:
-      - test
-      - lint
-
-  githook:pre-push:
-    deps:
-      - test:integration
-      - security:trivy
-      - security:govulncheck
-
-  test: [task: test:unit]
-  test:unit: go test work
-  test:integration: go test -tags integration work
-  test:gotestsum: go tool gotestsum -- work
-  test:gotestsum-integration: go tool gotestsum -- -tags integration work
-
-  lint:
-    deps:
-      - lint:gofumpt
-      - lint:editorconfig
-      - lint:check-links
-      - lint:modernize
-      - lint:golangci-lint
-
-  lint:gofumpt: go tool gofumpt -w .
-  lint:editorconfig: go tool editorconfig-checker
   lint:check-links:
     cmd: go tool xurls **/*.md | grep -Ev '{{.EXCLUDE}}' | sort -u | go tool xurls -fix >/dev/null
     vars:
       EXCLUDE: localhost|twitter|9p.io|cluster.local
-  lint:modernize: go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.20.0 -fix -test ./...
   lint:golangci-lint: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.1 run
-
-  security:govulncheck: go tool govulncheck work
-  security:trivy: go run github.com/aquasecurity/trivy/cmd/trivy@v0.66.0 fs .
 
   tag:
     desc: Add next semver git tag
