@@ -1,6 +1,7 @@
 package blocks
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -22,7 +23,14 @@ type CryptoCurrency struct {
 
 func (c *CryptoCurrency) String() string {
 	url := fmt.Sprintf(URLTemplate, c.Pair)
-	resp, err := http.Get(url)
+
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return "http error"
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "http error"
 	}

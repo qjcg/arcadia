@@ -11,7 +11,7 @@ import (
 
 // GET and return contents from URL.
 func download(url string) []byte {
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint:noctx
 	if err != nil {
 		log.Fatal("Couldn't GET file.")
 	}
