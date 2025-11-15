@@ -15,8 +15,8 @@ tasks:
   ai: go run github.com/charmbracelet/crush@latest
   githook:pre-commit: go tool lefthook run pre-commit --all-files
   githook:pre-push: go tool lefthook run pre-push --all-files
-
   test: go test work
+  clean: rm -rf bin
 
   lint:check-links:
     cmd: go tool xurls **/*.md | grep -Ev '{{.EXCLUDE}}' | sort -u | go tool xurls -fix >/dev/null
