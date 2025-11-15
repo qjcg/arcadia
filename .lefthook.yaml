@@ -13,7 +13,8 @@ commit-msg:
         test $len -lt 80
 
     - name: header-is-conventional-commit
-      run:  echo TODO header-is-conventional-commit
+      run: echo TODO header-is-conventional-commit
+
 
 pre-commit:
   parallel: true
