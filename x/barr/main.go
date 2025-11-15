@@ -23,8 +23,7 @@ func main() {
 			&blocks.Battery{},
 			&blocks.Volume{},
 			&blocks.Disk{Dir: "/"},
-			// FIXME: Not working! Enable when fixed.
-			// &blocks.CryptoCurrency{Pair: "xbtcad"},
+			&blocks.CryptoCurrency{Pair: "xbtcad"},
 			&blocks.LoadAvg{},
 			&blocks.DefaultTimeStamp,
 		},

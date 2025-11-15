@@ -42,5 +42,5 @@ func (c *CryptoCurrency) String() string {
 	if err != nil {
 		return "json decode error"
 	}
-	return fmt.Sprintf("%+v", r)
+	return fmt.Sprintf("BTCCAD:%v", r.Result.Pair.P[0])
 }
