@@ -602,6 +602,8 @@ require (
 
 tool (
 	cuelang.org/go/cmd/cue
+	filippo.io/age/cmd/age
+	filippo.io/age/cmd/age-keygen
 	github.com/benbjohnson/litestream/cmd/litestream
 	github.com/caarlos0/svu/v3
 	github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker
