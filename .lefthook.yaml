@@ -81,7 +81,7 @@ pre-push:
         if test $v_cur != $v_next; then
           echo "$v_cur -> $v_next (new version)"
           git tag -am $v_next $v_next
-          git push --tags
+          LEFTHOOK=0 git push --tags
         else
           echo "$v_cur (no change)"
         fi
