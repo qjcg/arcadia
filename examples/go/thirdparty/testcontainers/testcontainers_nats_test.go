@@ -15,13 +15,14 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/micro"
 	"github.com/testcontainers/testcontainers-go"
-	tcNATS "github.com/testcontainers/testcontainers-go/modules/nats"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+const natsDockerImage = "nats:2.12-alpine"
+
 func newNATSContainer(ctx context.Context) (testcontainers.Container, error) {
 	req := testcontainers.ContainerRequest{
-		Image:        "nats:2",
+		Image:        natsDockerImage,
 		ExposedPorts: []string{"4222/tcp"},
 		WaitingFor: wait.ForAll(
 			wait.ForLog("Server is ready"),
@@ -37,8 +38,19 @@ func newNATSContainer(ctx context.Context) (testcontainers.Container, error) {
 }
 
 func TestPubSub_testcontainer(t *testing.T) {
+	t.Setenv("TESTCONTAINERS_RYUK_DISABLED", "true")
 	ctx := context.Background()
-	natsContainer, err := tcNATS.Run(ctx, "nats:2.11-alpine")
+
+	req := testcontainers.ContainerRequest{
+		Image:       natsDockerImage,
+		NetworkMode: "host",
+		WaitingFor:  wait.ForLog("Server is ready").WithStartupTimeout(10 * time.Second),
+	}
+
+	natsContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
 	if err != nil {
 		t.Fatalf("failed to create NATS container: %s", err)
 	}
@@ -48,12 +60,7 @@ func TestPubSub_testcontainer(t *testing.T) {
 		}
 	}()
 
-	endpoint, err := natsContainer.Endpoint(ctx, "")
-	if err != nil {
-		t.Fatalf("failed to get NATS endpoint: %v", err)
-	}
-
-	nc, err := nats.Connect(endpoint)
+	nc, err := nats.Connect("nats://localhost:4222")
 	if err != nil {
 		t.Fatalf("Error connecting to NATS: %v", err)
 	}
