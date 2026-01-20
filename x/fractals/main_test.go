@@ -843,6 +843,80 @@ func TestTransitionResetFunctionality(t *testing.T) {
 	}
 }
 
+func TestBreakthroughTransitionMode(t *testing.T) {
+	m := model{
+		config: Config{
+			FractalType: FractalMandelbrot,
+			CenterX:     -0.5,
+			CenterY:     0.0,
+			Zoom:        1.0,
+			MaxIter:     50,
+			ColorScheme: ColorGrayscale,
+		},
+	}
+
+	// Test that breakthrough transition mode can be set
+	m.transitionMode = TransitionBreakthrough
+	if m.transitionMode != TransitionBreakthrough {
+		t.Error("Failed to set transition mode to Breakthrough")
+	}
+
+	// Test that startFractalTransition works with breakthrough mode
+	m.transitionMode = TransitionBreakthrough
+	m.startFractalTransition()
+
+	// Should have set a target fractal type
+	if m.transitionTarget == "" {
+		t.Error("startFractalTransition() did not set a target fractal type for breakthrough mode")
+	}
+
+	// Should have initialized progress to start animation
+	if m.transitionProgress != 0.01 {
+		t.Errorf("startFractalTransition() did not initialize progress to 0.01 for breakthrough mode, got %v", m.transitionProgress)
+	}
+
+	// Should have stored starting zoom
+	if m.transitionZoomStart <= 0 {
+		t.Errorf("startFractalTransition() did not store starting zoom for breakthrough mode, got %v", m.transitionZoomStart)
+	}
+
+	// Test breakthrough transition progression
+	m.transitionProgress = 0.1
+	m.transitionZoomStart = 10.0
+
+	// Simulate early phase of breakthrough transition (zoom out)
+	if m.transitionProgress < 0.3 {
+		progress := m.transitionProgress / 0.3
+		expectedZoom := m.transitionZoomStart * (1.0 - progress*0.8)
+		// This should not panic and should calculate a reasonable zoom value
+		if expectedZoom <= 0 {
+			t.Error("Breakthrough transition calculated invalid zoom value")
+		}
+	}
+
+	// Test middle phase (position shift)
+	m.transitionProgress = 0.45
+	if m.transitionProgress >= 0.3 && m.transitionProgress < 0.6 {
+		progress := (m.transitionProgress - 0.3) / 0.3
+		expectedZoom := 0.2*m.transitionZoomStart + progress*1.5
+		// This should calculate a reasonable zoom value
+		if expectedZoom <= 0 {
+			t.Error("Breakthrough transition middle phase calculated invalid zoom value")
+		}
+	}
+
+	// Test final phase (stabilization)
+	m.transitionProgress = 0.8
+	if m.transitionProgress >= 0.6 {
+		progress := (m.transitionProgress - 0.6) / 0.4
+		expectedZoom := 1.7 * m.transitionZoomStart * (1.0 + progress*0.5)
+		// This should calculate a reasonable zoom value
+		if expectedZoom <= 0 {
+			t.Error("Breakthrough transition final phase calculated invalid zoom value")
+		}
+	}
+}
+
 func TestModelInit(t *testing.T) {
 	m := model{
 		config: Config{

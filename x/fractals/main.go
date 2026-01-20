@@ -26,10 +26,11 @@ const (
 	asciiChars = " .:-=+*#%@"
 
 	// Transition animation modes
-	TransitionNone      = 0
-	TransitionFade      = 1
-	TransitionZoomOutIn = 2
-	TransitionRotate    = 3
+	TransitionNone         = 0
+	TransitionFade         = 1
+	TransitionZoomOutIn    = 2
+	TransitionRotate       = 3
+	TransitionBreakthrough = 4
 )
 
 // Color scheme types
@@ -1027,6 +1028,35 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.config.CenterX = -0.5 + radius*math.Cos(angle)
 						m.config.CenterY = 0.0 + radius*math.Sin(angle)
 					}
+				} else if m.transitionMode == TransitionBreakthrough {
+					// Breakthrough transition: dramatic "breaking through a brick wall" effect
+					if m.transitionProgress >= 1.0 {
+						// Complete the transition
+						m.config.FractalType = m.transitionTarget
+						m.resetToDefaultState(m.transitionTarget)
+						m.transitionProgress = 0.0
+					} else {
+						// Create dramatic zoom-out, then sudden zoom-in with position shift
+						if m.transitionProgress < 0.3 {
+							// Phase 1: Rapid zoom out (30% of transition time)
+							progress := m.transitionProgress / 0.3
+							m.config.Zoom = m.transitionZoomStart * (1.0 - progress*0.8) // Zoom out to 20% of start
+						} else if m.transitionProgress < 0.6 {
+							// Phase 2: Sudden position shift and zoom in (next 30% of time)
+							progress := (m.transitionProgress - 0.3) / 0.3
+							// Dramatic position shift - "break through" to new location
+							m.config.CenterX = -0.5 + 1.0*math.Cos(m.transitionProgress*20.0)
+							m.config.CenterY = 0.0 + 1.0*math.Sin(m.transitionProgress*20.0)
+							m.config.Zoom = 0.2*m.transitionZoomStart + progress*1.5 // Zoom in rapidly
+						} else {
+							// Phase 3: Final zoom in and stabilization (last 40% of time)
+							progress := (m.transitionProgress - 0.6) / 0.4
+							m.config.Zoom = 1.7 * m.transitionZoomStart * (1.0 + progress*0.5) // Final zoom adjustment
+							// Smooth out position to target
+							m.config.CenterX = -0.5 + (1.0-progress)*0.5*math.Cos(m.transitionProgress*10.0)
+							m.config.CenterY = 0.0 + (1.0-progress)*0.5*math.Sin(m.transitionProgress*10.0)
+						}
+					}
 				}
 			}
 
@@ -1392,7 +1422,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Transition mode switching
 		case "T":
 			// Cycle through transition modes
-			m.transitionMode = (m.transitionMode + 1) % 4
+			m.transitionMode = (m.transitionMode + 1) % 5
 			if m.transitionMode == 0 {
 				m.randomMsg = "Transition: None"
 			} else if m.transitionMode == 1 {
@@ -1401,6 +1431,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.randomMsg = "Transition: Zoom Out/In"
 			} else if m.transitionMode == 3 {
 				m.randomMsg = "Transition: Rotate"
+			} else if m.transitionMode == 4 {
+				m.randomMsg = "Transition: Breakthrough"
 			}
 			m.randomTimer = 30
 			return m, nil
@@ -1495,7 +1527,7 @@ func (m model) renderHelp() string {
 	help.WriteString("  R       Random fractal type (keeps current zoom/position settings)\n")
 	help.WriteString("  H       Hyperrandom (random fractal + interesting random view)\n")
 	help.WriteString("          Uses AI to find non-uniform, visually interesting regions\n")
-	help.WriteString("  T       Cycle transition modes (None/Fade/Zoom Out-In/Rotate)\n")
+	help.WriteString("  T       Cycle transition modes (None/Fade/Zoom Out-In/Rotate/Breakthrough)\n")
 	help.WriteString("          When auto-pilot hits zoom limits, transition to new fractal\n\n")
 
 	help.WriteString(keyStyle.Render("Other:") + "\n")
