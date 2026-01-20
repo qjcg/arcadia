@@ -1,6 +1,6 @@
 module github.com/qjcg/arcadia/x/fractals
 
-go 1.25.5
+go 1.25.6
 
 require (
 	github.com/charmbracelet/bubbletea v1.3.10
