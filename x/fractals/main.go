@@ -15,6 +15,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"gopkg.in/yaml.v3"
+
+	"github.com/qjcg/arcadia/x/fractals/fractals"
 )
 
 const (
@@ -2245,29 +2247,29 @@ func newton(zr, zi float64, maxIter int) int {
 func calculateFractal(cr, ci float64, config Config) int {
 	switch config.FractalType {
 	case FractalMandelbrot:
-		return mandelbrot(cr, ci, config.MaxIter)
+		return fractals.Mandelbrot(cr, ci, config.MaxIter)
 	case FractalJulia:
-		return julia(cr, ci, config.JuliaCr, config.JuliaCi, config.MaxIter)
+		return fractals.Julia(cr, ci, config.JuliaCr, config.JuliaCi, config.MaxIter)
 	case FractalBurningShip:
-		return burningShip(cr, ci, config.MaxIter)
+		return fractals.BurningShip(cr, ci, config.MaxIter)
 	case FractalTricorn:
-		return tricorn(cr, ci, config.MaxIter)
+		return fractals.Tricorn(cr, ci, config.MaxIter)
 	case FractalMultibrot3:
-		return multibrot3(cr, ci, config.MaxIter)
+		return fractals.Multibrot3(cr, ci, config.MaxIter)
 	case FractalMultibrot4:
-		return multibrot4(cr, ci, config.MaxIter)
+		return fractals.Multibrot4(cr, ci, config.MaxIter)
 	case FractalCeltic:
-		return celtic(cr, ci, config.MaxIter)
+		return fractals.Celtic(cr, ci, config.MaxIter)
 	case FractalPerpendicular:
-		return perpendicular(cr, ci, config.MaxIter)
+		return fractals.Perpendicular(cr, ci, config.MaxIter)
 	case FractalMultibrot5:
-		return multibrot5(cr, ci, config.MaxIter)
+		return fractals.Multibrot5(cr, ci, config.MaxIter)
 	case FractalManhattan:
-		return manhattan(cr, ci, config.MaxIter)
+		return fractals.Manhattan(cr, ci, config.MaxIter)
 	case FractalNewton:
-		return newton(cr, ci, config.MaxIter)
+		return fractals.Newton(cr, ci, config.MaxIter)
 	default:
-		return mandelbrot(cr, ci, config.MaxIter)
+		return fractals.Mandelbrot(cr, ci, config.MaxIter)
 	}
 }
 
