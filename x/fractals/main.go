@@ -17,6 +17,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/qjcg/arcadia/x/fractals/fractals"
+	"github.com/qjcg/arcadia/x/fractals/transitions"
 )
 
 const (
@@ -27,10 +28,10 @@ const (
 
 	// Transition animation modes
 	TransitionNone         = 0
-	TransitionFade         = 1
-	TransitionZoomOutIn    = 2
-	TransitionRotate       = 3
-	TransitionBreakthrough = 4
+	TransitionFade         = transitions.TransitionFade
+	TransitionZoomOutIn    = transitions.TransitionZoomOutIn
+	TransitionRotate       = transitions.TransitionRotate
+	TransitionBreakthrough = transitions.TransitionBreakthrough
 )
 
 // Color scheme types
@@ -180,10 +181,16 @@ type model struct {
 	panProgress float64 // 0.0 to 1.0, how far we've panned toward target
 	baseMaxIter int     // Base iteration count (for adaptive scaling)
 	// Transition animation state
-	transitionMode      int     // 0=none, 1=fade, 2=zoom_out_in, 3=rotate
+	transitionMode      int     // 0=none, 1=fade, 2=zoom_out_in, 3=rotate, 4=breakthrough
 	transitionProgress  float64 // 0.0 to 1.0, progress through transition
 	transitionTarget    string  // Target fractal type for transition
 	transitionZoomStart float64 // Starting zoom level for transition
+
+	// New transitions package
+	fadeTransition         *transitions.Fade
+	zoomOutInTransition    *transitions.ZoomOutIn
+	rotateTransition       *transitions.Rotate
+	breakthroughTransition *transitions.Breakthrough
 	// Dynamic color state
 	dynamicColor bool    // Enable smooth hue rotation
 	hueShift     float64 // Current hue shift in degrees (0-360)
@@ -359,6 +366,10 @@ func (m *model) testTransitionSetup() {
 		}
 		m.transitionProgress = 0.5
 		m.transitionZoomStart = m.config.Zoom
+
+		// Initialize the fade transition
+		m.fadeTransition = transitions.NewFadeTransition(allFractalTypes)
+		m.fadeTransition.Start(m.config.FractalType)
 	}
 }
 
@@ -385,13 +396,24 @@ func (m *model) startFractalTransition() {
 	m.transitionProgress = 0.01 // Start slightly above 0 so animation triggers
 	m.transitionZoomStart = m.config.Zoom
 
-	// Set appropriate message based on transition type
-	if m.transitionMode == TransitionFade {
-		m.randomMsg = fmt.Sprintf("Transitioning to %s (Fade)", m.transitionTarget)
-	} else if m.transitionMode == TransitionZoomOutIn {
-		m.randomMsg = fmt.Sprintf("Transitioning to %s (Zoom Out/In)", m.transitionTarget)
-	} else if m.transitionMode == TransitionRotate {
-		m.randomMsg = fmt.Sprintf("Transitioning to %s (Rotate)", m.transitionTarget)
+	// Initialize the appropriate transition based on mode
+	switch m.transitionMode {
+	case TransitionFade:
+		m.fadeTransition = transitions.NewFadeTransition(allFractalTypes)
+		m.fadeTransition.Start(m.config.FractalType)
+		m.randomMsg = m.fadeTransition.GetMessage()
+	case TransitionZoomOutIn:
+		m.zoomOutInTransition = transitions.NewZoomOutInTransition(allFractalTypes)
+		m.zoomOutInTransition.Start(m.config.FractalType)
+		m.randomMsg = m.zoomOutInTransition.GetMessage()
+	case TransitionRotate:
+		m.rotateTransition = transitions.NewRotateTransition(allFractalTypes)
+		m.rotateTransition.Start(m.config.FractalType)
+		m.randomMsg = m.rotateTransition.GetMessage()
+	case TransitionBreakthrough:
+		m.breakthroughTransition = transitions.NewBreakthroughTransition(allFractalTypes)
+		m.breakthroughTransition.Start(m.config.FractalType)
+		m.randomMsg = m.breakthroughTransition.GetMessage()
 	}
 	m.randomTimer = 60
 }
@@ -981,81 +1003,66 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-			// Handle transition animations
+			// Handle transition animations using the new transitions package
 			if m.transitionProgress > 0.0 {
-				if m.transitionProgress < 1.0 {
-					m.transitionProgress += 0.05 // Progress transition at 5% per tick
-				}
+				var completed bool
+				var message string
 
-				// Apply different transition effects based on mode
-				if m.transitionMode == TransitionFade {
-					// Fade transition: gradually change fractal type
-					if m.transitionProgress >= 1.0 {
-						// Complete the transition
-						m.config.FractalType = m.transitionTarget
-						m.resetToDefaultState(m.transitionTarget)
-						m.transitionProgress = 0.0
+				// Use the appropriate transition based on mode
+				switch m.transitionMode {
+				case TransitionFade:
+					if m.fadeTransition == nil {
+						m.fadeTransition = transitions.NewFadeTransition(allFractalTypes)
+						m.fadeTransition.Start(m.config.FractalType)
 					}
-				} else if m.transitionMode == TransitionZoomOutIn {
-					// Zoom out/in transition
-					if m.transitionProgress < 0.5 {
-						// Zoom out phase
-						progress := m.transitionProgress / 0.5
-						m.config.Zoom = m.transitionZoomStart * (1.0 - progress*0.9) // Zoom out to 10% of start
-					} else {
-						// Zoom in phase
-						progress := (m.transitionProgress - 0.5) / 0.5
-						if m.transitionProgress >= 1.0 {
-							// Complete the transition
-							m.config.FractalType = m.transitionTarget
-							m.resetToDefaultState(m.transitionTarget)
-							m.transitionProgress = 0.0
-						} else {
-							m.config.Zoom = 0.1*m.transitionZoomStart + progress*0.9 // Zoom in from 10% to 90% of start
-						}
-					}
-				} else if m.transitionMode == TransitionRotate {
-					// Rotate transition: spin the view while changing fractal
-					if m.transitionProgress >= 1.0 {
-						// Complete the transition
-						m.config.FractalType = m.transitionTarget
-						m.resetToDefaultState(m.transitionTarget)
+					completed, message = m.fadeTransition.Update()
+					if completed {
+						m.config.FractalType = m.fadeTransition.Target
+						m.resetToDefaultState(m.fadeTransition.Target)
 						m.transitionProgress = 0.0
-					} else {
-						// Rotate the view during transition
-						angle := m.transitionProgress * math.Pi * 2
-						radius := 0.5 / m.config.Zoom
-						m.config.CenterX = -0.5 + radius*math.Cos(angle)
-						m.config.CenterY = 0.0 + radius*math.Sin(angle)
+						m.randomMsg = message
 					}
-				} else if m.transitionMode == TransitionBreakthrough {
-					// Breakthrough transition: dramatic "breaking through a brick wall" effect
-					if m.transitionProgress >= 1.0 {
-						// Complete the transition
-						m.config.FractalType = m.transitionTarget
-						m.resetToDefaultState(m.transitionTarget)
+				case TransitionZoomOutIn:
+					if m.zoomOutInTransition == nil {
+						m.zoomOutInTransition = transitions.NewZoomOutInTransition(allFractalTypes)
+						m.zoomOutInTransition.Start(m.config.FractalType)
+					}
+					completed, zoomLevel, message := m.zoomOutInTransition.Update()
+					m.config.Zoom = zoomLevel
+					if completed {
+						m.config.FractalType = m.zoomOutInTransition.Target
+						m.resetToDefaultState(m.zoomOutInTransition.Target)
 						m.transitionProgress = 0.0
-					} else {
-						// Create dramatic zoom-out, then sudden zoom-in with position shift
-						if m.transitionProgress < 0.3 {
-							// Phase 1: Rapid zoom out (30% of transition time)
-							progress := m.transitionProgress / 0.3
-							m.config.Zoom = m.transitionZoomStart * (1.0 - progress*0.8) // Zoom out to 20% of start
-						} else if m.transitionProgress < 0.6 {
-							// Phase 2: Sudden position shift and zoom in (next 30% of time)
-							progress := (m.transitionProgress - 0.3) / 0.3
-							// Dramatic position shift - "break through" to new location
-							m.config.CenterX = -0.5 + 1.0*math.Cos(m.transitionProgress*20.0)
-							m.config.CenterY = 0.0 + 1.0*math.Sin(m.transitionProgress*20.0)
-							m.config.Zoom = 0.2*m.transitionZoomStart + progress*1.5 // Zoom in rapidly
-						} else {
-							// Phase 3: Final zoom in and stabilization (last 40% of time)
-							progress := (m.transitionProgress - 0.6) / 0.4
-							m.config.Zoom = 1.7 * m.transitionZoomStart * (1.0 + progress*0.5) // Final zoom adjustment
-							// Smooth out position to target
-							m.config.CenterX = -0.5 + (1.0-progress)*0.5*math.Cos(m.transitionProgress*10.0)
-							m.config.CenterY = 0.0 + (1.0-progress)*0.5*math.Sin(m.transitionProgress*10.0)
-						}
+						m.randomMsg = message
+					}
+				case TransitionRotate:
+					if m.rotateTransition == nil {
+						m.rotateTransition = transitions.NewRotateTransition(allFractalTypes)
+						m.rotateTransition.Start(m.config.FractalType)
+					}
+					completed, centerX, centerY, message := m.rotateTransition.Update()
+					m.config.CenterX = centerX
+					m.config.CenterY = centerY
+					if completed {
+						m.config.FractalType = m.rotateTransition.Target
+						m.resetToDefaultState(m.rotateTransition.Target)
+						m.transitionProgress = 0.0
+						m.randomMsg = message
+					}
+				case TransitionBreakthrough:
+					if m.breakthroughTransition == nil {
+						m.breakthroughTransition = transitions.NewBreakthroughTransition(allFractalTypes)
+						m.breakthroughTransition.Start(m.config.FractalType)
+					}
+					completed, centerX, centerY, zoomLevel, message := m.breakthroughTransition.Update()
+					m.config.CenterX = centerX
+					m.config.CenterY = centerY
+					m.config.Zoom = zoomLevel
+					if completed {
+						m.config.FractalType = m.breakthroughTransition.Target
+						m.resetToDefaultState(m.breakthroughTransition.Target)
+						m.transitionProgress = 0.0
+						m.randomMsg = message
 					}
 				}
 			}
@@ -1930,6 +1937,7 @@ func main() {
 			bookmarks:         bookmarks,
 			autoZoomDirection: 1,              // Default to zoom in
 			transitionMode:    TransitionFade, // Default to Fade transition
+			fadeTransition:    transitions.NewFadeTransition(allFractalTypes),
 		}
 
 		p := tea.NewProgram(m, tea.WithAltScreen())
