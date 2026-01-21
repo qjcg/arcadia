@@ -64,7 +64,7 @@ pre-push:
             stage_fixed: true
 
           - name: check-links
-            run: go tool xurls {files} | grep -Ev 'localhost|twitter|9p.io|cluster.local' | sort -u | go tool xurls -fix
+            run: go tool xurls {files} | grep -Ev 'localhost|twitter|9p.io|cluster.local|catb.org' | sort -u | go tool xurls -fix
             glob:
               - "*.md"
               - "**/*.md"
