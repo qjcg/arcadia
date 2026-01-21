@@ -31,6 +31,13 @@ tasks:
     generates:
       - $GOBIN/fractals
 
+  reinstall:
+    desc: Clean re-install go binary.
+    cmds:
+      - task: clean
+      - task: uninstall
+      - task: install
+
   uninstall:
     desc: Uninstall go binary
     cmds:
