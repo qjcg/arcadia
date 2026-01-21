@@ -21,12 +21,20 @@ tasks:
       - '{{.BIN}}'
 
   install:
-    desc: Install fractals to $GOPATH/bin
+    desc: Install go binary
     deps: [build]
     cmds:
       - cp {{.BIN}} $GOBIN
-    status:
-      - test -x $GOBIN/fractals
+    sources:
+      - '**/*.go'
+      - 'go.*'
+    generates:
+      - $GOBIN/fractals
+
+  uninstall:
+    desc: Uninstall go binary
+    cmds:
+      - rm -f $GOOBIN/fractals
 
   test:
     desc: Run tests

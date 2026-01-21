@@ -12,10 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"gopkg.in/yaml.v3"
 
+	"github.com/qjcg/arcadia/x/fractals/colorthemes"
 	"github.com/qjcg/arcadia/x/fractals/fractals"
 	"github.com/qjcg/arcadia/x/fractals/transitions"
 )
@@ -32,18 +34,6 @@ const (
 	TransitionZoomOutIn    = transitions.TransitionZoomOutIn
 	TransitionRotate       = transitions.TransitionRotate
 	TransitionBreakthrough = transitions.TransitionBreakthrough
-)
-
-// Color scheme types
-const (
-	ColorGrayscale = "grayscale"
-	ColorBlue      = "blue"
-	ColorRainbow   = "rainbow"
-	ColorFire      = "fire"
-	ColorPurple    = "purple"
-	ColorGreen     = "green"
-	ColorGold      = "gold"
-	ColorCyan      = "cyan"
 )
 
 // Fractal types
@@ -92,13 +82,7 @@ var (
 		FractalNewton,
 	}
 
-	// All color schemes for random selection
-	allColorSchemes = []string{
-		ColorGrayscale, ColorBlue, ColorRainbow, ColorFire,
-		ColorPurple, ColorGreen, ColorGold, ColorCyan,
-	}
-
-	// Known interesting coordinates for hyperrandom exploration
+	// Known interesting coordinates for random exploration
 	// These are "seed points" near interesting fractal features
 	interestingMandelbrot = []struct{ x, y float64 }{
 		{-0.7436, 0.1314}, // Spiral region
@@ -144,15 +128,19 @@ type Config struct {
 
 // Bookmark represents a saved fractal location
 type Bookmark struct {
-	Name        string  `yaml:"name"`
-	FractalType string  `yaml:"fractal_type"`
-	CenterX     float64 `yaml:"center_x"`
-	CenterY     float64 `yaml:"center_y"`
-	Zoom        float64 `yaml:"zoom"`
-	MaxIter     int     `yaml:"max_iter"`
-	ColorScheme string  `yaml:"color_scheme"`
-	JuliaCr     float64 `yaml:"julia_cr,omitempty"`
-	JuliaCi     float64 `yaml:"julia_ci,omitempty"`
+	Name                string  `yaml:"name"`
+	URL                 string  `yaml:"url,omitempty"`
+	FractalType         string  `yaml:"fractal_type"`
+	CenterX             float64 `yaml:"center_x"`
+	CenterY             float64 `yaml:"center_y"`
+	Zoom                float64 `yaml:"zoom"`
+	MaxIter             int     `yaml:"max_iter"`
+	ColorScheme         string  `yaml:"color_scheme"`
+	JuliaCr             float64 `yaml:"julia_cr,omitempty"`
+	JuliaCi             float64 `yaml:"julia_ci,omitempty"`
+	AutopilotEnabled    bool    `yaml:"autopilot,omitempty"`
+	DynamicColorEnabled bool    `yaml:"dynamic_color,omitempty"`
+	TransitionMode      string  `yaml:"transition_mode,omitempty"`
 }
 
 // BookmarkList holds all bookmarks
@@ -207,10 +195,19 @@ type model struct {
 	// Random state
 	randomMsg   string // Message to display after randomization
 	randomTimer int    // Countdown for hiding random message
+	// URL launch state
+	urlMsg   string // Message to display when copying URL
+	urlTimer int    // Countdown for hiding URL message
+	// Zoom speed control
+	zoomSpeed float64 // Multiplier for zoom speed (default 1.05, adjustable 0.9-1.5)
 }
 
 // Init initializes the Bubble Tea model
 func (m model) Init() tea.Cmd {
+	// If auto-zoom is enabled (e.g., from URL), start the tick loop
+	if m.autoZoom {
+		return tickCmd()
+	}
 	return nil
 }
 
@@ -273,20 +270,48 @@ func saveBookmarks(bookmarks []Bookmark) error {
 
 // addBookmark adds a new bookmark and saves to file
 func (m *model) addBookmark(name string) error {
+	url := ConfigToFractalURL(m.config, m.autoZoom, m.dynamicColor, m.transitionMode)
+
 	bookmark := Bookmark{
-		Name:        name,
-		FractalType: m.config.FractalType,
-		CenterX:     m.config.CenterX,
-		CenterY:     m.config.CenterY,
-		Zoom:        m.config.Zoom,
-		MaxIter:     m.config.MaxIter,
-		ColorScheme: m.config.ColorScheme,
-		JuliaCr:     m.config.JuliaCr,
-		JuliaCi:     m.config.JuliaCi,
+		Name:                name,
+		URL:                 url,
+		FractalType:         m.config.FractalType,
+		CenterX:             m.config.CenterX,
+		CenterY:             m.config.CenterY,
+		Zoom:                m.config.Zoom,
+		MaxIter:             m.config.MaxIter,
+		ColorScheme:         m.config.ColorScheme,
+		JuliaCr:             m.config.JuliaCr,
+		JuliaCi:             m.config.JuliaCi,
+		AutopilotEnabled:    m.autoZoom,
+		DynamicColorEnabled: m.dynamicColor,
+		TransitionMode:      transitionModeToString(m.transitionMode),
 	}
 
 	m.bookmarks = append(m.bookmarks, bookmark)
 	return saveBookmarks(m.bookmarks)
+}
+
+// applyParamsToModel applies FractalURLParams to a model
+func applyParamsToModel(m *model, params FractalURLParams) {
+	m.config.FractalType = params.FractalType
+	m.config.CenterX = params.CenterX
+	m.config.CenterY = params.CenterY
+	m.config.Zoom = params.Zoom
+	m.config.MaxIter = params.MaxIter
+	m.config.ColorScheme = params.ColorTheme
+	m.config.JuliaCr = params.JuliaCr
+	m.config.JuliaCi = params.JuliaCi
+
+	m.autoZoom = params.AutopilotEnabled
+	if params.AutopilotEnabled {
+		m.autoZoomDirection = 1
+	}
+
+	m.dynamicColor = params.DynamicColorEnabled
+	m.transitionMode = stringToTransitionMode(params.Transition)
+
+	m.baseMaxIter = params.MaxIter
 }
 
 // loadBookmark applies a bookmark to the current config
@@ -296,6 +321,18 @@ func (m *model) loadBookmark(index int) {
 	}
 
 	bm := m.bookmarks[index]
+
+	// If URL present, try to parse from it (prefer URL)
+	if bm.URL != "" {
+		params, err := ParseFractalURL(bm.URL)
+		if err == nil {
+			applyParamsToModel(m, params)
+			return
+		}
+		// If URL parse fails, fall back to individual fields
+	}
+
+	// Fallback: load from individual fields (backward compat)
 	m.config.FractalType = bm.FractalType
 	m.config.CenterX = bm.CenterX
 	m.config.CenterY = bm.CenterY
@@ -304,6 +341,24 @@ func (m *model) loadBookmark(index int) {
 	m.config.ColorScheme = bm.ColorScheme
 	m.config.JuliaCr = bm.JuliaCr
 	m.config.JuliaCi = bm.JuliaCi
+
+	// Restore autopilot/dynamic color/transition if saved
+	if bm.AutopilotEnabled {
+		m.autoZoom = true
+		m.autoZoomDirection = 1
+	} else {
+		m.autoZoom = false
+	}
+
+	if bm.DynamicColorEnabled {
+		m.dynamicColor = true
+	} else {
+		m.dynamicColor = false
+	}
+
+	if bm.TransitionMode != "" {
+		m.transitionMode = stringToTransitionMode(bm.TransitionMode)
+	}
 
 	// Reset base max iter for adaptive scaling
 	m.baseMaxIter = bm.MaxIter
@@ -318,41 +373,6 @@ func generateBookmarkName() string {
 	noun := journeyNouns[rng.Intn(len(journeyNouns))]
 
 	return adjective + "_" + noun
-}
-
-// applyRandomFractal switches to a random fractal type with default settings
-func (m *model) applyRandomFractal() {
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	// Pick random fractal type
-	fractalType := allFractalTypes[rng.Intn(len(allFractalTypes))]
-	m.config.FractalType = fractalType
-
-	// Reset to default position and zoom for that fractal
-	m.config.Zoom = 1.0
-	if fractalType == FractalJulia {
-		m.config.CenterX = 0.0
-		m.config.CenterY = 0.0
-		// Use default Julia parameters
-		m.config.JuliaCr = -0.7
-		m.config.JuliaCi = 0.27015
-	} else if fractalType == FractalBurningShip {
-		m.config.CenterX = -0.5
-		m.config.CenterY = -0.6
-	} else if fractalType == FractalNewton {
-		m.config.CenterX = 0.0
-		m.config.CenterY = 0.0
-	} else if fractalType == FractalMultibrot5 || fractalType == FractalManhattan {
-		m.config.CenterX = -0.5
-		m.config.CenterY = 0.0
-	} else {
-		m.config.CenterX = -0.5
-		m.config.CenterY = 0.0
-	}
-
-	// Keep current iteration and color settings
-	m.randomMsg = fmt.Sprintf("Random: %s", fractalType)
-	m.randomTimer = 60
 }
 
 // Test helper function to verify transition functionality
@@ -446,8 +466,8 @@ func (m *model) resetToDefaultState(fractalType string) {
 	}
 }
 
-// applyHyperrandom generates a completely random interesting view
-func (m *model) applyHyperrandom() {
+// applyRandom generates a completely random interesting view
+func (m *model) applyRandom() {
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	const maxAttempts = 5
@@ -458,7 +478,7 @@ func (m *model) applyHyperrandom() {
 		m.config.FractalType = fractalType
 
 		// Random color scheme
-		m.config.ColorScheme = allColorSchemes[rng.Intn(len(allColorSchemes))]
+		m.config.ColorScheme = colorthemes.AllColorSchemes[rng.Intn(len(colorthemes.AllColorSchemes))]
 
 		// Random zoom (log-uniform between 1.0 and 1000.0, weighted toward mid-range)
 		// Using exponential distribution: zoom = 10^(uniform(0, 3))
@@ -513,7 +533,7 @@ func (m *model) applyHyperrandom() {
 		// Check if the result is interesting
 		if !m.isViewUniform() {
 			// Success! Found an interesting view
-			m.randomMsg = fmt.Sprintf("Hyperrandom: %s @ %.1fx", fractalType, zoom)
+			m.randomMsg = fmt.Sprintf("Random: %s @ %.1fx", fractalType, zoom)
 			m.randomTimer = 60
 			return
 		}
@@ -527,9 +547,9 @@ func (m *model) applyHyperrandom() {
 	m.config.CenterY = seedPt.y
 	m.config.Zoom = 10.0 + rng.Float64()*90.0 // 10x to 100x
 	m.config.MaxIter = 100 + rng.Intn(100)
-	m.config.ColorScheme = allColorSchemes[rng.Intn(len(allColorSchemes))]
+	m.config.ColorScheme = colorthemes.AllColorSchemes[rng.Intn(len(colorthemes.AllColorSchemes))]
 
-	m.randomMsg = fmt.Sprintf("Hyperrandom: %s @ %.1fx (fallback)", m.config.FractalType, m.config.Zoom)
+	m.randomMsg = fmt.Sprintf("Random: %s @ %.1fx (fallback)", m.config.FractalType, m.config.Zoom)
 	m.randomTimer = 60
 }
 
@@ -978,10 +998,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-			// Zoom based on direction (about 1.05x per tick, ~60fps = 1.05^20 ≈ 2.65x per second)
+			// Zoom based on direction (speed configurable via zoomSpeed)
+			// Default: 1.05x per tick, ~60fps = 1.05^20 ≈ 2.65x per second
 			if m.autoZoomDirection > 0 {
 				// Zoom in
-				m.config.Zoom *= 1.05
+				m.config.Zoom *= m.zoomSpeed
 				// Check if we hit maximum zoom and should trigger transition
 				if m.config.Zoom > 1e15 {
 					m.config.Zoom = 1e15
@@ -992,7 +1013,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else {
 				// Zoom out
-				m.config.Zoom *= 0.95
+				m.config.Zoom /= m.zoomSpeed
 				// Minimum zoom limit
 				if m.config.Zoom < 0.1 {
 					m.config.Zoom = 0.1
@@ -1105,8 +1126,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+		// Handle URL message timer
+		if m.urlTimer > 0 {
+			m.urlTimer--
+			if m.urlTimer == 0 {
+				m.urlMsg = ""
+			}
+		}
+
 		// Continue ticking if any timer is active
-		if m.screenshotTimer > 0 || m.randomTimer > 0 {
+		if m.screenshotTimer > 0 || m.randomTimer > 0 || m.urlTimer > 0 {
 			return m, tickCmd()
 		}
 
@@ -1235,13 +1264,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tickCmd()
 
 		case "R":
-			// Random fractal type
-			m.applyRandomFractal()
-			return m, tickCmd()
-
-		case "H":
-			// Hyperrandom - random everything with interesting view
-			m.applyHyperrandom()
+			// Random - random everything with interesting view
+			m.applyRandom()
 			return m, tickCmd()
 
 		case "z":
@@ -1398,7 +1422,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "c":
 			// Cycle through color schemes
 			currentIndex := -1
-			for i, cs := range allColorSchemes {
+			for i, cs := range colorthemes.AllColorSchemes {
 				if cs == m.config.ColorScheme {
 					currentIndex = i
 					break
@@ -1406,10 +1430,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if currentIndex == -1 {
 				// Unknown color scheme, reset to first
-				m.config.ColorScheme = allColorSchemes[0]
+				m.config.ColorScheme = colorthemes.AllColorSchemes[0]
 			} else {
 				// Move to next color scheme
-				m.config.ColorScheme = allColorSchemes[(currentIndex+1)%len(allColorSchemes)]
+				m.config.ColorScheme = colorthemes.AllColorSchemes[(currentIndex+1)%len(colorthemes.AllColorSchemes)]
 			}
 			return m, nil
 
@@ -1455,6 +1479,31 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.randomMsg = "Dynamic Color: OFF"
 				m.hueShift = 0.0 // Reset hue shift
 			}
+			m.randomTimer = 30
+			return m, nil
+
+		// Copy current location as URL
+		case "U":
+			urlStr := ConfigToFractalURL(m.config, m.autoZoom, m.dynamicColor, m.transitionMode)
+			if err := clipboard.WriteAll(urlStr); err != nil {
+				m.urlMsg = fmt.Sprintf("Error copying URL: %v", err)
+			} else {
+				m.urlMsg = "URL copied to clipboard"
+			}
+			m.urlTimer = 120
+			return m, tickCmd()
+
+		// Zoom speed control
+		case "}":
+			// Increase zoom speed
+			m.zoomSpeed = math.Min(m.zoomSpeed+0.05, 1.5)
+			m.randomMsg = fmt.Sprintf("Zoom speed: %.2fx", m.zoomSpeed)
+			m.randomTimer = 30
+			return m, nil
+		case "{":
+			// Decrease zoom speed
+			m.zoomSpeed = math.Max(m.zoomSpeed-0.05, 0.90)
+			m.randomMsg = fmt.Sprintf("Zoom speed: %.2fx", m.zoomSpeed)
 			m.randomTimer = 30
 			return m, nil
 		}
@@ -1510,6 +1559,7 @@ func (m model) renderHelp() string {
 	help.WriteString("                     Automatically finds and explores interesting regions\n")
 	help.WriteString("  r                  Reverse auto-pilot zoom direction (↑ ↔ ↓)\n")
 	help.WriteString("                     Direction indicator always visible in status bar\n")
+	help.WriteString("  }, {               Increase/decrease auto-pilot zoom speed\n")
 	help.WriteString("  0                  Reset view (position, zoom, and iteration depth)\n\n")
 
 	help.WriteString(keyStyle.Render("Fractal Types:") + "\n")
@@ -1528,11 +1578,11 @@ func (m model) renderHelp() string {
 	help.WriteString(keyStyle.Render("Bookmarks & Screenshots:") + "\n")
 	help.WriteString("  b       Save current location as bookmark\n")
 	help.WriteString("  l       Load bookmark (shows list, d/x to delete)\n")
-	help.WriteString("  p       Save screenshot (text file with fractal + metadata)\n\n")
+	help.WriteString("  p       Save screenshot (text file with fractal + metadata)\n")
+	help.WriteString("  U       Copy current location as shareable fractal:// URL\n\n")
 
 	help.WriteString(keyStyle.Render("Random Exploration:") + "\n")
-	help.WriteString("  R       Random fractal type (keeps current zoom/position settings)\n")
-	help.WriteString("  H       Hyperrandom (random fractal + interesting random view)\n")
+	help.WriteString("  R       Random (completely random fractal + interesting view)\n")
 	help.WriteString("          Uses AI to find non-uniform, visually interesting regions\n")
 	help.WriteString("  T       Cycle transition modes (None/Fade/Zoom Out-In/Rotate/Breakthrough)\n")
 	help.WriteString("          When auto-pilot hits zoom limits, transition to new fractal\n\n")
@@ -1666,10 +1716,10 @@ func (m model) renderStatusBar() string {
 			Background(lipgloss.Color("green")).
 			Bold(true)
 
-		statusText := " AUTO-PILOT " + directionArrow + " "
+		statusText := fmt.Sprintf(" AUTO-PILOT %s (%.2fx) ", directionArrow, m.zoomSpeed)
 		if m.hasTarget && m.panProgress < 1.0 {
 			// Show we're panning toward an interesting region
-			statusText = " AUTO-PILOT \u2192 " + directionArrow + " " // → arrow
+			statusText = fmt.Sprintf(" AUTO-PILOT \u2192 %s (%.2fx) ", directionArrow, m.zoomSpeed) // → arrow
 		}
 		autoZoomIndicator = autoZoomStyle.Render(statusText)
 	} else {
@@ -1677,7 +1727,7 @@ func (m model) renderStatusBar() string {
 		inactiveStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240")). // Gray
 			Bold(false)
-		autoZoomIndicator = inactiveStyle.Render("Auto: " + directionArrow)
+		autoZoomIndicator = inactiveStyle.Render(fmt.Sprintf("Auto: %s (%.2fx)", directionArrow, m.zoomSpeed))
 	}
 
 	// Format zoom level - use scientific notation for high values
@@ -1724,6 +1774,16 @@ func (m model) renderStatusBar() string {
 		randomIndicator = msgStyle.Render(" " + m.randomMsg + " ")
 	}
 
+	// URL message indicator
+	urlIndicator := ""
+	if m.urlMsg != "" {
+		msgStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("white")).
+			Background(lipgloss.Color("blue")).
+			Bold(true)
+		urlIndicator = msgStyle.Render(" " + m.urlMsg + " ")
+	}
+
 	// Build the complete status bar
 	statusBar := status
 	// Auto-pilot direction indicator (always shown)
@@ -1735,6 +1795,10 @@ func (m model) renderStatusBar() string {
 	// Random message (only when present)
 	if randomIndicator != "" {
 		statusBar += randomIndicator + " "
+	}
+	// URL message (only when present)
+	if urlIndicator != "" {
+		statusBar += urlIndicator + " "
 	}
 	statusBar += helpText
 
@@ -1749,7 +1813,13 @@ func (m model) renderStatusBar() string {
 
 // renderFractal generates the ASCII fractal view
 func (m model) renderFractal() string {
-	var output strings.Builder
+	// Create a 2D grid to store characters for potential breakthrough overlay
+	grid := make([][]byte, m.config.Height)
+	colorGrid := make([][]string, m.config.Height)
+	for i := range grid {
+		grid[i] = make([]byte, m.config.Width)
+		colorGrid[i] = make([]string, m.config.Width)
+	}
 
 	for row := 0; row < m.config.Height; row++ {
 		for col := 0; col < m.config.Width; col++ {
@@ -1764,10 +1834,27 @@ func (m model) renderFractal() string {
 			char := getChar(iter, m.config.MaxIter)
 			var color string
 			if m.dynamicColor {
-				color = getColorWithHueShift(iter, m.config.MaxIter, m.config.ColorScheme, m.hueShift)
+				color = colorthemes.GetColorWithHueShift(iter, m.config.MaxIter, m.config.ColorScheme, m.hueShift)
 			} else {
-				color = getColor(iter, m.config.MaxIter, m.config.ColorScheme)
+				color = colorthemes.GetColor(iter, m.config.MaxIter, m.config.ColorScheme)
 			}
+
+			grid[row][col] = char
+			colorGrid[row][col] = color
+		}
+	}
+
+	// Apply breakthrough transition overlay if active
+	if m.transitionMode == TransitionBreakthrough && m.breakthroughTransition != nil {
+		applyBreakthroughOverlay(grid, colorGrid, m.config.Width, m.config.Height, m.breakthroughTransition)
+	}
+
+	// Convert grid to string output
+	var output strings.Builder
+	for row := 0; row < m.config.Height; row++ {
+		for col := 0; col < m.config.Width; col++ {
+			color := colorGrid[row][col]
+			char := grid[row][col]
 
 			// Print with or without color
 			if color != "" {
@@ -1778,7 +1865,7 @@ func (m model) renderFractal() string {
 		}
 
 		// Reset color at end of line and add newline
-		if m.config.ColorScheme != ColorGrayscale {
+		if m.config.ColorScheme != colorthemes.ColorGrayscale {
 			output.WriteString("\033[0m")
 		}
 		if row < m.config.Height-1 {
@@ -1789,6 +1876,117 @@ func (m model) renderFractal() string {
 	return output.String()
 }
 
+// applyBreakthroughOverlay applies the breakthrough transition visual effect to the grid
+func applyBreakthroughOverlay(grid [][]byte, colorGrid [][]string, width, height int, b *transitions.Breakthrough) {
+	particles := b.GetParticles()
+	crackMap := b.GetCrackMap()
+
+	// Draw particles (falling glass shards)
+	for _, p := range particles {
+		col := int(p.X * float64(width))
+		row := int(p.Y * float64(height))
+
+		if row >= 0 && row < height && col >= 0 && col < width {
+			// Use ASCII symbols for particle with opacity effect
+			if p.Opacity > 0.7 {
+				grid[row][col] = '#'
+				colorGrid[row][col] = "\033[90m" // dark gray
+			} else if p.Opacity > 0.4 {
+				grid[row][col] = '%'
+				colorGrid[row][col] = "\033[37m" // light gray
+			} else {
+				grid[row][col] = '+'
+				colorGrid[row][col] = "\033[90m" // dark gray (very faint)
+			}
+		}
+	}
+
+	// Draw cracks
+	for coord := range crackMap {
+		// Parse coordinate string "x.xx,y.yy"
+		parts := strings.Split(coord, ",")
+		if len(parts) != 2 {
+			continue
+		}
+		var x, y float64
+		fmt.Sscanf(parts[0], "%f", &x)
+		fmt.Sscanf(parts[1], "%f", &y)
+
+		col := int(x * float64(width))
+		row := int(y * float64(height))
+
+		if row >= 0 && row < height && col >= 0 && col < width {
+			grid[row][col] = '/'
+			colorGrid[row][col] = "\033[37m" // light gray cracks
+		}
+	}
+}
+
+// looksLikeURL checks if a string looks like a fractal URL (without the fractal:// prefix)
+// It matches patterns like "mandelbrot", "random", "mandelbrot/-0.5/0.0/1.0/50/", or "random/?..."
+func looksLikeURL(s string) bool {
+	// Check for random with or without further components
+	if s == "random" || strings.HasPrefix(s, "random/") || strings.HasPrefix(s, "random?") {
+		return true
+	}
+
+	// Extract the first component (before / or ?)
+	endIdx := len(s)
+	for i, c := range s {
+		if c == '/' || c == '?' {
+			endIdx = i
+			break
+		}
+	}
+
+	firstComponent := s[:endIdx]
+
+	// Check if it's a valid fractal type
+	validTypes := map[string]bool{
+		FractalMandelbrot:    true,
+		FractalJulia:         true,
+		FractalBurningShip:   true,
+		FractalTricorn:       true,
+		FractalMultibrot3:    true,
+		FractalMultibrot4:    true,
+		FractalCeltic:        true,
+		FractalPerpendicular: true,
+		FractalMultibrot5:    true,
+		FractalManhattan:     true,
+		FractalNewton:        true,
+	}
+	return validTypes[firstComponent]
+}
+
+// expandURLWithDefaults expands a minimal URL (just fractal type or random)
+// with default values for missing components
+func expandURLWithDefaults(urlPart string) string {
+	// If it's just a fractal type name, add defaults
+	if urlPart == "random" {
+		return "random/"
+	}
+
+	// Check if it's just a fractal name (no / or ?)
+	hasPath := strings.ContainsAny(urlPart, "/?")
+	if !hasPath {
+		// Just a fractal name - add defaults
+		// Default center depends on fractal type
+		centerX := "-0.5"
+		centerY := "0.0"
+		if urlPart == "julia" {
+			centerX = "0.0"
+			centerY = "0.0"
+		} else if urlPart == "burningship" {
+			centerX = "-0.5"
+			centerY = "-0.6"
+		}
+		return fmt.Sprintf("%s/%s/%s/1.0/50/", urlPart, centerX, centerY)
+	}
+
+	// Already has path components, return as-is
+	return urlPart
+}
+
 func main() {
 	// Parse CLI flags
 	config := Config{
@@ -1796,7 +1994,7 @@ func main() {
 		CenterX:     -0.5,
 		CenterY:     0.0,
 		Zoom:        1.0,
-		ColorScheme: ColorGrayscale,
+		ColorScheme: colorthemes.ColorGrayscale,
 		FractalType: FractalMandelbrot,
 		JuliaCr:     -0.7,
 		JuliaCi:     0.27015,
@@ -1804,14 +2002,13 @@ func main() {
 
 	// Add an interactive mode flag (default true)
 	interactive := flag.Bool("interactive", true, "Run in interactive mode")
+	urlFlag := flag.String("url", "", "Fractal URL (fractal://...)")
 	flag.BoolVar(&showVersion, "v", false, "print the version")
 	flag.BoolVar(&showVersion, "version", false, "print the version")
 
 	legacyMode := flag.Bool("static", false, "Run in legacy static mode (disables interactive)")
-	randomMode := flag.Bool("random", false, "Start with a random fractal type")
-	flag.BoolVar(randomMode, "r", false, "Start with a random fractal type (shorthand)")
-	hyperrandomMode := flag.Bool("hyperrandom", false, "Start with a random interesting view")
-	flag.BoolVar(hyperrandomMode, "hyper", false, "Start with a random interesting view (shorthand)")
+	randomMode := flag.Bool("random", false, "Start with a completely random interesting view")
+	flag.BoolVar(randomMode, "r", false, "Start with a completely random interesting view (shorthand)")
 
 	flag.IntVar(&config.Width, "w", 0, "Terminal width (0 = auto)")
 	flag.IntVar(&config.Width, "width", 0, "Terminal width (0 = auto)")
@@ -1823,14 +2020,63 @@ func main() {
 	flag.Float64Var(&config.CenterY, "y", 0.0, "Center Y (imaginary axis)")
 	flag.Float64Var(&config.Zoom, "z", 1.0, "Zoom level")
 	flag.Float64Var(&config.Zoom, "zoom", 1.0, "Zoom level")
-	flag.StringVar(&config.ColorScheme, "c", ColorGrayscale, "Color scheme: grayscale, blue, rainbow")
-	flag.StringVar(&config.ColorScheme, "color", ColorGrayscale, "Color scheme: grayscale, blue, rainbow")
+	flag.StringVar(&config.ColorScheme, "c", colorthemes.ColorGrayscale, "Color scheme: grayscale, blue, rainbow")
+	flag.StringVar(&config.ColorScheme, "color", colorthemes.ColorGrayscale, "Color scheme: grayscale, blue, rainbow")
 	flag.StringVar(&config.FractalType, "t", FractalMandelbrot, "Fractal type: mandelbrot, julia, burningship, tricorn, multibrot3, multibrot4, celtic, perpendicular")
 	flag.StringVar(&config.FractalType, "type", FractalMandelbrot, "Fractal type: mandelbrot, julia, burningship, tricorn, multibrot3, multibrot4, celtic, perpendicular")
 	flag.Float64Var(&config.JuliaCr, "jr", -0.7, "Julia set real parameter")
 	flag.Float64Var(&config.JuliaCi, "ji", 0.27015, "Julia set imaginary parameter")
 
 	flag.Parse()
+
+	// Check for URL argument (positional) or --url flag
+	urlAutopilot := false
+	urlDynamicColor := false
+	urlTransitionMode := TransitionNone
+
+	args := flag.Args()
+	if len(args) > 0 {
+		arg := args[0]
+
+		// Handle URLs with or without fractal:// prefix
+		if strings.HasPrefix(arg, "fractal://") {
+			// URL provided as is
+			*urlFlag = arg
+		} else if looksLikeURL(arg) {
+			// URL without prefix - expand with defaults if needed, then add prefix
+			expanded := expandURLWithDefaults(arg)
+			*urlFlag = "fractal://" + expanded
+		}
+	}
+
+	if *urlFlag != "" {
+		// Parse URL and extract config
+		params, err := ParseFractalURL(*urlFlag)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error parsing URL: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Apply URL parameters to config
+		config.FractalType = params.FractalType
+		config.CenterX = params.CenterX
+		config.CenterY = params.CenterY
+		config.Zoom = params.Zoom
+		config.MaxIter = params.MaxIter
+		config.ColorScheme = params.ColorTheme
+		config.JuliaCr = params.JuliaCr
+		config.JuliaCi = params.JuliaCi
+
+		// Save URL state for interactive mode
+		urlAutopilot = params.AutopilotEnabled
+		urlDynamicColor = params.DynamicColorEnabled
+		urlTransitionMode = stringToTransitionMode(params.Transition)
+
+		// If random mode, we'll apply it after TUI initialization
+		if params.Mode == ModeRandom {
+			*randomMode = true
+		}
+	}
 
 	if showVersion {
 		bi, ok := debug.ReadBuildInfo()
@@ -1865,9 +2111,9 @@ func main() {
 	}
 
 	// Validate color scheme
-	if config.ColorScheme != ColorGrayscale && config.ColorScheme != ColorBlue && config.ColorScheme != ColorRainbow {
+	if !isValidColorTheme(config.ColorScheme) {
 		fmt.Fprintf(os.Stderr, "Invalid color scheme: %s. Using grayscale.\n", config.ColorScheme)
-		config.ColorScheme = ColorGrayscale
+		config.ColorScheme = colorthemes.ColorGrayscale
 	}
 
 	// Validate fractal type
@@ -1895,30 +2141,12 @@ func main() {
 		config.CenterY = 0.0
 	}
 
-	// Apply random/hyperrandom if requested
-	// Hyperrandom takes precedence over random
-	if *hyperrandomMode {
-		// Create temporary model to use hyperrandom function
+	// Apply random if requested
+	if *randomMode {
+		// Create temporary model to use random function
 		tempModel := model{config: config}
-		tempModel.applyHyperrandom()
+		tempModel.applyRandom()
 		config = tempModel.config
-	} else if *randomMode {
-		// Random fractal type only
-		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-		fractalType := allFractalTypes[rng.Intn(len(allFractalTypes))]
-		config.FractalType = fractalType
-
-		// Set default position for random fractal
-		if fractalType == FractalJulia {
-			config.CenterX = 0.0
-			config.CenterY = 0.0
-		} else if fractalType == FractalBurningShip {
-			config.CenterX = -0.5
-			config.CenterY = -0.6
-		} else {
-			config.CenterX = -0.5
-			config.CenterY = 0.0
-		}
 	}
 
 	if runInteractive {
@@ -1938,6 +2166,14 @@ func main() {
 			autoZoomDirection: 1,              // Default to zoom in
 			transitionMode:    TransitionFade, // Default to Fade transition
 			fadeTransition:    transitions.NewFadeTransition(allFractalTypes),
+			zoomSpeed:         1.05, // Default zoom speed
+		}
+
+		// Apply URL-based state if provided
+		if *urlFlag != "" {
+			m.autoZoom = urlAutopilot
+			m.dynamicColor = urlDynamicColor
+			m.transitionMode = urlTransitionMode
 		}
 
 		p := tea.NewProgram(m, tea.WithAltScreen())
@@ -2344,177 +2580,6 @@ func getChar(iter, maxIter int) byte {
 	return asciiChars[idx]
 }
 
-// hueShiftColor applies a hue rotation to an RGB color
-// hueShift is in degrees (0-360)
-func hueShiftColor(r, g, b int, hueShift float64) (int, int, int) {
-	// Convert RGB to HSV
-	rf, gf, bf := float64(r)/255.0, float64(g)/255.0, float64(b)/255.0
-
-	max := math.Max(rf, math.Max(gf, bf))
-	min := math.Min(rf, math.Min(gf, bf))
-	delta := max - min
-
-	var h, s, v float64
-	v = max
-
-	if delta < 0.00001 {
-		s = 0
-		h = 0
-	} else {
-		s = delta / max
-
-		if rf == max {
-			h = 60.0 * (math.Mod((gf-bf)/delta, 6.0))
-		} else if gf == max {
-			h = 60.0 * (((bf - rf) / delta) + 2.0)
-		} else {
-			h = 60.0 * (((rf - gf) / delta) + 4.0)
-		}
-
-		if h < 0 {
-			h += 360.0
-		}
-	}
-
-	// Apply hue shift
-	h = math.Mod(h+hueShift, 360.0)
-
-	// Convert HSV back to RGB
-	c := v * s
-	x := c * (1.0 - math.Abs(math.Mod(h/60.0, 2.0)-1.0))
-	m := v - c
-
-	var rPrime, gPrime, bPrime float64
-
-	if h < 60 {
-		rPrime, gPrime, bPrime = c, x, 0
-	} else if h < 120 {
-		rPrime, gPrime, bPrime = x, c, 0
-	} else if h < 180 {
-		rPrime, gPrime, bPrime = 0, c, x
-	} else if h < 240 {
-		rPrime, gPrime, bPrime = 0, x, c
-	} else if h < 300 {
-		rPrime, gPrime, bPrime = x, 0, c
-	} else {
-		rPrime, gPrime, bPrime = c, 0, x
-	}
-
-	// Convert back to 0-255 range
-	rOut := int((rPrime + m) * 255.0)
-	gOut := int((gPrime + m) * 255.0)
-	bOut := int((bPrime + m) * 255.0)
-
-	return rOut, gOut, bOut
-}
-
-// ansiColorFromRGB converts RGB values to the closest ANSI 256-color code
-func ansiColorFromRGB(r, g, b int) int {
-	// Use the 216-color cube (colors 16-231)
-	// Each component can be 0-5 (6 levels)
-	rIdx := int(float64(r) / 255.0 * 5.0)
-	gIdx := int(float64(g) / 255.0 * 5.0)
-	bIdx := int(float64(b) / 255.0 * 5.0)
-
-	return 16 + (36 * rIdx) + (6 * gIdx) + bIdx
-}
-
-// getColor returns the ANSI color code for a given iteration count and color scheme
-func getColor(iter, maxIter int, scheme string) string {
-	return getColorWithHueShift(iter, maxIter, scheme, 0.0)
-}
-
-// getColorWithHueShift returns the ANSI color code with optional hue rotation
-func getColorWithHueShift(iter, maxIter int, scheme string, hueShift float64) string {
-	if scheme == ColorGrayscale {
-		return ""
-	}
-
-	if iter == maxIter {
-		// Points in the set are black
-		return "\033[38;5;0m"
-	}
-
-	// Normalize iteration count to 0-1
-	t := float64(iter) / float64(maxIter)
-
-	// Generate base RGB color based on scheme
-	var r, g, b int
-
-	switch scheme {
-	case ColorBlue:
-		// Blue gradient: dark blue to bright blue
-		r = int(t * 100)
-		g = int(t * 150)
-		b = int(100 + t*155)
-
-	case ColorRainbow:
-		// Rainbow gradient: red -> yellow -> green -> cyan -> blue
-		if t < 0.2 {
-			r, g, b = 255, int(t/0.2*255), 0 // Red to yellow
-		} else if t < 0.4 {
-			r, g, b = int((1.0-(t-0.2)/0.2)*255), 255, 0 // Yellow to green
-		} else if t < 0.6 {
-			r, g, b = 0, 255, int((t-0.4)/0.2*255) // Green to cyan
-		} else if t < 0.8 {
-			r, g, b = 0, int((1.0-(t-0.6)/0.2)*255), 255 // Cyan to blue
-		} else {
-			r, g, b = int((t-0.8)/0.2*128), 0, 255 // Blue to purple
-		}
-
-	case ColorFire:
-		// Fire gradient: black -> red -> orange -> yellow -> white
-		if t < 0.25 {
-			r, g, b = int(t/0.25*255), 0, 0 // Black to red
-		} else if t < 0.5 {
-			r, g, b = 255, int((t-0.25)/0.25*165), 0 // Red to orange
-		} else if t < 0.75 {
-			r, g, b = 255, int(165+(t-0.5)/0.25*90), int((t-0.5)/0.25*50) // Orange to yellow
-		} else {
-			base := int((t - 0.75) / 0.25 * 255)
-			r, g, b = 255, 255, base // Yellow to white
-		}
-
-	case ColorPurple:
-		// Purple/magenta gradient
-		r = int(128 + t*127)
-		g = int(t * 100)
-		b = int(200 + t*55)
-
-	case ColorGreen:
-		// Green gradient: dark green to bright green
-		r = int(t * 100)
-		g = int(100 + t*155)
-		b = int(t * 100)
-
-	case ColorGold:
-		// Gold/amber gradient: brown -> gold -> yellow
-		if t < 0.5 {
-			r, g, b = int(139+t*116), int(69+t*146), int(19+t*30) // Brown to gold
-		} else {
-			r, g, b = int(255), int(215+(t-0.5)*80), int(0+(t-0.5)*200) // Gold to yellow
-		}
-
-	case ColorCyan:
-		// Cyan/aqua gradient: dark cyan to bright cyan
-		r = int(t * 100)
-		g = int(139 + t*116)
-		b = int(139 + t*116)
-
-	default:
-		return ""
-	}
-
-	// Apply hue shift if enabled
-	if hueShift != 0.0 {
-		r, g, b = hueShiftColor(r, g, b, hueShift)
-	}
-
-	// Convert RGB to ANSI 256 color
-	colorIdx := ansiColorFromRGB(r, g, b)
-	return fmt.Sprintf("\033[38;5;%dm", colorIdx)
-}
-
 // render generates and displays the selected fractal
 func render(config Config) {
 	for row := 0; row < config.Height; row++ {
@@ -2528,7 +2593,7 @@ func render(config Config) {
 
 			// Get character and color
 			char := getChar(iter, config.MaxIter)
-			color := getColor(iter, config.MaxIter, config.ColorScheme)
+			color := colorthemes.GetColor(iter, config.MaxIter, config.ColorScheme)
 
 			// Print with or without color
 			if color != "" {
@@ -2539,7 +2604,7 @@ func render(config Config) {
 		}
 
 		// Reset color at end of line and add newline
-		if config.ColorScheme != ColorGrayscale {
+		if config.ColorScheme != colorthemes.ColorGrayscale {
 			fmt.Print("\033[0m")
 		}
 		fmt.Println()

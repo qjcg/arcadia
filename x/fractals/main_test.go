@@ -3,6 +3,8 @@ package main
 import (
 	"math"
 	"testing"
+
+	"github.com/qjcg/arcadia/x/fractals/colorthemes"
 )
 
 func TestMapToComplex(t *testing.T) {
@@ -123,25 +125,25 @@ func TestGetColor(t *testing.T) {
 	maxIter := 50
 
 	// Test grayscale returns empty string
-	color := getColor(25, maxIter, ColorGrayscale)
+	color := colorthemes.GetColor(25, maxIter, colorthemes.ColorGrayscale)
 	if color != "" {
 		t.Errorf("Expected empty string for grayscale, got %q", color)
 	}
 
 	// Test blue returns ANSI color code
-	color = getColor(25, maxIter, ColorBlue)
+	color = colorthemes.GetColor(25, maxIter, colorthemes.ColorBlue)
 	if color == "" {
 		t.Error("Expected ANSI color code for blue scheme, got empty string")
 	}
 
 	// Test rainbow returns ANSI color code
-	color = getColor(25, maxIter, ColorRainbow)
+	color = colorthemes.GetColor(25, maxIter, colorthemes.ColorRainbow)
 	if color == "" {
 		t.Error("Expected ANSI color code for rainbow scheme, got empty string")
 	}
 
 	// Test points in set get black
-	color = getColor(maxIter, maxIter, ColorBlue)
+	color = colorthemes.GetColor(maxIter, maxIter, colorthemes.ColorBlue)
 	expected := "\033[38;5;0m"
 	if color != expected {
 		t.Errorf("Expected black color %q for points in set, got %q", expected, color)
@@ -610,7 +612,7 @@ func TestFindInterestingPoint(t *testing.T) {
 	}
 }
 
-func TestApplyRandomFractal(t *testing.T) {
+func TestApplyRandom(t *testing.T) {
 	m := model{
 		config: Config{
 			FractalType: FractalMandelbrot,
@@ -618,70 +620,13 @@ func TestApplyRandomFractal(t *testing.T) {
 			CenterY:     0.0,
 			Zoom:        1.0,
 			MaxIter:     50,
-			ColorScheme: ColorGrayscale,
+			ColorScheme: colorthemes.ColorGrayscale,
 		},
 	}
 
-	initialType := m.config.FractalType
-
-	// Apply random fractal multiple times
-	fractalTypes := make(map[string]bool)
-	for i := 0; i < 20; i++ {
-		m.applyRandomFractal()
-		fractalTypes[m.config.FractalType] = true
-
-		// Should reset zoom to 1.0
-		if m.config.Zoom != 1.0 {
-			t.Errorf("applyRandomFractal() did not reset zoom, got %v", m.config.Zoom)
-		}
-
-		// Should be a valid fractal type
-		validType := false
-		for _, ft := range allFractalTypes {
-			if m.config.FractalType == ft {
-				validType = true
-				break
-			}
-		}
-		if !validType {
-			t.Errorf("applyRandomFractal() set invalid fractal type: %s", m.config.FractalType)
-		}
-	}
-
-	// Should have seen at least 3 different fractal types in 20 tries
-	if len(fractalTypes) < 3 {
-		t.Errorf("applyRandomFractal() generated only %d different types, expected more variety",
-			len(fractalTypes))
-	}
-
-	// Verify it changed from initial type at least once
-	changed := false
-	for ft := range fractalTypes {
-		if ft != initialType {
-			changed = true
-			break
-		}
-	}
-	if !changed && len(allFractalTypes) > 1 {
-		t.Error("applyRandomFractal() never changed from initial fractal type")
-	}
-}
-
-func TestApplyHyperrandom(t *testing.T) {
-	m := model{
-		config: Config{
-			FractalType: FractalMandelbrot,
-			CenterX:     -0.5,
-			CenterY:     0.0,
-			Zoom:        1.0,
-			MaxIter:     50,
-			ColorScheme: ColorGrayscale,
-		},
-	}
-
-	// Apply hyperrandom multiple times
+	// Apply random multiple times
 	for i := 0; i < 5; i++ {
-		m.applyHyperrandom()
+		m.applyRandom()
 
 		// Should set a valid fractal type
 		validType := false
@@ -692,34 +637,34 @@ func TestApplyHyperrandom(t *testing.T) {
 			}
 		}
 		if !validType {
-			t.Errorf("applyHyperrandom() set invalid fractal type: %s", m.config.FractalType)
+			t.Errorf("applyRandom() set invalid fractal type: %s", m.config.FractalType)
 		}
 
 		// Should set a valid color scheme
 		validColor := false
-		for _, cs := range allColorSchemes {
+		for _, cs := range colorthemes.AllColorSchemes {
 			if m.config.ColorScheme == cs {
 				validColor = true
 				break
 			}
 		}
 		if !validColor {
-			t.Errorf("applyHyperrandom() set invalid color scheme: %s", m.config.ColorScheme)
+			t.Errorf("applyRandom() set invalid color scheme: %s", m.config.ColorScheme)
 		}
 
 		// Zoom should be positive
 		if m.config.Zoom <= 0 {
-			t.Errorf("applyHyperrandom() set invalid zoom: %v", m.config.Zoom)
+			t.Errorf("applyRandom() set invalid zoom: %v", m.config.Zoom)
 		}
 
 		// MaxIter should be reasonable
 		if m.config.MaxIter < 50 || m.config.MaxIter > 300 {
-			t.Errorf("applyHyperrandom() set unreasonable MaxIter: %d", m.config.MaxIter)
+			t.Errorf("applyRandom() set unreasonable MaxIter: %d", m.config.MaxIter)
 		}
 
 		// Coordinates should be within reasonable bounds
 		if math.Abs(m.config.CenterX) > 10 || math.Abs(m.config.CenterY) > 10 {
-			t.Errorf("applyHyperrandom() set unreasonable coordinates: (%v, %v)",
+			t.Errorf("applyRandom() set unreasonable coordinates: (%v, %v)",
 				m.config.CenterX, m.config.CenterY)
 		}
 	}
@@ -733,7 +678,7 @@ func TestTransitionFunctionality(t *testing.T) {
 			CenterY:     0.0,
 			Zoom:        1.0,
 			MaxIter:     50,
-			ColorScheme: ColorGrayscale,
+			ColorScheme: colorthemes.ColorGrayscale,
 		},
 	}
 
@@ -786,7 +731,7 @@ func TestTransitionResetFunctionality(t *testing.T) {
 			CenterY:     0.0,
 			Zoom:        100.0, // High zoom to test reset
 			MaxIter:     200,   // High iterations to test reset
-			ColorScheme: ColorGrayscale,
+			ColorScheme: colorthemes.ColorGrayscale,
 		},
 		baseMaxIter: 50, // Set a base iteration count
 	}
@@ -865,7 +810,7 @@ func TestLoadBookmark(t *testing.T) {
 			CenterY:     0.0,
 			Zoom:        1.0,
 			MaxIter:     50,
-			ColorScheme: ColorGrayscale,
+			ColorScheme: colorthemes.ColorGrayscale,
 		},
 		bookmarks: []Bookmark{
 			{
@@ -875,7 +820,7 @@ func TestLoadBookmark(t *testing.T) {
 				CenterY:     0.27,
 				Zoom:        10.0,
 				MaxIter:     100,
-				ColorScheme: ColorBlue,
+				ColorScheme: colorthemes.ColorBlue,
 				JuliaCr:     -0.8,
 				JuliaCi:     0.156,
 			},
@@ -886,7 +831,7 @@ func TestLoadBookmark(t *testing.T) {
 				CenterY:     -0.6,
 				Zoom:        5.0,
 				MaxIter:     75,
-				ColorScheme: ColorRainbow,
+				ColorScheme: colorthemes.ColorRainbow,
 			},
 		},
 		baseMaxIter: 50,
@@ -905,8 +850,8 @@ func TestLoadBookmark(t *testing.T) {
 	if m.config.Zoom != 10.0 {
 		t.Errorf("loadBookmark() Zoom = %v, want %v", m.config.Zoom, 10.0)
 	}
-	if m.config.ColorScheme != ColorBlue {
-		t.Errorf("loadBookmark() ColorScheme = %s, want %s", m.config.ColorScheme, ColorBlue)
+	if m.config.ColorScheme != colorthemes.ColorBlue {
+		t.Errorf("loadBookmark() ColorScheme = %s, want %s", m.config.ColorScheme, colorthemes.ColorBlue)
 	}
 	if m.baseMaxIter != 100 {
 		t.Errorf("loadBookmark() baseMaxIter = %d, want %d", m.baseMaxIter, 100)
@@ -985,7 +930,7 @@ func TestRenderFractal(t *testing.T) {
 			CenterY:     0.0,
 			Zoom:        1.0,
 			FractalType: FractalMandelbrot,
-			ColorScheme: ColorGrayscale,
+			ColorScheme: colorthemes.ColorGrayscale,
 		},
 	}
 
@@ -1023,7 +968,7 @@ func TestRenderStatusBar(t *testing.T) {
 					CenterY:     0.0,
 					Zoom:        1.0,
 					MaxIter:     50,
-					ColorScheme: ColorGrayscale,
+					ColorScheme: colorthemes.ColorGrayscale,
 				},
 				autoZoom:          false,
 				autoZoomDirection: 1,
@@ -1166,10 +1111,10 @@ func TestAllFractalTypesValid(t *testing.T) {
 
 func TestAllColorSchemesValid(t *testing.T) {
 	// Test that all color schemes work
-	colorSchemes := []string{ColorGrayscale, ColorBlue, ColorRainbow}
+	colorSchemes := []string{colorthemes.ColorGrayscale, colorthemes.ColorBlue, colorthemes.ColorRainbow}
 
 	for _, scheme := range colorSchemes {
-		color := getColor(25, 50, scheme)
+		color := colorthemes.GetColor(25, 50, scheme)
 		// Should not panic and return a valid string
 		_ = color
 	}
@@ -1188,7 +1133,7 @@ func TestRenderFractalAllTypes(t *testing.T) {
 					CenterY:     0.0,
 					Zoom:        1.0,
 					FractalType: fractalType,
-					ColorScheme: ColorGrayscale,
+					ColorScheme: colorthemes.ColorGrayscale,
 					JuliaCr:     -0.7,
 					JuliaCi:     0.27015,
 				},
@@ -1215,7 +1160,7 @@ func TestBookmarkYAMLMarshaling(t *testing.T) {
 			CenterY:     -0.3,
 			Zoom:        42.5,
 			MaxIter:     150,
-			ColorScheme: ColorRainbow,
+			ColorScheme: colorthemes.ColorRainbow,
 		},
 		{
 			Name:        "julia_test",
@@ -1224,7 +1169,7 @@ func TestBookmarkYAMLMarshaling(t *testing.T) {
 			CenterY:     0.0,
 			Zoom:        1.0,
 			MaxIter:     50,
-			ColorScheme: ColorBlue,
+			ColorScheme: colorthemes.ColorBlue,
 			JuliaCr:     -0.8,
 			JuliaCi:     0.156,
 		},
@@ -1324,7 +1269,7 @@ func TestRenderStaticMode(t *testing.T) {
 		CenterY:     0.0,
 		Zoom:        1.0,
 		FractalType: FractalMandelbrot,
-		ColorScheme: ColorGrayscale,
+		ColorScheme: colorthemes.ColorGrayscale,
 	}
 
 	// Should not panic
@@ -1339,24 +1284,24 @@ func TestGetColorAllSchemes(t *testing.T) {
 		scheme string
 		iter   int
 	}{
-		{"Grayscale low iter", ColorGrayscale, 5},
-		{"Grayscale mid iter", ColorGrayscale, 25},
-		{"Grayscale high iter", ColorGrayscale, 45},
-		{"Blue low iter", ColorBlue, 5},
-		{"Blue mid iter", ColorBlue, 25},
-		{"Blue high iter", ColorBlue, 45},
-		{"Blue at maxIter", ColorBlue, maxIter},
-		{"Rainbow low iter", ColorRainbow, 5},
-		{"Rainbow mid iter", ColorRainbow, 25},
-		{"Rainbow high iter", ColorRainbow, 45},
-		{"Rainbow at maxIter", ColorRainbow, maxIter},
+		{"Grayscale low iter", colorthemes.ColorGrayscale, 5},
+		{"Grayscale mid iter", colorthemes.ColorGrayscale, 25},
+		{"Grayscale high iter", colorthemes.ColorGrayscale, 45},
+		{"Blue low iter", colorthemes.ColorBlue, 5},
+		{"Blue mid iter", colorthemes.ColorBlue, 25},
+		{"Blue high iter", colorthemes.ColorBlue, 45},
+		{"Blue at maxIter", colorthemes.ColorBlue, maxIter},
+		{"Rainbow low iter", colorthemes.ColorRainbow, 5},
+		{"Rainbow mid iter", colorthemes.ColorRainbow, 25},
+		{"Rainbow high iter", colorthemes.ColorRainbow, 45},
+		{"Rainbow at maxIter", colorthemes.ColorRainbow, maxIter},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			color := getColor(tt.iter, maxIter, tt.scheme)
+			color := colorthemes.GetColor(tt.iter, maxIter, tt.scheme)
 
-			if tt.scheme == ColorGrayscale {
+			if tt.scheme == colorthemes.ColorGrayscale {
 				if color != "" {
 					t.Errorf("Expected empty string for grayscale, got %q", color)
 				}
@@ -1408,7 +1353,7 @@ func TestAddBookmarkIntegration(t *testing.T) {
 			CenterY:     -0.5,
 			Zoom:        25.0,
 			MaxIter:     100,
-			ColorScheme: ColorRainbow,
+			ColorScheme: colorthemes.ColorRainbow,
 		},
 		bookmarks: []Bookmark{},
 	}

@@ -8,7 +8,7 @@ An interactive terminal-based fractal viewer with ASCII art rendering and color 
 - Real-time fractal exploration with keyboard navigation
 - Zoom and pan controls for deep exploration
 - Auto-pilot mode with intelligent exploration of interesting regions
-- Random and hyperrandom exploration for discovering new fractals
+- Random exploration for discovering new fractals (generates completely random interesting views)
 - Switch between 8 different fractal types on the fly
 - Eight color schemes: grayscale, blue, rainbow, fire, purple, green, gold, and cyan
 - Adjustable iteration depth for detail control
@@ -70,9 +70,47 @@ Once in the interactive viewer, you can:
 - For Julia sets, adjust parameters with J/j (real) and K/k (imaginary)
 - Save interesting locations with 'b' (bookmarks)
 - Load saved locations with 'l'
+- Copy current view as shareable URL with 'U'
 - Capture screenshots with 'p' (saves text file with fractal + metadata)
 - Press '?' for help
 - Press 'q' or ESC to quit
+
+### Shareable URLs
+
+Launch fractals directly from shareable `fractal://` URLs that encode the complete interactive state:
+
+```bash
+# Basic Mandelbrot
+fractals fractal://mandelbrot/-0.5/0.0/1.0/50/
+
+# Julia set with parameters
+fractals fractal://julia/0.0/0.0/1.0/50/?julia_cr=-0.7&julia_ci=0.27015&color_theme=blue
+
+# With autopilot and dynamic color
+fractals fractal://mandelbrot/-0.7436/0.1314/50.0/100/?color_theme=fire&autopilot=on&dynamic_color=on&transition=fade
+
+# Random mode
+fractals fractal://random/?color_theme=rainbow&autopilot=on
+
+# Using --url flag
+fractals --url "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=on"
+```
+
+**URL Format**: `fractal://$FRACTAL_TYPE/$CENTER_X/$CENTER_Y/$ZOOM/$ITERATIONS/?[options]`
+
+**Query Parameters** (all optional):
+- `color_theme`: grayscale, blue, rainbow, fire, purple, green, gold, cyan
+- `autopilot`: on/off
+- `dynamic_color`: on/off (smooth hue rotation)
+- `transition`: none, fade, zoomout, rotate, breakthrough
+- `julia_cr`: Julia set real parameter (for Julia sets)
+- `julia_ci`: Julia set imaginary parameter (for Julia sets)
+
+**Random URLs**: Use `fractal://random/` to launch with a random fractal at an interesting location
+
+**Copying URLs**: Press **U** in interactive mode to copy the current view as a shareable URL (displayed in status bar)
+
+**Bookmarks Integration**: When you save a bookmark, it automatically generates and stores a shareable URL, making bookmarks portable and shareable with others.
 
 ### Static Mode (Legacy)
 
@@ -205,8 +243,7 @@ When running in interactive mode, use these keyboard shortcuts:
 - **p** - Save screenshot (captures current view to text file with metadata)
 
 ### Random Exploration
-- **R** (Shift+r) - Random fractal type (keeps current zoom and position settings)
-- **H** (Shift+h) - Hyperrandom (generates completely random fractal with interesting view)
+- **R** (Shift+r) - Random (generates completely random fractal with interesting view)
   - Randomly selects fractal type, zoom level, position, color scheme, and iterations
   - Uses intelligent algorithms to find visually interesting, non-uniform regions
   - Draws from curated list of known interesting coordinates as seed points
@@ -227,8 +264,7 @@ When running in interactive mode, use these keyboard shortcuts:
 |------|-----------|-------------|---------|
 | | `--static` | Run in static (non-interactive) mode | false |
 | | `--interactive` | Run in interactive mode (default) | true |
-| `-r` | `--random` | Start with a random fractal type | false |
-| | `--hyper`, `--hyperrandom` | Start with a random interesting view (random fractal + position + zoom + color) | false |
+| `-r` | `--random` | Start with a completely random interesting view | false |
 | `-t` | `--type` | Fractal type: mandelbrot, julia, burningship, tricorn, multibrot3, multibrot4, celtic, perpendicular | mandelbrot |
 | `-c` | `--color` | Color scheme: grayscale, blue, rainbow | grayscale |
 | `-w` | `--width` | Terminal width (0 = auto-detect) | 0 |
@@ -254,15 +290,10 @@ fractals -t julia -c rainbow
 # Launch zoomed into an interesting region
 fractals -t mandelbrot -x -0.75 -y 0.1 -z 3.0 -c rainbow
 
-# Start with a random fractal type
+# Start with a completely random interesting view
 fractals --random
 # or
 fractals -r
-
-# Start with a completely random interesting view
-fractals --hyperrandom
-# or
-fractals --hyper
 ```
 
 ### Static Mode Examples
@@ -491,8 +522,7 @@ The screenshot directory is created automatically when you save your first scree
 1. **Use auto-pilot mode** - Press 'z' to enable automatic exploration that intelligently finds and zooms into interesting regions
 2. **Control zoom direction** - Press 'r' to toggle between zooming in (↑) and zooming out (↓), or use '+'/'-' to set direction explicitly. The direction indicator is always visible in the status bar (even when auto-pilot is off)
 3. **Explore in reverse** - After zooming deep into a fractal with auto-pilot, press 'r' to reverse direction and watch it explore back out with fresh perspective
-4. **Try hyperrandom for inspiration** - Press 'H' to instantly jump to a completely random interesting view. Great for discovering new fractals and getting unstuck
-5. **Random fractal switching** - Press 'R' to switch to a random fractal type while keeping your current view settings
+4. **Random exploration** - Press 'R' to explore completely random interesting views with changing fractals, positions, and colors. Great for discovering new fractals and getting inspiration
 6. **Bookmark interesting discoveries** - When you find something beautiful, press 'b' to save it for later
 7. **Take screenshots of favorites** - Press 'p' to save the current view as a text file with complete metadata
 8. **Start with low zoom and gradually zoom in** - Use the + key repeatedly to dive deeper into interesting features
