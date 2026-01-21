@@ -1,4 +1,4 @@
-package main
+package persistence
 
 import (
 	"fmt"
@@ -7,14 +7,6 @@ import (
 	"strings"
 
 	"github.com/qjcg/arcadia/x/fractals/colorthemes"
-)
-
-// URLMode represents the type of fractal URL
-type URLMode string
-
-const (
-	ModeStandard URLMode = "standard"
-	ModeRandom   URLMode = "random"
 )
 
 // FractalURLParams holds parsed parameters from a fractal:// URL
@@ -86,7 +78,7 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 
 		// Parse fractal type
 		params.FractalType = pathParts[0]
-		if !isValidFractalType(params.FractalType) {
+		if !IsValidFractalType(params.FractalType) {
 			return FractalURLParams{}, fmt.Errorf("invalid fractal type: %s", params.FractalType)
 		}
 
@@ -131,14 +123,14 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 	}
 
 	if colorTheme := queryParams.Get("color_theme"); colorTheme != "" {
-		if !isValidColorTheme(colorTheme) {
+		if !IsValidColorTheme(colorTheme) {
 			return FractalURLParams{}, fmt.Errorf("invalid color_theme: %s", colorTheme)
 		}
 		params.ColorTheme = colorTheme
 	}
 
 	if transition := queryParams.Get("transition"); transition != "" {
-		if !isValidTransition(transition) {
+		if !IsValidTransition(transition) {
 			return FractalURLParams{}, fmt.Errorf("invalid transition: %s", transition)
 		}
 		params.Transition = transition
@@ -146,7 +138,7 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 
 	// Parse boolean variables: can be specified without value (defaults to true) or with "t"/"f"
 	if _, ok := queryParams["autopilot"]; ok {
-		if parsedAutopilot, err := parseBooleanParam(queryParams, "autopilot"); err != nil {
+		if parsedAutopilot, err := ParseBooleanParam(queryParams, "autopilot"); err != nil {
 			return FractalURLParams{}, err
 		} else {
 			params.AutopilotEnabled = parsedAutopilot
@@ -154,7 +146,7 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 	}
 
 	if _, ok := queryParams["dynamic_color"]; ok {
-		if parsedDynamicColor, err := parseBooleanParam(queryParams, "dynamic_color"); err != nil {
+		if parsedDynamicColor, err := ParseBooleanParam(queryParams, "dynamic_color"); err != nil {
 			return FractalURLParams{}, err
 		} else {
 			params.DynamicColorEnabled = parsedDynamicColor
@@ -201,7 +193,7 @@ func ConfigToFractalURL(config Config, autopilot, dynamicColor bool, transitionM
 
 	// Transition
 	if transitionMode > 0 {
-		transitionName := transitionModeToString(transitionMode)
+		transitionName := TransitionModeToString(transitionMode)
 		if transitionName != "none" {
 			queryParams.Set("transition", transitionName)
 		}
@@ -245,7 +237,7 @@ func RandomToFractalURL(colorTheme string, autopilot, dynamicColor bool, transit
 	}
 
 	if transitionMode > 0 {
-		transitionName := transitionModeToString(transitionMode)
+		transitionName := TransitionModeToString(transitionMode)
 		if transitionName != "none" {
 			queryParams.Set("transition", transitionName)
 		}
@@ -275,11 +267,11 @@ func ValidateFractalURL(urlString string) error {
 
 // Helper functions
 
-// parseBooleanParam parses a boolean query parameter.
+// ParseBooleanParam parses a boolean query parameter.
 // If the parameter is present but empty (e.g., ?autopilot), it returns true.
 // If the parameter has a value, it must be "t" (true) or "f" (false).
 // Returns (value, bool, error) where bool indicates if parameter was found.
-func parseBooleanParam(queryParams url.Values, key string) (bool, error) {
+func ParseBooleanParam(queryParams url.Values, key string) (bool, error) {
 	values, ok := queryParams[key]
 	if !ok {
 		return false, nil
@@ -301,7 +293,7 @@ func parseBooleanParam(queryParams url.Values, key string) (bool, error) {
 	}
 }
 
-func isValidFractalType(fractalType string) bool {
+func IsValidFractalType(fractalType string) bool {
 	validTypes := map[string]bool{
 		FractalMandelbrot:    true,
 		FractalJulia:         true,
@@ -318,7 +310,7 @@ func isValidFractalType(fractalType string) bool {
 	return validTypes[fractalType]
 }
 
-func isValidColorTheme(theme string) bool {
+func IsValidColorTheme(theme string) bool {
 	validThemes := map[string]bool{
 		colorthemes.ColorGrayscale: true,
 		colorthemes.ColorBlue:      true,
@@ -332,7 +324,7 @@ func isValidColorTheme(theme string) bool {
 	return validThemes[theme]
 }
 
-func isValidTransition(transition string) bool {
+func IsValidTransition(transition string) bool {
 	validTransitions := map[string]bool{
 		"none":         true,
 		"fade":         true,
@@ -344,7 +336,7 @@ func isValidTransition(transition string) bool {
 	return validTransitions[transition]
 }
 
-func transitionModeToString(mode int) string {
+func TransitionModeToString(mode int) string {
 	switch mode {
 	case TransitionNone:
 		return "none"
@@ -361,7 +353,7 @@ func transitionModeToString(mode int) string {
 	}
 }
 
-func stringToTransitionMode(s string) int {
+func StringToTransitionMode(s string) int {
 	switch strings.ToLower(s) {
 	case "fade":
 		return TransitionFade

@@ -26,26 +26,28 @@ const (
 	asciiChars = " .:-=+*#%@"
 
 	// Transition animation modes
-	TransitionNone         = 0
+	TransitionNone         = persistence.TransitionNone
 	TransitionFade         = transitions.TransitionFade
 	TransitionZoomOutIn    = transitions.TransitionZoomOutIn
 	TransitionRotate       = transitions.TransitionRotate
 	TransitionBreakthrough = transitions.TransitionBreakthrough
-)
 
-// Fractal types
-const (
-	FractalMandelbrot    = "mandelbrot"
-	FractalJulia         = "julia"
-	FractalBurningShip   = "burningship"
-	FractalTricorn       = "tricorn"
-	FractalMultibrot3    = "multibrot3"
-	FractalMultibrot4    = "multibrot4"
-	FractalCeltic        = "celtic"
-	FractalPerpendicular = "perpendicular"
-	FractalMultibrot5    = "multibrot5"
-	FractalManhattan     = "manhattan"
-	FractalNewton        = "newton"
+	// Fractal types
+	FractalMandelbrot    = persistence.FractalMandelbrot
+	FractalJulia         = persistence.FractalJulia
+	FractalBurningShip   = persistence.FractalBurningShip
+	FractalTricorn       = persistence.FractalTricorn
+	FractalMultibrot3    = persistence.FractalMultibrot3
+	FractalMultibrot4    = persistence.FractalMultibrot4
+	FractalCeltic        = persistence.FractalCeltic
+	FractalPerpendicular = persistence.FractalPerpendicular
+	FractalMultibrot5    = persistence.FractalMultibrot5
+	FractalManhattan     = persistence.FractalManhattan
+	FractalNewton        = persistence.FractalNewton
+
+	// URL modes
+	ModeRandom   = persistence.ModeRandom
+	ModeStandard = persistence.ModeStandard
 )
 
 var (
@@ -87,20 +89,8 @@ var (
 	}
 )
 
-// Config holds the rendering configuration
-type Config struct {
-	Width       int
-	Height      int
-	MaxIter     int
-	CenterX     float64
-	CenterY     float64
-	Zoom        float64
-	ColorScheme string
-	FractalType string
-	// Julia set parameters (c = JuliaCr + JuliaCi*i)
-	JuliaCr float64
-	JuliaCi float64
-}
+// Use Config from persistence package
+type Config = persistence.Config
 
 // tickMsg is sent on each animation tick for auto-zoom
 type tickMsg time.Time
@@ -167,7 +157,7 @@ func (m model) Init() tea.Cmd {
 
 // addBookmark adds a new bookmark and saves to file
 func (m *model) addBookmark(name string) error {
-	url := ConfigToFractalURL(m.config, m.autoZoom, m.dynamicColor, m.transitionMode)
+	url := persistence.ConfigToFractalURL(m.config, m.autoZoom, m.dynamicColor, m.transitionMode)
 
 	bookmark := persistence.Bookmark{
 		Name:                name,
@@ -182,7 +172,7 @@ func (m *model) addBookmark(name string) error {
 		JuliaCi:             m.config.JuliaCi,
 		AutopilotEnabled:    m.autoZoom,
 		DynamicColorEnabled: m.dynamicColor,
-		TransitionMode:      transitionModeToString(m.transitionMode),
+		TransitionMode:      persistence.TransitionModeToString(m.transitionMode),
 	}
 
 	m.bookmarks = append(m.bookmarks, bookmark)
@@ -190,7 +180,7 @@ func (m *model) addBookmark(name string) error {
 }
 
 // applyParamsToModel applies FractalURLParams to a model
-func applyParamsToModel(m *model, params FractalURLParams) {
+func applyParamsToModel(m *model, params persistence.FractalURLParams) {
 	m.config.FractalType = params.FractalType
 	m.config.CenterX = params.CenterX
 	m.config.CenterY = params.CenterY
@@ -206,7 +196,7 @@ func applyParamsToModel(m *model, params FractalURLParams) {
 	}
 
 	m.dynamicColor = params.DynamicColorEnabled
-	m.transitionMode = stringToTransitionMode(params.Transition)
+	m.transitionMode = persistence.StringToTransitionMode(params.Transition)
 
 	m.baseMaxIter = params.MaxIter
 }
@@ -221,7 +211,7 @@ func (m *model) loadBookmark(index int) {
 
 	// If URL present, try to parse from it (prefer URL)
 	if bm.URL != "" {
-		params, err := ParseFractalURL(bm.URL)
+		params, err := persistence.ParseFractalURL(bm.URL)
 		if err == nil {
 			applyParamsToModel(m, params)
 			return
@@ -254,7 +244,7 @@ func (m *model) loadBookmark(index int) {
 	}
 
 	if bm.TransitionMode != "" {
-		m.transitionMode = stringToTransitionMode(bm.TransitionMode)
+		m.transitionMode = persistence.StringToTransitionMode(bm.TransitionMode)
 	}
 
 	// Reset base max iter for adaptive scaling
@@ -1305,7 +1295,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Copy current location as URL
 		case "U":
-			urlStr := ConfigToFractalURL(m.config, m.autoZoom, m.dynamicColor, m.transitionMode)
+			urlStr := persistence.ConfigToFractalURL(m.config, m.autoZoom, m.dynamicColor, m.transitionMode)
 			if err := clipboard.WriteAll(urlStr); err != nil {
 				m.urlMsg = fmt.Sprintf("Error copying URL: %v", err)
 			} else {
@@ -1872,7 +1862,7 @@ func main() {
 
 	if *urlFlag != "" {
 		// Parse URL and extract config
-		params, err := ParseFractalURL(*urlFlag)
+		params, err := persistence.ParseFractalURL(*urlFlag)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error parsing URL: %v\n", err)
 			os.Exit(1)
@@ -1891,7 +1881,7 @@ func main() {
 		// Save URL state for interactive mode
 		urlAutopilot = params.AutopilotEnabled
 		urlDynamicColor = params.DynamicColorEnabled
-		urlTransitionMode = stringToTransitionMode(params.Transition)
+		urlTransitionMode = persistence.StringToTransitionMode(params.Transition)
 
 		// If random mode, we'll apply it after TUI initialization
 		if params.Mode == ModeRandom {
@@ -1932,7 +1922,7 @@ func main() {
 	}
 
 	// Validate color scheme
-	if !isValidColorTheme(config.ColorScheme) {
+	if !persistence.IsValidColorTheme(config.ColorScheme) {
 		fmt.Fprintf(os.Stderr, "Invalid color scheme: %s. Using grayscale.\n", config.ColorScheme)
 		config.ColorScheme = colorthemes.ColorGrayscale
 	}

@@ -1,4 +1,4 @@
-package main
+package persistence
 
 import (
 	"testing"
@@ -365,14 +365,14 @@ func TestTransitionModeConversion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			str := transitionModeToString(tt.mode)
+			str := TransitionModeToString(tt.mode)
 			if str != tt.want {
-				t.Errorf("transitionModeToString(%d) = %v, want %v", tt.mode, str, tt.want)
+				t.Errorf("TransitionModeToString(%d) = %v, want %v", tt.mode, str, tt.want)
 			}
 
-			mode := stringToTransitionMode(str)
+			mode := StringToTransitionMode(str)
 			if mode != tt.backMode {
-				t.Errorf("stringToTransitionMode(%v) = %d, want %d", str, mode, tt.backMode)
+				t.Errorf("StringToTransitionMode(%v) = %d, want %d", str, mode, tt.backMode)
 			}
 		})
 	}
