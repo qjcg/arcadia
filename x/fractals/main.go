@@ -6,7 +6,6 @@ import (
 	"math"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -15,16 +14,14 @@ import (
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"gopkg.in/yaml.v3"
 
 	"github.com/qjcg/arcadia/x/fractals/colorthemes"
 	"github.com/qjcg/arcadia/x/fractals/fractals"
+	"github.com/qjcg/arcadia/x/fractals/persistence"
 	"github.com/qjcg/arcadia/x/fractals/transitions"
 )
 
 const (
-	Version = "v1.0.0"
-
 	// ASCII characters from sparse to dense
 	asciiChars = " .:-=+*#%@"
 
@@ -51,29 +48,8 @@ const (
 	FractalNewton        = "newton"
 )
 
-// Word lists for auto-generated bookmark names
 var (
 	showVersion bool
-
-	adjectives = []string{
-		"uncharted", "distant", "forgotten", "ancient", "sacred", "secret",
-		"mystic", "endless", "infinite", "twilight", "crystal", "phantom",
-		"hidden", "silent", "veiled", "ethereal", "serene", "tranquil",
-		"arcane", "celestial", "luminous", "radiant", "shadowed", "misty",
-		"frosted", "gilded", "bronze", "silver", "crimson", "azure",
-		"jade", "amber", "obsidian", "prismatic", "shimmering", "glowing",
-		"gleaming", "whispering", "echoing", "wandering",
-	}
-
-	journeyNouns = []string{
-		"path", "journey", "expedition", "quest", "voyage", "passage",
-		"gateway", "portal", "crossing", "frontier", "realm", "domain",
-		"territory", "landscape", "horizon", "threshold", "border", "edge",
-		"brink", "verge", "summit", "peak", "valley", "canyon",
-		"cavern", "hollow", "chamber", "sanctum", "haven", "refuge",
-		"shelter", "oasis", "crossroads", "junction", "nexus", "confluence",
-		"convergence", "labyrinth", "maze", "corridor",
-	}
 
 	// All fractal types for random selection
 	allFractalTypes = []string{
@@ -126,28 +102,6 @@ type Config struct {
 	JuliaCi float64
 }
 
-// Bookmark represents a saved fractal location
-type Bookmark struct {
-	Name                string  `yaml:"name"`
-	URL                 string  `yaml:"url,omitempty"`
-	FractalType         string  `yaml:"fractal_type"`
-	CenterX             float64 `yaml:"center_x"`
-	CenterY             float64 `yaml:"center_y"`
-	Zoom                float64 `yaml:"zoom"`
-	MaxIter             int     `yaml:"max_iter"`
-	ColorScheme         string  `yaml:"color_scheme"`
-	JuliaCr             float64 `yaml:"julia_cr,omitempty"`
-	JuliaCi             float64 `yaml:"julia_ci,omitempty"`
-	AutopilotEnabled    bool    `yaml:"autopilot,omitempty"`
-	DynamicColorEnabled bool    `yaml:"dynamic_color,omitempty"`
-	TransitionMode      string  `yaml:"transition_mode,omitempty"`
-}
-
-// BookmarkList holds all bookmarks
-type BookmarkList struct {
-	Bookmarks []Bookmark `yaml:"bookmarks"`
-}
-
 // tickMsg is sent on each animation tick for auto-zoom
 type tickMsg time.Time
 
@@ -183,12 +137,12 @@ type model struct {
 	dynamicColor bool    // Enable smooth hue rotation
 	hueShift     float64 // Current hue shift in degrees (0-360)
 	// Bookmark state
-	showBookmarks     bool       // Show bookmark list
-	bookmarks         []Bookmark // Loaded bookmarks
-	bookmarkCursor    int        // Selected bookmark in list
-	savingBookmark    bool       // Prompting for bookmark name
-	bookmarkInput     string     // User input for bookmark name
-	suggestedBookmark string     // Auto-generated bookmark name suggestion
+	showBookmarks     bool                   // Show bookmark list
+	bookmarks         []persistence.Bookmark // Loaded bookmarks
+	bookmarkCursor    int                    // Selected bookmark in list
+	savingBookmark    bool                   // Prompting for bookmark name
+	bookmarkInput     string                 // User input for bookmark name
+	suggestedBookmark string                 // Auto-generated bookmark name suggestion
 	// Screenshot state
 	screenshotMsg   string // Message to display after screenshot
 	screenshotTimer int    // Countdown for hiding screenshot message
@@ -211,68 +165,11 @@ func (m model) Init() tea.Cmd {
 	return nil
 }
 
-// getBookmarkPath returns the path to the bookmarks file
-func getBookmarkPath() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	configDir := filepath.Join(homeDir, ".config", "fractals")
-
-	// Create directory if it doesn't exist
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
-		return "", err
-	}
-
-	return filepath.Join(configDir, "bookmarks.yaml"), nil
-}
-
-// loadBookmarks reads bookmarks from the YAML file
-func loadBookmarks() ([]Bookmark, error) {
-	path, err := getBookmarkPath()
-	if err != nil {
-		return nil, err
-	}
-
-	// If file doesn't exist, return empty list
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return []Bookmark{}, nil
-	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var list BookmarkList
-	if err := yaml.Unmarshal(data, &list); err != nil {
-		return nil, err
-	}
-
-	return list.Bookmarks, nil
-}
-
-// saveBookmarks writes bookmarks to the YAML file
-func saveBookmarks(bookmarks []Bookmark) error {
-	path, err := getBookmarkPath()
-	if err != nil {
-		return err
-	}
-
-	list := BookmarkList{Bookmarks: bookmarks}
-	data, err := yaml.Marshal(&list)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(path, data, 0o644)
-}
-
 // addBookmark adds a new bookmark and saves to file
 func (m *model) addBookmark(name string) error {
 	url := ConfigToFractalURL(m.config, m.autoZoom, m.dynamicColor, m.transitionMode)
 
-	bookmark := Bookmark{
+	bookmark := persistence.Bookmark{
 		Name:                name,
 		URL:                 url,
 		FractalType:         m.config.FractalType,
@@ -289,7 +186,7 @@ func (m *model) addBookmark(name string) error {
 	}
 
 	m.bookmarks = append(m.bookmarks, bookmark)
-	return saveBookmarks(m.bookmarks)
+	return persistence.SaveBookmarks(m.bookmarks)
 }
 
 // applyParamsToModel applies FractalURLParams to a model
@@ -362,35 +259,6 @@ func (m *model) loadBookmark(index int) {
 
 	// Reset base max iter for adaptive scaling
 	m.baseMaxIter = bm.MaxIter
-}
-
-// generateBookmarkName creates a random name in format: adjective_noun
-func generateBookmarkName() string {
-	// Seed random with current time for variety
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	adjective := adjectives[rng.Intn(len(adjectives))]
-	noun := journeyNouns[rng.Intn(len(journeyNouns))]
-
-	return adjective + "_" + noun
-}
-
-// Test helper function to verify transition functionality
-func (m *model) testTransitionSetup() {
-	// This is a test helper that sets up a transition for testing
-	if len(allFractalTypes) > 1 {
-		m.transitionMode = TransitionFade
-		m.transitionTarget = allFractalTypes[0]
-		if m.config.FractalType == m.transitionTarget && len(allFractalTypes) > 1 {
-			m.transitionTarget = allFractalTypes[1]
-		}
-		m.transitionProgress = 0.5
-		m.transitionZoomStart = m.config.Zoom
-
-		// Initialize the fade transition
-		m.fadeTransition = transitions.NewFadeTransition(allFractalTypes)
-		m.fadeTransition.Start(m.config.FractalType)
-	}
 }
 
 // startFractalTransition initiates a transition to a new fractal type
@@ -568,83 +436,36 @@ func (m *model) deleteBookmark(index int) error {
 	}
 
 	// Save updated bookmarks to file
-	return saveBookmarks(m.bookmarks)
-}
-
-// getScreenshotPath returns the directory path for screenshots
-func getScreenshotPath() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	screenshotDir := filepath.Join(homeDir, ".config", "fractals", "screenshots")
-
-	// Create directory if it doesn't exist
-	if err := os.MkdirAll(screenshotDir, 0o755); err != nil {
-		return "", err
-	}
-
-	return screenshotDir, nil
+	return persistence.SaveBookmarks(m.bookmarks)
 }
 
 // saveScreenshot saves the current fractal view to a text file
 func (m *model) saveScreenshot() error {
-	dir, err := getScreenshotPath()
-	if err != nil {
-		return err
-	}
-
-	// Generate filename with timestamp and fractal type
-	now := time.Now()
-	timestamp := now.Format("2006-01-02_150405")
-	filename := fmt.Sprintf("%s_%s.txt", m.config.FractalType, timestamp)
-	fullPath := filepath.Join(dir, filename)
-
-	// Check if file exists and add counter if needed
-	counter := 1
-	for {
-		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-			break
-		}
-		filename = fmt.Sprintf("%s_%s_%d.txt", m.config.FractalType, timestamp, counter)
-		fullPath = filepath.Join(dir, filename)
-		counter++
-	}
-
 	// Render the fractal
 	fractalOutput := m.renderFractal()
 
-	// Create metadata header
-	var metadata strings.Builder
-	metadata.WriteString("=" + strings.Repeat("=", 78) + "\n")
-	metadata.WriteString(fmt.Sprintf("Fractal Screenshot - %s\n", now.Format("2006-01-02 15:04:05")))
-	metadata.WriteString("=" + strings.Repeat("=", 78) + "\n")
-	metadata.WriteString(fmt.Sprintf("Fractal Type: %s\n", m.config.FractalType))
-	metadata.WriteString(fmt.Sprintf("Center: (%.10f, %.10f)\n", m.config.CenterX, m.config.CenterY))
+	// Format Julia parameters as strings
+	juliaCrStr := fmt.Sprintf("%.6f", m.config.JuliaCr)
+	juliaCiStr := fmt.Sprintf("%.6f", m.config.JuliaCi)
 
-	// Format zoom display
-	var zoomStr string
-	if m.config.Zoom >= 10000.0 {
-		zoomStr = fmt.Sprintf("%.6e", m.config.Zoom)
-	} else {
-		zoomStr = fmt.Sprintf("%.6f", m.config.Zoom)
-	}
-	metadata.WriteString(fmt.Sprintf("Zoom: %sx\n", zoomStr))
-	metadata.WriteString(fmt.Sprintf("Max Iterations: %d\n", m.config.MaxIter))
-	metadata.WriteString(fmt.Sprintf("Color Scheme: %s\n", m.config.ColorScheme))
+	// Build the screenshot content with metadata
+	content := persistence.BuildScreenshotContent(
+		m.config.FractalType,
+		m.config.CenterX,
+		m.config.CenterY,
+		m.config.Zoom,
+		m.config.MaxIter,
+		m.config.ColorScheme,
+		juliaCrStr,
+		juliaCiStr,
+		m.config.Width,
+		m.config.Height,
+		fractalOutput,
+	)
 
-	if m.config.FractalType == FractalJulia {
-		metadata.WriteString(fmt.Sprintf("Julia Parameters: c = %.6f + %.6fi\n", m.config.JuliaCr, m.config.JuliaCi))
-	}
-
-	metadata.WriteString(fmt.Sprintf("Resolution: %dx%d\n", m.config.Width, m.config.Height))
-	metadata.WriteString("=" + strings.Repeat("=", 78) + "\n\n")
-
-	// Combine metadata and fractal output
-	content := metadata.String() + fractalOutput
-
-	// Write to file
-	if err := os.WriteFile(fullPath, []byte(content), 0o644); err != nil {
+	// Save to file
+	filename, err := persistence.SaveScreenshot(m.config.FractalType, content)
+	if err != nil {
 		return err
 	}
 
@@ -1241,13 +1062,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Start saving a bookmark with auto-generated name suggestion
 			m.savingBookmark = true
 			m.bookmarkInput = ""
-			m.suggestedBookmark = generateBookmarkName()
+			m.suggestedBookmark = persistence.GenerateBookmarkName()
 			return m, nil
 
 		case "l":
 			// Show bookmark list
 			// Reload bookmarks from file
-			if bookmarks, err := loadBookmarks(); err == nil {
+			if bookmarks, err := persistence.LoadBookmarks(); err == nil {
 				m.bookmarks = bookmarks
 			}
 			m.showBookmarks = true
@@ -2151,10 +1972,10 @@ func main() {
 
 	if runInteractive {
 		// Load bookmarks
-		bookmarks, err := loadBookmarks()
+		bookmarks, err := persistence.LoadBookmarks()
 		if err != nil {
 			// Non-fatal - just start with empty bookmarks
-			bookmarks = []Bookmark{}
+			bookmarks = []persistence.Bookmark{}
 		}
 
 		// Run interactive TUI mode
@@ -2198,325 +2019,6 @@ func main() {
 		// Render the fractal once and exit
 		render(config)
 	}
-}
-
-// mandelbrot calculates the number of iterations for a given complex number c
-// Returns the iteration count when |z|² > 4 (diverged) or maxIter if in the set
-func mandelbrot(cr, ci float64, maxIter int) int {
-	zr, zi := 0.0, 0.0
-
-	for i := range maxIter {
-		// Calculate z² = (zr + zi*i)²
-		zr2 := zr * zr
-		zi2 := zi * zi
-
-		// Check if diverged (|z|² > 4)
-		if zr2+zi2 > 4.0 {
-			return i
-		}
-
-		// z = z² + c
-		zi = 2.0*zr*zi + ci
-		zr = zr2 - zi2 + cr
-	}
-
-	return maxIter
-}
-
-// julia calculates the Julia set for a given point z and constant c
-// z iterates: z = z² + c where c is constant (juliaCr, juliaCi)
-func julia(zr, zi, juliaCr, juliaCi float64, maxIter int) int {
-	for i := range maxIter {
-		zr2 := zr * zr
-		zi2 := zi * zi
-
-		if zr2+zi2 > 4.0 {
-			return i
-		}
-
-		// z = z² + c
-		zi = 2.0*zr*zi + juliaCi
-		zr = zr2 - zi2 + juliaCr
-	}
-
-	return maxIter
-}
-
-// burningShip calculates the Burning Ship fractal
-// Uses absolute values: z = (|Re(z)| + i|Im(z)|)² + c
-func burningShip(cr, ci float64, maxIter int) int {
-	zr, zi := 0.0, 0.0
-
-	for i := range maxIter {
-		zr2 := zr * zr
-		zi2 := zi * zi
-
-		if zr2+zi2 > 4.0 {
-			return i
-		}
-
-		// Take absolute values before squaring
-		if zr < 0 {
-			zr = -zr
-		}
-		if zi < 0 {
-			zi = -zi
-		}
-
-		// z = z² + c
-		zi = 2.0*zr*zi + ci
-		zr = zr2 - zi2 + cr
-	}
-
-	return maxIter
-}
-
-// tricorn (Mandelbar) calculates the Tricorn fractal
-// Uses conjugate: z = conj(z)² + c
-func tricorn(cr, ci float64, maxIter int) int {
-	zr, zi := 0.0, 0.0
-
-	for i := range maxIter {
-		zr2 := zr * zr
-		zi2 := zi * zi
-
-		if zr2+zi2 > 4.0 {
-			return i
-		}
-
-		// z = conj(z)² + c
-		// conj(z)² = (zr - zi*i)² = zr² - zi² - 2*zr*zi*i
-		zi = -2.0*zr*zi + ci // Note the negative sign
-		zr = zr2 - zi2 + cr
-	}
-
-	return maxIter
-}
-
-// multibrot3 calculates the Multibrot set with power 3
-// z = z³ + c
-func multibrot3(cr, ci float64, maxIter int) int {
-	zr, zi := 0.0, 0.0
-
-	for i := range maxIter {
-		zr2 := zr * zr
-		zi2 := zi * zi
-
-		if zr2+zi2 > 4.0 {
-			return i
-		}
-
-		// z³ = (zr + zi*i)³ = zr³ + 3*zr²*zi*i - 3*zr*zi² - zi³*i
-		//    = (zr³ - 3*zr*zi²) + i(3*zr²*zi - zi³)
-		newZr := zr*zr2 - 3.0*zr*zi2 + cr
-		newZi := 3.0*zr2*zi - zi*zi2 + ci
-		zr = newZr
-		zi = newZi
-	}
-
-	return maxIter
-}
-
-// multibrot4 calculates the Multibrot set with power 4
-// z = z⁴ + c
-func multibrot4(cr, ci float64, maxIter int) int {
-	zr, zi := 0.0, 0.0
-
-	for i := range maxIter {
-		zr2 := zr * zr
-		zi2 := zi * zi
-
-		if zr2+zi2 > 4.0 {
-			return i
-		}
-
-		// z⁴ = ((zr + zi*i)²)²
-		// First: z² = zr² - zi² + 2*zr*zi*i
-		zr_temp := zr2 - zi2
-		zi_temp := 2.0 * zr * zi
-		// Second: (z²)²
-		newZr := zr_temp*zr_temp - zi_temp*zi_temp + cr
-		newZi := 2.0*zr_temp*zi_temp + ci
-		zr = newZr
-		zi = newZi
-	}
-
-	return maxIter
-}
-
-// celtic calculates the Celtic Mandelbrot fractal
-// Uses z = (|Re(z²)| + i*Im(z²)) + c
-func celtic(cr, ci float64, maxIter int) int {
-	zr, zi := 0.0, 0.0
-
-	for i := range maxIter {
-		zr2 := zr * zr
-		zi2 := zi * zi
-
-		if zr2+zi2 > 4.0 {
-			return i
-		}
-
-		// Calculate z²
-		newZr := zr2 - zi2
-		newZi := 2.0 * zr * zi
-
-		// Take absolute value of real part
-		if newZr < 0 {
-			newZr = -newZr
-		}
-
-		// Add c
-		zr = newZr + cr
-		zi = newZi + ci
-	}
-
-	return maxIter
-}
-
-// perpendicular calculates the Perpendicular Mandelbrot fractal
-// Uses z = (Re(z²) - |Im(z²)|*i) + c
-func perpendicular(cr, ci float64, maxIter int) int {
-	zr, zi := 0.0, 0.0
-
-	for i := range maxIter {
-		zr2 := zr * zr
-		zi2 := zi * zi
-
-		if zr2+zi2 > 4.0 {
-			return i
-		}
-
-		// Calculate z²
-		newZr := zr2 - zi2
-		newZi := 2.0 * zr * zi
-
-		// Take absolute value of imaginary part and negate
-		if newZi < 0 {
-			newZi = -newZi
-		}
-		newZi = -newZi
-
-		// Add c
-		zr = newZr + cr
-		zi = newZi + ci
-	}
-
-	return maxIter
-}
-
-func multibrot5(cr, ci float64, maxIter int) int {
-	zr, zi := 0.0, 0.0
-
-	for i := 0; i < maxIter; i++ {
-		zr2 := zr * zr
-		zi2 := zi * zi
-
-		if zr2+zi2 > 4.0 {
-			return i
-		}
-
-		z2r := zr2 - zi2
-		z2i := 2.0 * zr * zi
-
-		z4r := z2r*z2r - z2i*z2i
-		z4i := 2.0 * z2r * z2i
-
-		newZr := z4r*zr - z4i*zi + cr
-		newZi := z4r*zi + z4i*zr + ci
-		zr = newZr
-		zi = newZi
-	}
-
-	return maxIter
-}
-
-func manhattan(cr, ci float64, maxIter int) int {
-	zr, zi := 0.0, 0.0
-
-	for i := 0; i < maxIter; i++ {
-		zr2 := zr * zr
-		zi2 := zi * zi
-
-		if math.Abs(zr)+math.Abs(zi) > 4.0 {
-			return i
-		}
-
-		zi = 2.0*zr*zi + ci
-		zr = zr2 - zi2 + cr
-	}
-
-	return maxIter
-}
-
-// newton calculates the Newton fractal for z^3 - 1 = 0
-// Shows basins of attraction for the three cube roots of unity
-// Uses Newton's method: z_new = z - f(z)/f'(z) = z - (z^3 - 1)/(3z^2)
-func newton(zr, zi float64, maxIter int) int {
-	const tolerance = 1e-6
-
-	// Three roots of z^3 - 1 = 0 (cube roots of unity)
-	// root1 = 1 + 0i
-	// root2 = -0.5 + 0.866i
-	// root3 = -0.5 - 0.866i
-
-	for i := 0; i < maxIter; i++ {
-		// Calculate z^2
-		zr2 := zr * zr
-		zi2 := zi * zi
-
-		// Calculate z^3 = z * z^2
-		z3r := zr*zr2 - zr*zi2 - zr*zi2
-		z3i := zi*zr2 + zi*zr2 + zr*zi2
-
-		// f(z) = z^3 - 1
-		fr := z3r - 1.0
-		fi := z3i
-
-		// f'(z) = 3z^2
-		fpr := 3.0 * (zr2 - zi2)
-		fpi := 6.0 * zr * zi
-
-		// Calculate f(z)/f'(z) using complex division
-		// (a + bi) / (c + di) = ((ac + bd) + (bc - ad)i) / (c^2 + d^2)
-		denom := fpr*fpr + fpi*fpi
-		if denom < 1e-10 {
-			return i
-		}
-
-		divr := (fr*fpr + fi*fpi) / denom
-		divi := (fi*fpr - fr*fpi) / denom
-
-		// z_new = z - f(z)/f'(z)
-		newZr := zr - divr
-		newZi := zi - divi
-
-		// Check convergence
-		dr := newZr - zr
-		di := newZi - zi
-		if dr*dr+di*di < tolerance*tolerance {
-			// Converged - determine which root and color based on it
-			// Check distance to each root
-			d1 := (newZr-1.0)*(newZr-1.0) + newZi*newZi
-			d2 := (newZr+0.5)*(newZr+0.5) + (newZi-0.866025)*(newZi-0.866025)
-			d3 := (newZr+0.5)*(newZr+0.5) + (newZi+0.866025)*(newZi+0.866025)
-
-			// Return different values based on which root we converged to
-			// This creates the three-fold symmetric basins
-			if d1 < d2 && d1 < d3 {
-				return maxIter - i // Root 1 (real)
-			} else if d2 < d3 {
-				return maxIter - i*2/3 // Root 2 (upper)
-			} else {
-				return maxIter - i/3 // Root 3 (lower)
-			}
-		}
-
-		zr = newZr
-		zi = newZi
-	}
-
-	return 0 // Did not converge
 }
 
 // calculateFractal dispatches to the appropriate fractal function based on config

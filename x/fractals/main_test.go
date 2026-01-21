@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/qjcg/arcadia/x/fractals/colorthemes"
+	"github.com/qjcg/arcadia/x/fractals/persistence"
 )
 
 func TestMapToComplex(t *testing.T) {
@@ -431,35 +432,35 @@ func TestGetEffectiveSearchDelta(t *testing.T) {
 func TestGenerateBookmarkName(t *testing.T) {
 	// Test that it generates names
 	for i := 0; i < 10; i++ {
-		name := generateBookmarkName()
+		name := persistence.GenerateBookmarkName()
 
 		// Should not be empty
 		if name == "" {
-			t.Error("generateBookmarkName() returned empty string")
+			t.Error("GenerateBookmarkName() returned empty string")
 		}
 
 		// Should contain an underscore (adjective_noun format)
 		if !containsChar(name, '_') {
-			t.Errorf("generateBookmarkName() = %q, expected format adjective_noun", name)
+			t.Errorf("GenerateBookmarkName() = %q, expected format adjective_noun", name)
 		}
 
 		// Should have two parts
 		parts := splitString(name, '_')
 		if len(parts) != 2 {
-			t.Errorf("generateBookmarkName() = %q, expected two parts separated by underscore", name)
+			t.Errorf("GenerateBookmarkName() = %q, expected two parts separated by underscore", name)
 		}
 	}
 
 	// Test that it generates different names (probabilistic test)
 	names := make(map[string]bool)
 	for i := 0; i < 50; i++ {
-		name := generateBookmarkName()
+		name := persistence.GenerateBookmarkName()
 		names[name] = true
 	}
 
 	// Should have generated at least 30 different names out of 50
 	if len(names) < 30 {
-		t.Errorf("generateBookmarkName() generated only %d unique names out of 50, expected more variety",
+		t.Errorf("GenerateBookmarkName() generated only %d unique names out of 50, expected more variety",
 			len(names))
 	}
 }
@@ -812,7 +813,7 @@ func TestLoadBookmark(t *testing.T) {
 			MaxIter:     50,
 			ColorScheme: colorthemes.ColorGrayscale,
 		},
-		bookmarks: []Bookmark{
+		bookmarks: []persistence.Bookmark{
 			{
 				Name:        "test1",
 				FractalType: FractalJulia,
@@ -874,7 +875,7 @@ func TestLoadBookmark(t *testing.T) {
 
 func TestDeleteBookmark(t *testing.T) {
 	m := model{
-		bookmarks: []Bookmark{
+		bookmarks: []persistence.Bookmark{
 			{Name: "test1", FractalType: FractalMandelbrot},
 			{Name: "test2", FractalType: FractalJulia},
 			{Name: "test3", FractalType: FractalBurningShip},
@@ -1152,7 +1153,7 @@ func TestRenderFractalAllTypes(t *testing.T) {
 
 func TestBookmarkYAMLMarshaling(t *testing.T) {
 	// Test that bookmarks can be marshaled/unmarshaled properly
-	bookmarks := []Bookmark{
+	bookmarks := []persistence.Bookmark{
 		{
 			Name:        "test_bookmark",
 			FractalType: FractalNewton,
@@ -1355,12 +1356,12 @@ func TestAddBookmarkIntegration(t *testing.T) {
 			MaxIter:     100,
 			ColorScheme: colorthemes.ColorRainbow,
 		},
-		bookmarks: []Bookmark{},
+		bookmarks: []persistence.Bookmark{},
 	}
 
 	// This would normally save to file, which we skip in tests
 	// Just verify the bookmark structure
-	bookmark := Bookmark{
+	bookmark := persistence.Bookmark{
 		Name:        "test_newton",
 		FractalType: m.config.FractalType,
 		CenterX:     m.config.CenterX,
@@ -1416,7 +1417,7 @@ func TestRenderHelp(t *testing.T) {
 func TestRenderBookmarks(t *testing.T) {
 	m := model{
 		config: Config{},
-		bookmarks: []Bookmark{
+		bookmarks: []persistence.Bookmark{
 			{Name: "test1", FractalType: FractalMandelbrot, Zoom: 1.0},
 			{Name: "test2", FractalType: FractalNewton, Zoom: 50.0},
 		},
