@@ -36,3 +36,7 @@ tasks:
     deps: [tag]
     cmds:
       - git push --tags
+
+  test:go-tools:
+    desc: Test go tools to ensure none are broken due to dependency updates.
+    cmd: ./scripts/test_go_tools.sh
