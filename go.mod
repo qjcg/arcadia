@@ -42,9 +42,9 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0 // indirect
 	github.com/BurntSushi/toml v1.6.0 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.30.0 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.54.0 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.54.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.31.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.55.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.55.0 // indirect
 	github.com/Ladicle/tabwriter v1.0.0 // indirect
 	github.com/MadAppGang/httplog v1.3.0 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
@@ -68,7 +68,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.7 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.17 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.20.19 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.21.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.17 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.17 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
@@ -102,10 +102,10 @@ require (
 	github.com/charmbracelet/colorprofile v0.4.1 // indirect
 	github.com/charmbracelet/fang v0.4.4 // indirect
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260113215839-fa031ff101a1 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20260119114420-32357e088c3c // indirect
 	github.com/charmbracelet/x/ansi v0.11.4 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.14 // indirect
-	github.com/charmbracelet/x/exp/charmtone v0.0.0-20260116010723-b770f9f0bfed // indirect
+	github.com/charmbracelet/x/exp/charmtone v0.0.0-20260119114936-fd556377ea59 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
@@ -129,7 +129,7 @@ require (
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/dnephin/pflag v1.0.7 // indirect
-	github.com/docker/cli v29.2.0-rc.1.0.20251223174200-874b831c0e49+incompatible // indirect
+	github.com/docker/cli v29.2.0-rc.2+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker v28.5.2+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.5 // indirect
@@ -314,7 +314,7 @@ require (
 	github.com/pingcap/errors v0.11.5-0.20250523034308-74f78ae071ee // indirect
 	github.com/pingcap/failpoint v0.0.0-20251231045439-91d91e123837 // indirect
 	github.com/pingcap/log v1.1.0 // indirect
-	github.com/pingcap/tidb/pkg/parser v0.0.0-20260119021720-7f129e5b8492 // indirect
+	github.com/pingcap/tidb/pkg/parser v0.0.0-20260120162438-e9c1bbbdf4d1 // indirect
 	github.com/pjbgf/sha1cd v0.5.0 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -357,7 +357,7 @@ require (
 	github.com/stoewer/go-strcase v1.3.1 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	github.com/studio-b12/gowebdav v0.11.0 // indirect
+	github.com/studio-b12/gowebdav v0.12.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/superfly/ltx v0.5.1 // indirect
 	github.com/tetratelabs/wabin v0.0.0-20230304001439-f6f874872834 // indirect
@@ -426,9 +426,9 @@ require (
 	golang.org/x/vuln v1.1.4 // indirect
 	gonum.org/v1/plot v0.16.0 // indirect
 	google.golang.org/api v0.260.0 // indirect
-	google.golang.org/genproto v0.0.0-20260114163908-3f89685c29c3 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260114163908-3f89685c29c3 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260114163908-3f89685c29c3 // indirect
+	google.golang.org/genproto v0.0.0-20260120221211-b8f7ae30c516 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260120221211-b8f7ae30c516 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect
 	google.golang.org/grpc v1.78.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
@@ -455,7 +455,7 @@ require (
 	modernc.org/libc v1.67.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	modernc.org/sqlite v1.44.2 // indirect
+	modernc.org/sqlite v1.44.3 // indirect
 	mvdan.cc/gofumpt v0.9.2 // indirect
 	mvdan.cc/sh/moreinterp v0.0.0-20251109230715-65adef8e2c5b // indirect
 	mvdan.cc/sh/v3 v3.12.1-0.20250902163504-3cf4fd5717a5 // indirect
@@ -463,7 +463,7 @@ require (
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	rsc.io/markdown v0.0.0-20241212154241-6bf72452917f // indirect
 	rsc.io/uncover v0.0.2 // indirect
-	sigs.k8s.io/controller-runtime v0.22.4 // indirect
+	sigs.k8s.io/controller-runtime v0.23.0 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/kustomize/api v0.21.0 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.21.0 // indirect
