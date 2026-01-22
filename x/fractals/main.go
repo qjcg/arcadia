@@ -1820,6 +1820,8 @@ func main() {
 	legacyMode := flag.Bool("static", false, "Run in legacy static mode (disables interactive)")
 	randomMode := flag.Bool("random", false, "Start with a completely random interesting view")
 	flag.BoolVar(randomMode, "r", false, "Start with a completely random interesting view (shorthand)")
+	autopilot := flag.Bool("autopilot", false, "Enable autopilot mode (auto-zoom and explore)")
+	flag.BoolVar(autopilot, "a", false, "Enable autopilot mode (auto-zoom and explore) (shorthand)")
 
 	flag.IntVar(&config.Width, "w", 0, "Terminal width (0 = auto)")
 	flag.IntVar(&config.Width, "width", 0, "Terminal width (0 = auto)")
@@ -1985,6 +1987,11 @@ func main() {
 			m.autoZoom = urlAutopilot
 			m.dynamicColor = urlDynamicColor
 			m.transitionMode = urlTransitionMode
+		}
+
+		// Apply CLI autopilot flag if provided
+		if *autopilot {
+			m.autoZoom = true
 		}
 
 		p := tea.NewProgram(m, tea.WithAltScreen())
