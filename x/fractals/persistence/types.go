@@ -6,6 +6,7 @@ type URLMode string
 const (
 	ModeStandard URLMode = "standard"
 	ModeRandom   URLMode = "random"
+	ModeVantage  URLMode = "vantage"
 )
 
 // Config holds the rendering configuration

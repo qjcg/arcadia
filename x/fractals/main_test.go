@@ -1460,3 +1460,94 @@ func TestRenderBookmarkInput(t *testing.T) {
 		t.Error("Bookmark input doesn't show fractal type")
 	}
 }
+
+func TestVantageModeFields(t *testing.T) {
+	m := model{
+		vantageMode:        true,
+		vantageSceneDur:    100,
+		vantageSceneTimer:  50,
+		vantageInitialized: false,
+	}
+
+	if !m.vantageMode {
+		t.Error("vantageMode should be true")
+	}
+
+	if m.vantageSceneDur != 100 {
+		t.Errorf("vantageSceneDur should be 100, got %d", m.vantageSceneDur)
+	}
+
+	if m.vantageSceneTimer != 50 {
+		t.Errorf("vantageSceneTimer should be 50, got %d", m.vantageSceneTimer)
+	}
+
+	if m.vantageInitialized {
+		t.Error("vantageInitialized should be false")
+	}
+}
+
+func TestVantageModeInit(t *testing.T) {
+	m := model{
+		config: Config{
+			Width:       80,
+			Height:      40,
+			MaxIter:     50,
+			CenterX:     -0.5,
+			CenterY:     0.0,
+			Zoom:        1.0,
+			ColorScheme: "grayscale",
+			FractalType: "mandelbrot",
+			JuliaCr:     -0.7,
+			JuliaCi:     0.27015,
+		},
+		baseMaxIter:       50,
+		vantageMode:       true,
+		vantageSceneDur:   100,
+		vantageSceneTimer: 0,
+	}
+
+	// Test that Init returns a tickCmd when vantage mode is enabled
+	cmd := m.Init()
+	if cmd == nil {
+		t.Errorf("Expected tickCmd for vantage mode, got nil")
+	}
+}
+
+func TestStatusBarModeIndicators(t *testing.T) {
+	config := Config{
+		Width:       80,
+		Height:      40,
+		MaxIter:     50,
+		CenterX:     -0.5,
+		CenterY:     0.0,
+		Zoom:        1.0,
+		ColorScheme: "grayscale",
+		FractalType: "mandelbrot",
+		JuliaCr:     -0.7,
+		JuliaCi:     0.27015,
+	}
+
+	// Test explorer mode (manual navigation)
+	m := model{config: config, autoZoom: false, vantageMode: false}
+	output := m.renderStatusBar()
+	if !containsSubstring(output, "Explore") {
+		t.Error("Status bar should show 'Explore' for manual mode")
+	}
+
+	// Test autopilot mode
+	m = model{config: config, autoZoom: true, vantageMode: false, autoZoomDirection: 1, zoomSpeed: 1.05}
+	output = m.renderStatusBar()
+	if !containsSubstring(output, "AUTO-PILOT") {
+		t.Error("Status bar should show 'AUTO-PILOT' when autopilot is active")
+	}
+
+	// Test vantage mode
+	m = model{config: config, autoZoom: false, vantageMode: true, vantageSceneDur: 100}
+	output = m.renderStatusBar()
+	if !containsSubstring(output, "VANTAGE") {
+		t.Error("Status bar should show 'VANTAGE' when vantage is active")
+	}
+	if !containsSubstring(output, "5.0s") {
+		t.Error("Status bar should show vantage duration (100 ticks = 5 seconds)")
+	}
+}

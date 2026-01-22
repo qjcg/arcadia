@@ -48,6 +48,7 @@ const (
 	// URL modes
 	ModeRandom   = persistence.ModeRandom
 	ModeStandard = persistence.ModeStandard
+	ModeVantage  = persistence.ModeVantage
 )
 
 var (
@@ -144,12 +145,21 @@ type model struct {
 	urlTimer int    // Countdown for hiding URL message
 	// Zoom speed control
 	zoomSpeed float64 // Multiplier for zoom speed (default 1.05, adjustable 0.9-1.5)
+	// Vantage mode state
+	vantageMode        bool // When true, continuously cycle through random scenes
+	vantageSceneDur    int  // Number of ticks per scene (default 5 seconds = 100 ticks at 50ms)
+	vantageSceneTimer  int  // Countdown for current scene
+	vantageInitialized bool // Track if mode has been initialized
 }
 
 // Init initializes the Bubble Tea model
 func (m model) Init() tea.Cmd {
 	// If auto-zoom is enabled (e.g., from URL), start the tick loop
 	if m.autoZoom {
+		return tickCmd()
+	}
+	// If vantage mode is enabled, start the tick loop
+	if m.vantageMode {
 		return tickCmd()
 	}
 	return nil
@@ -768,6 +778,74 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tickMsg:
+		// Handle vantage mode - continuous random scenes with slow pan
+		if m.vantageMode {
+			// Initialize first scene if not yet initialized
+			if !m.vantageInitialized {
+				m.applyRandom()
+				m.vantageSceneTimer = m.vantageSceneDur
+				m.vantageInitialized = true
+				// Enable slow panning by setting up a fake autopilot target
+				newX, newY := m.findInterestingPoint()
+				m.targetX = newX
+				m.targetY = newY
+				m.hasTarget = true
+				m.panProgress = 0.0
+				// Ensure dynamic color and no auto-zoom
+				m.dynamicColor = true
+				m.autoZoom = false
+				return m, tickCmd()
+			}
+
+			// Decrement scene timer
+			m.vantageSceneTimer--
+
+			// Apply slow pan if we have a target
+			if m.hasTarget && m.panProgress < 1.0 {
+				// Move toward target gradually (slower than autopilot)
+				// Use 2% per tick instead of 5% for slower panning
+				deltaX := m.targetX - m.config.CenterX
+				deltaY := m.targetY - m.config.CenterY
+
+				m.config.CenterX += deltaX * 0.02
+				m.config.CenterY += deltaY * 0.02
+
+				// Update progress based on distance remaining
+				effectiveDelta := m.getEffectiveSearchDelta()
+				precisionThreshold := effectiveDelta * effectiveDelta * 0.01
+
+				remainingDist := deltaX*deltaX + deltaY*deltaY
+				if remainingDist < precisionThreshold {
+					m.panProgress = 1.0
+				} else {
+					m.panProgress += 0.01 // Also slower progress update
+				}
+			}
+
+			// Update dynamic color hue shift
+			if m.dynamicColor {
+				m.hueShift += 0.5
+				if m.hueShift >= 360.0 {
+					m.hueShift -= 360.0
+				}
+			}
+
+			// Check if it's time to switch to a new scene
+			if m.vantageSceneTimer <= 0 {
+				m.applyRandom()
+				m.vantageSceneTimer = m.vantageSceneDur
+				// Find new interesting point to pan to
+				newX, newY := m.findInterestingPoint()
+				m.targetX = newX
+				m.targetY = newY
+				m.hasTarget = true
+				m.panProgress = 0.0
+			}
+
+			// Continue the animation
+			return m, tickCmd()
+		}
+
 		// Handle auto-zoom animation tick with intelligent panning
 		if m.autoZoom {
 			// Update iteration count adaptively based on zoom level
@@ -1080,7 +1158,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tickCmd()
 
 		case "z":
-			// Toggle auto-zoom mode
+			// Toggle auto-pilot mode (mutually exclusive with vantage mode)
+			if m.vantageMode {
+				// Exit vantage mode when entering autopilot
+				m.vantageMode = false
+				m.vantageInitialized = false
+			}
 			m.autoZoom = !m.autoZoom
 			if m.autoZoom {
 				// Store base iteration count for adaptive scaling
@@ -1102,6 +1185,42 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.autoZoomDirection = -1
 			} else {
 				m.autoZoomDirection = 1
+			}
+			return m, nil
+
+		case "V":
+			// Toggle vantage mode (mutually exclusive with autopilot)
+			if m.autoZoom {
+				// Exit autopilot when entering vantage mode
+				m.autoZoom = false
+			}
+			m.vantageMode = !m.vantageMode
+			if m.vantageMode {
+				// Entering vantage mode
+				// Store base iteration count for adaptive scaling
+				if m.baseMaxIter == 0 {
+					m.baseMaxIter = m.config.MaxIter
+				}
+				// Initialize if needed
+				if !m.vantageInitialized {
+					m.vantageSceneTimer = 0
+					// Set default scene duration if not already set
+					if m.vantageSceneDur == 0 {
+						m.vantageSceneDur = 100 // Default 5 seconds (100 ticks at 50ms)
+					}
+				}
+				// Force dynamic color on, autopilot off
+				m.dynamicColor = true
+				m.autoZoom = false
+				m.randomMsg = fmt.Sprintf("Vantage Mode: ON (%.1fs/scene)", float64(m.vantageSceneDur)/20.0)
+				m.randomTimer = 30
+				// Start the animation
+				return m, tickCmd()
+			} else {
+				// Exiting vantage mode
+				m.vantageInitialized = false
+				m.randomMsg = "Vantage Mode: OFF"
+				m.randomTimer = 30
 			}
 			return m, nil
 
@@ -1304,7 +1423,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.urlTimer = 120
 			return m, tickCmd()
 
-		// Zoom speed control
+		// Zoom speed control (autopilot)
 		case "}":
 			// Increase zoom speed
 			m.zoomSpeed = math.Min(m.zoomSpeed+0.05, 1.5)
@@ -1315,6 +1434,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Decrease zoom speed
 			m.zoomSpeed = math.Max(m.zoomSpeed-0.05, 0.90)
 			m.randomMsg = fmt.Sprintf("Zoom speed: %.2fx", m.zoomSpeed)
+			m.randomTimer = 30
+			return m, nil
+
+		// Vantage scene duration control
+		case ">":
+			// Increase vantage scene duration
+			m.vantageSceneDur = int(math.Min(float64(m.vantageSceneDur)+20, 600)) // Max 30 seconds (600 ticks)
+			sceneSec := float64(m.vantageSceneDur) / 20.0
+			m.randomMsg = fmt.Sprintf("Vantage duration: %.1fs/scene", sceneSec)
+			m.randomTimer = 30
+			return m, nil
+		case "<":
+			// Decrease vantage scene duration
+			m.vantageSceneDur = int(math.Max(float64(m.vantageSceneDur)-20, 20)) // Min 1 second (20 ticks)
+			sceneSec := float64(m.vantageSceneDur) / 20.0
+			m.randomMsg = fmt.Sprintf("Vantage duration: %.1fs/scene", sceneSec)
 			m.randomTimer = 30
 			return m, nil
 		}
@@ -1371,6 +1506,9 @@ func (m model) renderHelp() string {
 	help.WriteString("  r                  Reverse auto-pilot zoom direction (↑ ↔ ↓)\n")
 	help.WriteString("                     Direction indicator always visible in status bar\n")
 	help.WriteString("  }, {               Increase/decrease auto-pilot zoom speed\n")
+	help.WriteString("  V                  Toggle vantage mode (random scenes with slow pan)\n")
+	help.WriteString("                     Dynamic color ON, auto-pilot OFF, new scene every N seconds\n")
+	help.WriteString("  >, <               Increase/decrease vantage scene duration (1-30 seconds)\n")
 	help.WriteString("  0                  Reset view (position, zoom, and iteration depth)\n\n")
 
 	help.WriteString(keyStyle.Render("Fractal Types:") + "\n")
@@ -1519,8 +1657,18 @@ func (m model) renderStatusBar() string {
 		directionArrow = "\u2193" // ↓ (down arrow)
 	}
 
-	autoZoomIndicator := ""
-	if m.autoZoom {
+	// Build mode indicator - only one mode can be active at once
+	modeIndicator := ""
+	if m.vantageMode {
+		// Active vantage mode: bright blue background
+		vantageStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("white")).
+			Background(lipgloss.Color("blue")).
+			Bold(true)
+		sceneDurationSec := float64(m.vantageSceneDur) / 20.0
+		statusText := fmt.Sprintf(" VANTAGE (%.1fs/scene) ", sceneDurationSec)
+		modeIndicator = vantageStyle.Render(statusText)
+	} else if m.autoZoom {
 		// Active auto-pilot: bright green background
 		autoZoomStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("white")).
@@ -1532,13 +1680,13 @@ func (m model) renderStatusBar() string {
 			// Show we're panning toward an interesting region
 			statusText = fmt.Sprintf(" AUTO-PILOT \u2192 %s (%.2fx) ", directionArrow, m.zoomSpeed) // → arrow
 		}
-		autoZoomIndicator = autoZoomStyle.Render(statusText)
+		modeIndicator = autoZoomStyle.Render(statusText)
 	} else {
-		// Auto-pilot off: subtle indicator showing ready direction
+		// Manual mode: subtle indicator
 		inactiveStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240")). // Gray
 			Bold(false)
-		autoZoomIndicator = inactiveStyle.Render(fmt.Sprintf("Auto: %s (%.2fx)", directionArrow, m.zoomSpeed))
+		modeIndicator = inactiveStyle.Render(fmt.Sprintf("Explore (z/V to toggle)"))
 	}
 
 	// Format zoom level - use scientific notation for high values
@@ -1597,8 +1745,8 @@ func (m model) renderStatusBar() string {
 
 	// Build the complete status bar
 	statusBar := status
-	// Auto-pilot direction indicator (always shown)
-	statusBar += autoZoomIndicator + " "
+	// Mode indicator (always shown)
+	statusBar += modeIndicator + " "
 	// Screenshot message (only when present)
 	if screenshotIndicator != "" {
 		statusBar += screenshotIndicator + " "
@@ -1822,6 +1970,8 @@ func main() {
 	flag.BoolVar(randomMode, "r", false, "Start with a completely random interesting view (shorthand)")
 	autopilot := flag.Bool("autopilot", false, "Enable autopilot mode (auto-zoom and explore)")
 	flag.BoolVar(autopilot, "a", false, "Enable autopilot mode (auto-zoom and explore) (shorthand)")
+	vantage := flag.Bool("vantage", false, "Enable vantage mode (continuous random interesting scenes with slow pan)")
+	vantageSceneDuration := flag.Int("vantage-duration", 5, "Duration of each scene in vantage mode (seconds, default 5)")
 
 	flag.IntVar(&config.Width, "w", 0, "Terminal width (0 = auto)")
 	flag.IntVar(&config.Width, "width", 0, "Terminal width (0 = auto)")
@@ -1992,6 +2142,17 @@ func main() {
 		// Apply CLI autopilot flag if provided
 		if *autopilot {
 			m.autoZoom = true
+		}
+
+		// Apply CLI vantage flag if provided
+		if *vantage {
+			m.vantageMode = true
+			// vantage duration in seconds -> convert to ticks (50ms per tick)
+			m.vantageSceneDur = *vantageSceneDuration * 20 // 20 ticks per second
+			m.vantageSceneTimer = 0                        // Will trigger first scene immediately
+			// Force dynamic color on and autopilot off
+			m.dynamicColor = true
+			m.autoZoom = false
 		}
 
 		p := tea.NewProgram(m, tea.WithAltScreen())
