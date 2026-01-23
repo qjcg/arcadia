@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/qjcg/arcadia/x/fractals/colorthemes"
+	"github.com/qjcg/arcadia/x/fractals/internal/animation"
+	renderlib "github.com/qjcg/arcadia/x/fractals/internal/render"
 	"github.com/qjcg/arcadia/x/fractals/persistence"
 )
 
@@ -98,13 +100,13 @@ func TestGetChar(t *testing.T) {
 	maxIter := 50
 
 	// Test that points in the set get the densest character
-	char := getChar(maxIter, maxIter)
+	char := getChar(float64(maxIter), maxIter)
 	if char != '@' {
 		t.Errorf("Expected '@' for points in set, got '%c'", char)
 	}
 
 	// Test that points that diverge immediately get the sparsest character
-	char = getChar(0, maxIter)
+	char = getChar(0.0, maxIter)
 	if char != ' ' {
 		t.Errorf("Expected ' ' for immediate divergence, got '%c'", char)
 	}
@@ -112,7 +114,7 @@ func TestGetChar(t *testing.T) {
 	// Test that we get different characters for different iteration counts
 	chars := make(map[byte]bool)
 	for i := 0; i < maxIter; i += 5 {
-		char := getChar(i, maxIter)
+		char := getChar(float64(i), maxIter)
 		chars[char] = true
 	}
 
@@ -293,12 +295,12 @@ func TestCalculateFractal(t *testing.T) {
 					if iter == 0 {
 						t.Error("Expected Newton to converge, got iter=0")
 					}
-				} else if iter != tt.config.MaxIter {
+				} else if int(iter) != tt.config.MaxIter {
 					t.Errorf("Expected point to be in set (iter=%d), got iter=%d",
-						tt.config.MaxIter, iter)
+						tt.config.MaxIter, int(iter))
 				}
 			} else {
-				if iter == tt.config.MaxIter {
+				if int(iter) == tt.config.MaxIter {
 					t.Error("Expected point to diverge")
 				}
 			}
@@ -315,46 +317,40 @@ func TestCalculateAdaptiveMaxIter(t *testing.T) {
 		wantMax     int
 	}{
 		{
-			name:        "Zoom=1 returns base iterations",
-			baseMaxIter: 50,
-			zoom:        1.0,
-			wantMin:     50,
-			wantMax:     50,
+			name:    "Zoom=1 returns base iterations",
+			zoom:    1.0,
+			wantMin: 50,
+			wantMax: 50,
 		},
 		{
-			name:        "Zoom=100 adds iterations",
-			baseMaxIter: 50,
-			zoom:        100.0,
-			wantMin:     80,
-			wantMax:     100,
+			name:    "Zoom=100 adds iterations",
+			zoom:    100.0,
+			wantMin: 80,
+			wantMax: 100,
 		},
 		{
-			name:        "Zoom=10000 adds more iterations",
-			baseMaxIter: 50,
-			zoom:        10000.0,
-			wantMin:     120,
-			wantMax:     150,
+			name:    "Zoom=10000 adds more iterations",
+			zoom:    10000.0,
+			wantMin: 120,
+			wantMax: 150,
 		},
 		{
-			name:        "Very high zoom capped at 2000",
-			baseMaxIter: 50,
-			zoom:        1e100,
-			wantMin:     2000,
-			wantMax:     2000,
+			name:    "Very high zoom capped at 2000",
+			zoom:    1e100,
+			wantMin: 2000,
+			wantMax: 2000,
 		},
 		{
-			name:        "Zero baseMaxIter uses default",
-			baseMaxIter: 0,
-			zoom:        1.0,
-			wantMin:     50,
-			wantMax:     50,
+			name:    "Zero baseMaxIter uses default",
+			zoom:    1.0,
+			wantMin: 50,
+			wantMax: 50,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := model{
-				baseMaxIter: tt.baseMaxIter,
 				config: Config{
 					Zoom: tt.zoom,
 				},
@@ -684,24 +680,24 @@ func TestTransitionFunctionality(t *testing.T) {
 	}
 
 	// Test that transition mode can be set
-	m.transitionMode = TransitionFade
-	if m.transitionMode != TransitionFade {
+	m.animationState.Transition.Mode = TransitionFade
+	if m.animationState.Transition.Mode != TransitionFade {
 		t.Error("Failed to set transition mode to Fade")
 	}
 
-	m.transitionMode = TransitionZoomOutIn
-	if m.transitionMode != TransitionZoomOutIn {
+	m.animationState.Transition.Mode = TransitionZoomOutIn
+	if m.animationState.Transition.Mode != TransitionZoomOutIn {
 		t.Error("Failed to set transition mode to ZoomOutIn")
 	}
 
-	m.transitionMode = TransitionRotate
-	if m.transitionMode != TransitionRotate {
+	m.animationState.Transition.Mode = TransitionRotate
+	if m.animationState.Transition.Mode != TransitionRotate {
 		t.Error("Failed to set transition mode to Rotate")
 	}
 
 	// Test transition progress
-	m.transitionProgress = 0.5
-	if m.transitionProgress != 0.5 {
+	m.animationState.Transition.Progress = 0.5
+	if m.animationState.Transition.Progress != 0.5 {
 		t.Error("Failed to set transition progress")
 	}
 
@@ -709,18 +705,18 @@ func TestTransitionFunctionality(t *testing.T) {
 	m.startFractalTransition()
 
 	// Should have set a target fractal type
-	if m.transitionTarget == "" {
+	if m.animationState.Transition.Target == "" {
 		t.Error("startFractalTransition() did not set a target fractal type")
 	}
 
 	// Should have initialized progress to start animation
-	if m.transitionProgress != 0.01 {
-		t.Errorf("startFractalTransition() did not initialize progress to 0.01, got %v", m.transitionProgress)
+	if m.animationState.Transition.Progress != 0.01 {
+		t.Errorf("startFractalTransition() did not initialize progress to 0.01, got %v", m.animationState.Transition.Progress)
 	}
 
 	// Should have stored starting zoom
-	if m.transitionZoomStart <= 0 {
-		t.Errorf("startFractalTransition() did not store starting zoom, got %v", m.transitionZoomStart)
+	if m.animationState.Transition.ZoomStart <= 0 {
+		t.Errorf("startFractalTransition() did not store starting zoom, got %v", m.animationState.Transition.ZoomStart)
 	}
 }
 
@@ -734,28 +730,27 @@ func TestTransitionResetFunctionality(t *testing.T) {
 			MaxIter:     200,   // High iterations to test reset
 			ColorScheme: colorthemes.ColorGrayscale,
 		},
-		baseMaxIter: 50, // Set a base iteration count
 	}
 
 	// Manually set up a transition to test completion
-	m.transitionMode = TransitionFade
-	m.transitionTarget = FractalJulia
-	m.transitionProgress = 1.0 // Force completion
-	m.transitionZoomStart = 100.0
+	m.animationState.Transition.Mode = TransitionFade
+	m.animationState.Transition.Target = FractalJulia
+	m.animationState.Transition.Progress = 1.0 // Force completion
+	m.animationState.Transition.ZoomStart = 100.0
 
 	// Simulate the transition completion logic
-	if m.transitionProgress >= 1.0 {
-		m.config.FractalType = m.transitionTarget
-		m.transitionProgress = 0.0
+	if m.animationState.Transition.Progress >= 1.0 {
+		m.config.FractalType = m.animationState.Transition.Target
+		m.animationState.Transition.Progress = 0.0
 		m.config.Zoom = 1.0
 		// Reset iteration count to base value
-		if m.baseMaxIter > 0 {
-			m.config.MaxIter = m.baseMaxIter
+		if m.animationState.AutoPilot.BaseMaxIter > 0 {
+			m.config.MaxIter = m.animationState.AutoPilot.BaseMaxIter
 		} else {
 			m.config.MaxIter = 50
 		}
 		// Reset to default position for Julia set
-		if m.transitionTarget == FractalJulia {
+		if m.animationState.Transition.Target == FractalJulia {
 			m.config.CenterX = 0.0
 			m.config.CenterY = 0.0
 			m.config.JuliaCr = -0.7
@@ -768,8 +763,8 @@ func TestTransitionResetFunctionality(t *testing.T) {
 		t.Error("Transition did not change fractal type to Julia")
 	}
 
-	if m.transitionProgress != 0.0 {
-		t.Errorf("Transition progress not reset, got %v", m.transitionProgress)
+	if m.animationState.Transition.Progress != 0.0 {
+		t.Errorf("Transition progress not reset, got %v", m.animationState.Transition.Progress)
 	}
 
 	if m.config.Zoom != 1.0 {
@@ -835,7 +830,6 @@ func TestLoadBookmark(t *testing.T) {
 				ColorScheme: colorthemes.ColorRainbow,
 			},
 		},
-		baseMaxIter: 50,
 	}
 
 	// Load first bookmark
@@ -854,8 +848,8 @@ func TestLoadBookmark(t *testing.T) {
 	if m.config.ColorScheme != colorthemes.ColorBlue {
 		t.Errorf("loadBookmark() ColorScheme = %s, want %s", m.config.ColorScheme, colorthemes.ColorBlue)
 	}
-	if m.baseMaxIter != 100 {
-		t.Errorf("loadBookmark() baseMaxIter = %d, want %d", m.baseMaxIter, 100)
+	if m.animationState.AutoPilot.BaseMaxIter != 100 {
+		t.Errorf("loadBookmark() baseMaxIter = %d, want %d", m.animationState.AutoPilot.BaseMaxIter, 100)
 	}
 
 	// Load second bookmark
@@ -922,17 +916,19 @@ func TestDeleteBookmark(t *testing.T) {
 }
 
 func TestRenderFractal(t *testing.T) {
+	cfg := Config{
+		Width:       20,
+		Height:      10,
+		MaxIter:     50,
+		CenterX:     -0.5,
+		CenterY:     0.0,
+		Zoom:        1.0,
+		FractalType: FractalMandelbrot,
+		ColorScheme: colorthemes.ColorGrayscale,
+	}
 	m := model{
-		config: Config{
-			Width:       20,
-			Height:      10,
-			MaxIter:     50,
-			CenterX:     -0.5,
-			CenterY:     0.0,
-			Zoom:        1.0,
-			FractalType: FractalMandelbrot,
-			ColorScheme: colorthemes.ColorGrayscale,
-		},
+		config:   cfg,
+		renderer: renderlib.NewRenderer(cfg, wrapCalculateFractal),
 	}
 
 	output := m.renderFractal()
@@ -971,8 +967,6 @@ func TestRenderStatusBar(t *testing.T) {
 					MaxIter:     50,
 					ColorScheme: colorthemes.ColorGrayscale,
 				},
-				autoZoom:          false,
-				autoZoomDirection: 1,
 			},
 			contains: []string{"mandelbrot", "-0.5000", "50", "grayscale"},
 		},
@@ -984,8 +978,11 @@ func TestRenderStatusBar(t *testing.T) {
 					Zoom:        1.0,
 					MaxIter:     50,
 				},
-				autoZoom:          true,
-				autoZoomDirection: 1,
+				animationState: animation.AnimationState{
+					AutoPilot: animation.AutoPilotState{
+						Enabled: true,
+					},
+				},
 			},
 			contains: []string{"AUTO-PILOT"},
 		},
@@ -999,7 +996,6 @@ func TestRenderStatusBar(t *testing.T) {
 					Zoom:        1.0,
 					MaxIter:     50,
 				},
-				autoZoomDirection: 1,
 			},
 			contains: []string{"julia", "Julia"},
 		},
@@ -1125,19 +1121,21 @@ func TestRenderFractalAllTypes(t *testing.T) {
 	// Test that all fractal types can be rendered without panicking
 	for _, fractalType := range allFractalTypes {
 		t.Run(fractalType, func(t *testing.T) {
+			cfg := Config{
+				Width:       10,
+				Height:      5,
+				MaxIter:     20,
+				CenterX:     0.0,
+				CenterY:     0.0,
+				Zoom:        1.0,
+				FractalType: fractalType,
+				ColorScheme: colorthemes.ColorGrayscale,
+				JuliaCr:     -0.7,
+				JuliaCi:     0.27015,
+			}
 			m := model{
-				config: Config{
-					Width:       10,
-					Height:      5,
-					MaxIter:     20,
-					CenterX:     0.0,
-					CenterY:     0.0,
-					Zoom:        1.0,
-					FractalType: fractalType,
-					ColorScheme: colorthemes.ColorGrayscale,
-					JuliaCr:     -0.7,
-					JuliaCi:     0.27015,
-				},
+				config:   cfg,
+				renderer: renderlib.NewRenderer(cfg, wrapCalculateFractal),
 			}
 
 			// Should not panic
@@ -1234,7 +1232,7 @@ func TestGetCharBoundaries(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		char := getChar(tt.iter, maxIter)
+		char := getChar(float64(tt.iter), maxIter)
 		if tt.iter == 0 && char != ' ' {
 			t.Errorf("getChar(0) = %c, want ' '", char)
 		}
@@ -1246,7 +1244,7 @@ func TestGetCharBoundaries(t *testing.T) {
 	// Character should be in the defined set
 	validChars := " .:-=+*#%@"
 	for i := 0; i <= maxIter; i += 10 {
-		char := getChar(i, maxIter)
+		char := getChar(float64(i), maxIter)
 		found := false
 		for _, valid := range validChars {
 			if byte(valid) == char {
@@ -1339,7 +1337,7 @@ func TestFractalQuickDivergence(t *testing.T) {
 			// Should diverge very quickly (within 10 iterations)
 			if iter > 10 {
 				t.Errorf("%s took %d iterations for far point, expected quick divergence",
-					fractalType, iter)
+					fractalType, int(iter))
 			}
 		})
 	}
@@ -1463,25 +1461,29 @@ func TestRenderBookmarkInput(t *testing.T) {
 
 func TestVantageModeFields(t *testing.T) {
 	m := model{
-		vantageMode:        true,
-		vantageSceneDur:    100,
-		vantageSceneTimer:  50,
-		vantageInitialized: false,
+		animationState: animation.AnimationState{
+			Vantage: animation.VantageState{
+				Enabled:       true,
+				SceneDuration: 100,
+				SceneTimer:    50,
+				Initialized:   false,
+			},
+		},
 	}
 
-	if !m.vantageMode {
+	if !m.animationState.Vantage.Enabled {
 		t.Error("vantageMode should be true")
 	}
 
-	if m.vantageSceneDur != 100 {
-		t.Errorf("vantageSceneDur should be 100, got %d", m.vantageSceneDur)
+	if m.animationState.Vantage.SceneDuration != 100 {
+		t.Errorf("vantageSceneDur should be 100, got %d", m.animationState.Vantage.SceneDuration)
 	}
 
-	if m.vantageSceneTimer != 50 {
-		t.Errorf("vantageSceneTimer should be 50, got %d", m.vantageSceneTimer)
+	if m.animationState.Vantage.SceneTimer != 50 {
+		t.Errorf("vantageSceneTimer should be 50, got %d", m.animationState.Vantage.SceneTimer)
 	}
 
-	if m.vantageInitialized {
+	if m.animationState.Vantage.Initialized {
 		t.Error("vantageInitialized should be false")
 	}
 }
@@ -1500,10 +1502,11 @@ func TestVantageModeInit(t *testing.T) {
 			JuliaCr:     -0.7,
 			JuliaCi:     0.27015,
 		},
-		baseMaxIter:       50,
-		vantageMode:       true,
-		vantageSceneDur:   100,
-		vantageSceneTimer: 0,
+		animationState: animation.AnimationState{
+			Vantage: animation.VantageState{
+				Enabled: true,
+			},
+		},
 	}
 
 	// Test that Init returns a tickCmd when vantage mode is enabled
@@ -1528,21 +1531,23 @@ func TestStatusBarModeIndicators(t *testing.T) {
 	}
 
 	// Test explorer mode (manual navigation)
-	m := model{config: config, autoZoom: false, vantageMode: false}
+	m := model{config: config}
 	output := m.renderStatusBar()
 	if !containsSubstring(output, "Explore") {
 		t.Error("Status bar should show 'Explore' for manual mode")
 	}
 
 	// Test autopilot mode
-	m = model{config: config, autoZoom: true, vantageMode: false, autoZoomDirection: 1, zoomSpeed: 1.05}
+	m.animationState.AutoPilot.Enabled = true
 	output = m.renderStatusBar()
 	if !containsSubstring(output, "AUTO-PILOT") {
 		t.Error("Status bar should show 'AUTO-PILOT' when autopilot is active")
 	}
 
 	// Test vantage mode
-	m = model{config: config, autoZoom: false, vantageMode: true, vantageSceneDur: 100}
+	m.animationState.AutoPilot.Enabled = false
+	m.animationState.Vantage.Enabled = true
+	m.animationState.Vantage.SceneDuration = 100
 	output = m.renderStatusBar()
 	if !containsSubstring(output, "VANTAGE") {
 		t.Error("Status bar should show 'VANTAGE' when vantage is active")
