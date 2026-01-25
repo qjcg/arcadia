@@ -1,4 +1,5 @@
 .task
 .crush
+.opencode
 dist/
 bin/
