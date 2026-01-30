@@ -9,20 +9,20 @@ require (
 	github.com/charmbracelet/huh v0.7.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/go-chi/chi/v5 v5.2.3
+	github.com/go-chi/chi/v5 v5.2.4
 	github.com/go-chi/docgen v1.3.0
 	github.com/go-chi/render v1.0.3
 	github.com/go-rod/rod v0.116.2
 	github.com/go-task/task/v3 v3.46.4
-	github.com/gocolly/colly/v2 v2.2.0
+	github.com/gocolly/colly/v2 v2.3.0
 	github.com/gosimple/slug v1.15.0
 	github.com/joliv/spark v0.0.0-20220827214902-be9742b47479
 	github.com/knadh/koanf/providers/env v1.1.0
-	github.com/knadh/koanf/v2 v2.3.0
-	github.com/nats-io/nats-server/v2 v2.12.2
+	github.com/knadh/koanf/v2 v2.3.2
+	github.com/nats-io/nats-server/v2 v2.12.4
 	github.com/nats-io/nats.go v1.48.0
-	github.com/nats-io/nkeys v0.4.12
-	github.com/ncruces/go-sqlite3 v0.30.1
+	github.com/nats-io/nkeys v0.4.14
+	github.com/ncruces/go-sqlite3 v0.30.5
 	github.com/playwright-community/playwright-go v0.5200.0
 	github.com/prometheus-community/pro-bing v0.7.0
 	github.com/rogpeppe/go-internal v1.14.1
@@ -54,9 +54,9 @@ require (
 	github.com/Ladicle/tabwriter v1.0.0 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/PuerkitoBio/goquery v1.10.3 // indirect
+	github.com/PuerkitoBio/goquery v1.11.0 // indirect
 	github.com/ajg/form v1.5.1 // indirect
-	github.com/alecthomas/chroma/v2 v2.23.0 // indirect
+	github.com/alecthomas/chroma/v2 v2.23.1 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/antchfx/htmlquery v1.3.5 // indirect
 	github.com/antchfx/xmlquery v1.5.0 // indirect
@@ -98,12 +98,12 @@ require (
 	github.com/charmbracelet/x/ansi v0.11.4 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.14 // indirect
 	github.com/charmbracelet/x/exp/golden v0.0.0-20250806222409-83e3a29d542f // indirect
-	github.com/charmbracelet/x/exp/slice v0.0.0-20251113172435-cef867b85f6a // indirect
+	github.com/charmbracelet/x/exp/slice v0.0.0-20260127155452-b72a9a918687 // indirect
 	github.com/charmbracelet/x/exp/strings v0.0.0-20240722160745-212f7b056ed0 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
-	github.com/clipperhouse/displaywidth v0.7.0 // indirect
+	github.com/clipperhouse/displaywidth v0.8.0 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
-	github.com/clipperhouse/uax29/v2 v2.3.1 // indirect
+	github.com/clipperhouse/uax29/v2 v2.4.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
@@ -138,7 +138,7 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/go-tpm v0.9.7 // indirect
+	github.com/google/go-tpm v0.9.8 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.11 // indirect
@@ -151,7 +151,7 @@ require (
 	github.com/hashicorp/go-getter v1.8.4 // indirect
 	github.com/hashicorp/go-version v1.8.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/itchyny/gojq v0.12.17 // indirect
+	github.com/itchyny/gojq v0.12.18 // indirect
 	github.com/itchyny/timefmt-go v0.1.7 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
@@ -238,7 +238,7 @@ require (
 	github.com/ysmood/got v0.40.0 // indirect
 	github.com/ysmood/gson v0.7.3 // indirect
 	github.com/ysmood/leakless v0.9.0 // indirect
-	github.com/yuin/goldmark v1.7.13 // indirect
+	github.com/yuin/goldmark v1.7.16 // indirect
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
