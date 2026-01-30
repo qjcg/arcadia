@@ -129,11 +129,7 @@ func NewPixelBatcher(width, height, batchSize int) *PixelBatcher {
 // NextBatch returns the next batch of rows to process
 // Returns row start, row end, and whether there are more batches
 func (pb *PixelBatcher) NextBatch(startRow int) (int, int, bool) {
-	endRow := startRow + pb.batchSize
-	if endRow > pb.height {
-		endRow = pb.height
-	}
-
+	endRow := min(startRow+pb.batchSize, pb.height)
 	hasMore := endRow < pb.height
 	return startRow, endRow, hasMore
 }
