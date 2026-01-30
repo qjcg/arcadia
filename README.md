@@ -4,13 +4,7 @@
 
 <img src="./.assets/thomas-cole_1838_dream-of-arcadia.webp" alt="Thomas Cole, Dream of Arcadia" style="display:block;margin:0 auto;" width="900" />
 
-Arcadia is a tranquil, beautifully ordered realm where sunlight
-filters through tall trees and ideas grow as freely as
-wildflowers. For me it’s also my personal monorepo — a lovingly
-curated single repository that contains projects, notes, and
-experiments, organized with clear folders, atomic commits, and
-thoughtful READMEs so I can find and evolve work quickly. A living
-garden of code and creativity where structure and beauty coexist.
+> a tranquil, beautifully ordered realm where sunlight filters through tall trees and ideas grow as freely as wildflowers.
 
 
 ## Requirements
