@@ -12,6 +12,7 @@ vars:
 
 tasks:
   default: [{task: githook:pre-commit}]
+
   crush: CRUSH_NEW_UI=1 go run github.com/charmbracelet/crush@v0.36.0
   githook:pre-commit: go tool lefthook run pre-commit --all-files
   githook:pre-push: go tool lefthook run pre-push --all-files
@@ -43,6 +44,7 @@ tasks:
       - test:go-tools
 
   test:go-integration: go test work -tags integration -cover
+
   test:go-tools:
     desc: Test go tools to ensure none are broken due to dependency updates.
     cmd: go build -o /dev/null tool
