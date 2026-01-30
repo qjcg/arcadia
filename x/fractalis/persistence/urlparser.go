@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/qjcg/arcadia/x/fractals/colorthemes"
+	"github.com/qjcg/arcadia/x/fractalis/colorthemes"
 )
 
 // FractalURLParams holds parsed parameters from a fractal:// URL

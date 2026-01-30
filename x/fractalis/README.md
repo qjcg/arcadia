@@ -30,13 +30,13 @@ An interactive terminal-based fractal viewer with ASCII art rendering and color 
 ### Using go install
 
 ```bash
-go install github.com/qjcg/arcadia/x/fractals@latest
+go install github.com/qjcg/arcadia/x/fractalis@latest
 ```
 
 ### Building from source
 
 ```bash
-cd x/fractals
+cd x/fractalis
 go tool task build
 # Binary will be in bin/fractals
 ```
@@ -44,7 +44,7 @@ go tool task build
 ### Installing locally
 
 ```bash
-cd x/fractals
+cd x/fractalis
 go tool task install
 ```
 

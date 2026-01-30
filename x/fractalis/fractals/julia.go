@@ -1,6 +1,6 @@
 package fractals
 
-import "github.com/qjcg/arcadia/x/fractals/internal/optimize"
+import "github.com/qjcg/arcadia/x/fractalis/internal/optimize"
 
 // Julia calculates the Julia set for a given point z and constant c
 // Uses smooth coloring for better visual quality

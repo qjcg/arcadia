@@ -1,6 +1,6 @@
 package ui
 
-import "github.com/qjcg/arcadia/x/fractals/persistence"
+import "github.com/qjcg/arcadia/x/fractalis/persistence"
 
 // BookmarkState holds bookmark management UI state
 type BookmarkState struct {

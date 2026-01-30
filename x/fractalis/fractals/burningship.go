@@ -1,6 +1,6 @@
 package fractals
 
-import "github.com/qjcg/arcadia/x/fractals/internal/optimize"
+import "github.com/qjcg/arcadia/x/fractalis/internal/optimize"
 
 // BurningShip calculates the Burning Ship fractal
 // Uses smooth coloring for better visual quality

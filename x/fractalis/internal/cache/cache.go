@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/qjcg/arcadia/x/fractals/persistence"
+	"github.com/qjcg/arcadia/x/fractalis/persistence"
 )
 
 // IterationCache caches fractal iteration results to avoid recomputation

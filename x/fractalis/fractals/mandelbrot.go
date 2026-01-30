@@ -1,6 +1,6 @@
 package fractals
 
-import "github.com/qjcg/arcadia/x/fractals/internal/optimize"
+import "github.com/qjcg/arcadia/x/fractalis/internal/optimize"
 
 // Mandelbrot calculates the number of iterations for a given complex number c
 // Uses smooth coloring for better visual quality

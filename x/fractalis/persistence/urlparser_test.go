@@ -3,7 +3,7 @@ package persistence
 import (
 	"testing"
 
-	"github.com/qjcg/arcadia/x/fractals/colorthemes"
+	"github.com/qjcg/arcadia/x/fractalis/colorthemes"
 )
 
 func TestParseStandardFractalURL(t *testing.T) {

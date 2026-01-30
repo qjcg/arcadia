@@ -3,8 +3,8 @@ package render
 import (
 	"testing"
 
-	"github.com/qjcg/arcadia/x/fractals/fractals"
-	"github.com/qjcg/arcadia/x/fractals/persistence"
+	"github.com/qjcg/arcadia/x/fractalis/fractals"
+	"github.com/qjcg/arcadia/x/fractalis/persistence"
 )
 
 // Simple mock calculateFractal for benchmarking

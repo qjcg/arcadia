@@ -60,7 +60,7 @@ The application will automatically:
 Add this to check how well caching is working:
 
 ```go
-import "github.com/qjcg/arcadia/x/fractals/internal/render"
+import "github.com/qjcg/arcadia/x/fractalis/internal/render"
 
 // In your render loop
 hits, misses, hitRate := renderer.CacheStats()

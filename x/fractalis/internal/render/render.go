@@ -6,10 +6,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/qjcg/arcadia/x/fractals/colorthemes"
-	"github.com/qjcg/arcadia/x/fractals/internal/cache"
-	"github.com/qjcg/arcadia/x/fractals/persistence"
-	"github.com/qjcg/arcadia/x/fractals/transitions"
+	"github.com/qjcg/arcadia/x/fractalis/colorthemes"
+	"github.com/qjcg/arcadia/x/fractalis/internal/cache"
+	"github.com/qjcg/arcadia/x/fractalis/persistence"
+	"github.com/qjcg/arcadia/x/fractalis/transitions"
 )
 
 // Renderer handles ASCII fractal rendering with caching and parallel computation

@@ -4,10 +4,10 @@ import (
 	"math"
 	"testing"
 
-	"github.com/qjcg/arcadia/x/fractals/colorthemes"
-	"github.com/qjcg/arcadia/x/fractals/internal/animation"
-	renderlib "github.com/qjcg/arcadia/x/fractals/internal/render"
-	"github.com/qjcg/arcadia/x/fractals/persistence"
+	"github.com/qjcg/arcadia/x/fractalis/colorthemes"
+	"github.com/qjcg/arcadia/x/fractalis/internal/animation"
+	renderlib "github.com/qjcg/arcadia/x/fractalis/internal/render"
+	"github.com/qjcg/arcadia/x/fractalis/persistence"
 )
 
 func TestMapToComplex(t *testing.T) {

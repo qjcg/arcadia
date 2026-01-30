@@ -3,7 +3,7 @@ package cache
 import (
 	"testing"
 
-	"github.com/qjcg/arcadia/x/fractals/persistence"
+	"github.com/qjcg/arcadia/x/fractalis/persistence"
 )
 
 func TestIterationCacheBasic(t *testing.T) {

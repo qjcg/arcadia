@@ -1,6 +1,6 @@
 package animation
 
-import "github.com/qjcg/arcadia/x/fractals/transitions"
+import "github.com/qjcg/arcadia/x/fractalis/transitions"
 
 // AutoPilotState holds auto-pilot specific animation state
 type AutoPilotState struct {

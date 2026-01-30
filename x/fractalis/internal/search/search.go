@@ -3,8 +3,8 @@ package search
 import (
 	"math"
 
-	"github.com/qjcg/arcadia/x/fractals/internal/precision"
-	"github.com/qjcg/arcadia/x/fractals/persistence"
+	"github.com/qjcg/arcadia/x/fractalis/internal/precision"
+	"github.com/qjcg/arcadia/x/fractalis/persistence"
 )
 
 // InterestCalculator computes how "interesting" a point is based on iteration variance

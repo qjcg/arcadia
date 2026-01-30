@@ -327,7 +327,7 @@ renderer.ClearCache()
 
 ### Advanced: Access Optimization Utils
 ```go
-import "github.com/qjcg/arcadia/x/fractals/internal/optimize"
+import "github.com/qjcg/arcadia/x/fractalis/internal/optimize"
 
 calc := optimize.NewIterationCalculator(maxIter)
 iterCount := calc.MandelbrotOptimized(cr, ci)
