@@ -26,11 +26,15 @@ func Test_scripttest(t *testing.T) {
 				return nil, err
 			}
 
+			oldStdout := os.Stdout
+			oldStderr := os.Stderr
 			os.Stdout = wOut
 			os.Stderr = wErr
 
 			main() // this gets captured
 
+			os.Stdout = oldStdout
+			os.Stderr = oldStderr
 			wOut.Close()
 			wErr.Close()
 			cmdOut, err := io.ReadAll(rOut)
