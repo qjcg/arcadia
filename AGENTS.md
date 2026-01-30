@@ -10,7 +10,7 @@
     - Web UIs
 	- Games
 	- Backend servers
-  - When using air, call it via
+  - When using air, call it via task, as in `task dev`, which might call `go tool air`
 
 ## CI
 
