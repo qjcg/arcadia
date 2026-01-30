@@ -39,4 +39,4 @@ tasks:
 
   test:go-tools:
     desc: Test go tools to ensure none are broken due to dependency updates.
-    cmd: ./scripts/test_go_tools.sh
+    cmd: go build -o /dev/null tool
