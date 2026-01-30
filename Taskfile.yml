@@ -12,7 +12,7 @@ vars:
 
 tasks:
   default: [{task: githook:pre-commit}]
-  ai: go run github.com/charmbracelet/crush@latest
+  crush: CRUSH_NEW_UI=1 go run github.com/charmbracelet/crush@v0.36.0
   githook:pre-commit: go tool lefthook run pre-commit --all-files
   githook:pre-push: go tool lefthook run pre-push --all-files
 
