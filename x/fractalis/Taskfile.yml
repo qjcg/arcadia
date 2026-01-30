@@ -5,12 +5,13 @@ version: "3"
 vars:
   BIN_DIR: bin
   BIN: '{{.BIN_DIR}}/fractalis'
+  BIN_INSTALLED: $GOBIN/fractalis
 
 tasks:
   default: [{ task: build }]
 
   build:
-    desc: Build the fractals binary
+    desc: Build the binary
     cmds:
       - CGO_ENABLED=0 go build -ldflags '-s -w' -o {{.BIN}}
       - upx {{.BIN}}
@@ -29,7 +30,7 @@ tasks:
       - '**/*.go'
       - 'go.*'
     generates:
-      - $GOBIN/fractals
+      - '{{.BIN_INSTALLED}}'
 
   reinstall:
     desc: Clean re-install go binary.
@@ -41,12 +42,14 @@ tasks:
   uninstall:
     desc: Uninstall go binary
     cmds:
-      - rm -f $GOOBIN/fractals
+      - rm -f {{.BIN_INSTALLED}}
+    status:
+      - test ! -x {{.BIN_INSTALLED}}
 
   test:
     desc: Run tests
     cmds:
-      - go test -v ./...
+      - go test -cover ./...
 
   clean:
     desc: Clean build artifacts
