@@ -38,7 +38,9 @@ tasks:
       - git push --tags
 
   test:
-    deps: [test:go-integration, test:go-tools]
+    deps:
+      - test:go-integration
+      - test:go-tools
 
   test:go-integration: go test work -tags integration -cover
   test:go-tools:
