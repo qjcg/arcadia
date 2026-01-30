@@ -15,7 +15,7 @@ tasks:
   ai: go run github.com/charmbracelet/crush@latest
   githook:pre-commit: go tool lefthook run pre-commit --all-files
   githook:pre-push: go tool lefthook run pre-push --all-files
-  test: go test work -tags integration -cover
+
   clean: rm -rf bin
 
   lint:check-links:
@@ -37,6 +37,10 @@ tasks:
     cmds:
       - git push --tags
 
+  test:
+    deps: [test:go-integration, test:go-tools]
+
+  test:go-integration: go test work -tags integration -cover
   test:go-tools:
     desc: Test go tools to ensure none are broken due to dependency updates.
     cmd: go build -o /dev/null tool
