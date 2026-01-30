@@ -3,9 +3,14 @@
 ## Build
 
 - Use `task` via `github.com/go-task/task/v3/cmd/task`
-  - Create a `Taskfile.yaml`
+  - When needed, create a `Taskfile.yaml`
   - `task` fully replaces `make` and `Makefiles`, NEVER use those.
 - Where hot reload is needed, use `air` via `github.com/air-verse/air`
+  - Use hot reload with:
+    - Web UIs
+	- Games
+	- Backend servers
+  - When using air, call it via
 
 ## CI
 
@@ -16,7 +21,13 @@
 ## Git
 
 - Always commit your work as you go, in feature branches off of `main`
-- Use conventional commits https://www.conventionalcommits.org/en/v1.0.0/
+- Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/)
+
+## Docs
+
+- Write docs in markdown format
+- Put docs in a `docs` directory, except for the README.md
+- The README.md should be concise, clear and useful.
 
 ## Backend
 
@@ -30,6 +41,7 @@
   - Use passkeys via `github.com/go-webauthn/webauthn`
 - authZ
   - use `casbin` via `github.com/casbin/casbin/v3`
+- For quick and dirty scripts, use https://github.com/bitfield/script
 
 ## Frontend
 
@@ -39,10 +51,17 @@
 - Alpine.js
 - tailwindcss
 
-## CLI tool standards
+## Games
+
+- Use ebiten via `github.com/hajimehoshi/ebiten/v2`
+  - Build games as [WebAssembly](https://ebitengine.org/en/documents/webassembly.html) (Option 1. WasmServe)
+	- Once the webassembly is built, serve it for browsers via `go run github.com/hajimehoshi/wasmserve@latest ./path/to/yourgame`
+
+## CLI tools
 
 - Use `cobra` via `github.com/spf13/cobra`
 - Use `viper` via `github.com/spf13/viper`
+- Write tests for CLI tools with [testscript](https://pkg.go.dev/github.com/rogpeppe/go-internal/testscript)
 
 ## Text User Interface (TUI)
 
@@ -50,7 +69,7 @@
 
 ## AI Agent Software
 
--For building AI Agent services, use `https://github.com/charmbracelet/fantasy`
+- For building AI Agent services, use `https://github.com/charmbracelet/fantasy`
 
 ## System architecture
 
