@@ -114,6 +114,16 @@ fractals --url "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=on"
 
 **Bookmarks Integration**: When you save a bookmark, it automatically generates and stores a shareable URL, making bookmarks portable and shareable with others.
 
+### Web Mode
+
+Serve the 3D Mandelbulb as a WebAssembly application in your browser:
+
+```bash
+fractals serve [port]
+```
+
+By default, it serves on http://localhost:8080. The WASM is embedded directly into the `fractalis` binary.
+
 ### 3D Mode
 
 GPU-accelerated 3D Mandelbulb rendering is available as a separate command:
@@ -154,14 +164,14 @@ task wasm-3d
 The 3D mode can be built as WebAssembly to run in any modern browser:
 
 ```bash
-# Manual build
-GOOS=js GOARCH=wasm go build -o fractalis.wasm ./cmd/fractalis-ebiten-wasm
+# Serve the embedded WASM application
+fractals serve
 
-# Serve with wasmserve
-go run github.com/hajimehoshi/wasmserve@latest ./cmd/fractalis-ebiten-wasm
+# Or specify a custom port
+fractals serve 8081
 ```
 
-The WebAssembly version provides the same GPU-accelerated ray marching experience as the native version, accessible directly in your browser at http://localhost:8080.
+The WebAssembly version provides the same GPU-accelerated ray marching experience as the native version, accessible directly in your browser.
 
 ### Advanced Usage
 

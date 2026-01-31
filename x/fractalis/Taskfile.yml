@@ -13,9 +13,15 @@ tasks:
 
   build:
     desc: Build the binary
+    deps: [wasm]
     cmds:
       - go build -ldflags '-s -w' -o {{.BIN}} ./cmd/fractalis
       - upx {{.BIN}}
+
+  wasm:
+    desc: Build the WebAssembly binary
+    cmds:
+      - GOOS=js GOARCH=wasm go build -o internal/web/assets/fractalis.wasm ./cmd/fractalis-ebiten-wasm
     sources:
       - '*.go'
       - 'go.*'

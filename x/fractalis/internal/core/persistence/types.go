@@ -37,6 +37,8 @@ const (
 	FractalMultibrot5    = "multibrot5"
 	FractalManhattan     = "manhattan"
 	FractalNewton        = "newton"
+	FractalMandelbulb    = "mandelbulb"
+	FractalMandelbox     = "mandelbox"
 )
 
 // Transition animation modes

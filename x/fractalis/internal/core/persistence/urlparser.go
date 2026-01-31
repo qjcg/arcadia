@@ -306,6 +306,8 @@ func IsValidFractalType(fractalType string) bool {
 		FractalMultibrot5:    true,
 		FractalManhattan:     true,
 		FractalNewton:        true,
+		FractalMandelbulb:    true,
+		FractalMandelbox:     true,
 	}
 	return validTypes[fractalType]
 }

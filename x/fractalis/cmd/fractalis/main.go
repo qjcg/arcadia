@@ -23,6 +23,7 @@ import (
 	"github.com/qjcg/arcadia/x/fractalis/internal/tui/color"
 	renderlib "github.com/qjcg/arcadia/x/fractalis/internal/tui/render"
 	"github.com/qjcg/arcadia/x/fractalis/internal/tui/transition"
+	"github.com/qjcg/arcadia/x/fractalis/internal/web"
 )
 
 const (
@@ -48,6 +49,8 @@ const (
 	FractalMultibrot5    = persistence.FractalMultibrot5
 	FractalManhattan     = persistence.FractalManhattan
 	FractalNewton        = persistence.FractalNewton
+	FractalMandelbulb    = persistence.FractalMandelbulb
+	FractalMandelbox     = persistence.FractalMandelbox
 
 	// URL modes
 	ModeRandom   = persistence.ModeRandom
@@ -1757,7 +1760,8 @@ func main() {
 		}
 		fmt.Fprintln(os.Stderr, lipgloss.NewStyle().Foreground(lipgloss.Color("39")).Italic(true).Render("      ~ deep iterative crystalline exploration ~\n"))
 		fmt.Fprintln(os.Stderr, "Usage:")
-		fmt.Fprintf(os.Stderr, "  fractalis [options] [url]\n\n")
+		fmt.Fprintf(os.Stderr, "  fractalis [options] [url]\n")
+		fmt.Fprintf(os.Stderr, "  fractalis serve [port]\n\n")
 
 		titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("81")).Bold(true)
 		flagStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
@@ -1787,7 +1791,7 @@ func main() {
 		})
 
 		printGroup("RENDERING & QUALITY:", [][2]string{
-			{"-t, --type <type>", "Fractal type (mandelbrot, julia, burningship...)"},
+			{"-t, --type <type>", "Fractal type (mandelbrot, julia, mandelbulb, mandelbox...)"},
 			{"-i, --iterations <n>", "Maximum iterations (detail level, default 50)"},
 			{"-c, --color <theme>", "Color theme (grayscale, blue, rainbow...)"},
 			{"-w, --width <pixels>", "Width override (0=auto)"},
@@ -1819,6 +1823,21 @@ func main() {
 	args := flag.Args()
 	if len(args) > 0 {
 		arg := args[0]
+
+		if arg == "serve" {
+			port := 8080
+			if len(args) > 1 {
+				p, err := strconv.Atoi(args[1])
+				if err == nil {
+					port = p
+				}
+			}
+			if err := web.Serve(port); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
 
 		// Handle URLs with or without fractal:// prefix
 		if strings.HasPrefix(arg, "fractal://") {
@@ -1902,6 +1921,8 @@ func main() {
 		FractalMultibrot5:    true,
 		FractalManhattan:     true,
 		FractalNewton:        true,
+		FractalMandelbulb:    true,
+		FractalMandelbox:     true,
 	}
 	if !validTypes[config.FractalType] {
 		fmt.Fprintf(os.Stderr, "Invalid fractal type: %s. Using mandelbrot.\n", config.FractalType)
