@@ -1,0 +1,45 @@
+func mandelbulbDE(pos vec3) vec4 {
+	z := pos
+	dr := 1.0
+	r := 0.0
+	orbitTrap := vec3(10000.0)
+	minR := 10000.0
+
+	for i := 0; i < 16; i++ {
+		if i >= int(Iterations) {
+			break
+		}
+
+		r = length(z)
+		if r > 2.0 {
+			break
+		}
+
+		// Track minimum radius for orbit trap coloring
+		if r < minR {
+			minR = r
+			orbitTrap = z
+		}
+
+		// Convert to spherical coordinates
+		theta := acos(clamp(z.z/r, -1.0, 1.0))
+		phi := atan2(z.y, z.x)
+
+		dr = pow(r, Power-1.0) * Power * dr + 1.0
+
+		// Scale and rotate
+		zr := pow(r, Power)
+		theta = theta * Power
+		phi = phi * Power
+
+		// Convert back to cartesian
+		z = zr * vec3(
+			sin(theta)*cos(phi),
+			sin(phi)*sin(theta),
+			cos(theta),
+		)
+		z = z + pos
+	}
+
+	return vec4(r-2.0, dr, orbitTrap.x, orbitTrap.y)
+}
