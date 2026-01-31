@@ -3,6 +3,7 @@
 version: "3"
 
 vars:
+  TMP_DIR: tmp
   BIN_DIR: bin
   BIN: '{{.BIN_DIR}}/fractalis'
   BIN_INSTALLED: $GOBIN/fractalis
@@ -13,7 +14,7 @@ tasks:
   build:
     desc: Build the binary
     cmds:
-      - CGO_ENABLED=0 go build -ldflags '-s -w' -o {{.BIN}}
+      - go build -ldflags '-s -w' -o {{.BIN}} ./cmd/fractalis
       - upx {{.BIN}}
     sources:
       - '*.go'
@@ -54,20 +55,14 @@ tasks:
   clean:
     desc: Clean build artifacts
     cmds:
-      - rm -rf {{.BIN_DIR}}
+      - rm -rf {{.BIN_DIR}} {{.TMP_DIR}}
 
-  demo:
-    desc: Show all color schemes
-    deps: [build]
+  dev-3d:
+    desc: Run 3D mode with hot reload using air
     cmds:
-      - echo "=== Grayscale (default) ==="
-      - ./{{.BIN_DIR}}/fractals -w 80 -h 30
-      - echo ""
-      - echo "=== Blue ==="
-      - ./{{.BIN_DIR}}/fractals -w 80 -h 30 -c blue
-      - echo ""
-      - echo "=== Rainbow ==="
-      - ./{{.BIN_DIR}}/fractals -w 80 -h 30 -c rainbow
-      - echo ""
-      - echo "=== Zoomed (Rainbow) ==="
-      - ./{{.BIN_DIR}}/fractals -w 80 -h 30 -c rainbow -x -0.7 -y 0.0 -z 2.0
+      - go tool air --build.cmd "go run . --3d"
+
+  wasm-3d:
+    desc: Serve 3D mode as WebAssembly in browser
+    cmds:
+      - go run github.com/hajimehoshi/wasmserve@latest ./cmd/3d
