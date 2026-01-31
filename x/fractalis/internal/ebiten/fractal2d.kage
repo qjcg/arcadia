@@ -1,23 +1,70 @@
+// Double-float arithmetic (x = hi, y = lo)
+func df_set(f float) vec2 {
+	return vec2(f, 0.0)
+}
+
+func df_add(a vec2, b vec2) vec2 {
+	s := a.x + b.x
+	v := s - a.x
+	g := (a.x - (s - v)) + (b.x - v)
+	return vec2(s, g + a.y + b.y)
+}
+
+func df_sub(a vec2, b vec2) vec2 {
+	s := a.x - b.x
+	v := s - a.x
+	g := (a.x - (s - v)) - (b.x + v)
+	return vec2(s, g + a.y - b.y)
+}
+
+func df_mul(a vec2, b vec2) vec2 {
+	p := a.x * b.x
+	c := 4096.0 + 1.0
+	ha := a.x * c
+	a1 := ha - (ha - a.x)
+	a2 := a.x - a1
+	hb := b.x * c
+	b1 := hb - (hb - b.x)
+	b2 := b.x - b1
+	q := (((a1*b1 - p) + a1*b2) + a2*b1) + a2*b2
+	return vec2(p, q + a.x*b.y + a.y*b.x)
+}
+
+func df_abs(a vec2) vec2 {
+	if a.x < 0.0 {
+		return vec2(-a.x, -a.y)
+	}
+	return a
+}
+
 // SDF for 2D fractals
 func fractal2D_DE(p vec3) vec4 {
-	// Project 3D point to 2D plane (Z = 0)
-	// Map X, Z to 2D coordinates, Y is distance from plane
-	// NOTE: In direct 2D mode, p.xz is already the offset from CamPos
-	zoom := 1.0
-	if Power > 0.0 {
-		zoom = pow(2.0, Power)
-	}
+	// Use emulated double precision for initial coordinate mapping
+	// cr := centerX + (col - 0.5*width) * (3.5 / (width * zoom))
+	dx := df_set(p.x - 0.5*Resolution.x)
+	dy := df_set(p.z - 0.5*Resolution.y)
+	c_x := df_add(vec2(CamPosHi.x, CamPosLo.x), df_mul(dx, UnitToSize))
+	c_y := df_add(vec2(CamPosHi.y, CamPosLo.y), df_mul(dy, UnitToSize))
 
-	c := p.xz*(1.5/zoom) + CamPos.xz
+	// For the iteration loop, we'll use emulated double for Mandelbrot/Julia at first
+	// as they are most common and sensitive to precision.
+	// The rest will follow or use single precision if complexity becomes too high.
 
-	z := vec2(0.0)
+	z_x := vec2(0.0)
+	z_y := vec2(0.0)
+
 	if FractalType == 3.0 { // Julia
-		z = c
-		c = vec2(-0.7, 0.27015) // Default Julia constant
+		z_x = c_x
+		z_y = c_y
+		c_x = df_set(-0.7)
+		c_y = df_set(0.27015)
+	} else {
+		z_x = vec2(0.0)
+		z_y = vec2(0.0)
 	}
 
 	dr := 1.0
-	r := 0.0
+	r2 := 0.0
 	iterations := Iterations
 	if iterations < 1.0 {
 		iterations = 32.0
@@ -30,66 +77,95 @@ func fractal2D_DE(p vec3) vec4 {
 			break
 		}
 
-		r = length(z)
-		if r > 20.0 {
+		// r2 = zx*zx + zy*zy
+		r2 = z_x.x*z_x.x + z_y.x*z_y.x
+		if r2 > 40.0 { // Escape radius squared
 			break
 		}
 
-		zr := z.x
-		zi := z.y
-		zr2 := zr * zr
-		zi2 := zi * zi
-
 		if FractalType == 2.0 || FractalType == 3.0 { // Mandelbrot / Julia
-			z = vec2(zr2-zi2, 2.0*zr*zi) + c
-			dr = 2.0*r*dr + 1.0
+			// z = z^2 + c
+			zx2 := df_mul(z_x, z_x)
+			zy2 := df_mul(z_y, z_y)
+			zxy := df_mul(z_x, z_y)
+			dr = 2.0*sqrt(r2)*dr + 1.0
+			z_x = df_add(df_sub(zx2, zy2), c_x)
+			z_y = df_add(df_add(zxy, zxy), c_y)
 		} else if FractalType == 4.0 { // Burning Ship
-			z = vec2(zr2-zi2, 2.0*abs(zr)*abs(zi)) + c
-			dr = 2.0*r*dr + 1.0
+			zx2 := df_mul(z_x, z_x)
+			zy2 := df_mul(z_y, z_y)
+			zxy := df_mul(df_abs(z_x), df_abs(z_y))
+			dr = 2.0*sqrt(r2)*dr + 1.0
+			z_x = df_add(df_sub(zx2, zy2), c_x)
+			z_y = df_add(df_add(zxy, zxy), c_y)
 		} else if FractalType == 5.0 { // Tricorn
-			z = vec2(zr2-zi2, -2.0*zr*zi) + c
-			dr = 2.0*r*dr + 1.0
-		} else if FractalType == 6.0 { // Multibrot 3
-			z = vec2(zr*(zr2-3.0*zi2), zi*(3.0*zr2-zi2)) + c
-			dr = 3.0*r*r*dr + 1.0
-		} else if FractalType == 7.0 { // Multibrot 4
-			zrSq := zr2 - zi2
-			ziSq := 2.0 * zr * zi
-			z = vec2(zrSq*zrSq-ziSq*ziSq, 2.0*zrSq*ziSq) + c
-			dr = 4.0*r*r*r*dr + 1.0
-		} else if FractalType == 8.0 { // Celtic
-			nZr := zr2 - zi2
-			nZi := 2.0 * zr * zi
-			z = vec2(abs(nZr), nZi) + c
-			dr = 2.0*r*dr + 1.0
-		} else if FractalType == 9.0 { // Perpendicular
-			nZr := zr2 - zi2
-			nZi := -2.0 * abs(zr*zi)
-			z = vec2(nZr, nZi) + c
-			dr = 2.0*r*dr + 1.0
-		} else if FractalType == 10.0 { // Manhattan
-			z = vec2(zr2-zi2, 2.0*zr*zi) + c
-			dr = 2.0*r*dr + 1.0
-			if abs(z.x)+abs(z.y) > 4.0 {
-				break
+			zx2 := df_mul(z_x, z_x)
+			zy2 := df_mul(z_y, z_y)
+			zxy := df_mul(z_x, z_y)
+			dr = 2.0*sqrt(r2)*dr + 1.0
+			z_x = df_add(df_sub(zx2, zy2), c_x)
+			z_y = df_sub(c_y, df_add(zxy, zxy)) // cy - 2*zx*zy
+		} else {
+			// Fallback to float32 for other types to keep shader size manageable
+			// until we see they need it too.
+			fz_x := z_x.x
+			fz_y := z_y.x
+			fc_x := c_x.x
+			fc_y := c_y.x
+			zr2 := fz_x * fz_x
+			zi2 := fz_y * fz_y
+			r := sqrt(r2)
+
+			if FractalType == 6.0 { // Multibrot 3
+				z_x.x = fz_x*(zr2-3.0*zi2) + fc_x
+				z_y.x = fz_y*(3.0*zr2-zi2) + fc_y
+				dr = 3.0*r2*dr + 1.0
+			} else if FractalType == 7.0 { // Multibrot 4
+				zrSq := zr2 - zi2
+				ziSq := 2.0 * fz_x * fz_y
+				z_x.x = zrSq*zrSq - ziSq*ziSq + fc_x
+				z_y.x = 2.0*zrSq*ziSq + fc_y
+				dr = 4.0*r2*r*dr + 1.0
+			} else if FractalType == 8.0 { // Celtic
+				nZr := zr2 - zi2
+				nZi := 2.0 * fz_x * fz_y
+				z_x.x = abs(nZr) + fc_x
+				z_y.x = nZi + fc_y
+				dr = 2.0*r*dr + 1.0
+			} else if FractalType == 9.0 { // Perpendicular
+				nZr := zr2 - zi2
+				nZi := -2.0 * abs(fz_x*fz_y)
+				z_x.x = nZr + fc_x
+				z_y.x = nZi + fc_y
+				dr = 2.0*r*dr + 1.0
+			} else if FractalType == 10.0 { // Manhattan
+				z_x.x = zr2 - zi2 + fc_x
+				z_y.x = 2.0*fz_x*fz_y + fc_y
+				dr = 2.0*r*dr + 1.0
+				if abs(z_x.x)+abs(z_y.x) > 4.0 {
+					break
+				}
 			}
+			z_x.y = 0.0
+			z_y.y = 0.0
 		}
 	}
 
-	m2 := dot(z,z)
+	m2 := z_x.x*z_x.x + z_y.x*z_y.x
+	res_r := 0.0
 	if m2 > 1000.0 {
 		sl := finalIter - log2(log2(m2)) + 4.0
-		r = sl
+		res_r = sl
 	} else if finalIter >= Iterations-1.0 {
-		r = 0.0 // Interior
+		res_r = 0.0 // Interior
 	} else {
-		r = finalIter
+		res_r = finalIter
 	}
 
 	// Distance estimation found in 2D fractals: 0.5 * log(r) * r / dr
-	d := 0.5 * log(length(z)) * length(z) / dr
+	d := 0.5 * log(m2) * sqrt(m2) / dr
 
 	// Add thickness to the 2D plane
 	planeD := abs(p.y)
-	return vec4(max(d, planeD), r, z.x, z.y)
+	return vec4(max(d, planeD), res_r, z_x.x, z_y.x)
 }

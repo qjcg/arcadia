@@ -4,6 +4,11 @@ var (
 	Resolution  vec2
 	Time        float
 	CamPos      vec3
+	CamPosHi    vec2
+	CamPosLo    vec2
+	InvZoom     vec2
+	UnitToSize  vec2
+	Aspect      float
 	CamPitch    float
 	CamYaw      float
 	Power       float
@@ -135,7 +140,7 @@ func Fragment(dst vec4, src vec2, color vec4) vec4 {
 			for j := 0; j < 2; j++ {
 				offset := (vec2(float(i), float(j)) - 0.5) * 0.5
 				// Direct 2D path: bypasses raymarching for massive performance boost
-				uvSample := (src + offset - 0.5*Resolution) / Resolution.y
+				uvSample := src + offset
 				f2d := fractal2D_DE(vec3(uvSample.x, 0.0, uvSample.y))
 				// f2d.y is now the smooth fractional iteration count
 				iter := f2d.y

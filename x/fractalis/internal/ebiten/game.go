@@ -1,6 +1,8 @@
 package ebiten
 
 import (
+	"math"
+	"strings"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -70,6 +72,33 @@ type Game struct {
 
 // NewGame creates a new 3D fractal game
 func NewGame(config persistence.Config) *Game {
+	// Map fractal type string to 3D engine type ID
+	fType := 1 // Default to Mandelbox
+	switch config.FractalType {
+	case persistence.FractalMandelbulb:
+		fType = 0
+	case persistence.FractalMandelbox:
+		fType = 1
+	case persistence.FractalMandelbrot:
+		fType = 2
+	case persistence.FractalJulia:
+		fType = 3
+	case persistence.FractalBurningShip:
+		fType = 4
+	case persistence.FractalTricorn:
+		fType = 5
+	case persistence.FractalMultibrot3:
+		fType = 6
+	case persistence.FractalMultibrot4:
+		fType = 7
+	case persistence.FractalCeltic:
+		fType = 8
+	case persistence.FractalPerpendicular:
+		fType = 9
+	case persistence.FractalManhattan:
+		fType = 10
+	}
+
 	g := &Game{
 		config:            config,
 		width:             screenWidth,
@@ -84,7 +113,7 @@ func NewGame(config persistence.Config) *Game {
 		rotSpeed:          3.0,
 		power:             8.0, // Mandelbulb power
 		boxScale:          2.7, // Mandelbox scale
-		fractalType:       1,   // Start with Mandelbox
+		fractalType:       fType,
 		iterations:        32,
 		colorShift:        0.0,
 		startTime:         time.Now(),
@@ -150,12 +179,40 @@ func (g *Game) drawLoading(screen *ebiten.Image) {
 	ebitenutil.DebugPrint(screen, "Loading 3D shader...")
 }
 
+// splitFloat64 splits a float64 into two float32s for emulated double precision in shaders
+func splitFloat64(f float64) [2]float32 {
+	hi := float32(f)
+	lo := float32(f - float64(hi))
+	return [2]float32{hi, lo}
+}
+
 // drawFractal renders the shader
 func (g *Game) drawFractal(screen *ebiten.Image) {
+	zoom := 1.0
+	if g.power > 0.0 {
+		zoom = math.Pow(2.0, g.power)
+	}
+	invZoom := 1.0 / zoom // Base zoom
+
+	// Coordinate mapping constants matching TUI/Core logic
+	// viewWidth := 3.5 / zoom
+	// cr := centerX + (normX-0.5)*viewWidth
+	// normX := col / width
+	// cr := centerX + (col/width - 0.5) * (3.5/zoom)
+	// cr := centerX + (col - 0.5*width) * (3.5 / (width * zoom))
+
+	unitToSize := 3.5 / (float64(g.width) * zoom)
+	aspect := float64(g.height) / float64(g.width)
+
 	uniforms := map[string]interface{}{
 		"Time":        float32(time.Since(g.startTime).Seconds()),
 		"Resolution":  [2]float32{float32(g.width), float32(g.height)},
 		"CamPos":      [3]float32{float32(g.camX), float32(g.camY), float32(g.camZ)},
+		"CamPosHi":    [2]float32{float32(g.camX), float32(g.camZ)},
+		"CamPosLo":    [2]float32{float32(g.camX - float64(float32(g.camX))), float32(g.camZ - float64(float32(g.camZ)))},
+		"InvZoom":     splitFloat64(invZoom),
+		"UnitToSize":  splitFloat64(unitToSize),
+		"Aspect":      float32(aspect),
 		"CamPitch":    float32(g.camPitch),
 		"CamYaw":      float32(g.camYaw),
 		"Power":       float32(g.power),
@@ -175,7 +232,17 @@ func (g *Game) drawFractal(screen *ebiten.Image) {
 // Run starts the 3D game loop
 func (g *Game) Run() error {
 	ebiten.SetWindowSize(g.width, g.height)
-	ebiten.SetWindowTitle("Fractalis 3D - Mandelbox")
+
+	title := "Fractalis 3D"
+	if g.config.FractalType != "" {
+		// Capitalize first letter
+		name := g.config.FractalType
+		if len(name) > 0 {
+			name = strings.ToUpper(name[:1]) + name[1:]
+		}
+		title += " - " + name
+	}
+	ebiten.SetWindowTitle(title)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.MaximizeWindow()
 

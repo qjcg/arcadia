@@ -134,8 +134,8 @@ func (g *Game) updateAutopilot() {
 		}
 
 		// 5. Check if we hit maximum zoom and should transition (similar to TUI mode)
-		// Reduced threshold to 22.0 (approx 4 million zoom) to stay within float32 precision limits
-		if g.power > 22.0 {
+		// Increased threshold to 46.0 (approx 70 trillion zoom) using emulated double precision
+		if g.power > 46.0 {
 			// Pick a random 2D fractal type (2-10) different from current
 			rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 			next := g.fractalType
