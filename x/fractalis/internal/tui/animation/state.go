@@ -44,6 +44,7 @@ type TransitionState struct {
 
 // ColorState holds dynamic color animation state
 type ColorState struct {
+	ColorMode    bool    // Enable colorized output (default true)
 	DynamicColor bool    // Enable smooth hue rotation
 	HueShift     float64 // Current hue shift in degrees (0-360)
 }
@@ -75,6 +76,9 @@ func NewAnimationState() AnimationState {
 		},
 		Vantage: VantageState{
 			SceneDuration: DefaultVantageSceneDuration,
+		},
+		Color: ColorState{
+			ColorMode: true,
 		},
 	}
 }

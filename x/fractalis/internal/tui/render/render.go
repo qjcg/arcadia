@@ -15,6 +15,7 @@ import (
 // Renderer handles ASCII fractal rendering with caching and parallel computation
 type Renderer struct {
 	config           persistence.Config
+	colorMode        bool
 	dynamicColor     bool
 	hueShift         float64
 	breakthroughTr   *transition.Breakthrough
@@ -43,6 +44,11 @@ func NewRenderer(
 func (r *Renderer) SetDynamicColor(enabled bool, hueShift float64) {
 	r.dynamicColor = enabled
 	r.hueShift = hueShift
+}
+
+// SetColorMode enables/disables colorized output
+func (r *Renderer) SetColorMode(enabled bool) {
+	r.colorMode = enabled
 }
 
 // SetBreakthroughTransition sets the breakthrough transition animator
@@ -157,10 +163,16 @@ func (r *Renderer) renderFromIterations(iterGrid [][]int) string {
 			iter := iterGrid[row][col]
 			char := GetChar(iter, r.config.MaxIter)
 			var ansiColor string
-			if r.dynamicColor {
-				ansiColor = color.GetColorWithHueShift(iter, r.config.MaxIter, r.config.ColorScheme, r.hueShift)
+
+			scheme := r.config.ColorScheme
+			if !r.colorMode {
+				scheme = color.ColorGrayscale
+			}
+
+			if r.dynamicColor && r.colorMode {
+				ansiColor = color.GetColorWithHueShift(iter, r.config.MaxIter, scheme, r.hueShift)
 			} else {
-				ansiColor = color.GetColor(iter, r.config.MaxIter, r.config.ColorScheme)
+				ansiColor = color.GetColor(iter, r.config.MaxIter, scheme)
 			}
 
 			grid[row][col] = char

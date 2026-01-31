@@ -283,7 +283,13 @@ func (m *model) applyRandom() {
 		m.config.FractalType = fractalType
 
 		// Random color scheme
-		m.config.ColorScheme = color.AllColorSchemes[rng.Intn(len(color.AllColorSchemes))]
+		if m.animationState.Color.ColorMode {
+			// Pick a random color scheme (excluding grayscale)
+			schemes := color.AllColorSchemes[1:]
+			m.config.ColorScheme = schemes[rng.Intn(len(schemes))]
+		} else {
+			m.config.ColorScheme = color.ColorGrayscale
+		}
 
 		// Random zoom (log-uniform between 1.0 and 1000.0, weighted toward mid-range)
 		// Using exponential distribution: zoom = 10^(uniform(0, 3))
@@ -351,7 +357,12 @@ func (m *model) applyRandom() {
 	m.config.CenterY = seedPt.y
 	m.config.Zoom = 10.0 + rng.Float64()*90.0 // 10x to 100x
 	m.config.MaxIter = 100 + rng.Intn(100)
-	m.config.ColorScheme = color.AllColorSchemes[rng.Intn(len(color.AllColorSchemes))]
+	if m.animationState.Color.ColorMode {
+		schemes := color.AllColorSchemes[1:]
+		m.config.ColorScheme = schemes[rng.Intn(len(schemes))]
+	} else {
+		m.config.ColorScheme = color.ColorGrayscale
+	}
 
 	m.animationState.Messages.RandomMsg = fmt.Sprintf("Random: %s @ %.1fx (fallback)", m.config.FractalType, m.config.Zoom)
 	m.animationState.Messages.RandomTimer = 60
@@ -1113,6 +1124,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "c":
 			// Cycle through color schemes
+			if !m.animationState.Color.ColorMode {
+				m.animationState.Messages.RandomMsg = "Color Mode is OFF. Press 'X' to enable colors."
+				m.animationState.Messages.RandomTimer = 30
+				return m, nil
+			}
+
 			currentIndex := -1
 			for i, cs := range color.AllColorSchemes {
 				if cs == m.config.ColorScheme {
@@ -1120,12 +1137,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					break
 				}
 			}
+
+			// If color mode is ON, we want to skip grayscale (index 0)
 			if currentIndex == -1 {
-				// Unknown color scheme, reset to first
-				m.config.ColorScheme = color.AllColorSchemes[0]
+				m.config.ColorScheme = color.AllColorSchemes[1] // Start at first color
 			} else {
-				// Move to next color scheme
-				m.config.ColorScheme = color.AllColorSchemes[(currentIndex+1)%len(color.AllColorSchemes)]
+				// Move to next color scheme, skipping index 0
+				nextIndex := (currentIndex + 1) % len(color.AllColorSchemes)
+				if nextIndex == 0 {
+					nextIndex = 1
+				}
+				m.config.ColorScheme = color.AllColorSchemes[nextIndex]
 			}
 			return m, nil
 
@@ -1170,6 +1192,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.animationState.Messages.RandomMsg = "Dynamic Color: OFF"
 				m.animationState.Color.HueShift = 0.0 // Reset hue shift
+			}
+			m.animationState.Messages.RandomTimer = 30
+			return m, nil
+
+		// Color mode toggle (Black & White vs Color)
+		case "X":
+			m.animationState.Color.ColorMode = !m.animationState.Color.ColorMode
+			if m.animationState.Color.ColorMode {
+				m.animationState.Messages.RandomMsg = "Color Mode: ON"
+				// If we were in grayscale, pick a random color scheme
+				if m.config.ColorScheme == color.ColorGrayscale {
+					schemes := color.AllColorSchemes[1:]
+					m.config.ColorScheme = schemes[rand.Intn(len(schemes))]
+				}
+			} else {
+				m.animationState.Messages.RandomMsg = "Color Mode: OFF (Black & White)"
 			}
 			m.animationState.Messages.RandomTimer = 30
 			return m, nil
@@ -1281,7 +1319,8 @@ func (m model) renderHelp() string {
 
 	help.WriteString(keyStyle.Render("Settings:") + "\n")
 	help.WriteString("  c       Cycle color schemes (grayscale/blue/rainbow/fire/purple/green/gold/cyan)\n")
-	help.WriteString("  C       Toggle dynamic color mode (smooth hue rotation - great with autopilot!)\n")
+	help.WriteString("  C       Toggle dynamic color mode (smooth hue rotation)\n")
+	help.WriteString("  X       Toggle color mode (On: color / Off: black & white)\n")
 	help.WriteString("  [ ]     Decrease/increase iteration depth\n")
 	help.WriteString("  J/j     Adjust Julia real parameter (for Julia set)\n")
 	help.WriteString("  K/k     Adjust Julia imaginary parameter (for Julia set)\n\n")
@@ -1465,6 +1504,11 @@ func (m model) renderStatusBar() string {
 		zoomStr = fmt.Sprintf("%.2f", m.config.Zoom)
 	}
 
+	colorSchemeDisplay := m.config.ColorScheme
+	if !m.animationState.Color.ColorMode {
+		colorSchemeDisplay = "grayscale (B&W)"
+	}
+
 	status := fmt.Sprintf(
 		" %s | Center: (%.4f, %.4f) | Zoom: %sx | Iter: %d | Color: %s ",
 		m.config.FractalType,
@@ -1472,7 +1516,7 @@ func (m model) renderStatusBar() string {
 		m.config.CenterY,
 		zoomStr,
 		m.config.MaxIter,
-		m.config.ColorScheme,
+		colorSchemeDisplay,
 	)
 
 	if m.config.FractalType == FractalJulia {
@@ -1542,6 +1586,7 @@ func (m model) renderStatusBar() string {
 func (m model) renderFractal() string {
 	// Update renderer with current config and animation state
 	m.renderer.SetConfig(m.config)
+	m.renderer.SetColorMode(m.animationState.Color.ColorMode)
 	m.renderer.SetDynamicColor(m.animationState.Color.DynamicColor, m.animationState.Color.HueShift)
 	if m.animationState.Transition.Mode == TransitionBreakthrough {
 		m.renderer.SetBreakthroughTransition(m.animationState.Transition.BreakthroughTransition)
@@ -1635,7 +1680,7 @@ func main() {
 		CenterX:     -0.5,
 		CenterY:     0.0,
 		Zoom:        1.0,
-		ColorScheme: color.ColorGrayscale,
+		ColorScheme: color.ColorBlue,
 		FractalType: FractalMandelbrot,
 		JuliaCr:     -0.7,
 		JuliaCi:     0.27015,
@@ -1663,8 +1708,8 @@ func main() {
 	flag.Float64Var(&config.CenterY, "y", 0.0, "Center Y (imaginary axis)")
 	flag.Float64Var(&config.Zoom, "z", 1.0, "Zoom level")
 	flag.Float64Var(&config.Zoom, "zoom", 1.0, "Zoom level")
-	flag.StringVar(&config.ColorScheme, "c", color.ColorGrayscale, "Color scheme: grayscale, blue, rainbow")
-	flag.StringVar(&config.ColorScheme, "color", color.ColorGrayscale, "Color scheme: grayscale, blue, rainbow")
+	flag.StringVar(&config.ColorScheme, "c", color.ColorBlue, "Color scheme: grayscale, blue, rainbow")
+	flag.StringVar(&config.ColorScheme, "color", color.ColorBlue, "Color scheme: grayscale, blue, rainbow")
 	flag.StringVar(&config.FractalType, "t", FractalMandelbrot, "Fractal type: mandelbrot, julia, burningship, tricorn, multibrot3, multibrot4, celtic, perpendicular")
 	flag.StringVar(&config.FractalType, "type", FractalMandelbrot, "Fractal type: mandelbrot, julia, burningship, tricorn, multibrot3, multibrot4, celtic, perpendicular")
 	flag.Float64Var(&config.JuliaCr, "jr", -0.7, "Julia set real parameter")
