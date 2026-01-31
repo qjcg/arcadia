@@ -26,6 +26,8 @@ type Game struct {
 	// Camera state
 	camX, camY, camZ float64
 	camPitch, camYaw float64
+	velX, velY, velZ float64
+	velPitch, velYaw float64
 	forwardSpeed     float64
 	sideSpeed        float64
 	rotSpeed         float64
@@ -64,18 +66,18 @@ func NewGame(config persistence.Config) *Game {
 		config:           config,
 		width:            screenWidth,
 		height:           screenHeight,
-		camX:             0.0,
-		camY:             1.5,
-		camZ:             6.0,
-		camPitch:         0.0,
-		camYaw:           3.14159, // pi, looking toward -Z (at origin)
-		forwardSpeed:     0.3,
-		sideSpeed:        0.2,
-		rotSpeed:         2.0,
+		camX:             5.0,
+		camY:             2.0,
+		camZ:             5.0,
+		camPitch:         -0.3,
+		camYaw:           3.927, // looking toward origin from positive X/Z
+		forwardSpeed:     2.0,
+		sideSpeed:        1.5,
+		rotSpeed:         3.0,
 		power:            8.0, // Mandelbulb power
-		boxScale:         2.0, // Mandelbox scale
-		fractalType:      0,   // Start with Mandelbulb
-		iterations:       12,
+		boxScale:         2.7, // Mandelbox scale
+		fractalType:      1,   // Start with Mandelbox
+		iterations:       32,
 		colorShift:       0.0,
 		startTime:        time.Now(),
 		autopilotSpeed:   0.5,
@@ -160,7 +162,7 @@ func (g *Game) drawFractal(screen *ebiten.Image) {
 // Run starts the 3D game loop
 func (g *Game) Run() error {
 	ebiten.SetWindowSize(g.width, g.height)
-	ebiten.SetWindowTitle("Fractalis 3D - Mandelbulb")
+	ebiten.SetWindowTitle("Fractalis 3D - Mandelbox")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.MaximizeWindow()
 

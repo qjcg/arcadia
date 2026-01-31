@@ -1,23 +1,24 @@
 func mandelboxDE(pos vec3) vec4 {
+	offset := pos
 	z := pos
 	scale := BoxScale
 	if scale == 0.0 {
-		scale = 2.0
+		scale = 2.7
 	}
 
 	dr := 1.0
 	orbitTrap := vec3(10000.0)
 	minR := 10000.0
 
-	for i := 0; i < 16; i++ {
+	for i := 0; i < 32; i++ {
 		if i >= int(Iterations) {
 			break
 		}
 
-		// Box fold
+		// Box fold: standard for mandelbox
 		z = clamp(z, -1.0, 1.0)*2.0 - z
 
-		// Sphere fold
+		// Sphere fold: standard for mandelbox
 		r2 := dot(z, z)
 		if r2 < 0.25 {
 			z = z * 4.0
@@ -27,7 +28,7 @@ func mandelboxDE(pos vec3) vec4 {
 			dr = dr / r2
 		}
 
-		z = z*scale + pos
+		z = z*scale + offset
 		dr = dr*abs(scale) + 1.0
 
 		r := length(z)

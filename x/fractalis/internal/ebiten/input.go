@@ -14,9 +14,14 @@ func (g *Game) handleInput() bool {
 	// Fractal switching
 	if inpututil.IsKeyJustPressed(ebiten.Key1) {
 		g.fractalType = 0 // Mandelbulb
+		g.camX, g.camY, g.camZ = 0.0, 1.5, 6.0
+		g.camPitch, g.camYaw = 0.0, 3.14159
 	}
 	if inpututil.IsKeyJustPressed(ebiten.Key2) {
 		g.fractalType = 1 // Mandelbox
+		g.camX, g.camY, g.camZ = 5.0, 2.0, 5.0
+		g.camPitch, g.camYaw = -0.3, 3.927
+		g.boxScale = 2.7
 	}
 
 	// Parameter adjustment
@@ -48,37 +53,46 @@ func (g *Game) handleInput() bool {
 		ebiten.SetCursorMode(ebiten.CursorModeVisible)
 	}
 
-	// Movement
-	moveX := 0.0
-	moveY := 0.0
-	moveZ := 0.0
+	// Movement forces
+	forceX := 0.0
+	forceY := 0.0
+	forceZ := 0.0
 
 	if ebiten.IsKeyPressed(ebiten.KeyW) {
-		moveZ -= g.forwardSpeed * dt
+		forceZ -= g.forwardSpeed
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyS) {
-		moveZ += g.forwardSpeed * dt
+		forceZ += g.forwardSpeed
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyA) {
-		moveX -= g.sideSpeed * dt
+		forceX -= g.sideSpeed
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyD) {
-		moveX += g.sideSpeed * dt
+		forceX += g.sideSpeed
 	}
 	if ebiten.IsKeyPressed(ebiten.KeySpace) {
-		moveY += g.forwardSpeed * dt
+		forceY += g.forwardSpeed
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyShiftLeft) {
-		moveY -= g.forwardSpeed * dt
+		forceY -= g.forwardSpeed
 	}
+
+	// Physics constants
+	const friction = 0.90
+	const rotFriction = 0.85
+
+	// Update velocities
+	g.velX = (g.velX + forceX) * friction
+	g.velY = (g.velY + forceY) * friction
+	g.velZ = (g.velZ + forceZ) * friction
 
 	// Rotate movement by camera yaw
 	sinYaw := math.Sin(g.camYaw)
 	cosYaw := math.Cos(g.camYaw)
 
-	g.camX += moveX*cosYaw + moveZ*sinYaw
-	g.camY += moveY
-	g.camZ += -moveX*sinYaw + moveZ*cosYaw
+	g.camX += (g.velX*cosYaw + g.velZ*sinYaw) * dt
+	g.camY += g.velY * dt
+	g.camZ += (-g.velX*sinYaw + g.velZ*cosYaw) * dt
 
 	// Mouse look (when captured)
 	if g.mouseCaptured {
@@ -86,28 +100,34 @@ func (g *Game) handleInput() bool {
 		dx := float64(mx - g.lastMouseX)
 		dy := float64(my - g.lastMouseY)
 
-		g.camYaw -= dx * 0.002
-		g.camPitch -= dy * 0.002
-
-		// Clamp pitch to avoid flipping
-		g.camPitch = math.Max(-math.Pi/2+0.1, math.Min(math.Pi/2-0.1, g.camPitch))
+		g.velYaw -= dx * 0.015
+		g.velPitch -= dy * 0.015
 
 		g.lastMouseX, g.lastMouseY = mx, my
 	}
 
 	// Rotation controls (arrow keys)
 	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
-		g.camYaw += g.rotSpeed * dt
+		g.velYaw += g.rotSpeed
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
-		g.camYaw -= g.rotSpeed * dt
+		g.velYaw -= g.rotSpeed
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyArrowUp) {
-		g.camPitch = math.Max(-math.Pi/2+0.1, g.camPitch-g.rotSpeed*dt)
+		g.velPitch -= g.rotSpeed
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyArrowDown) {
-		g.camPitch = math.Min(math.Pi/2-0.1, g.camPitch+g.rotSpeed*dt)
+		g.velPitch += g.rotSpeed
 	}
+
+	// Apply rotation velocity
+	g.camYaw += g.velYaw * dt
+	g.camPitch += g.velPitch * dt
+	g.velYaw *= rotFriction
+	g.velPitch *= rotFriction
+
+	// Clamp pitch to avoid flipping
+	g.camPitch = math.Max(-math.Pi/2+0.1, math.Min(math.Pi/2-0.1, g.camPitch))
 
 	// Toggle autopilot on P (re-mapped from A to avoid conflict with movement)
 	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
