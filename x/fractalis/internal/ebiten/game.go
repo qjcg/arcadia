@@ -5,7 +5,9 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/qjcg/arcadia/x/fractalis/internal/core/fractal"
 	"github.com/qjcg/arcadia/x/fractalis/internal/core/persistence"
+	"github.com/qjcg/arcadia/x/fractalis/internal/core/search"
 )
 
 const (
@@ -44,11 +46,17 @@ type Game struct {
 	colorShift  float64
 
 	// Autopilot state
-	autopilotEnabled bool
-	autopilotTime    float64
-	autopilotSpeed   float64
-	autopilotRadius  float64
-	autopilotHeight  float64
+	autopilotEnabled     bool
+	autopilotTime        float64
+	autopilotSpeed       float64
+	autopilotRadius      float64
+	autopilotHeight      float64
+	autopilotTargetX     float64
+	autopilotTargetZ     float64
+	autopilotHasTarget   bool
+	autopilotPanProgress float64
+	autopilotIterBase    int
+	calculator           *search.InterestCalculator
 
 	// Vantage state
 	vantageEnabled     bool
@@ -63,29 +71,34 @@ type Game struct {
 // NewGame creates a new 3D fractal game
 func NewGame(config persistence.Config) *Game {
 	g := &Game{
-		config:           config,
-		width:            screenWidth,
-		height:           screenHeight,
-		camX:             5.0,
-		camY:             2.0,
-		camZ:             5.0,
-		camPitch:         -0.3,
-		camYaw:           3.927, // looking toward origin from positive X/Z
-		forwardSpeed:     2.0,
-		sideSpeed:        1.5,
-		rotSpeed:         3.0,
-		power:            8.0, // Mandelbulb power
-		boxScale:         2.7, // Mandelbox scale
-		fractalType:      1,   // Start with Mandelbox
-		iterations:       32,
-		colorShift:       0.0,
-		startTime:        time.Now(),
-		autopilotSpeed:   0.5,
-		autopilotRadius:  2.5,
-		autopilotHeight:  0.5,
-		vantageSceneTime: 8.0, // 8 seconds per vantage point
-		vantageVantages:  defaultVantagePoints(),
+		config:            config,
+		width:             screenWidth,
+		height:            screenHeight,
+		camX:              5.0,
+		camY:              2.0,
+		camZ:              5.0,
+		camPitch:          -0.3,
+		camYaw:            3.927, // looking toward origin from positive X/Z
+		forwardSpeed:      2.0,
+		sideSpeed:         1.5,
+		rotSpeed:          3.0,
+		power:             8.0, // Mandelbulb power
+		boxScale:          2.7, // Mandelbox scale
+		fractalType:       1,   // Start with Mandelbox
+		iterations:        32,
+		colorShift:        0.0,
+		startTime:         time.Now(),
+		autopilotSpeed:    1.0,
+		autopilotRadius:   2.5,
+		autopilotHeight:   0.5,
+		autopilotIterBase: config.MaxIter,
+		vantageSceneTime:  8.0, // 8 seconds per vantage point
+		vantageVantages:   defaultVantagePoints(),
 	}
+
+	g.calculator = search.NewInterestCalculator(func(cr, ci float64, cfg persistence.Config) float64 {
+		return fractal.CalculateFractal(cr, ci, cfg.FractalType, cfg.MaxIter, cfg.JuliaCr, cfg.JuliaCi)
+	})
 
 	return g
 }

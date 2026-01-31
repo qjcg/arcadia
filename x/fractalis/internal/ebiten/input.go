@@ -13,30 +13,91 @@ func (g *Game) handleInput() bool {
 
 	// Fractal switching
 	if inpututil.IsKeyJustPressed(ebiten.Key1) {
+		g.switchToFractal(2) // Mandelbrot
+	}
+	if inpututil.IsKeyJustPressed(ebiten.Key2) {
+		g.switchToFractal(3) // Julia
+	}
+	if inpututil.IsKeyJustPressed(ebiten.Key3) {
+		g.switchToFractal(4) // Burning Ship
+	}
+	if inpututil.IsKeyJustPressed(ebiten.Key4) {
+		g.switchToFractal(5) // Tricorn
+	}
+	if inpututil.IsKeyJustPressed(ebiten.Key5) {
+		g.switchToFractal(6) // Multibrot 3
+	}
+	if inpututil.IsKeyJustPressed(ebiten.Key6) {
+		g.switchToFractal(7) // Multibrot 4
+	}
+	if inpututil.IsKeyJustPressed(ebiten.Key7) {
+		g.switchToFractal(8) // Celtic
+	}
+	if inpututil.IsKeyJustPressed(ebiten.Key8) {
+		g.switchToFractal(9) // Perpendicular
+	}
+	if inpututil.IsKeyJustPressed(ebiten.Key9) {
+		g.switchToFractal(10) // Manhattan
+	}
+	if inpututil.IsKeyJustPressed(ebiten.Key0) {
+		g.switchToFractal(g.fractalType)
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyF1) {
 		g.fractalType = 0 // Mandelbulb
 		g.camX, g.camY, g.camZ = 0.0, 1.5, 6.0
 		g.camPitch, g.camYaw = 0.0, 3.14159
+		g.autopilotHasTarget = false
 	}
-	if inpututil.IsKeyJustPressed(ebiten.Key2) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyF2) {
 		g.fractalType = 1 // Mandelbox
 		g.camX, g.camY, g.camZ = 5.0, 2.0, 5.0
 		g.camPitch, g.camYaw = -0.3, 3.927
 		g.boxScale = 2.7
+		g.autopilotHasTarget = false
 	}
 
 	// Parameter adjustment
 	if ebiten.IsKeyPressed(ebiten.KeyBracketRight) {
 		if g.fractalType == 0 {
 			g.power += 0.05
-		} else {
+		} else if g.fractalType == 1 {
 			g.boxScale += 0.01
+		} else {
+			g.iterations += 1
 		}
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyBracketLeft) {
 		if g.fractalType == 0 {
 			g.power -= 0.05
-		} else {
+		} else if g.fractalType == 1 {
 			g.boxScale -= 0.01
+		} else {
+			if g.iterations > 1 {
+				g.iterations -= 1
+			}
+		}
+	}
+
+	// Autopilot speed adjustment
+	if ebiten.IsKeyPressed(ebiten.KeyEqual) {
+		g.autopilotSpeed += 0.01
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyMinus) {
+		g.autopilotSpeed -= 0.01
+		if g.autopilotSpeed < 0 {
+			g.autopilotSpeed = 0
+		}
+	}
+
+	// Zoom (Ebiten version uses camY/Power for zoom in 2D)
+	if ebiten.IsKeyPressed(ebiten.KeyI) {
+		if g.fractalType >= 2 {
+			g.power += 0.05
+		}
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyO) {
+		if g.fractalType >= 2 {
+			g.power -= 0.05
 		}
 	}
 
@@ -129,8 +190,8 @@ func (g *Game) handleInput() bool {
 	// Clamp pitch to avoid flipping
 	g.camPitch = math.Max(-math.Pi/2+0.1, math.Min(math.Pi/2-0.1, g.camPitch))
 
-	// Toggle autopilot on P (re-mapped from A to avoid conflict with movement)
-	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
+	// Toggle autopilot on Z (was P, re-mapped further below)
+	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
 		// Simple debounce - only toggle if we're not already processing a key
 		if !g.autopilotEnabled && !g.vantageEnabled {
 			g.autopilotEnabled = true

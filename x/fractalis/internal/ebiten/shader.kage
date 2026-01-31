@@ -9,11 +9,19 @@ var (
 	Power       float
 	Iterations  float
 	ColorShift  float
-	FractalType float // 0: Mandelbulb, 1: Mandelbox
+	FractalType float // 0: Mandelbulb, 1: Mandelbox, 2+: 2D
 	BoxScale    float
 )
 
 func sceneSDF(p vec3) float {
+	if FractalType > 1.5 {
+		boxSize := 10.0
+		dBox := length(max(abs(p)-vec3(boxSize), 0.0))
+		if dBox > 0.01 {
+			return dBox
+		}
+		return fractal2D_DE(p).x * 0.5
+	}
 	if FractalType > 0.5 {
 		// Bounding box for Mandelbox to help raymarcher find it
 		boxSize := 15.0
@@ -31,6 +39,10 @@ func sceneSDF(p vec3) float {
 
 // Get orbit trap color at position
 func getOrbitTrap(p vec3) vec3 {
+	if FractalType > 1.5 {
+		f2d := fractal2D_DE(p)
+		return vec3(f2d.z, f2d.w, 0.0)
+	}
 	if FractalType > 0.5 {
 		box := mandelboxDE(p)
 		return vec3(box.z, box.w, 0.0)
@@ -69,7 +81,14 @@ func calcAO(pos vec3, nor vec3) float {
 }
 
 func calcNormal(p vec3) vec3 {
-	e := vec2(0.001, 0.0)
+	// Adaptive epsilon for sharper normals at high zoom
+	zoomNorm := 1.0
+	if Power > 0.0 && FractalType > 1.5 {
+		zoomNorm = pow(2.0, Power)
+	}
+	epsNorm := max(0.0004/zoomNorm, 0.000001)
+
+	e := vec2(epsNorm, 0.0)
 	return normalize(vec3(
 		sceneSDF(p+e.xyy)-sceneSDF(p-e.xyy),
 		sceneSDF(p+e.yxy)-sceneSDF(p-e.yxy),
@@ -78,11 +97,18 @@ func calcNormal(p vec3) vec3 {
 }
 
 func rayMarch(ro vec3, rd vec3) vec4 {
+	// Adaptive hit threshold
+	zoomMarch := 1.0
+	if Power > 0.0 && FractalType > 1.5 {
+		zoomMarch = pow(2.0, Power)
+	}
+	epsMarch := max(0.0008/zoomMarch, 0.000001)
+
 	t := 0.0
 	for i := 0; i < 256; i++ {
 		p := ro + rd*t
 		d := sceneSDF(p)
-		if d < 0.001 {
+		if d < epsMarch {
 			return vec4(p, t)
 		}
 		if t > 100.0 {
@@ -101,6 +127,45 @@ func hsl2rgb(c vec3) vec3 {
 func Fragment(dst vec4, src vec2, color vec4) vec4 {
 	// Normalize coordinates
 	uv := (src - 0.5*Resolution) / Resolution.y
+
+	if FractalType > 1.5 {
+		// 2x2 Super-Sampling (SSAA) for buttery smooth 2D fractals
+		totalCol := vec3(0.0)
+		for i := 0; i < 2; i++ {
+			for j := 0; j < 2; j++ {
+				offset := (vec2(float(i), float(j)) - 0.5) * 0.5
+				// Direct 2D path: bypasses raymarching for massive performance boost
+				uvSample := (src + offset - 0.5*Resolution) / Resolution.y
+				f2d := fractal2D_DE(vec3(uvSample.x, 0.0, uvSample.y))
+				// f2d.y is now the smooth fractional iteration count
+				iter := f2d.y
+				// Create a vibrant palette based on smooth iterations
+				// Wave-based color offsets for deep, non-static colors
+				v := iter * 0.05 + ColorShift * 0.01
+				col1 := vec3(0.1, 0.0, 0.2) // Deep Purple
+				col2 := vec3(0.0, 0.5, 0.9) // Electric Blue
+				col3 := vec3(0.9, 0.1, 0.4) // Hot Pink
+				// Cycle through colors
+				c := mix(col1, col2, 0.5 + 0.5*sin(v))
+				c = mix(c, col3, 0.5 + 0.5*cos(v * 0.8))
+				// Interior of the set is black
+				if iter < 1.0 {
+					c = vec3(0.0)
+				} else {
+					// Use DE for a "glow" effect at the boundary
+					dist := f2d.x
+					zoom := 1.0
+					if Power > 0.0 { zoom = pow(2.0, Power); }
+					glow := exp(-dist * 500.0 * zoom)
+					c += vec3(0.5, 0.8, 1.0) * glow * 0.5
+				}
+				totalCol += c
+			}
+		}
+		col := totalCol / 4.0
+		col = vec3(pow(col.x, 0.4545), pow(col.y, 0.4545), pow(col.z, 0.4545))
+		return vec4(col, 1.0)
+	}
 
 	// Camera setup
 	forward := vec3(

@@ -33,24 +33,56 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 		fractalName = "Mandelbox"
 		paramName = "Scale"
 		paramVal = g.boxScale
+	} else if g.fractalType == 2 {
+		fractalName = "Mandelbrot"
+		paramName = "ZoomExp"
+	} else if g.fractalType == 3 {
+		fractalName = "Julia"
+		paramName = "ZoomExp"
+	} else if g.fractalType == 4 {
+		fractalName = "Burning Ship"
+		paramName = "ZoomExp"
+	} else if g.fractalType == 5 {
+		fractalName = "Tricorn"
+		paramName = "ZoomExp"
+	} else if g.fractalType == 6 {
+		fractalName = "Multibrot 3"
+		paramName = "ZoomExp"
+	} else if g.fractalType == 7 {
+		fractalName = "Multibrot 4"
+		paramName = "ZoomExp"
+	} else if g.fractalType == 8 {
+		fractalName = "Celtic"
+		paramName = "ZoomExp"
+	} else if g.fractalType == 9 {
+		fractalName = "Perpendicular"
+		paramName = "ZoomExp"
+	} else if g.fractalType == 10 {
+		fractalName = "Manhattan"
+		paramName = "ZoomExp"
 	}
 
 	uiText := fmt.Sprintf(
 		"3D Fractal Viewer - %s [%s]\n\n"+
 			"Controls:\n"+
-			"1 / 2      Switch Fractal (Mandelbulb / Mandelbox)\n"+
-			"WASD       Move X/Z\n"+
+			"1-9        Switch Fractal (Mandelbrot, Julia, ...)\n"+
+			"F1/F2      3D Fractals (Mandelbulb / Mandelbox)\n"+
+			"WASD       Move X/Z (or Pan in 2D)\n"+
 			"Space/Shift Move Y\n"+
+			"I/O        Zoom In/Out (2D)\n"+
 			"Mouse/Arrows Look around (Click to capture, ESC to release)\n"+
-			"[]         Adjust %s\n"+
-			"P          Toggle Autopilot (orbital flight)\n"+
+			"[]         Adjust %s / Iterations\n"+
+			"+/-        Adjust Autopilot Speed\n"+
+			"Z          Toggle Autopilot\n"+
 			"V          Toggle Vantage mode (tour)\n"+
+			"0          Reset View\n"+
 			"F          Toggle Fullscreen\n"+
 			"Q          Quit\n"+
 			"%s"+
 			"Position: (%.2f, %.2f, %.2f)\n"+
 			"Pitch/Yaw: (%.2f, %.2f)\n"+
-			"%s: %.2f | Iterations: %d\n\n"+
+			"%s: %.2f | Iterations: %d\n"+
+			"Autopilot Speed: %.2f\n\n"+
 			"FPS: %.1f",
 		fractalName, modeStr,
 		paramName,
@@ -58,6 +90,7 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 		g.camX, g.camY, g.camZ,
 		g.camPitch, g.camYaw,
 		paramName, paramVal, g.iterations,
+		g.autopilotSpeed,
 		ebiten.ActualFPS(),
 	)
 	ebitenutil.DebugPrint(screen, uiText)

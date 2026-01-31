@@ -16,6 +16,9 @@ var mandelboxCode []byte
 //go:embed mandelbulb.kage
 var mandelbulbCode []byte
 
+//go:embed fractal2d.kage
+var fractal2DCode []byte
+
 // initShader initializes the Kage shader
 func (g *Game) initShader() {
 	var err error
@@ -24,6 +27,8 @@ func (g *Game) initShader() {
 	fullShader = append(fullShader, mandelboxCode...)
 	fullShader = append(fullShader, '\n')
 	fullShader = append(fullShader, mandelbulbCode...)
+	fullShader = append(fullShader, '\n')
+	fullShader = append(fullShader, fractal2DCode...)
 
 	g.shader, err = ebiten.NewShader(fullShader)
 	if err != nil {
