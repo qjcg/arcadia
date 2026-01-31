@@ -1686,34 +1686,53 @@ func main() {
 		JuliaCi:     0.27015,
 	}
 
-	// Add an interactive mode flag (default true)
-	urlFlag := flag.String("url", "", "Fractal URL (fractal://...)")
-	flag.BoolVar(&showVersion, "v", false, "print the version")
-	flag.BoolVar(&showVersion, "version", false, "print the version")
-	randomMode := flag.Bool("random", false, "Start with a completely random interesting view")
-	flag.BoolVar(randomMode, "r", false, "Start with a completely random interesting view (shorthand)")
-	autopilot := flag.Bool("autopilot", false, "Enable autopilot mode (auto-zoom and explore)")
-	flag.BoolVar(autopilot, "a", false, "Enable autopilot mode (auto-zoom and explore) (shorthand)")
-	vantage := flag.Bool("vantage", false, "Enable vantage mode (continuous random interesting scenes with slow pan)")
-	vantageSceneDuration := flag.Int("vantage-duration", 5, "Duration of each scene in vantage mode (seconds, default 5)")
-	mode3d := flag.Bool("3d", false, "Run in 3D mode (GPU-accelerated Mandelbulb viewer)")
+	// --- Group 1: Display Modes ---
+	randomMode := flag.Bool("random", false, "Start with a random interesting view")
+	flag.BoolVar(randomMode, "r", false, "Shorthand for --random")
 
-	flag.IntVar(&config.Width, "w", 0, "Terminal width (0 = auto)")
-	flag.IntVar(&config.Width, "width", 0, "Terminal width (0 = auto)")
-	flag.IntVar(&config.Height, "h", 0, "Terminal height (0 = auto)")
-	flag.IntVar(&config.Height, "height", 0, "Terminal height (0 = auto)")
-	flag.IntVar(&config.MaxIter, "i", 50, "Max iterations")
-	flag.IntVar(&config.MaxIter, "iterations", 50, "Max iterations")
-	flag.Float64Var(&config.CenterX, "x", -0.5, "Center X (real axis)")
-	flag.Float64Var(&config.CenterY, "y", 0.0, "Center Y (imaginary axis)")
-	flag.Float64Var(&config.Zoom, "z", 1.0, "Zoom level")
-	flag.Float64Var(&config.Zoom, "zoom", 1.0, "Zoom level")
-	flag.StringVar(&config.ColorScheme, "c", color.ColorBlue, "Color scheme: grayscale, blue, rainbow")
-	flag.StringVar(&config.ColorScheme, "color", color.ColorBlue, "Color scheme: grayscale, blue, rainbow")
-	flag.StringVar(&config.FractalType, "t", FractalMandelbrot, "Fractal type: mandelbrot, julia, burningship, tricorn, multibrot3, multibrot4, celtic, perpendicular")
-	flag.StringVar(&config.FractalType, "type", FractalMandelbrot, "Fractal type: mandelbrot, julia, burningship, tricorn, multibrot3, multibrot4, celtic, perpendicular")
-	flag.Float64Var(&config.JuliaCr, "jr", -0.7, "Julia set real parameter")
-	flag.Float64Var(&config.JuliaCi, "ji", 0.27015, "Julia set imaginary parameter")
+	autopilot := flag.Bool("autopilot", false, "Enable auto-zoom and intelligent exploration")
+	flag.BoolVar(autopilot, "a", false, "Shorthand for --autopilot")
+
+	vantage := flag.Bool("vantage", false, "Enable vantage mode (scenic tour of random scenes)")
+	flag.BoolVar(vantage, "V", false, "Shorthand for --vantage")
+
+	vantageSceneDurationSpec := flag.Int("vantage-duration", 5, "Seconds per scene in vantage mode")
+	mode3d := flag.Bool("3d", false, "GPU-accelerated 3D mode (Mandelbulb)")
+	flag.BoolVar(mode3d, "3", false, "Shorthand for --3d")
+
+	// --- Group 2: Navigation & URL ---
+	urlFlag := flag.String("url", "", "Load a fractal:// URL")
+	flag.StringVar(urlFlag, "u", "", "Shorthand for --url")
+
+	flag.Float64Var(&config.CenterX, "x", -0.5, "Center X coordinate (real axis)")
+	flag.Float64Var(&config.CenterY, "y", 0.0, "Center Y coordinate (imaginary axis)")
+	flag.Float64Var(&config.Zoom, "zoom", 1.0, "Initial zoom level")
+	flag.Float64Var(&config.Zoom, "z", 1.0, "Shorthand for --zoom")
+
+	// --- Group 3: Rendering & Quality ---
+	flag.StringVar(&config.FractalType, "type", FractalMandelbrot, "Fractal type")
+	flag.StringVar(&config.FractalType, "t", FractalMandelbrot, "Shorthand for --type")
+
+	flag.IntVar(&config.MaxIter, "iterations", 50, "Maximum iterations (detail level)")
+	flag.IntVar(&config.MaxIter, "i", 50, "Shorthand for --iterations")
+
+	flag.StringVar(&config.ColorScheme, "color", color.ColorBlue, "Color theme (grayscale, blue, rainbow, etc.)")
+	flag.StringVar(&config.ColorScheme, "c", color.ColorBlue, "Shorthand for --color")
+
+	flag.IntVar(&config.Width, "width", 0, "Width override (0=auto)")
+	flag.IntVar(&config.Width, "w", 0, "Shorthand for --width")
+	flag.IntVar(&config.Height, "height", 0, "Height override (0=auto)")
+	flag.IntVar(&config.Height, "h", 0, "Shorthand for --height")
+
+	// --- Group 4: Fractal Parameters ---
+	flag.Float64Var(&config.JuliaCr, "julia-re", -0.7, "Julia set real component")
+	flag.Float64Var(&config.JuliaCr, "jr", -0.7, "Shorthand for --julia-re")
+	flag.Float64Var(&config.JuliaCi, "julia-im", 0.27015, "Julia set imaginary component")
+	flag.Float64Var(&config.JuliaCi, "ji", 0.27015, "Shorthand for --julia-im")
+
+	// --- Group 5: Info ---
+	flag.BoolVar(&showVersion, "version", false, "Show version information")
+	flag.BoolVar(&showVersion, "v", false, "Shorthand for --version")
 
 	flag.Usage = func() {
 		logo := `
@@ -1732,18 +1751,65 @@ func main() {
                                S
                                v
 `
-		fmt.Fprintln(os.Stderr, lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("81")).
-			Render(logo))
+		logoStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("81"))
+		for _, line := range strings.Split(logo, "\n") {
+			fmt.Fprintln(os.Stderr, logoStyle.Render(line))
+		}
 		fmt.Fprintln(os.Stderr, lipgloss.NewStyle().Foreground(lipgloss.Color("39")).Italic(true).Render("      ~ deep iterative crystalline exploration ~\n"))
 		fmt.Fprintln(os.Stderr, "Usage:")
 		fmt.Fprintf(os.Stderr, "  fractalis [options] [url]\n\n")
-		fmt.Fprintln(os.Stderr, "Options:")
-		flag.PrintDefaults()
+
+		titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("81")).Bold(true)
+		flagStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
+		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("250"))
+
+		printGroup := func(title string, flags [][2]string) {
+			fmt.Fprintln(os.Stderr, titleStyle.Render(title))
+			for _, f := range flags {
+				fmt.Fprintf(os.Stderr, "  %-25s %s\n", flagStyle.Render(f[0]), descStyle.Render(f[1]))
+			}
+			fmt.Fprintln(os.Stderr)
+		}
+
+		printGroup("DISPLAY MODES:", [][2]string{
+			{"-r, --random", "Start with a random interesting view"},
+			{"-a, --autopilot", "Enable auto-zoom and intelligent exploration"},
+			{"-V, --vantage", "Enable vantage mode (scenic tour)"},
+			{"--vantage-duration <sec>", "Seconds per scene in vantage mode (default 5)"},
+			{"-3, --3d", "GPU-accelerated 3D mode (Mandelbulb)"},
+		})
+
+		printGroup("NAVIGATION & URL:", [][2]string{
+			{"-u, --url <url>", "Load a fractal:// URL (also positional)"},
+			{"-x <float>", "Center X coordinate (real axis)"},
+			{"-y <float>", "Center Y coordinate (imaginary axis)"},
+			{"-z, --zoom <float>", "Initial zoom level (default 1.0)"},
+		})
+
+		printGroup("RENDERING & QUALITY:", [][2]string{
+			{"-t, --type <type>", "Fractal type (mandelbrot, julia, burningship...)"},
+			{"-i, --iterations <n>", "Maximum iterations (detail level, default 50)"},
+			{"-c, --color <theme>", "Color theme (grayscale, blue, rainbow...)"},
+			{"-w, --width <pixels>", "Width override (0=auto)"},
+			{"-h, --height <pixels>", "Height override (0=auto)"},
+		})
+
+		printGroup("FRACTAL PARAMETERS:", [][2]string{
+			{"--julia-re <float>", "Julia set real component (default -0.7)"},
+			{"--julia-im <float>", "Julia set imaginary component (default 0.27)"},
+			{"--jr, --ji", "Shorthands for the above"},
+		})
+
+		printGroup("INFO:", [][2]string{
+			{"-v, --version", "Show version information"},
+			{"-h, --help", "Show this help menu"},
+		})
 	}
 
 	flag.Parse()
+
+	// Apply vantage duration
+	vantageSceneDuration := *vantageSceneDurationSpec
 
 	// Check for URL argument (positional) or --url flag
 	urlAutopilot := false
@@ -1912,8 +1978,8 @@ func main() {
 	if *vantage {
 		m.animationState.Vantage.Enabled = true
 		// vantage duration in seconds -> convert to ticks (50ms per tick)
-		m.animationState.Vantage.SceneDuration = *vantageSceneDuration * 20 // 20 ticks per second
-		m.animationState.Vantage.SceneTimer = 0                             // Will trigger first scene immediately
+		m.animationState.Vantage.SceneDuration = vantageSceneDuration * 20 // 20 ticks per second
+		m.animationState.Vantage.SceneTimer = 0                            // Will trigger first scene immediately
 		// Force dynamic color on and autopilot off
 		m.animationState.Color.DynamicColor = true
 		m.animationState.AutoPilot.Enabled = false

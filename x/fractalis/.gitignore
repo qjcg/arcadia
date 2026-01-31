@@ -1,4 +1,5 @@
 bin/
 tmp/
 /fractalis
+/fractalis-ebiten-wasm
 /3d
