@@ -18,12 +18,14 @@ An interactive terminal-based fractal viewer with ASCII art rendering and color 
 - Built-in help system
 - Full-screen TUI powered by Bubble Tea
 
-### Static Mode (Legacy)
-- Single-shot fractal rendering with command-line parameters
-- Renders multiple fractal types: Mandelbrot, Julia, Burning Ship, Tricorn, Multibrot, Celtic, and Perpendicular
-- Adjustable zoom and center position
-- Auto-detects terminal size for optimal display
-- Julia set with customizable complex parameters
+### 3D Mode (Separate Command)
+- GPU-accelerated 3D fractal rendering available via `cmd/3d`
+- Real-time ray marching of Mandelbulb fractal at 60 FPS
+- Full 3D navigation with camera controls
+- Soft shadows and ambient occlusion for realistic lighting
+- Dynamic color animation with orbit trap coloring
+- HDR tone mapping and gamma correction
+- Graphical window with interactive controls
 
 ## Installation
 
@@ -112,17 +114,54 @@ fractals --url "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=on"
 
 **Bookmarks Integration**: When you save a bookmark, it automatically generates and stores a shareable URL, making bookmarks portable and shareable with others.
 
-### Static Mode (Legacy)
+### 3D Mode
 
-Generate a single fractal image using command-line parameters:
+GPU-accelerated 3D Mandelbulb rendering is available as a separate command:
 
 ```bash
-# Use --static flag to disable interactive mode
-fractals --static
+# Run the 3D viewer directly
+go run ./cmd/3d
 
-# Or provide any rendering parameters
-fractals -t julia -c rainbow -z 2.0
+# Or build and install it
+go build -o fractalis-3d ./cmd/3d
+./fractalis-3d
 ```
+
+**3D Mode Controls:**
+- **WASD** - Move in X/Z plane
+- **Space/Shift** - Move up/down in Y
+- **Mouse** - Look around (click window to capture mouse, ESC to release)
+- **Arrow keys** - Alternative camera look control
+- **Q** - Quit
+
+**3D Mode Features:**
+- Real-time ray marching at 60 FPS
+- Soft shadows and ambient occlusion
+- Dynamic color shifting animation
+- HDR tone mapping and gamma correction
+- Orbit trap coloring for fractal detail
+
+**Development:**
+```bash
+# Run with hot reload during development
+task dev-3d
+
+# Serve as WebAssembly in browser (runs on http://localhost:8080)
+task wasm-3d
+```
+
+**WebAssembly Mode:**
+The 3D mode can be built as WebAssembly to run in any modern browser:
+
+```bash
+# Manual build
+GOOS=js GOARCH=wasm go build -o fractalis.wasm ./cmd/3d
+
+# Serve with wasmserve
+go run github.com/hajimehoshi/wasmserve@latest ./cmd/3d
+```
+
+The WebAssembly version provides the same GPU-accelerated ray marching experience as the native version, accessible directly in your browser at http://localhost:8080.
 
 ### Advanced Usage
 
@@ -161,18 +200,35 @@ fractals -t perpendicular
 
 #### Color Schemes
 
-Choose from three color schemes:
+Choose from eight color schemes:
 
 ```bash
-# Grayscale (default)
+# Grayscale (default) - ASCII characters only, no color codes
 fractals -c grayscale
 
-# Blue gradient
+# Blue gradient - dark to bright blue
 fractals -c blue
 
-# Rainbow/fire gradient
+# Rainbow gradient - full spectrum
 fractals -c rainbow
+
+# Fire gradient - black to red to orange to yellow to white
+fractals -c fire
+
+# Purple/magenta gradient
+fractals -c purple
+
+# Green gradient - dark to bright green
+fractals -c green
+
+# Gold/amber gradient - brown to gold to yellow
+fractals -c gold
+
+# Cyan/aqua gradient - dark to bright cyan
+fractals -c cyan
 ```
+
+All color schemes support dynamic color mode (Shift+C) for smooth hue rotation.
 
 #### Zoom and Pan
 
@@ -223,6 +279,9 @@ When running in interactive mode, use these keyboard shortcuts:
 - **6** - Multibrot-4 (power 4)
 - **7** - Celtic Mandelbrot
 - **8** - Perpendicular Mandelbrot
+- **9** - Multibrot-5 (power 5)
+- **m** - Manhattan distance variant
+- **n** - Newton fractal
 
 ### Settings
 - **c** - Cycle through color schemes (grayscale → blue → rainbow → fire → purple → green → gold → cyan)
@@ -258,15 +317,13 @@ When running in interactive mode, use these keyboard shortcuts:
 - **?** - Toggle help screen
 - **q** or **Esc** - Quit
 
-## CLI Options (Static Mode)
+## CLI Options
 
 | Flag | Long Form | Description | Default |
 |------|-----------|-------------|---------|
-| | `--static` | Run in static (non-interactive) mode | false |
-| | `--interactive` | Run in interactive mode (default) | true |
 | `-r` | `--random` | Start with a completely random interesting view | false |
-| `-t` | `--type` | Fractal type: mandelbrot, julia, burningship, tricorn, multibrot3, multibrot4, celtic, perpendicular | mandelbrot |
-| `-c` | `--color` | Color scheme: grayscale, blue, rainbow | grayscale |
+| `-t` | `--type` | Fractal type: mandelbrot, julia, burningship, tricorn, multibrot3, multibrot4, multibrot5, celtic, perpendicular, manhattan, newton | mandelbrot |
+| `-c` | `--color` | Color scheme: grayscale, blue, rainbow, fire, purple, green, gold, cyan | grayscale |
 | `-w` | `--width` | Terminal width (0 = auto-detect) | 0 |
 | `-h` | `--height` | Terminal height (0 = auto-detect) | 0 |
 | `-i` | `--iterations` | Maximum iterations for convergence test | 50 |
@@ -294,48 +351,6 @@ fractals -t mandelbrot -x -0.75 -y 0.1 -z 3.0 -c rainbow
 fractals --random
 # or
 fractals -r
-```
-
-### Static Mode Examples
-
-```bash
-# Full-screen rainbow Mandelbrot (static)
-fractals --static -c rainbow
-
-# Explore the "seahorse valley" (static)
-fractals --static -x -0.75 -y 0.1 -z 3.0 -c rainbow -i 100
-```
-
-### Julia Set Variations (Static)
-
-```bash
-# Classic Julia set (static)
-fractals --static -t julia -c rainbow
-
-# Dendrite Julia set (static)
-fractals --static -t julia -jr 0.0 -ji 1.0 -c blue
-
-# Douady Rabbit (static)
-fractals --static -t julia -jr -0.123 -ji 0.745 -c rainbow
-```
-
-### Other Fractals (Static)
-
-```bash
-# The famous Burning Ship fractal (static)
-fractals --static -t burningship -x -0.5 -y -0.6 -z 1.5 -c rainbow
-
-# Heart-shaped Tricorn (static)
-fractals --static -t tricorn -c blue
-
-# Power-3 Multibrot (three-fold symmetry) (static)
-fractals --static -t multibrot3 -c rainbow
-
-# Power-4 Multibrot (four-fold symmetry) (static)
-fractals --static -t multibrot4 -c rainbow -z 1.5
-
-# Generate a small 40x20 preview (static)
-fractals --static -w 40 -h 20 -c blue
 ```
 
 ## Fractal Algorithms
@@ -444,13 +459,17 @@ The auto-generated names use evocative words that capture the mystical nature of
 - **Journey Nouns**: path, realm, threshold, sanctuary, nexus, labyrinth, and more
 - **Format**: `adjective_noun` (e.g., `crystal_gateway`, `shadowed_labyrinth`)
 
-Bookmarks are stored in `~/.config/fractals/bookmarks.yaml` and include:
-- Fractal type (Mandelbrot, Julia, etc.)
-- Center coordinates (X, Y)
-- Zoom level
-- Iteration depth
-- Color scheme
-- Julia parameters (if applicable)
+Bookmarks are stored in `~/.config/fractalis/bookmarks.yaml` in a simple format:
+
+```yaml
+bookmarks:
+  - name: ethereal_threshold
+    url: "fractal://mandelbrot/-0.7436/0.1314/10.0/100/?color_theme=rainbow"
+  - name: crystal_gateway
+    url: "fractal://julia/0.0/0.0/5.0/50/?julia_cr=-0.4&julia_ci=0.6&color_theme=blue"
+```
+
+Each bookmark stores all state (fractal type, coordinates, zoom, colors, etc.) in the URL string, making bookmarks portable and shareable.
 
 ### Loading Bookmarks
 
