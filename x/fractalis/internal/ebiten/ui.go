@@ -26,25 +26,38 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 		vantageInfo = fmt.Sprintf("\nVantage: %s (%.1fs)\n%s\n", vp.Name, remaining, vp.Description)
 	}
 
+	fractalName := "Mandelbulb"
+	paramName := "Power"
+	paramVal := g.power
+	if g.fractalType == 1 {
+		fractalName = "Mandelbox"
+		paramName = "Scale"
+		paramVal = g.boxScale
+	}
+
 	uiText := fmt.Sprintf(
-		"3D Fractal Viewer - Mandelbulb [%s]\n\n"+
+		"3D Fractal Viewer - %s [%s]\n\n"+
 			"Controls:\n"+
-			"WASD      Move X/Z\n"+
+			"1 / 2      Switch Fractal (Mandelbulb / Mandelbox)\n"+
+			"WASD       Move X/Z\n"+
 			"Space/Shift Move Y\n"+
 			"Mouse/Arrows Look around (Click to capture, ESC to release)\n"+
-			"A          Toggle Autopilot (orbital flight)\n"+
-			"V          Toggle Vantage mode (scene tour)\n"+
+			"[]         Adjust %s\n"+
+			"P          Toggle Autopilot (orbital flight)\n"+
+			"V          Toggle Vantage mode (tour)\n"+
+			"F          Toggle Fullscreen\n"+
 			"Q          Quit\n"+
 			"%s"+
 			"Position: (%.2f, %.2f, %.2f)\n"+
 			"Pitch/Yaw: (%.2f, %.2f)\n"+
-			"Power: %.1f | Iterations: %d\n\n"+
+			"%s: %.2f | Iterations: %d\n\n"+
 			"FPS: %.1f",
-		modeStr,
+		fractalName, modeStr,
+		paramName,
 		vantageInfo,
 		g.camX, g.camY, g.camZ,
 		g.camPitch, g.camYaw,
-		g.power, g.iterations,
+		paramName, paramVal, g.iterations,
 		ebiten.ActualFPS(),
 	)
 	ebitenutil.DebugPrint(screen, uiText)

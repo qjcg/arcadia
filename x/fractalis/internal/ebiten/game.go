@@ -35,9 +35,11 @@ type Game struct {
 	mouseCaptured          bool
 
 	// Fractal parameters
-	power      float64
-	iterations int
-	colorShift float64
+	power       float64
+	boxScale    float64
+	fractalType int // 0: Mandelbulb, 1: Mandelbox
+	iterations  int
+	colorShift  float64
 
 	// Autopilot state
 	autopilotEnabled bool
@@ -71,7 +73,9 @@ func NewGame(config persistence.Config) *Game {
 		sideSpeed:        0.2,
 		rotSpeed:         2.0,
 		power:            8.0, // Mandelbulb power
-		iterations:       10,
+		boxScale:         2.0, // Mandelbox scale
+		fractalType:      0,   // Start with Mandelbulb
+		iterations:       12,
 		colorShift:       0.0,
 		startTime:        time.Now(),
 		autopilotSpeed:   0.5,
@@ -86,7 +90,9 @@ func NewGame(config persistence.Config) *Game {
 
 // Layout implements ebiten.Game
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return g.width, g.height
+	g.width = outsideWidth
+	g.height = outsideHeight
+	return outsideWidth, outsideHeight
 }
 
 // Update implements ebiten.Game
@@ -132,14 +138,16 @@ func (g *Game) drawLoading(screen *ebiten.Image) {
 // drawFractal renders the shader
 func (g *Game) drawFractal(screen *ebiten.Image) {
 	uniforms := map[string]interface{}{
-		"Time":       float32(time.Since(g.startTime).Seconds()),
-		"Resolution": [2]float32{float32(g.width), float32(g.height)},
-		"CamPos":     [3]float32{float32(g.camX), float32(g.camY), float32(g.camZ)},
-		"CamPitch":   float32(g.camPitch),
-		"CamYaw":     float32(g.camYaw),
-		"Power":      float32(g.power),
-		"Iterations": float32(g.iterations),
-		"ColorShift": float32(g.colorShift),
+		"Time":        float32(time.Since(g.startTime).Seconds()),
+		"Resolution":  [2]float32{float32(g.width), float32(g.height)},
+		"CamPos":      [3]float32{float32(g.camX), float32(g.camY), float32(g.camZ)},
+		"CamPitch":    float32(g.camPitch),
+		"CamYaw":      float32(g.camYaw),
+		"Power":       float32(g.power),
+		"BoxScale":    float32(g.boxScale),
+		"FractalType": float32(g.fractalType),
+		"Iterations":  float32(g.iterations),
+		"ColorShift":  float32(g.colorShift),
 	}
 
 	op := &ebiten.DrawRectShaderOptions{}
@@ -154,6 +162,7 @@ func (g *Game) Run() error {
 	ebiten.SetWindowSize(g.width, g.height)
 	ebiten.SetWindowTitle("Fractalis 3D - Mandelbulb")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	ebiten.MaximizeWindow()
 
 	g.initShader()
 

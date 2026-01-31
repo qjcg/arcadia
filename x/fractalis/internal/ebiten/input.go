@@ -4,22 +4,48 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 // handleInput processes keyboard and mouse input
-// Returns true if the game should quit
 func (g *Game) handleInput() bool {
 	const dt = 1.0 / 60.0 // Assume 60 FPS
 
-	// Mouse capture toggle
-	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
-		g.mouseCaptured = !g.mouseCaptured
-		if g.mouseCaptured {
-			ebiten.SetCursorMode(ebiten.CursorModeHidden)
-			g.lastMouseX, g.lastMouseY = g.width/2, g.height/2
+	// Fractal switching
+	if inpututil.IsKeyJustPressed(ebiten.Key1) {
+		g.fractalType = 0 // Mandelbulb
+	}
+	if inpututil.IsKeyJustPressed(ebiten.Key2) {
+		g.fractalType = 1 // Mandelbox
+	}
+
+	// Parameter adjustment
+	if ebiten.IsKeyPressed(ebiten.KeyBracketRight) {
+		if g.fractalType == 0 {
+			g.power += 0.05
 		} else {
-			ebiten.SetCursorMode(ebiten.CursorModeVisible)
+			g.boxScale += 0.01
 		}
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyBracketLeft) {
+		if g.fractalType == 0 {
+			g.power -= 0.05
+		} else {
+			g.boxScale -= 0.01
+		}
+	}
+
+	// Mouse click to capture
+	if !g.mouseCaptured && inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		g.mouseCaptured = true
+		ebiten.SetCursorMode(ebiten.CursorModeCaptured)
+		g.lastMouseX, g.lastMouseY = ebiten.CursorPosition()
+	}
+
+	// Mouse capture toggle
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		g.mouseCaptured = false
+		ebiten.SetCursorMode(ebiten.CursorModeVisible)
 	}
 
 	// Movement
@@ -65,6 +91,8 @@ func (g *Game) handleInput() bool {
 
 		// Clamp pitch to avoid flipping
 		g.camPitch = math.Max(-math.Pi/2+0.1, math.Min(math.Pi/2-0.1, g.camPitch))
+
+		g.lastMouseX, g.lastMouseY = mx, my
 	}
 
 	// Rotation controls (arrow keys)
@@ -81,8 +109,8 @@ func (g *Game) handleInput() bool {
 		g.camPitch = math.Min(math.Pi/2-0.1, g.camPitch+g.rotSpeed*dt)
 	}
 
-	// Toggle autopilot on A
-	if ebiten.IsKeyPressed(ebiten.KeyA) {
+	// Toggle autopilot on P (re-mapped from A to avoid conflict with movement)
+	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
 		// Simple debounce - only toggle if we're not already processing a key
 		if !g.autopilotEnabled && !g.vantageEnabled {
 			g.autopilotEnabled = true
@@ -93,7 +121,7 @@ func (g *Game) handleInput() bool {
 	}
 
 	// Toggle vantage mode on V
-	if ebiten.IsKeyPressed(ebiten.KeyV) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyV) {
 		if !g.vantageEnabled && !g.autopilotEnabled {
 			g.vantageEnabled = true
 			g.vantageIndex = 0
@@ -103,6 +131,11 @@ func (g *Game) handleInput() bool {
 		} else if g.vantageEnabled {
 			g.vantageEnabled = false
 		}
+	}
+
+	// Toggle fullscreen on F
+	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
+		ebiten.SetFullscreen(!ebiten.IsFullscreen())
 	}
 
 	// Quit on Q
