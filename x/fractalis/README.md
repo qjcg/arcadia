@@ -19,7 +19,7 @@ An interactive terminal-based fractal viewer with ASCII art rendering and color 
 - Full-screen TUI powered by Bubble Tea
 
 ### 3D Mode (Separate Command)
-- GPU-accelerated 3D fractal rendering available via `cmd/3d`
+- GPU-accelerated 3D fractal rendering available via `cmd/fractalis-ebiten-wasm`
 - Real-time ray marching of Mandelbulb fractal at 60 FPS
 - Full 3D navigation with camera controls
 - Soft shadows and ambient occlusion for realistic lighting
@@ -120,10 +120,10 @@ GPU-accelerated 3D Mandelbulb rendering is available as a separate command:
 
 ```bash
 # Run the 3D viewer directly
-go run ./cmd/3d
+go run ./cmd/fractalis-ebiten-wasm
 
 # Or build and install it
-go build -o fractalis-3d ./cmd/3d
+go build -o fractalis-3d ./cmd/fractalis-ebiten-wasm
 ./fractalis-3d
 ```
 
@@ -155,10 +155,10 @@ The 3D mode can be built as WebAssembly to run in any modern browser:
 
 ```bash
 # Manual build
-GOOS=js GOARCH=wasm go build -o fractalis.wasm ./cmd/3d
+GOOS=js GOARCH=wasm go build -o fractalis.wasm ./cmd/fractalis-ebiten-wasm
 
 # Serve with wasmserve
-go run github.com/hajimehoshi/wasmserve@latest ./cmd/3d
+go run github.com/hajimehoshi/wasmserve@latest ./cmd/fractalis-ebiten-wasm
 ```
 
 The WebAssembly version provides the same GPU-accelerated ray marching experience as the native version, accessible directly in your browser at http://localhost:8080.

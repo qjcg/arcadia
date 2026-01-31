@@ -60,9 +60,9 @@ tasks:
   dev-3d:
     desc: Run 3D mode with hot reload using air
     cmds:
-      - go tool air --build.cmd "go run . --3d"
+      - go tool air --build.cmd "go run ./cmd/fractalis --3d"
 
   wasm-3d:
     desc: Serve 3D mode as WebAssembly in browser
     cmds:
-      - go run github.com/hajimehoshi/wasmserve@latest ./cmd/3d
+      - go run github.com/hajimehoshi/wasmserve@latest ./cmd/fractalis-ebiten-wasm
