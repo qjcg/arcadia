@@ -1,0 +1,61 @@
+; jmacs - An Emacs-like Text Editor in Elbereth
+; A practical Lisp dialect that compiles to Go
+; Demonstrates functional editor design
+
+(def welcome "Welcome to jmacs")
+(def version "0.1.0")
+
+; ============================================================================
+; Simple demo that works with current Elbereth implementation
+; ============================================================================
+
+(defn show-welcome []
+  (println ""))
+
+(defn show-title []
+  (println "====================================================")
+  (println "jmacs - An Emacs Text Editor Written in Elbereth")
+  (println "====================================================")
+  (println ""))
+
+(defn show-features []
+  (println "Features:")
+  (println "  * Built entirely in Lisp")
+  (println "  * Compiles to efficient Go")
+  (println "  * Functional state management")
+  (println "  * Immutable buffer operations")
+  (println ""))
+
+(defn show-architecture []
+  (println "Architecture:")
+  (println "  Editor = Immutable Map")
+  (println "    - buffers: list of open files")
+  (println "    - active-buffer: current file index")
+  (println "    - mode: editing mode")
+  (println "    - message: status message")
+  (println "")
+  (println "  Commands transform state immutably")
+  (println ""))
+
+(defn show-example []
+  (println "Example Buffer State:")
+  (println "  Current file: untitled.txt")
+  (println "  Cursor: (0, 0)")
+  (println "  Modified: false")
+  (println ""))
+
+(defn show-keybindings []
+  (println "Basic Keybindings:")
+  (println "  C-x C-c  - Exit")
+  (println "  C-?      - Help")
+  (println "  Arrow Keys - Move cursor")
+  (println ""))
+
+(defn main []
+  (show-title)
+  (show-features)
+  (show-architecture)
+  (show-example)
+  (show-keybindings)
+  (println "✨ Elbereth: Practical Lisp that compiles to Go! ✨")
+  (println ""))

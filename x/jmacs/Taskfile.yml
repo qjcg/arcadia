@@ -1,0 +1,61 @@
+version: '3'
+
+tasks:
+  prerequisites:
+    desc: Build elbereth compiler if needed
+    cmds:
+      - cd ../elbereth && go build -o elbereth ./cmd/elbereth
+    status:
+      - test -f ../elbereth/elbereth
+
+  build:
+    desc: Build jmacs from Elbereth source
+    deps:
+      - prerequisites
+    cmds:
+      - ../elbereth/elbereth build ./main.elb -o ./jmacs
+      - echo "Built jmacs successfully"
+
+  run:
+    desc: Run jmacs
+    deps:
+      - build
+    cmds:
+      - ./jmacs
+
+  gen:
+    desc: Generate Go code from Elbereth source
+    deps:
+      - prerequisites
+    cmds:
+      - ../elbereth/elbereth gen ./main.elb
+
+  check:
+    desc: Check syntax of jmacs source
+    deps:
+      - prerequisites
+    cmds:
+      - ../elbereth/elbereth check ./main.elb
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -f ./jmacs
+      - rm -f ./*.go
+
+  dev:
+    desc: Run in development mode with hot reload
+    deps:
+      - prerequisites
+    cmds:
+      - ../elbereth/elbereth repl
+
+  test:
+    desc: Test the jmacs editor
+    deps:
+      - prerequisites
+    cmds:
+      - echo "Testing jmacs syntax..."
+      - ../elbereth/elbereth check ./main.elb
+      - echo "Generating code..."
+      - task: gen

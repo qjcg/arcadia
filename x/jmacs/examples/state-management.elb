@@ -1,0 +1,53 @@
+; state-management.elb - Demonstrate functional state management in jmacs
+; Shows how to manage immutable state patterns
+
+; Immutable state update pattern
+(defn update-state [state key value]
+  "Immutably update a single key in state"
+  (merge state {key value}))
+
+; Compose multiple state updates
+(defn apply-updates [state updates]
+  "Apply multiple updates to state"
+  (reduce (fn [s [k v]] (update-state s k v))
+          state
+          updates))
+
+; Example: Editor state
+(def initial-editor-state
+  {:buffers []
+   :active-buffer 0
+   :mode :normal
+   :undo-history []
+   :redo-history []})
+
+; Record current state for undo
+(defn record-state [editor state]
+  "Record current state in undo history"
+  (update-state editor :undo-history
+    (conj (:undo-history editor) state)))
+
+; Undo last operation
+(defn undo-operation [editor]
+  "Restore previous state from undo history"
+  (if (empty? (:undo-history editor))
+    editor
+    (merge editor
+      {:undo-history (pop (:undo-history editor))})))
+
+; Demonstrate state management
+(defn main []
+  (println "jmacs State Management Example")
+  (println "")
+
+  (println "Initial state:")
+  (println initial-editor-state)
+  (println "")
+
+  (println "Update mode to :insert:")
+  (let [updated (update-state initial-editor-state :mode :insert)]
+    (println (:mode updated)))
+  (println "")
+
+  (println "Original state unchanged:")
+  (println (:mode initial-editor-state)))

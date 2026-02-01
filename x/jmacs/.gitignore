@@ -1,0 +1,25 @@
+# Binaries
+jmacs
+*.out
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Generated Go files
+main.go
+*.tmp.go
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Task build state
+.task/
+
+# Build cache
+.cache/

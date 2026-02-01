@@ -1,0 +1,34 @@
+; basic-editing.elb - Example of basic text editing in jmacs
+; This demonstrates fundamental editor operations
+
+(import [fmt "fmt"])
+
+; Define some sample text
+(def sample-text "Hello, jmacs!
+This is a sample document.
+You can edit it interactively.
+
+Try moving around with arrow keys.
+Type C-x C-c to quit.
+Type C-? for help.")
+
+; Create a buffer with sample content
+(defn make-sample-buffer []
+  {:filename "sample.txt"
+   :content sample-text
+   :lines nil  ; Will be calculated
+   :cursor-row 0
+   :cursor-col 0
+   :modified false})
+
+; Demonstrate buffer operations
+(defn test-buffer-operations []
+  (let [buf (make-sample-buffer)]
+    (println "Initial buffer:")
+    (println (:filename buf))
+    (println "Cursor at: (" (:cursor-row buf) ", " (:cursor-col buf) ")")))
+
+; Entry point for testing
+(defn main []
+  (println "jmacs Basic Editing Example")
+  (test-buffer-operations))

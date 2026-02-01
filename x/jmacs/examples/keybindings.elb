@@ -1,0 +1,56 @@
+; keybindings.elb - Define and test custom keybindings
+; This shows how to define and organize keybindings in jmacs
+
+; Default keybinding map
+(def default-keybindings
+  {
+   ; Quit commands
+   "C-x C-c" :quit
+   "C-c"     :quit-confirm
+
+   ; Navigation
+   "C-f"     :move-forward
+   "C-b"     :move-backward
+   "C-n"     :move-next-line
+   "C-p"     :move-prev-line
+   "C-a"     :move-line-start
+   "C-e"     :move-line-end
+
+   ; Editing
+   "C-d"     :delete-char
+   "C-k"     :delete-line
+   "C-y"     :yank
+
+   ; File operations
+   "C-x C-s" :save-file
+   "C-x C-w" :write-file
+   "C-x C-r" :open-file
+
+   ; Display
+   "C-?"     :help
+   "C-l"     :redraw
+
+   ; Undo/Redo
+   "C-/" :undo
+   "C-z" :undo
+  })
+
+; Function to handle a keybinding
+(defn handle-keybinding [editor key]
+  (let [action (get default-keybindings key)]
+    (cond
+      (= action :quit)
+      (println "Quitting jmacs...")
+
+      (= action :help)
+      (println "jmacs Help - Emacs in Elbereth")
+
+      :else
+      (println (str "Key " key " triggered action: " action)))))
+
+; Test keybindings
+(defn main []
+  (println "jmacs Keybindings Example")
+  (println "Available keybindings:")
+  (doseq [[key action] default-keybindings]
+    (println (str "  " key " -> " action))))
