@@ -31,8 +31,8 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 	}
 
 	paintInfo := ""
-	if g.paintMode != PaintModeNone {
-		paintInfo = fmt.Sprintf("\nPaint: %s\n", g.getPaintModeName())
+	if g.inpaintMode != PaintModeNone || g.outpaintMode != PaintModeNone {
+		paintInfo = g.getPaintModeInfo()
 	}
 
 	fractalName := "Mandelbulb"

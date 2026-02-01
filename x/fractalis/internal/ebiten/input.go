@@ -243,44 +243,47 @@ func (g *Game) handleInput() bool {
 	if shift && !ctrl {
 		// Inpainting modes
 		if inpututil.IsKeyJustPressed(ebiten.Key1) {
-			g.paintMode = InpaintSolidMode
+			g.inpaintMode = InpaintSolidMode
 		}
 		if inpututil.IsKeyJustPressed(ebiten.Key2) {
-			g.paintMode = InpaintNoisyMode
+			g.inpaintMode = InpaintNoisyMode
 		}
 		if inpututil.IsKeyJustPressed(ebiten.Key3) {
-			g.paintMode = InpaintIridMode
+			g.inpaintMode = InpaintIridMode
 		}
 		if inpututil.IsKeyJustPressed(ebiten.Key4) {
-			g.paintMode = InpaintFractalMode
+			g.inpaintMode = InpaintFractalMode
 		}
 		if inpututil.IsKeyJustPressed(ebiten.Key5) {
-			g.paintMode = InpaintFireMode
+			g.inpaintMode = InpaintFireMode
 		}
 	}
 
 	if ctrl && !shift {
 		// Outpainting modes
 		if inpututil.IsKeyJustPressed(ebiten.Key1) {
-			g.paintMode = OutpaintGlowMode
+			g.outpaintMode = OutpaintGlowMode
 		}
 		if inpututil.IsKeyJustPressed(ebiten.Key2) {
-			g.paintMode = OutpaintRippleMode
+			g.outpaintMode = OutpaintRippleMode
 		}
 		if inpututil.IsKeyJustPressed(ebiten.Key3) {
-			g.paintMode = OutpaintFogMode
+			g.outpaintMode = OutpaintFogMode
 		}
 		if inpututil.IsKeyJustPressed(ebiten.Key4) {
-			g.paintMode = OutpaintElectricMode
+			g.outpaintMode = OutpaintElectricMode
 		}
 		if inpututil.IsKeyJustPressed(ebiten.Key5) {
-			g.paintMode = OutpaintFireMode
+			g.outpaintMode = OutpaintFireMode
 		}
 	}
 
 	// Disable paint mode with Shift+0 or Ctrl+0
-	if (shift || ctrl) && inpututil.IsKeyJustPressed(ebiten.Key0) {
-		g.paintMode = PaintModeNone
+	if shift && inpututil.IsKeyJustPressed(ebiten.Key0) {
+		g.inpaintMode = PaintModeNone
+	}
+	if ctrl && inpututil.IsKeyJustPressed(ebiten.Key0) {
+		g.outpaintMode = PaintModeNone
 	}
 
 	// Quit on Q

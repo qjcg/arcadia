@@ -93,7 +93,8 @@ type Game struct {
 	vantageHasTarget   bool
 
 	// Paint mode state
-	paintMode PaintMode
+	inpaintMode  PaintMode
+	outpaintMode PaintMode
 }
 
 // NewGame creates a new fractal engine game
@@ -183,7 +184,8 @@ func NewGame(config persistence.Config) *Game {
 		vantageEnabled:       config.VantageEnabled,
 		vantageSceneTime:     float64(config.VantageSceneDuration),
 		vantageVantages:      defaultVantagePoints(),
-		paintMode:            PaintModeNone,
+		inpaintMode:          PaintModeNone,
+		outpaintMode:         PaintModeNone,
 	}
 
 	g.calculator = search.NewInterestCalculator(func(cr, ci float64, cfg persistence.Config) float64 {
@@ -266,22 +268,23 @@ func (g *Game) drawFractal(screen *ebiten.Image) {
 	aspect := float64(g.height) / float64(g.width)
 
 	uniforms := map[string]interface{}{
-		"Time":        float32(time.Since(g.startTime).Seconds()),
-		"Resolution":  [2]float32{float32(g.width), float32(g.height)},
-		"CamPos":      [3]float32{float32(g.camX), float32(g.camY), float32(g.camZ)},
-		"CamPosHi":    [2]float32{float32(g.camX), float32(g.camZ)},
-		"CamPosLo":    [2]float32{float32(g.camX - float64(float32(g.camX))), float32(g.camZ - float64(float32(g.camZ)))},
-		"InvZoom":     splitFloat64(invZoom),
-		"UnitToSize":  splitFloat64(unitToSize),
-		"Aspect":      float32(aspect),
-		"CamPitch":    float32(g.camPitch),
-		"CamYaw":      float32(g.camYaw),
-		"Power":       float32(g.power),
-		"BoxScale":    float32(g.boxScale),
-		"FractalType": float32(g.fractalType),
-		"Iterations":  float32(g.iterations),
-		"ColorShift":  float32(g.colorShift),
-		"PaintMode":   float32(g.paintMode),
+		"Time":         float32(time.Since(g.startTime).Seconds()),
+		"Resolution":   [2]float32{float32(g.width), float32(g.height)},
+		"CamPos":       [3]float32{float32(g.camX), float32(g.camY), float32(g.camZ)},
+		"CamPosHi":     [2]float32{float32(g.camX), float32(g.camZ)},
+		"CamPosLo":     [2]float32{float32(g.camX - float64(float32(g.camX))), float32(g.camZ - float64(float32(g.camZ)))},
+		"InvZoom":      splitFloat64(invZoom),
+		"UnitToSize":   splitFloat64(unitToSize),
+		"Aspect":       float32(aspect),
+		"CamPitch":     float32(g.camPitch),
+		"CamYaw":       float32(g.camYaw),
+		"Power":        float32(g.power),
+		"BoxScale":     float32(g.boxScale),
+		"FractalType":  float32(g.fractalType),
+		"Iterations":   float32(g.iterations),
+		"ColorShift":   float32(g.colorShift),
+		"InpaintMode":  float32(g.inpaintMode),
+		"OutpaintMode": float32(g.outpaintMode),
 	}
 
 	op := &ebiten.DrawRectShaderOptions{}
@@ -319,9 +322,9 @@ func (g *Game) Run() error {
 	return ebiten.RunGame(g)
 }
 
-// getPaintModeName returns the name of the current paint mode
-func (g *Game) getPaintModeName() string {
-	switch g.paintMode {
+// getPaintModeName returns the name of a paint mode
+func getPaintModeName(mode PaintMode) string {
+	switch mode {
 	case InpaintSolidMode:
 		return "Solid Inpaint"
 	case InpaintNoisyMode:
@@ -345,4 +348,20 @@ func (g *Game) getPaintModeName() string {
 	default:
 		return "None"
 	}
+}
+
+// getPaintModeInfo returns a formatted string with current paint modes
+func (g *Game) getPaintModeInfo() string {
+	info := "\nPaint:"
+	if g.inpaintMode != PaintModeNone {
+		info += " Inpaint:" + getPaintModeName(g.inpaintMode)
+	}
+	if g.outpaintMode != PaintModeNone {
+		if g.inpaintMode != PaintModeNone {
+			info += " |"
+		}
+		info += " Outpaint:" + getPaintModeName(g.outpaintMode)
+	}
+	info += "\n"
+	return info
 }
