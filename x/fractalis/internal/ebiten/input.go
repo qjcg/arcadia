@@ -11,42 +11,48 @@ import (
 func (g *Game) handleInput() bool {
 	const dt = 1.0 / 60.0 // Assume 60 FPS
 
-	// Fractal switching
-	if inpututil.IsKeyJustPressed(ebiten.Key1) {
-		g.switchToFractal(2) // Mandelbrot
-	}
-	if inpututil.IsKeyJustPressed(ebiten.Key2) {
-		g.switchToFractal(3) // Julia
-	}
-	if inpututil.IsKeyJustPressed(ebiten.Key3) {
-		g.switchToFractal(4) // Burning Ship
-	}
-	if inpututil.IsKeyJustPressed(ebiten.Key4) {
-		g.switchToFractal(5) // Tricorn
-	}
-	if inpututil.IsKeyJustPressed(ebiten.Key5) {
-		g.switchToFractal(6) // Multibrot 3
-	}
-	if inpututil.IsKeyJustPressed(ebiten.Key6) {
-		g.switchToFractal(7) // Multibrot 4
-	}
-	if inpututil.IsKeyJustPressed(ebiten.Key7) {
-		g.switchToFractal(8) // Multibrot 5
-	}
-	if inpututil.IsKeyJustPressed(ebiten.Key8) {
-		g.switchToFractal(9) // Celtic
-	}
-	if inpututil.IsKeyJustPressed(ebiten.Key9) {
-		g.switchToFractal(10) // Perpendicular
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyM) {
-		g.switchToFractal(11) // Manhattan
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyN) {
-		g.switchToFractal(12) // Newton
-	}
-	if inpututil.IsKeyJustPressed(ebiten.Key0) {
-		g.switchToFractal(g.fractalType)
+	// Store ctrl/shift state for consistent checks throughout function
+	shift := ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight)
+	ctrl := ebiten.IsKeyPressed(ebiten.KeyControlLeft) || ebiten.IsKeyPressed(ebiten.KeyControlRight)
+
+	// Fractal switching (only when no modifiers pressed)
+	if !shift && !ctrl {
+		if inpututil.IsKeyJustPressed(ebiten.Key1) {
+			g.switchToFractal(2) // Mandelbrot
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key2) {
+			g.switchToFractal(3) // Julia
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key3) {
+			g.switchToFractal(4) // Burning Ship
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key4) {
+			g.switchToFractal(5) // Tricorn
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key5) {
+			g.switchToFractal(6) // Multibrot 3
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key6) {
+			g.switchToFractal(7) // Multibrot 4
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key7) {
+			g.switchToFractal(8) // Multibrot 5
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key8) {
+			g.switchToFractal(9) // Celtic
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key9) {
+			g.switchToFractal(10) // Perpendicular
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyM) {
+			g.switchToFractal(11) // Manhattan
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyN) {
+			g.switchToFractal(12) // Newton
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key0) {
+			g.switchToFractal(g.fractalType)
+		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyF1) {
 		g.fractalType = 0 // Mandelbulb
@@ -237,9 +243,6 @@ func (g *Game) handleInput() bool {
 	}
 
 	// Paint mode controls (Shift+1-4 for inpaint, Ctrl+1-4 for outpaint)
-	shift := ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight)
-	ctrl := ebiten.IsKeyPressed(ebiten.KeyControlLeft) || ebiten.IsKeyPressed(ebiten.KeyControlRight)
-
 	if shift && !ctrl {
 		// Inpainting modes
 		if inpututil.IsKeyJustPressed(ebiten.Key1) {
