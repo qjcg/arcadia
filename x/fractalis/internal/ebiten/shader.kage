@@ -19,6 +19,34 @@ var (
 	PaintMode   float  // Paint mode: 1-4 inpaint, 5-8 outpaint
 )
 
+// Simple noise function for fog simulation
+func fogNoise(p vec3) float {
+	// Use vec3 for 3D noise-like effect
+	p = p * 0.5 + Time * 0.1
+	f := fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453)
+	return f
+}
+
+// Layered Perlin-like noise for cloud generation
+func cloudNoise(pos vec3, time float) float {
+	pos += time * 0.05
+	// Multiple octaves of noise for Fractal Brownian Motion effect
+	result := 0.0
+	amplitude := 1.0
+	frequency := 1.0
+	maxAmp := 0.0
+
+	for i := 0; i < 4; i++ {
+		sample := fogNoise(pos * frequency)
+		result += sample * amplitude
+		maxAmp += amplitude
+		amplitude *= 0.5
+		frequency *= 2.0
+	}
+
+	return result / maxAmp
+}
+
 // Apply paint mode effects to color based on iteration count
 // inSet: true if point is in the fractal set (inside), false if exterior
 // color: input color to modify
@@ -62,9 +90,35 @@ func applyPaintMode(color vec3, inSet bool, iterations float, maxIter float) vec
 			ripple := sin(normIter * 10.0 - Time * 0.5) * 0.3 + 0.7
 			return color * ripple + vec3(0.2, 0.3, 0.6) * (1.0 - ripple) * 0.3
 		} else if PaintMode < 7.5 {
-			// Fog outpaint: misty veil
-			fog := 1.0 - exp(-normIter * 1.5)
-			return mix(color, vec3(0.5, 0.6, 0.8), fog * 0.5)
+			// Fog outpaint: realistic moving cloud simulation
+			// Create moving cloud layers at different distances
+			basePos := vec3(normIter * 5.0, Time * 0.02, normIter * 3.0)
+			cloud1 := cloudNoise(basePos, Time * 0.3)
+			cloud2 := cloudNoise(basePos + 100.0, Time * 0.2)
+			cloud3 := cloudNoise(basePos + 200.0, -Time * 0.25)
+
+			// Blend multiple cloud layers for depth and complexity
+			combinedCloud := mix(cloud1, cloud2, 0.5)
+			combinedCloud = mix(combinedCloud, cloud3, 0.5)
+
+			// Threshold cloud to create cloud-like appearance
+			cloudThreshold := 0.4
+			cloudDensity := smoothstep(cloudThreshold - 0.1, cloudThreshold + 0.15, combinedCloud)
+
+			// Modulate cloud density by distance from fractal
+			distanceFade := 1.0 - exp(-normIter * 0.8)
+			densityModulated := cloudDensity * distanceFade
+
+			// Color variation in clouds - slightly warm/cool tones
+			cloudColor := mix(vec3(0.7, 0.75, 0.85), vec3(0.55, 0.65, 0.8), cloud2)
+			cloudColor = mix(cloudColor, vec3(0.85, 0.8, 0.9), cloud1 * 0.3)
+
+			// Fog glow near boundary
+			boundaryGlow := exp(-normIter * 3.0) * 0.4
+			cloudColor += vec3(0.9, 0.85, 0.8) * boundaryGlow
+
+			// Blend clouds with background, thicker near fractal
+			return mix(color, cloudColor, densityModulated * 0.7)
 		} else {
 			// Electric outpaint: discharge arcs
 			electric := abs(sin(normIter * 20.0 + Time * 1.5)) * exp(-normIter)
