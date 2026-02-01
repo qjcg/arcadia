@@ -1,0 +1,7 @@
+(defn main []
+  (let [ch (chan int 1)]
+    (go (do
+          (println "Goroutine sending 42")
+          (>! ch 42)))
+    (let [val (<! ch)]
+      (println "Received:" val))))

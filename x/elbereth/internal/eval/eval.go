@@ -89,6 +89,14 @@ func (v MapVal) String() string {
 	return result
 }
 
+// NodeVal represents an AST node as a value
+type NodeVal struct {
+	Node ast.Node
+}
+
+func (v NodeVal) TypeName() string { return "node" }
+func (v NodeVal) String() string   { return v.Node.String() }
+
 // Evaluator evaluates Elbereth expressions
 type Evaluator struct {
 	globals map[string]Value

@@ -7,6 +7,7 @@ import (
 	"os/exec"
 
 	"elbereth/internal/codegen"
+	"elbereth/internal/expander"
 	"elbereth/internal/lexer"
 	"elbereth/internal/parser"
 	"elbereth/internal/repl"
@@ -124,6 +125,11 @@ func buildFile(filename string, output string) {
 	}
 
 	gen := codegen.New()
+	ex := expander.New()
+	if err := ex.Expand(prog); err != nil {
+		fmt.Printf("Expansion error: %v\n", err)
+		os.Exit(1)
+	}
 	goCode, err := gen.Generate(prog)
 	if err != nil {
 		fmt.Printf("Code generation error: %v\n", err)
@@ -188,6 +194,11 @@ func genCode(filename string) {
 	}
 
 	gen := codegen.New()
+	ex := expander.New()
+	if err := ex.Expand(prog); err != nil {
+		fmt.Printf("Expansion error: %v\n", err)
+		os.Exit(1)
+	}
 	goCode, err := gen.Generate(prog)
 	if err != nil {
 		fmt.Printf("Code generation error: %v\n", err)

@@ -1,16 +1,13 @@
-; Concurrency examples (future: implement goroutines and channels)
+; Concurrency examples
+; Now fully implemented in v0.2+
 
-; (defn worker [id ch]
-;   (println "Worker" id "started")
-;   (>! ch (str "Hello from worker " id)))
-;
-; (defn main []
-;   (let [ch (chan string)]
-;     (go (worker 1 ch))
-;     (go (worker 2 ch))
-;     (println (<! ch))
-;     (println (<! ch))))
+(defn worker [id ch (chan string)]
+  (println "Worker" id "started")
+  (>! ch (str "Hello from worker " id)))
 
-; For now, just compile-time examples
 (defn main []
-  (println "Concurrency features coming in v0.3"))
+  (let [ch (chan string 2)]
+    (go (worker 1 ch))
+    (go (worker 2 ch))
+    (println (<! ch))
+    (println (<! ch))))

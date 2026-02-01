@@ -12,11 +12,26 @@ tasks:
       - rm -f elbereth
 
   test:
-    desc: Run basic tests
+    desc: Run all tests and examples
     cmds:
+      - task: build
       - ./elbereth check test.elb
       - ./elbereth run examples/hello.elb
+      - ./elbereth run examples/functions.elb
       - ./elbereth run examples/conditionals.elb
+      - ./elbereth run examples/structs.elb
+      - ./elbereth run examples/concurrency.elb
+      - ./elbereth run examples/showcase.elb
+      - ./elbereth run test_return.elb
+      - ./elbereth run test_struct.elb
+      - ./elbereth run test_chan.elb
+      - ./elbereth run test_match.elb
+      - ./elbereth run test_defer.elb
+      - ./elbereth run test_import.elb
+      - ./elbereth run test_macro.elb
+      - ./elbereth run test_union.elb
+      - ./elbereth run test_loop.elb
+      - go test ./internal/...
 
   run:
     desc: Run an example (pass FILE=path/to/file.elb)

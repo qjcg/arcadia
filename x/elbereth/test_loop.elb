@@ -1,0 +1,9 @@
+(defn factorial [n :int] :int
+  (loop [i n acc 1]
+    (if (== i 0)
+      acc
+      (recur (- i 1) (* acc i)))))
+
+(defn main []
+  (println "Factorial of 5 is" (factorial 5))
+  (println "Factorial of 10 is" (factorial 10)))

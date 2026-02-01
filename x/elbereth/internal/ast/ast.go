@@ -140,8 +140,9 @@ type FuncLit struct {
 }
 
 type Param struct {
-	Name string
-	Type Type // nil if not specified
+	Name     string
+	Type     Type // nil if not specified
+	Variadic bool
 }
 
 func (n *FuncLit) exprNode()      {}
@@ -202,6 +203,59 @@ func (n *LetExpr) exprNode()      {}
 func (n *LetExpr) Pos() Position  { return n.Loc }
 func (n *LetExpr) String() string { return fmt.Sprintf("(let [...] %v)", n.Body) }
 
+// SelectExpr represents (select [chan val] body ...)
+type SelectExpr struct {
+	Loc   Position
+	Cases []SelectCase
+}
+
+type SelectCase struct {
+	Chan    Expr // nil if default
+	Binding string
+	Body    []Expr
+}
+
+func (n *SelectExpr) exprNode()      {}
+func (n *SelectExpr) Pos() Position  { return n.Loc }
+func (n *SelectExpr) String() string { return fmt.Sprintf("(select ...)") }
+
+// RecurExpr represents (recur expr1 expr2 ...)
+type RecurExpr struct {
+	Loc  Position
+	Args []Expr
+}
+
+func (n *RecurExpr) exprNode()      {}
+func (n *RecurExpr) Pos() Position  { return n.Loc }
+func (n *RecurExpr) String() string { return fmt.Sprintf("(recur ...)") }
+
+// LoopExpr represents (loop [bindings] body)
+type LoopExpr struct {
+	Loc      Position
+	Bindings []*Binding
+	Body     []Expr
+}
+
+func (n *LoopExpr) exprNode()      {}
+func (n *LoopExpr) Pos() Position  { return n.Loc }
+func (n *LoopExpr) String() string { return fmt.Sprintf("(loop ...)") }
+
+// MatchExpr represents (match val pattern1 body1 ...)
+type MatchExpr struct {
+	Loc   Position
+	Val   Expr
+	Cases []MatchCase
+}
+
+type MatchCase struct {
+	Pattern Expr
+	Body    Expr
+}
+
+func (n *MatchExpr) exprNode()      {}
+func (n *MatchExpr) Pos() Position  { return n.Loc }
+func (n *MatchExpr) String() string { return fmt.Sprintf("(match %v ...)", n.Val) }
+
 // QuoteExpr represents (quote expr) or 'expr
 type QuoteExpr struct {
 	Loc  Position
@@ -211,6 +265,36 @@ type QuoteExpr struct {
 func (n *QuoteExpr) exprNode()      {}
 func (n *QuoteExpr) Pos() Position  { return n.Loc }
 func (n *QuoteExpr) String() string { return fmt.Sprintf("'%v", n.Expr) }
+
+// BackquoteExpr represents `expr
+type BackquoteExpr struct {
+	Loc  Position
+	Expr Expr
+}
+
+func (n *BackquoteExpr) exprNode()      {}
+func (n *BackquoteExpr) Pos() Position  { return n.Loc }
+func (n *BackquoteExpr) String() string { return fmt.Sprintf("`%v", n.Expr) }
+
+// UnquoteExpr represents ,expr
+type UnquoteExpr struct {
+	Loc  Position
+	Expr Expr
+}
+
+func (n *UnquoteExpr) exprNode()      {}
+func (n *UnquoteExpr) Pos() Position  { return n.Loc }
+func (n *UnquoteExpr) String() string { return fmt.Sprintf(",%v", n.Expr) }
+
+// UnquoteSpliceExpr represents ,@expr
+type UnquoteSpliceExpr struct {
+	Loc  Position
+	Expr Expr
+}
+
+func (n *UnquoteSpliceExpr) exprNode()      {}
+func (n *UnquoteSpliceExpr) Pos() Position  { return n.Loc }
+func (n *UnquoteSpliceExpr) String() string { return fmt.Sprintf(",@%v", n.Expr) }
 
 // ============================================================================
 // Definitions (Top-level)
@@ -241,15 +325,22 @@ func (n *Defn) String() string { return fmt.Sprintf("(defn %s %v %v)", n.Name, n
 
 // Deftype represents (deftype Name {field Type ...})
 type Deftype struct {
-	Loc    Position
-	Name   string
-	Fields []*Field
+	Loc      Position
+	Name     string
+	Params   []string   // Generics like :T
+	Fields   []*Field   // For structs
+	Variants []*Variant // For sum types
 }
 
 type Field struct {
 	Name    string
 	Type    Type
 	Default Expr // can be nil
+}
+
+type Variant struct {
+	Name string
+	Type Type // nil if no associated data
 }
 
 func (n *Deftype) Pos() Position  { return n.Loc }
@@ -265,6 +356,16 @@ type Defmacro struct {
 
 func (n *Defmacro) Pos() Position  { return n.Loc }
 func (n *Defmacro) String() string { return fmt.Sprintf("(defmacro %s ...)", n.Name) }
+
+// Import represents (import "path") or (import [alias "path"])
+type Import struct {
+	Loc   Position
+	Path  string
+	Alias string // empty if no alias
+}
+
+func (n *Import) Pos() Position  { return n.Loc }
+func (n *Import) String() string { return fmt.Sprintf("(import %s)", n.Path) }
 
 // ============================================================================
 // Types

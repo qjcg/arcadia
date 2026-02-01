@@ -1,0 +1,3 @@
+(defn main []
+  (defer (println "Deferred message"))
+  (println "Primary message"))

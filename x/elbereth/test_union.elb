@@ -1,0 +1,14 @@
+(deftype Result
+  (:ok int)
+  (:err string))
+
+(defn describe-result [r] :string
+  (match r
+    (:ok val) (fmt/Sprint "Success: " val)
+    (:err msg) (fmt/Sprint "Error: " msg)))
+
+(defn main []
+  (let [r1 (:ok 42)
+        r2 (:err "failed")]
+    (println (describe-result r1))
+    (println (describe-result r2))))

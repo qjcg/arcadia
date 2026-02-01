@@ -1,0 +1,10 @@
+(defn describe [x] :string
+  (match x
+    1 "one"
+    2 "two"
+    :else "something else"))
+
+(defn main []
+  (println "1 is" (describe 1))
+  (println "2 is" (describe 2))
+  (println "3 is" (describe 3)))

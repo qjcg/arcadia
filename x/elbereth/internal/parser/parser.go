@@ -80,6 +80,9 @@ func (p *Parser) parseTopLevel() ast.Node {
 			case "defmacro":
 				p.advance()
 				return p.parseDefmacroAfterSymbol(loc)
+			case "import":
+				p.advance()
+				return p.parseImportAfterSymbol(loc)
 			}
 		}
 
@@ -182,6 +185,14 @@ func (p *Parser) parseExpr() ast.Expr {
 				return p.parseLetAfterSymbol(loc)
 			case "quote":
 				return p.parseQuoteAfterSymbol(loc)
+			case "match":
+				return p.parseMatchAfterSymbol(loc)
+			case "loop":
+				return p.parseLoopAfterSymbol(loc)
+			case "recur":
+				return p.parseRecurAfterSymbol(loc)
+			case "select":
+				return p.parseSelectAfterSymbol(loc)
 			}
 		}
 
@@ -200,12 +211,16 @@ func (p *Parser) parseExpr() ast.Expr {
 	case lexer.TokenQuote:
 		return p.parseQuote()
 	case lexer.TokenBackquote:
-		p.error("quasiquote not yet implemented")
-		p.advance()
-		return &ast.NilLit{Loc: p.position()}
+		return p.parseBackquote()
+	case lexer.TokenUnquote:
+		return p.parseUnquote()
+	case lexer.TokenUnquoteSplice:
+		return p.parseUnquoteSplice()
 	default:
 		p.error(fmt.Sprintf("unexpected token: %s", p.current.Type))
-		return &ast.NilLit{Loc: p.position()}
+		loc := p.position()
+		p.advance()
+		return &ast.NilLit{Loc: loc}
 	}
 }
 
@@ -293,6 +308,27 @@ func (p *Parser) parseQuote() ast.Expr {
 	return &ast.QuoteExpr{Loc: loc, Expr: expr}
 }
 
+func (p *Parser) parseBackquote() ast.Expr {
+	loc := p.position()
+	p.expect(lexer.TokenBackquote)
+	expr := p.parseExpr()
+	return &ast.BackquoteExpr{Loc: loc, Expr: expr}
+}
+
+func (p *Parser) parseUnquote() ast.Expr {
+	loc := p.position()
+	p.expect(lexer.TokenUnquote)
+	expr := p.parseExpr()
+	return &ast.UnquoteExpr{Loc: loc, Expr: expr}
+}
+
+func (p *Parser) parseUnquoteSplice() ast.Expr {
+	loc := p.position()
+	p.expect(lexer.TokenUnquoteSplice)
+	expr := p.parseExpr()
+	return &ast.UnquoteSpliceExpr{Loc: loc, Expr: expr}
+}
+
 // ============================================================================
 // Definition parsing
 // ============================================================================
@@ -365,7 +401,7 @@ func (p *Parser) parseDefnAfterSymbol(loc ast.Position) ast.Node {
 }
 
 func (p *Parser) parseDeftypeAfterSymbol(loc ast.Position) ast.Node {
-	// (deftype Name {field Type ...})
+	// (deftype Name params? body)
 	if p.current.Type != lexer.TokenSymbol {
 		p.error("deftype: expected name symbol")
 		p.advance()
@@ -376,41 +412,65 @@ func (p *Parser) parseDeftypeAfterSymbol(loc ast.Position) ast.Node {
 	name := p.current.Value
 	p.advance()
 
-	if p.current.Type != lexer.TokenLBrace {
-		p.error("deftype: expected field map")
-		p.advance()
-		p.skipToRParen()
-		return &ast.NilLit{Loc: loc}
-	}
-
-	p.expect(lexer.TokenLBrace)
-
-	var fields []*ast.Field
-	for p.current.Type != lexer.TokenRBrace && p.current.Type != lexer.TokenEOF {
-		if p.current.Type != lexer.TokenSymbol {
-			p.error("deftype: expected field name")
-			p.advance()
-			continue
-		}
-
-		fieldName := p.current.Value
-		p.advance()
-
-		// Expect type
-		if p.current.Type == lexer.TokenRParen {
-			p.error("deftype: expected field type")
+	var params []string
+	// Optional generic parameters (e.g., :T or [T])
+	for p.current.Type == lexer.TokenKeyword || p.current.Type == lexer.TokenSymbol {
+		// If it's a bracket or brace or paren, it's the start of the body
+		if p.current.Type == lexer.TokenLBrace || p.current.Type == lexer.TokenLParen || p.current.Type == lexer.TokenLBracket {
 			break
 		}
-
-		fieldType := p.parseType()
-
-		fields = append(fields, &ast.Field{Name: fieldName, Type: fieldType})
+		params = append(params, p.current.Value)
+		p.advance()
 	}
 
-	p.expect(lexer.TokenRBrace)
-	p.expect(lexer.TokenRParen)
-
-	return &ast.Deftype{Loc: loc, Name: name, Fields: fields}
+	// Body can be a map {f T} or a list of variants (:tag T)
+	if p.current.Type == lexer.TokenLBrace {
+		p.advance()
+		var fields []*ast.Field
+		for p.current.Type != lexer.TokenRBrace && p.current.Type != lexer.TokenEOF {
+			if p.current.Type != lexer.TokenSymbol {
+				p.error("deftype: expected field name")
+				p.advance()
+				continue
+			}
+			fieldName := p.current.Value
+			p.advance()
+			fieldType := p.parseType()
+			fields = append(fields, &ast.Field{Name: fieldName, Type: fieldType})
+		}
+		p.expect(lexer.TokenRBrace)
+		p.expect(lexer.TokenRParen)
+		return &ast.Deftype{Loc: loc, Name: name, Params: params, Fields: fields}
+	} else {
+		// Assume variants
+		var variants []*ast.Variant
+		for p.current.Type != lexer.TokenRParen && p.current.Type != lexer.TokenEOF {
+			if p.current.Type == lexer.TokenLParen {
+				p.advance()
+				if p.current.Type != lexer.TokenKeyword && p.current.Type != lexer.TokenSymbol {
+					p.error("deftype: expected variant tag")
+					p.advance()
+				} else {
+					tagName := p.current.Value
+					p.advance()
+					var tagType ast.Type
+					if p.current.Type != lexer.TokenRParen {
+						tagType = p.parseType()
+					}
+					variants = append(variants, &ast.Variant{Name: tagName, Type: tagType})
+				}
+				p.expect(lexer.TokenRParen)
+			} else if p.current.Type == lexer.TokenKeyword || p.current.Type == lexer.TokenSymbol {
+				variants = append(variants, &ast.Variant{Name: p.current.Value})
+				p.advance()
+			} else {
+				p.error("deftype: expected variant definition")
+				p.advance()
+			}
+		}
+		p.expect(lexer.TokenRParen)
+		return &ast.Deftype{Loc: loc, Name: name, Params: params, Variants: variants}
+	}
 }
 
 func (p *Parser) parseDefmacroAfterSymbol(loc ast.Position) ast.Node {
@@ -441,6 +501,38 @@ func (p *Parser) parseDefmacroAfterSymbol(loc ast.Position) ast.Node {
 
 	p.expect(lexer.TokenRParen)
 	return &ast.Defmacro{Loc: loc, Name: name, Params: params, Body: body}
+}
+
+func (p *Parser) parseImportAfterSymbol(loc ast.Position) ast.Node {
+	// (import "path") or (import [alias "path"])
+	var path, alias string
+
+	if p.current.Type == lexer.TokenString {
+		path = p.current.Value
+		p.advance()
+	} else if p.current.Type == lexer.TokenLBracket {
+		p.advance() // [
+		if p.current.Type != lexer.TokenSymbol {
+			p.error("import: expected alias symbol")
+		} else {
+			alias = p.current.Value
+			p.advance()
+		}
+
+		if p.current.Type != lexer.TokenString {
+			p.error("import: expected path string")
+		} else {
+			path = p.current.Value
+			p.advance()
+		}
+		p.expect(lexer.TokenRBracket)
+	} else {
+		p.error("import: expected string or [alias \"path\"]")
+		p.advance()
+	}
+
+	p.expect(lexer.TokenRParen)
+	return &ast.Import{Loc: loc, Path: path, Alias: alias}
 }
 
 func (p *Parser) parseFnAfterSymbol(loc ast.Position) ast.Expr {
@@ -515,6 +607,86 @@ func (p *Parser) parseQuoteAfterSymbol(loc ast.Position) ast.Expr {
 	return &ast.QuoteExpr{Loc: loc, Expr: expr}
 }
 
+func (p *Parser) parseMatchAfterSymbol(loc ast.Position) ast.Expr {
+	// (match val pattern1 body1 ...)
+	val := p.parseExpr()
+	var cases []ast.MatchCase
+	for p.current.Type != lexer.TokenRParen && p.current.Type != lexer.TokenEOF {
+		pattern := p.parseExpr()
+		body := p.parseExpr()
+		cases = append(cases, ast.MatchCase{Pattern: pattern, Body: body})
+	}
+	p.expect(lexer.TokenRParen)
+	return &ast.MatchExpr{Loc: loc, Val: val, Cases: cases}
+}
+
+func (p *Parser) parseLoopAfterSymbol(loc ast.Position) ast.Expr {
+	// (loop [bindings] body...)
+	if p.current.Type != lexer.TokenLBracket {
+		p.error("loop: expected bindings vector")
+		p.advance()
+		p.skipToRParen()
+		return &ast.NilLit{Loc: loc}
+	}
+
+	bindings := p.parseBindings()
+
+	var body []ast.Expr
+	for p.current.Type != lexer.TokenRParen && p.current.Type != lexer.TokenEOF {
+		body = append(body, p.parseExpr())
+	}
+
+	p.expect(lexer.TokenRParen)
+	return &ast.LoopExpr{Loc: loc, Bindings: bindings, Body: body}
+}
+
+func (p *Parser) parseRecurAfterSymbol(loc ast.Position) ast.Expr {
+	// (recur arg1 arg2 ...)
+	var args []ast.Expr
+	for p.current.Type != lexer.TokenRParen && p.current.Type != lexer.TokenEOF {
+		args = append(args, p.parseExpr())
+	}
+	p.expect(lexer.TokenRParen)
+	return &ast.RecurExpr{Loc: loc, Args: args}
+}
+
+func (p *Parser) parseSelectAfterSymbol(loc ast.Position) ast.Expr {
+	// (select [chan val] body ...)
+	var cases []ast.SelectCase
+	for p.current.Type != lexer.TokenRParen && p.current.Type != lexer.TokenEOF {
+		if p.current.Type != lexer.TokenLBracket {
+			p.error("select: expected case vector [chan binding]")
+			p.advance()
+			continue
+		}
+		p.advance() // [
+
+		var ch ast.Expr
+		var binding string
+
+		if p.current.Type == lexer.TokenSymbol && (p.current.Value == "default" || p.current.Value == ":default") {
+			p.advance()
+		} else {
+			ch = p.parseExpr()
+			if p.current.Type == lexer.TokenSymbol {
+				binding = p.current.Value
+				p.advance()
+			}
+		}
+		p.expect(lexer.TokenRBracket)
+
+		// Parse body (expr until next case or end)
+		var body []ast.Expr
+		for p.current.Type != lexer.TokenLBracket && p.current.Type != lexer.TokenRParen && p.current.Type != lexer.TokenEOF {
+			body = append(body, p.parseExpr())
+		}
+
+		cases = append(cases, ast.SelectCase{Chan: ch, Binding: binding, Body: body})
+	}
+	p.expect(lexer.TokenRParen)
+	return &ast.SelectExpr{Loc: loc, Cases: cases}
+}
+
 // ============================================================================
 // Helpers
 // ============================================================================
@@ -524,6 +696,12 @@ func (p *Parser) parseParams() []*ast.Param {
 
 	var params []*ast.Param
 	for p.current.Type != lexer.TokenRBracket && p.current.Type != lexer.TokenEOF {
+		isVariadic := false
+		if p.current.Type == lexer.TokenSymbol && p.current.Value == "&" {
+			isVariadic = true
+			p.advance()
+		}
+
 		if p.current.Type != lexer.TokenSymbol {
 			p.error("expected parameter name")
 			p.advance()
@@ -533,14 +711,23 @@ func (p *Parser) parseParams() []*ast.Param {
 		name := p.current.Value
 		p.advance()
 
-		// Check for type annotation
+		// Check for type annotation (complex types like (chan string))
 		var paramType ast.Type
-		if isTypeSymbol(p.current) {
-			paramType = &ast.NamedType{Loc: p.position(), Name: p.current.Value}
-			p.advance()
+		if p.current.Type == lexer.TokenKeyword || p.current.Type == lexer.TokenSymbol || p.current.Type == lexer.TokenLParen || p.current.Type == lexer.TokenLBracket {
+			// If it's a bracket/paren/symbol/keyword, it might be a type
+			// But we need to be careful not to consume next parameter name.
+			// isTypeSymbol is too restrictive, but p.parseType might be too greedy.
+			// Actually Elbereth spec uses :Type syntax for annotations usually.
+			if p.current.Type == lexer.TokenKeyword {
+				paramType = p.parseType()
+			} else if p.current.Type == lexer.TokenLParen || p.current.Type == lexer.TokenLBracket {
+				paramType = p.parseType()
+			} else if isTypeSymbol(p.current) {
+				paramType = p.parseType()
+			}
 		}
 
-		params = append(params, &ast.Param{Name: name, Type: paramType})
+		params = append(params, &ast.Param{Name: name, Type: paramType, Variadic: isVariadic})
 	}
 
 	p.expect(lexer.TokenRBracket)
@@ -581,7 +768,7 @@ func (p *Parser) parseBindings() []*ast.Binding {
 func (p *Parser) parseType() ast.Type {
 	loc := p.position()
 
-	if p.current.Type == lexer.TokenSymbol {
+	if p.current.Type == lexer.TokenSymbol || p.current.Type == lexer.TokenKeyword {
 		name := p.current.Value
 		p.advance()
 		return &ast.NamedType{Loc: loc, Name: name}
@@ -665,7 +852,7 @@ func (p *Parser) skipToRParen() {
 }
 
 func isTypeSymbol(tok lexer.Token) bool {
-	if tok.Type != lexer.TokenSymbol {
+	if tok.Type != lexer.TokenSymbol && tok.Type != lexer.TokenKeyword {
 		return false
 	}
 	switch tok.Value {

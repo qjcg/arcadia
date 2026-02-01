@@ -1,0 +1,11 @@
+(deftype Point
+  {x int
+   y int})
+
+(defn main []
+  (let [p (Point {:x 10 :y 20})]
+    (println "Point p:" p)
+    (println "x coord:" (. p :x))
+    (println "y coord:" (. p y))
+    (set! (. p x) 30)
+    (println "updated p:" p)))

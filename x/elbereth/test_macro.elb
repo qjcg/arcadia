@@ -1,0 +1,9 @@
+(defmacro unless [condition & body]
+  `(if (not ,condition)
+     (do ,@body)))
+
+(defn main []
+  (let [x 5]
+    (unless (> x 10)
+      (println "x is not greater than 10")
+      (println "this works!"))))
