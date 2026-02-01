@@ -269,7 +269,11 @@ func (g *Game) drawFractal(screen *ebiten.Image) {
 
 // Run starts the 3D game loop
 func (g *Game) Run() error {
-	ebiten.SetWindowSize(g.width, g.height)
+	if g.config.Fullscreen {
+		ebiten.SetFullscreen(true)
+	} else {
+		ebiten.SetWindowSize(g.width, g.height)
+	}
 
 	title := "Fractalis"
 	if g.config.FractalType != "" {
@@ -282,7 +286,9 @@ func (g *Game) Run() error {
 	}
 	ebiten.SetWindowTitle(title)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-	ebiten.MaximizeWindow()
+	if !g.config.Fullscreen {
+		ebiten.MaximizeWindow()
+	}
 
 	g.initShader()
 

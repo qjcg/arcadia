@@ -1618,6 +1618,9 @@ func main() {
 	engineFlag := flag.String("engine", persistence.EngineBubbleTea, "Rendering engine (bubbletea, ebiten)")
 	flag.StringVar(engineFlag, "e", persistence.EngineBubbleTea, "Shorthand for --engine")
 
+	fulscreenFlag := flag.Bool("fullscreen", false, "Start in fullscreen mode (ebiten only)")
+	flag.BoolVar(fulscreenFlag, "f", false, "Shorthand for --fullscreen")
+
 	// --- Group 2: Navigation & URL ---
 	urlFlag := flag.String("url", "", "Load a fractal:// URL")
 	flag.StringVar(urlFlag, "u", "", "Shorthand for --url")
@@ -1696,6 +1699,7 @@ func main() {
 			{"-V, --vantage", "Enable vantage mode (scenic tour)"},
 			{"--vantage-duration <sec>", "Seconds per scene in vantage mode (default 5)"},
 			{"-e, --engine <name>", "Rendering engine (bubbletea, ebiten)"},
+			{"-f, --fullscreen", "Start in fullscreen mode (ebiten only)"},
 		})
 
 		printGroup("NAVIGATION & URL:", [][2]string{
@@ -1852,6 +1856,9 @@ func main() {
 	if *engineFlag != persistence.EngineBubbleTea {
 		config.Engine = *engineFlag
 	}
+
+	// Apply fullscreen flag
+	config.Fullscreen = *fulscreenFlag
 
 	// Validate engine
 	if config.Engine == "" {

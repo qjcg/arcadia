@@ -28,6 +28,7 @@ type Config struct {
 	VantageEnabled       bool
 	VantageSceneDuration int
 	AutoPilotEnabled     bool
+	Fullscreen           bool
 }
 
 // Fractal types
