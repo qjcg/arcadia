@@ -47,6 +47,50 @@ func cloudNoise(pos vec3, time float) float {
 	return result / maxAmp
 }
 
+// Realistic fire simulation using layered noise and color mapping
+func fireNoise(p vec3, t float) float {
+	// Offset by time for animation, upward motion creates rising flames
+	p.y += t * 0.8
+	p = p * 0.3 + vec3(0.0, t * 0.3, 0.0)
+
+	// Multiple octaves for realistic turbulent flames
+	result := 0.0
+	amplitude := 1.0
+	frequency := 1.0
+	maxAmp := 0.0
+
+	for i := 0; i < 5; i++ {
+		sample := fract(sin(dot(p * frequency, vec3(12.9898, 78.233, 45.164))) * 43758.5453)
+		result += sample * amplitude
+		maxAmp += amplitude
+		amplitude *= 0.5
+		frequency *= 2.2
+	}
+
+	return result / maxAmp
+}
+
+// Convert fire intensity to realistic flame color
+func fireColor(intensity float, brightness float) vec3 {
+	// Flame color gradient: black -> dark red -> red -> orange -> yellow -> white
+	if intensity < 0.25 {
+		// Black to dark red
+		return mix(vec3(0.0), vec3(0.3, 0.01, 0.0), intensity * 4.0) * brightness
+	} else if intensity < 0.45 {
+		// Dark red to red
+		return mix(vec3(0.3, 0.01, 0.0), vec3(1.0, 0.1, 0.0), (intensity - 0.25) * 5.0) * brightness
+	} else if intensity < 0.65 {
+		// Red to orange
+		return mix(vec3(1.0, 0.1, 0.0), vec3(1.0, 0.5, 0.0), (intensity - 0.45) * 5.0) * brightness
+	} else if intensity < 0.85 {
+		// Orange to yellow
+		return mix(vec3(1.0, 0.5, 0.0), vec3(1.0, 1.0, 0.3), (intensity - 0.65) * 5.0) * brightness
+	} else {
+		// Yellow to white (hottest)
+		return mix(vec3(1.0, 1.0, 0.3), vec3(1.0, 1.0, 1.0), (intensity - 0.85) * 6.67) * brightness
+	}
+}
+
 // Apply paint mode effects to color based on iteration count
 // inSet: true if point is in the fractal set (inside), false if exterior
 // color: input color to modify
@@ -70,10 +114,30 @@ func applyPaintMode(color vec3, inSet bool, iterations float, maxIter float) vec
 			hue := mod(irid + ColorShift * 0.01, 1.0)
 			shift := vec3(sin(hue * 6.28), sin((hue + 0.33) * 6.28), sin((hue + 0.67) * 6.28))
 			return color * 0.7 + shift * 0.3
-		} else {
+		} else if PaintMode < 4.5 {
 			// Fractal inpaint: recursive pattern glow
 			frac := sin(iterations * 0.5 + Time * 0.2) * 0.5 + 0.5
 			return mix(color, vec3(0.8, 0.4, 0.9), frac * 0.4)
+		} else {
+			// Fire inpaint: molten flames filling the interior
+			firePos := vec3(iterations * 0.1, iterations * 0.15, iterations * 0.08)
+			fire1 := fireNoise(firePos, Time)
+			fire2 := fireNoise(firePos + 50.0, Time * 0.7)
+			fire3 := fireNoise(firePos + 100.0, Time * 1.3)
+
+			// Combine multiple fire layers
+			fireIntensity := fire1 * 0.6 + fire2 * 0.25 + fire3 * 0.15
+
+			// Create flickering/wavering effect
+			flicker := sin(Time * 3.5 + iterations) * 0.5 + 0.5
+			fireIntensity += flicker * 0.1
+
+			// Add some structure: higher values near edges, lower in center
+			fireIntensity = mix(fireIntensity, 1.0, pow(1.0 - (iterations / maxIter), 0.5) * 0.3)
+
+			// Convert to fire color and blend
+			flame := fireColor(fireIntensity, 1.0)
+			return mix(color, flame, clamp(fireIntensity * 0.8, 0.0, 1.0))
 		}
 	}
 
@@ -119,10 +183,38 @@ func applyPaintMode(color vec3, inSet bool, iterations float, maxIter float) vec
 
 			// Blend clouds with background, thicker near fractal
 			return mix(color, cloudColor, densityModulated * 0.7)
-		} else {
+		} else if PaintMode < 8.5 {
 			// Electric outpaint: discharge arcs
 			electric := abs(sin(normIter * 20.0 + Time * 1.5)) * exp(-normIter)
 			return color + vec3(0.3, 0.9, 1.0) * electric * 0.8
+		} else {
+			// Fire outpaint: realistic flames shooting outward from boundary
+			firePos := vec3(normIter * 8.0, normIter * 5.0, normIter * 6.0)
+			fire1 := fireNoise(firePos, Time * 1.2)
+			fire2 := fireNoise(firePos + 50.0, Time * 0.9)
+			fire3 := fireNoise(firePos + 100.0, Time * 1.5)
+
+			// Combine layers with emphasis on higher frequencies for flame detail
+			fireIntensity := fire1 * 0.5 + fire2 * 0.3 + fire3 * 0.2
+
+			// Create distinct flame tips that reach outward
+			flameTips := sin(normIter * 25.0 + Time * 2.0) * 0.5 + 0.5
+			flameReach := exp(-normIter * 2.5) * flameTips
+			fireIntensity += flameReach * 0.4
+
+			// Turbulent flickering at the boundaries
+			flicker := sin(Time * 4.0 + normIter * 15.0) * 0.5 + 0.5
+			fireIntensity += flicker * 0.15
+
+			// Brightest near the boundary, fades quickly outward
+			brightness := exp(-normIter * 1.8)
+			fireIntensity *= brightness
+
+			// Convert fire intensity to realistic flame color
+			flame := fireColor(fireIntensity * 1.2, brightness * 1.3)
+
+			// Blend with original color - flames are bright and opaque
+			return mix(color, flame, clamp(fireIntensity * 1.5, 0.0, 1.0))
 		}
 	}
 

@@ -91,7 +91,9 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 			"Z                Toggle Autopilot\n"+
 			"V                Toggle Vantage mode (tour)\n"+
 			"Shift+1-4        Inpaint modes (Solid/Noisy/Iridescent/Fractal)\n"+
+			"Shift+5          Fire Inpaint (molten flames inside)\n"+
 			"Ctrl+1-4         Outpaint modes (Glow/Ripple/Fog/Electric)\n"+
+			"Ctrl+5           Fire Outpaint (realistic flames)\n"+
 			"Shift/Ctrl+0     Disable paint mode\n"+
 			"0                Reset View\n"+
 			"F                Toggle Fullscreen\n"+

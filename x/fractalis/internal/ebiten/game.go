@@ -27,11 +27,13 @@ const (
 	InpaintNoisyMode   // Noisy turbulence pattern
 	InpaintIridMode    // Iridescent color shifting
 	InpaintFractalMode // Recursive fractal-in-fractal pattern
+	InpaintFireMode    // Molten fire effect inside
 	// Outpainting modes - enhance exterior of fractal
 	OutpaintGlowMode     // Soft glow halo around fractal
 	OutpaintRippleMode   // Ripple/wave distortion fields
 	OutpaintFogMode      // Foggy mist effect radiating outward
 	OutpaintElectricMode // Electric discharge-like arcs around boundary
+	OutpaintFireMode     // Realistic flames shooting outward
 )
 
 // Game represents the fractal engine game
@@ -328,6 +330,8 @@ func (g *Game) getPaintModeName() string {
 		return "Iridescent Inpaint"
 	case InpaintFractalMode:
 		return "Fractal Inpaint"
+	case InpaintFireMode:
+		return "Fire Inpaint"
 	case OutpaintGlowMode:
 		return "Glow Outpaint"
 	case OutpaintRippleMode:
@@ -336,6 +340,8 @@ func (g *Game) getPaintModeName() string {
 		return "Fog Outpaint"
 	case OutpaintElectricMode:
 		return "Electric Outpaint"
+	case OutpaintFireMode:
+		return "Fire Outpaint"
 	default:
 		return "None"
 	}

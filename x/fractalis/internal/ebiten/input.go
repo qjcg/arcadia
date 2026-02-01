@@ -254,6 +254,9 @@ func (g *Game) handleInput() bool {
 		if inpututil.IsKeyJustPressed(ebiten.Key4) {
 			g.paintMode = InpaintFractalMode
 		}
+		if inpututil.IsKeyJustPressed(ebiten.Key5) {
+			g.paintMode = InpaintFireMode
+		}
 	}
 
 	if ctrl && !shift {
@@ -269,6 +272,9 @@ func (g *Game) handleInput() bool {
 		}
 		if inpututil.IsKeyJustPressed(ebiten.Key4) {
 			g.paintMode = OutpaintElectricMode
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key5) {
+			g.paintMode = OutpaintFireMode
 		}
 	}
 
