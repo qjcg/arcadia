@@ -52,6 +52,13 @@ func main() {
 		}
 		runFile(os.Args[2])
 
+	case "test":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: elbereth test <file> [go test flags]")
+			os.Exit(1)
+		}
+		testFile(os.Args[2], os.Args[3:])
+
 	case "gen":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: elbereth gen <file>")
@@ -84,6 +91,7 @@ Commands:
   check <file>           Check syntax of an Elbereth file
   build <file> [-o out]  Compile an Elbereth file to a binary
   run <file>             Compile and run an Elbereth file
+  test <file>            Compile and run tests in an Elbereth file
   gen <file>             Generate Go code from an Elbereth file
   repl                   Start an interactive REPL
   version                Print the version of Elbereth
@@ -182,6 +190,54 @@ func runFile(filename string) {
 	}
 
 	os.Remove(output)
+}
+
+func testFile(filename string, testFlags []string) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		fmt.Printf("Error reading file: %v\n", err)
+		os.Exit(1)
+	}
+
+	lex := lexer.New(string(data))
+	p := parser.New(lex)
+	prog, err := p.Parse()
+	if err != nil {
+		fmt.Printf("Parse error: %v\n", err)
+		os.Exit(1)
+	}
+
+	gen := codegen.New()
+	gen.SetTestMode(true)
+	ex := expander.New()
+	if err := ex.Expand(prog); err != nil {
+		fmt.Printf("Expansion error: %v\n", err)
+		os.Exit(1)
+	}
+	goCode, err := gen.Generate(prog)
+	if err != nil {
+		fmt.Printf("Code generation error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Write to temporary Go test file
+	tmpFileName := "/tmp/elbereth_test_" + randomString() + "_test.go"
+	err = os.WriteFile(tmpFileName, []byte(goCode), 0o644)
+	if err != nil {
+		fmt.Printf("Error writing Go file: %v\n", err)
+		os.Exit(1)
+	}
+	defer os.Remove(tmpFileName)
+
+	// Run using go test
+	args := append([]string{"test", "-v", tmpFileName}, testFlags...)
+	cmd := exec.Command("go", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		os.Exit(1)
+	}
 }
 
 func genCode(filename string) {

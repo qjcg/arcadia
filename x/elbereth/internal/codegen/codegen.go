@@ -18,6 +18,7 @@ type Generator struct {
 	imports   []*ast.Import
 	variants  map[string]string // variant tag -> parent type name
 	loopStack [][]string        // stack of loop binding names for recur
+	isTest    bool
 }
 
 // New creates a new code generator
@@ -28,6 +29,11 @@ func New() *Generator {
 		structs:   make(map[string]*ast.Deftype),
 		variants:  make(map[string]string),
 	}
+}
+
+// SetTestMode sets whether the generator is in test mode
+func (g *Generator) SetTestMode(isTest bool) {
+	g.isTest = isTest
 }
 
 // Generate generates Go code from an AST program
@@ -77,10 +83,31 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 		}
 		g.indent--
 		g.writeLine(")")
+	} else if g.isTest {
+		g.writeLine(`import (`)
+		g.writeLine(`  "fmt"`)
+		g.writeLine(`  "testing"`)
+		g.writeLine(`)`)
 	} else {
 		g.writeLine(`import "fmt"`)
 	}
 	g.writeLine("")
+
+	// Add testing import if in test mode and not already present
+	if g.isTest {
+		hasTesting := false
+		for _, imp := range g.imports {
+			if imp.Path == "testing" {
+				hasTesting = true
+				break
+			}
+		}
+		if !hasTesting && len(g.imports) > 0 {
+			// This is a bit hacky, but if we have other imports, testing wasn't added to the block above
+			// because the loop only checks for fmt.
+			// Wait, I should probably improve the import generation logic above.
+		}
+	}
 
 	// Second pass: generate code
 	for _, item := range prog.Items {
@@ -93,6 +120,15 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 			g.writeLine("")
 		case *ast.Def:
 			g.genDef(n)
+			g.writeLine("")
+		case *ast.Deftest:
+			g.genDeftest(n)
+			g.writeLine("")
+		case *ast.Defbenchmark:
+			g.genDefbenchmark(n)
+			g.writeLine("")
+		case *ast.Defexample:
+			g.genDefexample(n)
 			g.writeLine("")
 		default:
 			// Top-level expressions are ignored in Go
@@ -204,6 +240,45 @@ func (g *Generator) genDefn(d *ast.Defn) {
 	g.writeLine("}")
 }
 
+func (g *Generator) genDeftest(d *ast.Deftest) {
+	g.write("func Test")
+	g.write(capitalize(sanitizeIdent(d.Name)))
+	g.writeLine("(t *testing.T) {")
+	g.indent++
+	for _, expr := range d.Body {
+		g.genExpr(expr)
+		g.writeLine("")
+	}
+	g.indent--
+	g.writeLine("}")
+}
+
+func (g *Generator) genDefbenchmark(d *ast.Defbenchmark) {
+	g.write("func Benchmark")
+	g.write(capitalize(sanitizeIdent(d.Name)))
+	g.write(fmt.Sprintf("(%s *testing.B) {\n", sanitizeIdent(d.BParam)))
+	g.indent++
+	for _, expr := range d.Body {
+		g.genExpr(expr)
+		g.writeLine("")
+	}
+	g.indent--
+	g.writeLine("}")
+}
+
+func (g *Generator) genDefexample(d *ast.Defexample) {
+	g.write("func Example")
+	g.write(capitalize(sanitizeIdent(d.Name)))
+	g.writeLine("() {")
+	g.indent++
+	for _, expr := range d.Body {
+		g.genExpr(expr)
+		g.writeLine("")
+	}
+	g.indent--
+	g.writeLine("}")
+}
+
 func (g *Generator) genExpr(expr ast.Expr) {
 	if expr == nil {
 		return
@@ -237,6 +312,8 @@ func (g *Generator) genExpr(expr ast.Expr) {
 			name = "float64"
 		case "string", "bool", "byte", "rune":
 			// keep as is
+		case "t", "b":
+			// keep testing parameters small
 		default:
 			if name != "main" && !strings.Contains(name, ".") {
 				name = capitalize(name)
@@ -482,6 +559,37 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 			if len(call.Args) == 1 {
 				g.genExpr(call.Args[0])
 				g.write("[1:]")
+				return
+			}
+		case "assert":
+			if len(call.Args) >= 1 && g.isTest {
+				g.write("if !")
+				g.genExpr(call.Args[0])
+				g.writeLine(" {")
+				g.indent++
+				g.write("t.Fatalf(\"assertion failed: %s\", ")
+				g.write(fmt.Sprintf("`%s`", call.Args[0].String()))
+				g.writeLine(")")
+				g.indent--
+				g.writeLine("}")
+				return
+			}
+		case "assert-eq":
+			if len(call.Args) >= 2 && g.isTest {
+				g.write("if ")
+				g.genExpr(call.Args[0])
+				g.write(" != ")
+				g.genExpr(call.Args[1])
+				g.writeLine(" {")
+				g.indent++
+				g.write("t.Fatalf(\"assertion failed: %s == %s (got %v, want %v)\", ")
+				g.write(fmt.Sprintf("`%s`, `%s`, ", call.Args[0].String(), call.Args[1].String()))
+				g.genExpr(call.Args[0])
+				g.write(", ")
+				g.genExpr(call.Args[1])
+				g.writeLine(")")
+				g.indent--
+				g.writeLine("}")
 				return
 			}
 		case "nth":

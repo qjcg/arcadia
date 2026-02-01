@@ -212,6 +212,30 @@ func (e *Evaluator) registerBuiltins() {
 		}
 	}})
 
+	e.Global.Set("assert", BuiltinVal{Name: "assert", Fn: func(args []Value) (Value, error) {
+		if len(args) < 1 {
+			return nil, fmt.Errorf("assert requires at least 1 argument")
+		}
+		if !isTrue(args[0]) {
+			msg := "assertion failed"
+			if len(args) > 1 {
+				msg = args[1].String()
+			}
+			return nil, fmt.Errorf("%s", msg)
+		}
+		return BoolVal{Value: true}, nil
+	}})
+
+	e.Global.Set("assert-eq", BuiltinVal{Name: "assert-eq", Fn: func(args []Value) (Value, error) {
+		if len(args) < 2 {
+			return nil, fmt.Errorf("assert-eq requires 2 arguments")
+		}
+		if !e.valuesEqual(args[0], args[1]) {
+			return nil, fmt.Errorf("assertion failed: %v == %v", args[0], args[1])
+		}
+		return BoolVal{Value: true}, nil
+	}})
+
 	// Pre-register some common namespaces
 	mathEnv := NewEnv(nil)
 	mathEnv.Set("Sqrt", BuiltinVal{Name: "math/Sqrt", Fn: func(args []Value) (Value, error) {

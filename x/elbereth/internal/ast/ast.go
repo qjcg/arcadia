@@ -357,6 +357,37 @@ type Defmacro struct {
 func (n *Defmacro) Pos() Position  { return n.Loc }
 func (n *Defmacro) String() string { return fmt.Sprintf("(defmacro %s ...)", n.Name) }
 
+// Deftest represents (deftest name body...)
+type Deftest struct {
+	Loc  Position
+	Name string
+	Body []Expr
+}
+
+func (n *Deftest) Pos() Position  { return n.Loc }
+func (n *Deftest) String() string { return fmt.Sprintf("(deftest %s ...)", n.Name) }
+
+// Defbenchmark represents (defbenchmark name [b] body...)
+type Defbenchmark struct {
+	Loc    Position
+	Name   string
+	BParam string // name of the *testing.B parameter
+	Body   []Expr
+}
+
+func (n *Defbenchmark) Pos() Position  { return n.Loc }
+func (n *Defbenchmark) String() string { return fmt.Sprintf("(defbenchmark %s ...)", n.Name) }
+
+// Defexample represents (defexample name body...)
+type Defexample struct {
+	Loc  Position
+	Name string
+	Body []Expr
+}
+
+func (n *Defexample) Pos() Position  { return n.Loc }
+func (n *Defexample) String() string { return fmt.Sprintf("(defexample %s ...)", n.Name) }
+
 // Import represents (import "path") or (import [alias "path"])
 type Import struct {
 	Loc   Position

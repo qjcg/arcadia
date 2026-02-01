@@ -80,6 +80,15 @@ func (p *Parser) parseTopLevel() ast.Node {
 			case "defmacro":
 				p.advance()
 				return p.parseDefmacroAfterSymbol(loc)
+			case "deftest":
+				p.advance()
+				return p.parseDeftestAfterSymbol(loc)
+			case "defbenchmark":
+				p.advance()
+				return p.parseDefbenchmarkAfterSymbol(loc)
+			case "defexample":
+				p.advance()
+				return p.parseDefexampleAfterSymbol(loc)
 			case "import":
 				p.advance()
 				return p.parseImportAfterSymbol(loc)
@@ -530,6 +539,77 @@ func (p *Parser) parseDefmacroAfterSymbol(loc ast.Position) ast.Node {
 
 	p.expect(lexer.TokenRParen)
 	return &ast.Defmacro{Loc: loc, Name: name, Params: params, Body: body}
+}
+
+func (p *Parser) parseDeftestAfterSymbol(loc ast.Position) ast.Node {
+	// (deftest name body...)
+	if p.current.Type != lexer.TokenSymbol {
+		p.error("deftest: expected name symbol")
+		p.advance()
+		p.skipToRParen()
+		return &ast.NilLit{Loc: loc}
+	}
+
+	name := p.current.Value
+	p.advance()
+
+	var body []ast.Expr
+	for p.current.Type != lexer.TokenRParen && p.current.Type != lexer.TokenEOF {
+		body = append(body, p.parseExpr())
+	}
+
+	p.expect(lexer.TokenRParen)
+	return &ast.Deftest{Loc: loc, Name: name, Body: body}
+}
+
+func (p *Parser) parseDefbenchmarkAfterSymbol(loc ast.Position) ast.Node {
+	// (defbenchmark name [b] body...)
+	if p.current.Type != lexer.TokenSymbol {
+		p.error("defbenchmark: expected name symbol")
+		p.advance()
+		p.skipToRParen()
+		return &ast.NilLit{Loc: loc}
+	}
+
+	name := p.current.Value
+	p.advance()
+
+	bParam := "b"
+	if p.current.Type == lexer.TokenLBracket {
+		params := p.parseParams()
+		if len(params) > 0 {
+			bParam = params[0].Name
+		}
+	}
+
+	var body []ast.Expr
+	for p.current.Type != lexer.TokenRParen && p.current.Type != lexer.TokenEOF {
+		body = append(body, p.parseExpr())
+	}
+
+	p.expect(lexer.TokenRParen)
+	return &ast.Defbenchmark{Loc: loc, Name: name, BParam: bParam, Body: body}
+}
+
+func (p *Parser) parseDefexampleAfterSymbol(loc ast.Position) ast.Node {
+	// (defexample name body...)
+	if p.current.Type != lexer.TokenSymbol {
+		p.error("defexample: expected name symbol")
+		p.advance()
+		p.skipToRParen()
+		return &ast.NilLit{Loc: loc}
+	}
+
+	name := p.current.Value
+	p.advance()
+
+	var body []ast.Expr
+	for p.current.Type != lexer.TokenRParen && p.current.Type != lexer.TokenEOF {
+		body = append(body, p.parseExpr())
+	}
+
+	p.expect(lexer.TokenRParen)
+	return &ast.Defexample{Loc: loc, Name: name, Body: body}
 }
 
 func (p *Parser) parseImportAfterSymbol(loc ast.Position) ast.Node {
