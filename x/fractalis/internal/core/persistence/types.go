@@ -19,6 +19,7 @@ type Config struct {
 	Zoom        float64
 	ColorScheme string
 	FractalType string
+	Engine      string
 	// Julia set parameters (c = JuliaCr + JuliaCi*i)
 	JuliaCr float64
 	JuliaCi float64
@@ -48,4 +49,10 @@ const (
 	TransitionZoomOutIn    = 2
 	TransitionRotate       = 3
 	TransitionBreakthrough = 4
+)
+
+// Rendering engines
+const (
+	EngineBubbleTea = "bubbletea"
+	EngineEbiten    = "ebiten"
 )

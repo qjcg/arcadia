@@ -7,6 +7,7 @@ vars:
   BIN_DIR: bin
   BIN: '{{.BIN_DIR}}/fractalis'
   BIN_INSTALLED: $GOBIN/fractalis
+  WASM: ./internal/web/assets/fractalis.wasm
 
 tasks:
   default: [{ task: build }]
@@ -17,16 +18,22 @@ tasks:
     cmds:
       - go build -ldflags '-s -w' -o {{.BIN}} ./cmd/fractalis
       - upx {{.BIN}}
+    sources:
+      - '*.go'
+      - 'go.*'
+      - '{{.WASM}}'
+    generates:
+      - '{{.BIN}}'
 
   wasm:
     desc: Build the WebAssembly binary
     cmds:
-      - GOOS=js GOARCH=wasm go build -o internal/web/assets/fractalis.wasm ./cmd/fractalis-ebiten-wasm
+      - GOOS=js GOARCH=wasm go build -o {{.WASM}} ./cmd/fractalis-ebiten-wasm
     sources:
       - '*.go'
       - 'go.*'
     generates:
-      - '{{.BIN}}'
+      - '{{.WASM}}'
 
   install:
     desc: Install go binary
@@ -61,14 +68,14 @@ tasks:
   clean:
     desc: Clean build artifacts
     cmds:
-      - rm -rf {{.BIN_DIR}} {{.TMP_DIR}}
+      - rm -rf {{.BIN_DIR}} {{.TMP_DIR}} fractalis fractalis-ebiten-wasm
 
-  dev-3d:
-    desc: Run 3D mode with hot reload using air
+  dev-ebiten:
+    desc: Run ebiten engine with hot reload using air
     cmds:
-      - go tool air --build.cmd "go run ./cmd/fractalis --3d"
+      - go tool air --build.cmd "go run ./cmd/fractalis --engine ebiten"
 
-  wasm-3d:
-    desc: Serve 3D mode as WebAssembly in browser
+  wasm-ebiten:
+    desc: Serve ebiten engine as WebAssembly in browser
     cmds:
       - go run github.com/hajimehoshi/wasmserve@latest ./cmd/fractalis-ebiten-wasm

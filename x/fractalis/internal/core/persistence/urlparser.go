@@ -19,6 +19,7 @@ type FractalURLParams struct {
 	MaxIter             int
 	ColorTheme          string
 	Transition          string
+	Engine              string
 	AutopilotEnabled    bool
 	DynamicColorEnabled bool
 	JuliaCr             float64
@@ -50,6 +51,7 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 		// Defaults
 		ColorTheme:          color.ColorGrayscale,
 		Transition:          "none",
+		Engine:              EngineBubbleTea,
 		AutopilotEnabled:    false,
 		DynamicColorEnabled: false,
 		JuliaCr:             -0.7,
@@ -136,6 +138,15 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 		params.Transition = transition
 	}
 
+	if engine := queryParams.Get("engine"); engine != "" {
+		switch strings.ToLower(engine) {
+		case EngineBubbleTea, EngineEbiten:
+			params.Engine = strings.ToLower(engine)
+		default:
+			return FractalURLParams{}, fmt.Errorf("invalid engine: %s", engine)
+		}
+	}
+
 	// Parse boolean variables: can be specified without value (defaults to true) or with "t"/"f"
 	if _, ok := queryParams["autopilot"]; ok {
 		if parsedAutopilot, err := ParseBooleanParam(queryParams, "autopilot"); err != nil {
@@ -197,6 +208,11 @@ func ConfigToFractalURL(config Config, autopilot, dynamicColor bool, transitionM
 		if transitionName != "none" {
 			queryParams.Set("transition", transitionName)
 		}
+	}
+
+	// Engine
+	if config.Engine != "" && config.Engine != EngineBubbleTea {
+		queryParams.Set("engine", config.Engine)
 	}
 
 	// Autopilot

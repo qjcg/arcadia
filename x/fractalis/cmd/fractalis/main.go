@@ -1700,8 +1700,8 @@ func main() {
 	flag.BoolVar(vantage, "V", false, "Shorthand for --vantage")
 
 	vantageSceneDurationSpec := flag.Int("vantage-duration", 5, "Seconds per scene in vantage mode")
-	mode3d := flag.Bool("3d", false, "GPU-accelerated 3D mode (Mandelbulb)")
-	flag.BoolVar(mode3d, "3", false, "Shorthand for --3d")
+	engineFlag := flag.String("engine", persistence.EngineBubbleTea, "Rendering engine (bubbletea, ebiten)")
+	flag.StringVar(engineFlag, "e", persistence.EngineBubbleTea, "Shorthand for --engine")
 
 	// --- Group 2: Navigation & URL ---
 	urlFlag := flag.String("url", "", "Load a fractal:// URL")
@@ -1780,7 +1780,7 @@ func main() {
 			{"-a, --autopilot", "Enable auto-zoom and intelligent exploration"},
 			{"-V, --vantage", "Enable vantage mode (scenic tour)"},
 			{"--vantage-duration <sec>", "Seconds per scene in vantage mode (default 5)"},
-			{"-3, --3d", "GPU-accelerated 3D mode (Mandelbulb)"},
+			{"-e, --engine <name>", "Rendering engine (bubbletea, ebiten)"},
 		})
 
 		printGroup("NAVIGATION & URL:", [][2]string{
@@ -1873,6 +1873,10 @@ func main() {
 		urlDynamicColor = params.DynamicColorEnabled
 		urlTransitionMode = persistence.StringToTransitionMode(params.Transition)
 
+		if params.Engine != "" {
+			config.Engine = params.Engine
+		}
+
 		// If random mode, we'll apply it after TUI initialization
 		if params.Mode == ModeRandom {
 			*randomMode = true
@@ -1929,6 +1933,16 @@ func main() {
 		config.FractalType = FractalMandelbrot
 	}
 
+	// Check engine flag override
+	if *engineFlag != persistence.EngineBubbleTea {
+		config.Engine = *engineFlag
+	}
+
+	// Validate engine
+	if config.Engine == "" {
+		config.Engine = persistence.EngineBubbleTea
+	}
+
 	// Adjust default center for Julia set if user didn't specify custom center
 	if config.FractalType == FractalJulia && config.CenterX == -0.5 && config.CenterY == 0.0 {
 		config.CenterX = 0.0
@@ -1945,12 +1959,12 @@ func main() {
 		config = tempModel.config
 	}
 
-	// Check if 3D mode is requested
-	if *mode3d {
-		// Run 3D mode with Ebiten
+	// Check which engine to use
+	if config.Engine == persistence.EngineEbiten {
+		// Run Ebiten engine
 		game := ebiten.NewGame(config)
 		if err := game.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error running 3D mode: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error running ebiten engine: %v\n", err)
 			os.Exit(1)
 		}
 		return

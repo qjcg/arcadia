@@ -4,12 +4,13 @@ An interactive terminal-based fractal viewer with ASCII art rendering and color 
 
 ## Features
 
-### Interactive Mode (Default)
-- Real-time fractal exploration with keyboard navigation
+### Bubbletea Engine (TUI - Default)
+- Real-time fractal exploration with keyboard navigation in your terminal
+- ASCII art rendering with color scheme support
 - Zoom and pan controls for deep exploration
 - Auto-pilot mode with intelligent exploration of interesting regions
 - Random exploration for discovering new fractals (generates completely random interesting views)
-- Switch between 8 different fractal types on the fly
+- Switch between multiple fractal types on the fly
 - Eight color schemes: grayscale, blue, rainbow, fire, purple, green, gold, and cyan
 - Adjustable iteration depth for detail control
 - Interactive Julia set parameter adjustment
@@ -18,14 +19,15 @@ An interactive terminal-based fractal viewer with ASCII art rendering and color 
 - Built-in help system
 - Full-screen TUI powered by Bubble Tea
 
-### 3D Mode (Separate Command)
-- GPU-accelerated 3D fractal rendering available via `cmd/fractalis-ebiten-wasm`
-- Real-time ray marching of Mandelbulb fractal at 60 FPS
+### Ebiten Engine (Graphical)
+- GPU-accelerated 3D and 2D fractal rendering
+- Real-time ray marching of 3D fractals at 60 FPS
 - Full 3D navigation with camera controls
 - Soft shadows and ambient occlusion for realistic lighting
 - Dynamic color animation with orbit trap coloring
 - HDR tone mapping and gamma correction
 - Graphical window with interactive controls
+- WebAssembly support for browser-based exploration
 
 ## Installation
 
@@ -52,9 +54,25 @@ go tool task install
 
 ## Usage
 
-### Interactive Mode (Default)
+### Engines
 
-Launch the interactive fractal viewer:
+Fractalis supports different rendering engines:
+- `bubbletea` (default): Terminal-based ASCII interface
+- `ebiten`: GPU-accelerated graphical interface (supports 3D Mandelbulb/Mandelbox)
+
+Launch with a specific engine:
+
+```bash
+# Terminal mode (default)
+fractals --engine bubbletea
+
+# Graphical mode
+fractals --engine ebiten
+```
+
+### Bubbletea Engine (Default)
+
+Launch the interactive terminal viewer:
 
 ```bash
 fractals
@@ -91,6 +109,9 @@ fractals fractal://julia/0.0/0.0/1.0/50/?julia_cr=-0.7&julia_ci=0.27015&color_th
 # With autopilot and dynamic color
 fractals fractal://mandelbrot/-0.7436/0.1314/50.0/100/?color_theme=fire&autopilot=on&dynamic_color=on&transition=fade
 
+# Specify engine in URL
+fractals fractal://mandelbulb/5.0/2.0/5.0/32/?engine=ebiten
+
 # Random mode
 fractals fractal://random/?color_theme=rainbow&autopilot=on
 
@@ -101,6 +122,7 @@ fractals --url "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=on"
 **URL Format**: `fractal://$FRACTAL_TYPE/$CENTER_X/$CENTER_Y/$ZOOM/$ITERATIONS/?[options]`
 
 **Query Parameters** (all optional):
+- `engine`: bubbletea, ebiten
 - `color_theme`: grayscale, blue, rainbow, fire, purple, green, gold, cyan
 - `autopilot`: on/off
 - `dynamic_color`: on/off (smooth hue rotation)
@@ -116,7 +138,7 @@ fractals --url "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=on"
 
 ### Web Mode
 
-Serve the 3D Mandelbulb as a WebAssembly application in your browser:
+Serve the ebiten engine as a WebAssembly application in your browser:
 
 ```bash
 fractals serve [port]
@@ -124,28 +146,28 @@ fractals serve [port]
 
 By default, it serves on http://localhost:8080. The WASM is embedded directly into the `fractalis` binary.
 
-### 3D Mode
+### Ebiten Engine (Graphical)
 
-GPU-accelerated 3D Mandelbulb rendering is available as a separate command:
+GPU-accelerated rendering is available via the ebiten engine:
 
 ```bash
-# Run the 3D viewer directly
-go run ./cmd/fractalis-ebiten-wasm
+# Run using the engine flag
+fractals --engine ebiten
 
-# Or build and install it
-go build -o fractalis-3d ./cmd/fractalis-ebiten-wasm
-./fractalis-3d
+# Or run the specialized command directly
+go run ./cmd/fractalis-ebiten-wasm
 ```
 
-**3D Mode Controls:**
+**Ebiten Engine Controls:**
 - **WASD** - Move in X/Z plane
 - **Space/Shift** - Move up/down in Y
 - **Mouse** - Look around (click window to capture mouse, ESC to release)
 - **Arrow keys** - Alternative camera look control
 - **Q** - Quit
 
-**3D Mode Features:**
-- Real-time ray marching at 60 FPS
+**Ebiten Engine Features:**
+- Real-time ray marching at 60 FPS (for 3D fractals)
+- GPU-accelerated 2D fractal rendering
 - Soft shadows and ambient occlusion
 - Dynamic color shifting animation
 - HDR tone mapping and gamma correction
