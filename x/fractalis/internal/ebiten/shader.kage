@@ -19,6 +19,118 @@ var (
 	PaintMode   float  // Paint mode: 1-4 inpaint, 5-8 outpaint
 )
 
+// Advanced water simulation functions
+// Gerstner wave: creates realistic wave crests and troughs
+func gerstnerWave(p vec2, wavelength float, amplitude float, speed float, direction vec2, steepness float) vec3 {
+	// Normalize direction
+	dir := normalize(direction)
+
+	// Wave parameters
+	k := 2.0 * 3.14159 / wavelength
+	w := speed * k
+
+	// Gerstner wave displacement
+	phase := dot(dir, p) * k - Time * w
+
+	// Horizontal displacement (creates the wave shape)
+	disp := dir * amplitude * steepness * cos(phase)
+
+	// Vertical displacement (height of wave)
+	height := amplitude * sin(phase)
+
+	return vec3(disp.x, height, disp.y)
+}
+
+// Layered ocean surface with multiple harmonics
+func oceanSurface(p vec2) vec3 {
+	// Combine multiple Gerstner waves at different scales
+	result := vec3(0.0)
+
+	// Primary large wave
+	result += gerstnerWave(p, 80.0, 0.4, 3.0, vec2(1.0, 0.3), 0.25)
+
+	// Secondary medium wave
+	result += gerstnerWave(p, 31.0, 0.15, 2.1, vec2(0.8, -0.6), 0.15)
+
+	// Tertiary small wave (chop)
+	result += gerstnerWave(p, 18.0, 0.08, 1.8, vec2(-0.5, 0.9), 0.1)
+
+	// Fine detail waves
+	result += gerstnerWave(p, 8.0, 0.03, 1.5, vec2(0.2, 0.8), 0.08)
+
+	return result
+}
+
+// Improved Perlin-like noise with multiple octaves
+func improvedNoise(p vec3) float {
+	p = mod(p, 289.0)
+	x := fract(p * 0.00346410161 * 60.0)
+	p = floor(p) * 0.00346410161
+	f := fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453)
+	return mix(f, fract(sin(dot(p + 0.1, vec3(12.9898, 78.233, 45.164))) * 43758.5453), x.x)
+}
+
+// Caustic pattern - underwater light dancing effect
+func caustics(p vec3, t float) float {
+	// Create caustic pattern using multiple sine waves
+	caustic := 0.0
+
+	// Primary caustic layer
+	caustic += 0.5 * sin(p.x * 3.0 + t * 0.5) * sin(p.z * 3.0 + t * 0.3)
+
+	// Secondary caustic detail
+	caustic += 0.3 * sin(p.x * 7.0 - t * 0.8) * sin(p.z * 5.0 + t * 0.6)
+
+	// Tertiary fine detail
+	caustic += 0.2 * sin(p.x * 12.0 + t * 1.2) * sin(p.z * 11.0 - t * 0.9)
+
+	// Add some turbulence
+	caustic += 0.25 * improvedNoise(p + t * 0.2)
+
+	return (caustic + 1.0) / 2.0
+}
+
+// Water normal mapping - calculates water surface normals
+func waterNormal(p vec2) vec3 {
+	epsilon := 0.01
+
+	// Sample ocean surface at three nearby points
+	h0 := oceanSurface(p).y
+	h1 := oceanSurface(p + vec2(epsilon, 0.0)).y
+	h2 := oceanSurface(p + vec2(0.0, epsilon)).y
+
+	// Calculate normal from height differences
+	normal := normalize(vec3(
+		(h0 - h1) / epsilon,
+		epsilon,
+		(h0 - h2) / epsilon,
+	))
+
+	return normal
+}
+
+// Foam generation at wave crests
+func foamMask(p vec2) float {
+	ocean := oceanSurface(p)
+
+	// Find wave crest (high curvature areas)
+	epsilon := 0.5
+	h0 := ocean.y
+	h1 := oceanSurface(p + vec2(epsilon, 0.0)).y
+	h2 := oceanSurface(p + vec2(0.0, epsilon)).y
+
+	// Curvature detection - higher at crests
+	curvature := abs((h0 - h1) / epsilon) + abs((h0 - h2) / epsilon)
+
+	// Also add foam persistence using noise
+	foamPersistence := 0.5 + 0.5 * sin(improvedNoise(vec3(p * 0.1, Time * 0.1)) * 3.14159)
+
+	// Combine: foam at crests that persists over time
+	foam := smoothstep(0.3, 0.8, curvature) * foamPersistence
+
+	return clamp(foam, 0.0, 1.0)
+}
+
 // Simple noise function for fog simulation
 func fogNoise(p vec3) float {
 	// Use vec3 for 3D noise-like effect
@@ -99,8 +211,8 @@ func applyPaintMode(color vec3, inSet bool, iterations float, maxIter float) vec
 		return color // No paint mode
 	}
 
-	// Inpainting modes (1-4): effects inside the set
-	if PaintMode < 4.5 && inSet {
+	// Inpainting modes (1-5): effects inside the set
+	if PaintMode < 5.5 && PaintMode > 0.5 && inSet {
 		if PaintMode < 1.5 {
 			// Solid inpaint: flat color fill
 			return mix(vec3(0.1, 0.2, 0.4), color, 0.3)
@@ -141,19 +253,73 @@ func applyPaintMode(color vec3, inSet bool, iterations float, maxIter float) vec
 		}
 	}
 
-	// Outpainting modes (5-8): effects outside the set
-	if PaintMode > 4.5 && !inSet {
+	// Outpainting modes (6-10): effects outside the set
+	if PaintMode > 5.5 && !inSet {
 		normIter := min(iterations / maxIter, 1.0)
 
-		if PaintMode < 5.5 {
+		if PaintMode < 6.5 {
 			// Glow outpaint: soft halo around fractal
 			glow := exp(-normIter * 2.0) * 0.6
 			return color + vec3(0.9, 0.7, 0.5) * glow
-		} else if PaintMode < 6.5 {
-			// Ripple outpaint: wave distortion
-			ripple := sin(normIter * 10.0 - Time * 0.5) * 0.3 + 0.7
-			return color * ripple + vec3(0.2, 0.3, 0.6) * (1.0 - ripple) * 0.3
 		} else if PaintMode < 7.5 {
+			// Ripple outpaint: Hyper-realistic water with waves, caustics, and foam
+
+			// Create world-space position for water simulation
+			waterPos := vec2((iterations * 0.5 - Time * 0.2) * normIter, (iterations * 0.3 + Time * 0.1) * normIter)
+
+			// Generate ocean surface displacement and waves
+			oceanDisp := oceanSurface(waterPos)
+
+			// Calculate water depth - closer to boundary = shallower
+			depth := 1.0 - normIter
+			depthAdjust := exp(-normIter * 3.0)
+
+			// Water wave refraction - distorts color based on wave surface
+			refraction := oceanDisp.xz * 0.3 * (0.5 + 0.5 * sin(Time * 0.5))
+			colorDistort := sin((iterations * 0.1 + refraction.x) * normIter) * 0.2 + 0.8
+
+			// Calculate water surface normal for Fresnel effect
+			normal := waterNormal(waterPos)
+			fresnel := pow(1.0 - abs(normal.y), 2.0)
+
+			// Caustic pattern - underwater light dancing
+			causticPattern := caustics(vec3(waterPos * 2.0, oceanDisp.y), Time) * depth
+
+			// Foam mask - white foam at wave crests
+			foam := foamMask(waterPos) * exp(-normIter * 2.5)
+
+			// Water color base - rich blues transitioning to cyan
+			deepWater := vec3(0.05, 0.1, 0.2)
+			shallowWater := vec3(0.1, 0.3, 0.5)
+			watColor := mix(deepWater, shallowWater, depth)
+
+			// Add caustic glow
+			watColor += vec3(0.2, 0.4, 0.6) * causticPattern
+
+			// Wavelength-based color shift
+			wavelengthColor := sin(oceanDisp.y * 3.0 + Time * 0.8) * 0.3
+			watColor += vec3(wavelengthColor * 0.1, wavelengthColor * 0.05, 0.0)
+
+			// Apply Fresnel reflection (more reflective at grazing angles)
+			skyReflection := mix(vec3(0.3, 0.5, 0.8), vec3(0.9, 0.95, 1.0), fresnel) * fresnel * 0.5
+			watColor += skyReflection
+
+			// Blend with original fractal color based on depth
+			watColor = mix(watColor, color * colorDistort, depth * 0.5)
+
+			// Add foam - bright white with slightly warm tint
+			foamColor := vec3(0.95 + 0.05 * sin(Time * 2.0))
+			watColor = mix(watColor, foamColor, foam * 0.8)
+
+			// Add subtle shimmer and sparkle
+			sparkle := abs(sin(waterPos.x * 20.0 + Time * 3.0)) * abs(sin(waterPos.y * 20.0 - Time * 2.5))
+			watColor += vec3(sparkle * 0.15 * (1.0 - normIter))
+
+			// Depth-based darkening
+			watColor *= mix(0.6, 1.0, depth)
+
+			return watColor
+		} else if PaintMode < 8.5 {
 			// Fog outpaint: realistic moving cloud simulation
 			// Create moving cloud layers at different distances
 			basePos := vec3(normIter * 5.0, Time * 0.02, normIter * 3.0)
@@ -183,7 +349,7 @@ func applyPaintMode(color vec3, inSet bool, iterations float, maxIter float) vec
 
 			// Blend clouds with background, thicker near fractal
 			return mix(color, cloudColor, densityModulated * 0.7)
-		} else if PaintMode < 8.5 {
+		} else if PaintMode < 9.5 {
 			// Electric outpaint: discharge arcs
 			electric := abs(sin(normIter * 20.0 + Time * 1.5)) * exp(-normIter)
 			return color + vec3(0.3, 0.9, 1.0) * electric * 0.8
