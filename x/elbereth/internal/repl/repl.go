@@ -10,6 +10,7 @@ import (
 
 	"elbereth/internal/ast"
 	"elbereth/internal/eval"
+	"elbereth/internal/expander"
 	"elbereth/internal/lexer"
 	"elbereth/internal/parser"
 )
@@ -40,6 +41,7 @@ func (r *REPL) Run() error {
 	defer rl.Close()
 
 	evaluator := eval.New()
+	ex := expander.New()
 
 	fmt.Fprintln(r.output, "Elbereth REPL v0.1.0")
 	fmt.Fprintln(r.output, "Type (exit) to quit, (help) for help")
@@ -69,7 +71,7 @@ func (r *REPL) Run() error {
 			continue
 		}
 
-		if err := r.eval(line, evaluator); err != nil {
+		if err := r.eval(line, evaluator, ex); err != nil {
 			fmt.Fprintf(r.output, "Error: %v\n", err)
 		}
 	}
@@ -77,7 +79,7 @@ func (r *REPL) Run() error {
 	return nil
 }
 
-func (r *REPL) eval(input string, evaluator *eval.Evaluator) error {
+func (r *REPL) eval(input string, evaluator *eval.Evaluator, ex *expander.Expander) error {
 	// Lex and parse the input
 	lex := lexer.New(input)
 	p := parser.New(lex)
@@ -90,16 +92,19 @@ func (r *REPL) eval(input string, evaluator *eval.Evaluator) error {
 		return nil
 	}
 
+	// Expand macros
+	if err := ex.Expand(prog); err != nil {
+		return fmt.Errorf("macro expansion error: %w", err)
+	}
+
 	// Evaluate and print results
 	for _, item := range prog.Items {
-		if expr, ok := item.(ast.Expr); ok {
-			val, err := evaluator.Eval(expr)
-			if err != nil {
-				return err
-			}
+		val, err := evaluator.EvalTop(item)
+		if err != nil {
+			return err
+		}
+		if val != nil {
 			fmt.Fprintln(r.output, val.String())
-		} else {
-			r.printNode(item)
 		}
 	}
 

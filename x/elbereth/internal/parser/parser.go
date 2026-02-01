@@ -84,9 +84,38 @@ func (p *Parser) parseTopLevel() ast.Node {
 				p.advance()
 				return p.parseImportAfterSymbol(loc)
 			}
+
+			// If it's a special form that is an Expr, we can use parseExpr logic
+			// (but we need to handle the fact that we already consumed LParen)
+			name := p.current.Value
+			switch name {
+			case "fn", "if", "do", "let", "quote", "match", "loop", "recur", "select":
+				// We need to re-handle these because they are Exprs but can appear at top level
+				p.advance() // consume the symbol
+				switch name {
+				case "fn":
+					return p.parseFnAfterSymbol(loc)
+				case "if":
+					return p.parseIfAfterSymbol(loc)
+				case "do":
+					return p.parseDoAfterSymbol(loc)
+				case "let":
+					return p.parseLetAfterSymbol(loc)
+				case "quote":
+					return p.parseQuoteAfterSymbol(loc)
+				case "match":
+					return p.parseMatchAfterSymbol(loc)
+				case "loop":
+					return p.parseLoopAfterSymbol(loc)
+				case "recur":
+					return p.parseRecurAfterSymbol(loc)
+				case "select":
+					return p.parseSelectAfterSymbol(loc)
+				}
+			}
 		}
 
-		// Parse as expression (handles fn, if, do, let, quote, function calls, etc.)
+		// Parse as regular function call
 		first := p.parseExprWithoutLParen()
 		args := []ast.Expr{}
 		for p.current.Type != lexer.TokenRParen && p.current.Type != lexer.TokenEOF {

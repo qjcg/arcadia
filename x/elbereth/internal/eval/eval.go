@@ -3,6 +3,7 @@ package eval
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"elbereth/internal/ast"
 )
@@ -97,20 +98,201 @@ type NodeVal struct {
 func (v NodeVal) TypeName() string { return "node" }
 func (v NodeVal) String() string   { return v.Node.String() }
 
+// FuncVal represents a user-defined function
+type FuncVal struct {
+	Name   string
+	Params []*ast.Param
+	Body   []ast.Expr
+	Env    *Env
+}
+
+func (v FuncVal) TypeName() string { return "function" }
+func (v FuncVal) String() string   { return fmt.Sprintf("#<function %s>", v.Name) }
+
+// BuiltinVal represents a built-in function
+type BuiltinVal struct {
+	Name string
+	Fn   func(args []Value) (Value, error)
+}
+
+func (v BuiltinVal) TypeName() string { return "builtin" }
+func (v BuiltinVal) String() string   { return fmt.Sprintf("#<builtin %s>", v.Name) }
+
+// Env represents an evaluation environment
+type Env struct {
+	parent *Env
+	vars   map[string]Value
+}
+
+func NewEnv(parent *Env) *Env {
+	return &Env{
+		parent: parent,
+		vars:   make(map[string]Value),
+	}
+}
+
+func (e *Env) Get(name string) (Value, bool) {
+	if val, ok := e.vars[name]; ok {
+		return val, true
+	}
+	if e.parent != nil {
+		return e.parent.Get(name)
+	}
+	return nil, false
+}
+
+func (e *Env) Set(name string, val Value) {
+	e.vars[name] = val
+}
+
 // Evaluator evaluates Elbereth expressions
 type Evaluator struct {
-	globals map[string]Value
+	Global     *Env
+	Namespaces map[string]*Env
 }
 
 // New creates a new evaluator
 func New() *Evaluator {
-	return &Evaluator{
-		globals: make(map[string]Value),
+	e := &Evaluator{
+		Global:     NewEnv(nil),
+		Namespaces: make(map[string]*Env),
+	}
+	e.registerBuiltins()
+	return e
+}
+
+func (e *Evaluator) registerBuiltins() {
+	e.Global.Set("+", BuiltinVal{Name: "+", Fn: e.wrapBinaryIntFloat(func(a, b float64) float64 { return a + b }, func(a, b int64) int64 { return a + b })})
+	e.Global.Set("-", BuiltinVal{Name: "-", Fn: e.wrapBinaryIntFloat(func(a, b float64) float64 { return a - b }, func(a, b int64) int64 { return a - b })})
+	e.Global.Set("*", BuiltinVal{Name: "*", Fn: e.wrapBinaryIntFloat(func(a, b float64) float64 { return a * b }, func(a, b int64) int64 { return a * b })})
+	e.Global.Set("/", BuiltinVal{Name: "/", Fn: e.wrapBinaryIntFloat(func(a, b float64) float64 { return a / b }, func(a, b int64) int64 { return a / b })})
+	e.Global.Set("%", BuiltinVal{Name: "%", Fn: func(args []Value) (Value, error) {
+		if len(args) != 2 {
+			return nil, fmt.Errorf("%% requires 2 arguments")
+		}
+		a, ok1 := args[0].(IntVal)
+		b, ok2 := args[1].(IntVal)
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("%% requires integers")
+		}
+		return IntVal{Value: a.Value % b.Value}, nil
+	}})
+	e.Global.Set("==", BuiltinVal{Name: "==", Fn: e.builtinEq})
+	e.Global.Set("!=", BuiltinVal{Name: "!=", Fn: func(args []Value) (Value, error) {
+		eq, err := e.builtinEq(args)
+		if err != nil {
+			return nil, err
+		}
+		return BoolVal{Value: !eq.(BoolVal).Value}, nil
+	}})
+	e.Global.Set("<", BuiltinVal{Name: "<", Fn: e.wrapBinaryComp(func(a, b float64) bool { return a < b }, func(a, b int64) bool { return a < b })})
+	e.Global.Set(">", BuiltinVal{Name: ">", Fn: e.wrapBinaryComp(func(a, b float64) bool { return a > b }, func(a, b int64) bool { return a > b })})
+	e.Global.Set("<=", BuiltinVal{Name: "<=", Fn: e.wrapBinaryComp(func(a, b float64) bool { return a <= b }, func(a, b int64) bool { return a <= b })})
+	e.Global.Set(">=", BuiltinVal{Name: ">=", Fn: e.wrapBinaryComp(func(a, b float64) bool { return a >= b }, func(a, b int64) bool { return a >= b })})
+	e.Global.Set("not", BuiltinVal{Name: "not", Fn: func(args []Value) (Value, error) {
+		if len(args) != 1 {
+			return nil, fmt.Errorf("not requires 1 argument")
+		}
+		return BoolVal{Value: !isTrue(args[0])}, nil
+	}})
+	e.Global.Set("println", BuiltinVal{Name: "println", Fn: e.builtinPrintln})
+	e.Global.Set("len", BuiltinVal{Name: "len", Fn: func(args []Value) (Value, error) {
+		if len(args) != 1 {
+			return nil, fmt.Errorf("len requires 1 argument")
+		}
+		switch v := args[0].(type) {
+		case StringVal:
+			return IntVal{Value: int64(len(v.Value))}, nil
+		case VectorVal:
+			return IntVal{Value: int64(len(v.Elements))}, nil
+		case MapVal:
+			return IntVal{Value: int64(len(v.Pairs))}, nil
+		default:
+			return nil, fmt.Errorf("len not supported for %s", v.TypeName())
+		}
+	}})
+
+	// Pre-register some common namespaces
+	mathEnv := NewEnv(nil)
+	mathEnv.Set("Sqrt", BuiltinVal{Name: "math/Sqrt", Fn: func(args []Value) (Value, error) {
+		if len(args) != 1 {
+			return nil, fmt.Errorf("math/Sqrt requires 1 argument")
+		}
+		f, ok := toFloat(args[0])
+		if !ok {
+			return nil, fmt.Errorf("math/Sqrt requires a number")
+		}
+		return FloatVal{Value: math.Sqrt(f)}, nil
+	}})
+	mathEnv.Set("Pi", FloatVal{Value: math.Pi})
+	e.Namespaces["math"] = mathEnv
+
+	timeEnv := NewEnv(nil)
+	timeEnv.Set("Now", BuiltinVal{Name: "time/Now", Fn: func(args []Value) (Value, error) {
+		return StringVal{Value: "2026-02-01T12:00:00Z"}, nil // Mock time for now
+	}})
+	e.Namespaces["time"] = timeEnv
+}
+
+func toFloat(v Value) (float64, bool) {
+	switch val := v.(type) {
+	case IntVal:
+		return float64(val.Value), true
+	case FloatVal:
+		return val.Value, true
+	default:
+		return 0, false
 	}
 }
 
-// Eval evaluates an expression
-func (e *Evaluator) Eval(expr ast.Expr) (Value, error) {
+// EvalTop evaluates a top-level node
+func (e *Evaluator) EvalTop(node ast.Node) (Value, error) {
+	switch n := node.(type) {
+	case *ast.Def:
+		val, err := e.Eval(n.Value, e.Global)
+		if err != nil {
+			return nil, err
+		}
+		e.Global.Set(n.Name, val)
+		return val, nil
+
+	case *ast.Defn:
+		fn := FuncVal{
+			Name:   n.Name,
+			Params: n.Params,
+			Body:   n.Body,
+			Env:    e.Global,
+		}
+		e.Global.Set(n.Name, fn)
+		return fn, nil
+
+	case *ast.Import:
+		name := n.Path
+		if n.Alias != "" {
+			name = n.Alias
+		}
+		// If it's a known namespace, we're good
+		if _, ok := e.Namespaces[n.Path]; ok {
+			if n.Alias != "" {
+				e.Namespaces[name] = e.Namespaces[n.Path]
+			}
+			return NilVal{}, nil
+		}
+		// Otherwise, create an empty one to avoid errors later,
+		// though it won't have any symbols.
+		e.Namespaces[name] = NewEnv(nil)
+		return NilVal{}, nil
+
+	case ast.Expr:
+		return e.Eval(n, e.Global)
+
+	default:
+		return nil, fmt.Errorf("unsupported top-level node type: %T", node)
+	}
+}
+
+// Eval evaluates an expression in an environment
+func (e *Evaluator) Eval(expr ast.Expr, env *Env) (Value, error) {
 	switch node := expr.(type) {
 	case *ast.IntLit:
 		return IntVal{Value: node.Value}, nil
@@ -131,7 +313,17 @@ func (e *Evaluator) Eval(expr ast.Expr) (Value, error) {
 		return StringVal{Value: ":" + node.Value}, nil
 
 	case *ast.Symbol:
-		if val, ok := e.globals[node.Name]; ok {
+		if strings.Contains(node.Name, "/") {
+			parts := strings.SplitN(node.Name, "/", 2)
+			if ns, ok := e.Namespaces[parts[0]]; ok {
+				if val, ok := ns.Get(parts[1]); ok {
+					return val, nil
+				}
+				return nil, fmt.Errorf("symbol not found in namespace %s: %s", parts[0], parts[1])
+			}
+			return nil, fmt.Errorf("unknown namespace: %s", parts[0])
+		}
+		if val, ok := env.Get(node.Name); ok {
 			return val, nil
 		}
 		return nil, fmt.Errorf("undefined symbol: %s", node.Name)
@@ -139,7 +331,7 @@ func (e *Evaluator) Eval(expr ast.Expr) (Value, error) {
 	case *ast.VectorLit:
 		var elements []Value
 		for _, elt := range node.Elts {
-			val, err := e.Eval(elt)
+			val, err := e.Eval(elt, env)
 			if err != nil {
 				return nil, err
 			}
@@ -150,11 +342,11 @@ func (e *Evaluator) Eval(expr ast.Expr) (Value, error) {
 	case *ast.MapLit:
 		pairs := make(map[string]Value)
 		for _, pair := range node.Pairs {
-			keyVal, err := e.Eval(pair.Key)
+			keyVal, err := e.Eval(pair.Key, env)
 			if err != nil {
 				return nil, err
 			}
-			val, err := e.Eval(pair.Value)
+			val, err := e.Eval(pair.Value, env)
 			if err != nil {
 				return nil, err
 			}
@@ -163,529 +355,243 @@ func (e *Evaluator) Eval(expr ast.Expr) (Value, error) {
 		return MapVal{Pairs: pairs}, nil
 
 	case *ast.FuncCall:
-		return e.evalFuncCall(node)
+		return e.evalFuncCall(node, env)
+
+	case *ast.IfExpr:
+		cond, err := e.Eval(node.Cond, env)
+		if err != nil {
+			return nil, err
+		}
+		if isTrue(cond) {
+			return e.Eval(node.Then, env)
+		} else if node.Else != nil {
+			return e.Eval(node.Else, env)
+		}
+		return NilVal{}, nil
+
+	case *ast.DoExpr:
+		var last Value = NilVal{}
+		for _, ex := range node.Exprs {
+			val, err := e.Eval(ex, env)
+			if err != nil {
+				return nil, err
+			}
+			last = val
+		}
+		return last, nil
+
+	case *ast.LetExpr:
+		childEnv := NewEnv(env)
+		for _, b := range node.Bindings {
+			val, err := e.Eval(b.Init, env)
+			if err != nil {
+				return nil, err
+			}
+			childEnv.Set(b.Name, val)
+		}
+		var last Value = NilVal{}
+		for _, ex := range node.Body {
+			val, err := e.Eval(ex, childEnv)
+			if err != nil {
+				return nil, err
+			}
+			last = val
+		}
+		return last, nil
 
 	case *ast.QuoteExpr:
-		// For now, quote just returns a string representation
 		return StringVal{Value: node.Expr.String()}, nil
+
+	case *ast.MatchExpr:
+		val, err := e.Eval(node.Val, env)
+		if err != nil {
+			return nil, err
+		}
+		for _, c := range node.Cases {
+			// Basic symbol/keyword match or else/_
+			match := false
+			if sym, ok := c.Pattern.(*ast.Symbol); ok && (sym.Name == "else" || sym.Name == "_") {
+				match = true
+			} else if kw, ok := c.Pattern.(*ast.KeywordLit); ok && kw.Value == "else" {
+				match = true
+			} else {
+				patVal, err := e.Eval(c.Pattern, env)
+				if err == nil && e.valuesEqual(val, patVal) {
+					match = true
+				}
+			}
+
+			if match {
+				return e.Eval(c.Body, env)
+			}
+		}
+		return nil, fmt.Errorf("no match found for value: %v", val)
 
 	default:
 		return nil, fmt.Errorf("unsupported expression type: %T", expr)
 	}
 }
 
-func (e *Evaluator) evalFuncCall(call *ast.FuncCall) (Value, error) {
-	// Handle built-in functions
-	if sym, ok := call.Func.(*ast.Symbol); ok {
-		switch sym.Name {
-		case "+":
-			return e.builtinAdd(call)
-		case "-":
-			return e.builtinSub(call)
-		case "*":
-			return e.builtinMul(call)
-		case "/":
-			return e.builtinDiv(call)
-		case "%":
-			return e.builtinMod(call)
-		case "==":
-			return e.builtinEq(call)
-		case "!=":
-			return e.builtinNe(call)
-		case "<":
-			return e.builtinLt(call)
-		case "<=":
-			return e.builtinLte(call)
-		case ">":
-			return e.builtinGt(call)
-		case ">=":
-			return e.builtinGte(call)
-		case "println":
-			return e.builtinPrintln(call)
-		case "print":
-			return e.builtinPrint(call)
-		case "len":
-			return e.builtinLen(call)
-		}
-	}
-
-	return nil, fmt.Errorf("unknown function")
-}
-
-func (e *Evaluator) builtinAdd(call *ast.FuncCall) (Value, error) {
-	if len(call.Args) == 0 {
-		return IntVal{Value: 0}, nil
-	}
-
-	result, err := e.Eval(call.Args[0])
+func (e *Evaluator) evalFuncCall(call *ast.FuncCall, env *Env) (Value, error) {
+	fnVal, err := e.Eval(call.Func, env)
 	if err != nil {
 		return nil, err
 	}
 
-	for i := 1; i < len(call.Args); i++ {
-		arg, err := e.Eval(call.Args[i])
+	var args []Value
+	for _, argExpr := range call.Args {
+		val, err := e.Eval(argExpr, env)
 		if err != nil {
 			return nil, err
 		}
-
-		switch r := result.(type) {
-		case IntVal:
-			switch a := arg.(type) {
-			case IntVal:
-				result = IntVal{Value: r.Value + a.Value}
-			case FloatVal:
-				result = FloatVal{Value: float64(r.Value) + a.Value}
-			default:
-				return nil, fmt.Errorf("cannot add %s and %s", r.TypeName(), a.TypeName())
-			}
-		case FloatVal:
-			switch a := arg.(type) {
-			case IntVal:
-				result = FloatVal{Value: r.Value + float64(a.Value)}
-			case FloatVal:
-				result = FloatVal{Value: r.Value + a.Value}
-			default:
-				return nil, fmt.Errorf("cannot add %s and %s", r.TypeName(), a.TypeName())
-			}
-		case StringVal:
-			switch a := arg.(type) {
-			case StringVal:
-				result = StringVal{Value: r.Value + a.Value}
-			default:
-				return nil, fmt.Errorf("cannot add %s and %s", r.TypeName(), a.TypeName())
-			}
-		default:
-			return nil, fmt.Errorf("cannot add %s", r.TypeName())
-		}
+		args = append(args, val)
 	}
 
-	return result, nil
+	switch fn := fnVal.(type) {
+	case BuiltinVal:
+		return fn.Fn(args)
+	case FuncVal:
+		return e.callUserFunc(fn, args)
+	default:
+		return nil, fmt.Errorf("not a function: %s", fnVal.String())
+	}
 }
 
-func (e *Evaluator) builtinSub(call *ast.FuncCall) (Value, error) {
-	if len(call.Args) < 2 {
-		return nil, fmt.Errorf("- requires at least 2 arguments")
+func (e *Evaluator) callUserFunc(fn FuncVal, args []Value) (Value, error) {
+	if len(args) < len(fn.Params) {
+		return nil, fmt.Errorf("too few arguments for %s", fn.Name)
+	}
+	// TODO: variadic params
+
+	callEnv := NewEnv(fn.Env)
+	for i, p := range fn.Params {
+		callEnv.Set(p.Name, args[i])
 	}
 
-	result, err := e.Eval(call.Args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	for i := 1; i < len(call.Args); i++ {
-		arg, err := e.Eval(call.Args[i])
+	var last Value = NilVal{}
+	for _, expr := range fn.Body {
+		var err error
+		last, err = e.Eval(expr, callEnv)
 		if err != nil {
 			return nil, err
 		}
-
-		switch r := result.(type) {
-		case IntVal:
-			switch a := arg.(type) {
-			case IntVal:
-				result = IntVal{Value: r.Value - a.Value}
-			case FloatVal:
-				result = FloatVal{Value: float64(r.Value) - a.Value}
-			default:
-				return nil, fmt.Errorf("cannot subtract %s from %s", a.TypeName(), r.TypeName())
-			}
-		case FloatVal:
-			switch a := arg.(type) {
-			case IntVal:
-				result = FloatVal{Value: r.Value - float64(a.Value)}
-			case FloatVal:
-				result = FloatVal{Value: r.Value - a.Value}
-			default:
-				return nil, fmt.Errorf("cannot subtract %s from %s", a.TypeName(), r.TypeName())
-			}
-		default:
-			return nil, fmt.Errorf("cannot subtract from %s", r.TypeName())
-		}
 	}
-
-	return result, nil
+	return last, nil
 }
 
-func (e *Evaluator) builtinMul(call *ast.FuncCall) (Value, error) {
-	if len(call.Args) == 0 {
-		return IntVal{Value: 1}, nil
+func isTrue(v Value) bool {
+	switch val := v.(type) {
+	case NilVal:
+		return false
+	case BoolVal:
+		return val.Value
+	default:
+		return true
 	}
-
-	result, err := e.Eval(call.Args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	for i := 1; i < len(call.Args); i++ {
-		arg, err := e.Eval(call.Args[i])
-		if err != nil {
-			return nil, err
-		}
-
-		switch r := result.(type) {
-		case IntVal:
-			switch a := arg.(type) {
-			case IntVal:
-				result = IntVal{Value: r.Value * a.Value}
-			case FloatVal:
-				result = FloatVal{Value: float64(r.Value) * a.Value}
-			default:
-				return nil, fmt.Errorf("cannot multiply %s and %s", r.TypeName(), a.TypeName())
-			}
-		case FloatVal:
-			switch a := arg.(type) {
-			case IntVal:
-				result = FloatVal{Value: r.Value * float64(a.Value)}
-			case FloatVal:
-				result = FloatVal{Value: r.Value * a.Value}
-			default:
-				return nil, fmt.Errorf("cannot multiply %s and %s", r.TypeName(), a.TypeName())
-			}
-		default:
-			return nil, fmt.Errorf("cannot multiply %s", r.TypeName())
-		}
-	}
-
-	return result, nil
 }
 
-func (e *Evaluator) builtinDiv(call *ast.FuncCall) (Value, error) {
-	if len(call.Args) < 2 {
-		return nil, fmt.Errorf("/ requires at least 2 arguments")
-	}
-
-	result, err := e.Eval(call.Args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	for i := 1; i < len(call.Args); i++ {
-		arg, err := e.Eval(call.Args[i])
-		if err != nil {
-			return nil, err
+// Builtin helpers
+func (e *Evaluator) wrapBinaryIntFloat(fOp func(float64, float64) float64, iOp func(int64, int64) int64) func([]Value) (Value, error) {
+	return func(args []Value) (Value, error) {
+		if len(args) < 2 {
+			return nil, fmt.Errorf("expected at least 2 arguments")
 		}
-
-		switch r := result.(type) {
-		case IntVal:
-			switch a := arg.(type) {
-			case IntVal:
-				if a.Value == 0 {
-					return nil, fmt.Errorf("division by zero")
+		res := args[0]
+		for i := 1; i < len(args); i++ {
+			a := res
+			b := args[i]
+			if ai, ok := a.(IntVal); ok {
+				if bi, ok := b.(IntVal); ok {
+					res = IntVal{Value: iOp(ai.Value, bi.Value)}
+				} else if bf, ok := b.(FloatVal); ok {
+					res = FloatVal{Value: fOp(float64(ai.Value), bf.Value)}
+				} else {
+					return nil, fmt.Errorf("invalid operand types")
 				}
-				result = IntVal{Value: r.Value / a.Value}
-			case FloatVal:
-				if a.Value == 0 {
-					return nil, fmt.Errorf("division by zero")
+			} else if af, ok := a.(FloatVal); ok {
+				if bi, ok := b.(IntVal); ok {
+					res = FloatVal{Value: fOp(af.Value, float64(bi.Value))}
+				} else if bf, ok := b.(FloatVal); ok {
+					res = FloatVal{Value: fOp(af.Value, bf.Value)}
+				} else {
+					return nil, fmt.Errorf("invalid operand types")
 				}
-				result = FloatVal{Value: float64(r.Value) / a.Value}
-			default:
-				return nil, fmt.Errorf("cannot divide %s and %s", r.TypeName(), a.TypeName())
+			} else {
+				return nil, fmt.Errorf("invalid operand types")
 			}
-		case FloatVal:
-			switch a := arg.(type) {
-			case IntVal:
-				if a.Value == 0 {
-					return nil, fmt.Errorf("division by zero")
-				}
-				result = FloatVal{Value: r.Value / float64(a.Value)}
-			case FloatVal:
-				if a.Value == 0 {
-					return nil, fmt.Errorf("division by zero")
-				}
-				result = FloatVal{Value: r.Value / a.Value}
-			default:
-				return nil, fmt.Errorf("cannot divide %s and %s", r.TypeName(), a.TypeName())
-			}
-		default:
-			return nil, fmt.Errorf("cannot divide %s", r.TypeName())
 		}
+		return res, nil
 	}
-
-	return result, nil
 }
 
-func (e *Evaluator) builtinMod(call *ast.FuncCall) (Value, error) {
-	if len(call.Args) != 2 {
-		return nil, fmt.Errorf("%% requires exactly 2 arguments")
+func (e *Evaluator) wrapBinaryComp(fOp func(float64, float64) bool, iOp func(int64, int64) bool) func([]Value) (Value, error) {
+	return func(args []Value) (Value, error) {
+		if len(args) != 2 {
+			return nil, fmt.Errorf("expected 2 arguments")
+		}
+		a := args[0]
+		b := args[1]
+		if ai, ok := a.(IntVal); ok {
+			if bi, ok := b.(IntVal); ok {
+				return BoolVal{Value: iOp(ai.Value, bi.Value)}, nil
+			} else if bf, ok := b.(FloatVal); ok {
+				return BoolVal{Value: fOp(float64(ai.Value), bf.Value)}, nil
+			}
+		} else if af, ok := a.(FloatVal); ok {
+			if bi, ok := b.(IntVal); ok {
+				return BoolVal{Value: fOp(af.Value, float64(bi.Value))}, nil
+			} else if bf, ok := b.(FloatVal); ok {
+				return BoolVal{Value: fOp(af.Value, bf.Value)}, nil
+			}
+		}
+		return nil, fmt.Errorf("invalid operand types for comparison")
 	}
-
-	left, err := e.Eval(call.Args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := e.Eval(call.Args[1])
-	if err != nil {
-		return nil, err
-	}
-
-	l, ok := left.(IntVal)
-	if !ok {
-		return nil, fmt.Errorf("left operand to %% must be int, got %s", left.TypeName())
-	}
-
-	r, ok := right.(IntVal)
-	if !ok {
-		return nil, fmt.Errorf("right operand to %% must be int, got %s", right.TypeName())
-	}
-
-	if r.Value == 0 {
-		return nil, fmt.Errorf("division by zero")
-	}
-
-	return IntVal{Value: l.Value % r.Value}, nil
 }
 
-func (e *Evaluator) builtinEq(call *ast.FuncCall) (Value, error) {
-	if len(call.Args) != 2 {
-		return nil, fmt.Errorf("== requires exactly 2 arguments")
+func (e *Evaluator) builtinEq(args []Value) (Value, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("== requires 2 arguments")
 	}
-
-	left, err := e.Eval(call.Args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := e.Eval(call.Args[1])
-	if err != nil {
-		return nil, err
-	}
-
-	result := e.valuesEqual(left, right)
-	return BoolVal{Value: result}, nil
-}
-
-func (e *Evaluator) builtinNe(call *ast.FuncCall) (Value, error) {
-	if len(call.Args) != 2 {
-		return nil, fmt.Errorf("!= requires exactly 2 arguments")
-	}
-
-	left, err := e.Eval(call.Args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := e.Eval(call.Args[1])
-	if err != nil {
-		return nil, err
-	}
-
-	result := !e.valuesEqual(left, right)
-	return BoolVal{Value: result}, nil
-}
-
-func (e *Evaluator) builtinLt(call *ast.FuncCall) (Value, error) {
-	if len(call.Args) != 2 {
-		return nil, fmt.Errorf("< requires exactly 2 arguments")
-	}
-
-	left, err := e.Eval(call.Args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := e.Eval(call.Args[1])
-	if err != nil {
-		return nil, err
-	}
-
-	cmp, err := e.compare(left, right)
-	if err != nil {
-		return nil, err
-	}
-
-	return BoolVal{Value: cmp < 0}, nil
-}
-
-func (e *Evaluator) builtinLte(call *ast.FuncCall) (Value, error) {
-	if len(call.Args) != 2 {
-		return nil, fmt.Errorf("<= requires exactly 2 arguments")
-	}
-
-	left, err := e.Eval(call.Args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := e.Eval(call.Args[1])
-	if err != nil {
-		return nil, err
-	}
-
-	cmp, err := e.compare(left, right)
-	if err != nil {
-		return nil, err
-	}
-
-	return BoolVal{Value: cmp <= 0}, nil
-}
-
-func (e *Evaluator) builtinGt(call *ast.FuncCall) (Value, error) {
-	if len(call.Args) != 2 {
-		return nil, fmt.Errorf("> requires exactly 2 arguments")
-	}
-
-	left, err := e.Eval(call.Args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := e.Eval(call.Args[1])
-	if err != nil {
-		return nil, err
-	}
-
-	cmp, err := e.compare(left, right)
-	if err != nil {
-		return nil, err
-	}
-
-	return BoolVal{Value: cmp > 0}, nil
-}
-
-func (e *Evaluator) builtinGte(call *ast.FuncCall) (Value, error) {
-	if len(call.Args) != 2 {
-		return nil, fmt.Errorf(">= requires exactly 2 arguments")
-	}
-
-	left, err := e.Eval(call.Args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	right, err := e.Eval(call.Args[1])
-	if err != nil {
-		return nil, err
-	}
-
-	cmp, err := e.compare(left, right)
-	if err != nil {
-		return nil, err
-	}
-
-	return BoolVal{Value: cmp >= 0}, nil
+	return BoolVal{Value: e.valuesEqual(args[0], args[1])}, nil
 }
 
 func (e *Evaluator) valuesEqual(left, right Value) bool {
+	if left.TypeName() != right.TypeName() {
+		return false
+	}
 	switch l := left.(type) {
 	case IntVal:
-		r, ok := right.(IntVal)
-		return ok && l.Value == r.Value
+		return l.Value == right.(IntVal).Value
 	case FloatVal:
-		r, ok := right.(FloatVal)
-		return ok && math.Abs(l.Value-r.Value) < 1e-10
+		return math.Abs(l.Value-right.(FloatVal).Value) < 1e-10
 	case StringVal:
-		r, ok := right.(StringVal)
-		return ok && l.Value == r.Value
+		return l.Value == right.(StringVal).Value
 	case BoolVal:
-		r, ok := right.(BoolVal)
-		return ok && l.Value == r.Value
+		return l.Value == right.(BoolVal).Value
 	case NilVal:
-		_, ok := right.(NilVal)
-		return ok
+		return true
+	case VectorVal:
+		rv := right.(VectorVal)
+		if len(l.Elements) != len(rv.Elements) {
+			return false
+		}
+		for i := range l.Elements {
+			if !e.valuesEqual(l.Elements[i], rv.Elements[i]) {
+				return false
+			}
+		}
+		return true
 	}
 	return false
 }
 
-func (e *Evaluator) compare(left, right Value) (int, error) {
-	switch l := left.(type) {
-	case IntVal:
-		switch r := right.(type) {
-		case IntVal:
-			if l.Value < r.Value {
-				return -1, nil
-			} else if l.Value > r.Value {
-				return 1, nil
-			}
-			return 0, nil
-		case FloatVal:
-			lf := float64(l.Value)
-			if lf < r.Value {
-				return -1, nil
-			} else if lf > r.Value {
-				return 1, nil
-			}
-			return 0, nil
-		}
-	case FloatVal:
-		switch r := right.(type) {
-		case IntVal:
-			rf := float64(r.Value)
-			if l.Value < rf {
-				return -1, nil
-			} else if l.Value > rf {
-				return 1, nil
-			}
-			return 0, nil
-		case FloatVal:
-			if l.Value < r.Value {
-				return -1, nil
-			} else if l.Value > r.Value {
-				return 1, nil
-			}
-			return 0, nil
-		}
-	case StringVal:
-		r, ok := right.(StringVal)
-		if !ok {
-			return 0, fmt.Errorf("cannot compare string and %s", right.TypeName())
-		}
-		if l.Value < r.Value {
-			return -1, nil
-		} else if l.Value > r.Value {
-			return 1, nil
-		}
-		return 0, nil
-	}
-	return 0, fmt.Errorf("cannot compare %s and %s", left.TypeName(), right.TypeName())
-}
-
-func (e *Evaluator) builtinPrintln(call *ast.FuncCall) (Value, error) {
-	for i, arg := range call.Args {
-		val, err := e.Eval(arg)
-		if err != nil {
-			return nil, err
-		}
+func (e *Evaluator) builtinPrintln(args []Value) (Value, error) {
+	for i, arg := range args {
 		if i > 0 {
 			fmt.Print(" ")
 		}
-		fmt.Print(val.String())
+		fmt.Print(arg.String())
 	}
 	fmt.Println()
 	return NilVal{}, nil
-}
-
-func (e *Evaluator) builtinPrint(call *ast.FuncCall) (Value, error) {
-	for i, arg := range call.Args {
-		val, err := e.Eval(arg)
-		if err != nil {
-			return nil, err
-		}
-		if i > 0 {
-			fmt.Print(" ")
-		}
-		fmt.Print(val.String())
-	}
-	return NilVal{}, nil
-}
-
-func (e *Evaluator) builtinLen(call *ast.FuncCall) (Value, error) {
-	if len(call.Args) != 1 {
-		return nil, fmt.Errorf("len requires exactly 1 argument")
-	}
-
-	val, err := e.Eval(call.Args[0])
-	if err != nil {
-		return nil, err
-	}
-
-	switch v := val.(type) {
-	case StringVal:
-		return IntVal{Value: int64(len(v.Value))}, nil
-	case VectorVal:
-		return IntVal{Value: int64(len(v.Elements))}, nil
-	case MapVal:
-		return IntVal{Value: int64(len(v.Pairs))}, nil
-	default:
-		return nil, fmt.Errorf("len requires string, vector, or map, got %s", v.TypeName())
-	}
 }
