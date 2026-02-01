@@ -13,6 +13,8 @@ import (
 	"elbereth/internal/repl"
 )
 
+const Version = "0.1.0"
+
 func main() {
 	if len(os.Args) < 2 {
 		printHelp()
@@ -64,6 +66,9 @@ func main() {
 			os.Exit(1)
 		}
 
+	case "version":
+		fmt.Printf("elbereth version %s\n", Version)
+
 	default:
 		fmt.Printf("Unknown command: %s\n", cmd)
 		os.Exit(1)
@@ -81,6 +86,7 @@ Commands:
   run <file>             Compile and run an Elbereth file
   gen <file>             Generate Go code from an Elbereth file
   repl                   Start an interactive REPL
+  version                Print the version of Elbereth
   help                   Show this help message
 
 Examples:
