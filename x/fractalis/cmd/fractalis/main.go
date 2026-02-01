@@ -1876,6 +1876,11 @@ func main() {
 
 	// Check which engine to use
 	if config.Engine == persistence.EngineEbiten {
+		// Apply flags to config for Ebiten
+		config.AutoPilotEnabled = *autopilot || urlAutopilot
+		config.VantageEnabled = *vantage
+		config.VantageSceneDuration = vantageSceneDuration
+
 		// Run Ebiten engine
 		game := ebiten.NewGame(config)
 		if err := game.Run(); err != nil {

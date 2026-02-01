@@ -23,6 +23,11 @@ type Config struct {
 	// Julia set parameters (c = JuliaCr + JuliaCi*i)
 	JuliaCr float64
 	JuliaCi float64
+
+	// Animation/Mode flags
+	VantageEnabled       bool
+	VantageSceneDuration int
+	AutoPilotEnabled     bool
 }
 
 // Fractal types

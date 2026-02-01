@@ -205,6 +205,8 @@ func (g *Game) handleInput() bool {
 		g.autopilotEnabled = !g.autopilotEnabled
 		if g.autopilotEnabled {
 			g.autopilotTime = 0
+			g.autopilotHasTarget = false
+			g.autopilotPanProgress = 0.0
 		}
 	}
 
