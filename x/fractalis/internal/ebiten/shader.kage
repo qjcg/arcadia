@@ -253,7 +253,7 @@ func applyPaintMode(color vec3, inSet bool, iterations float, maxIter float) vec
 
 	// Apply outpaint effects outside the set
 	if OutpaintMode > 0.5 && !inSet {
-		paintMode := OutpaintMode
+		paintMode := OutpaintMode - 5.0 // Normalize from 6-10 to 1-5
 		normIter := min(iterations / maxIter, 1.0)
 
 		if paintMode < 1.5 {
