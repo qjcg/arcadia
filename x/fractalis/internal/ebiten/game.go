@@ -17,7 +17,7 @@ const (
 	screenHeight = 600
 )
 
-// Game represents the 3D fractal viewer
+// Game represents the fractal engine game
 type Game struct {
 	config      persistence.Config
 	width       int
@@ -70,9 +70,9 @@ type Game struct {
 	vantagePanProgress float64
 }
 
-// NewGame creates a new 3D fractal game
+// NewGame creates a new fractal engine game
 func NewGame(config persistence.Config) *Game {
-	// Map fractal type string to 3D engine type ID
+	// Map fractal type string to engine type ID
 	fType := 1 // Default to Mandelbox
 	switch config.FractalType {
 	case persistence.FractalMandelbulb:
@@ -99,19 +99,44 @@ func NewGame(config persistence.Config) *Game {
 		fType = 10
 	}
 
+	// Default camera settings vary by fractal type
+	camX, camY, camZ := 5.0, 2.0, 5.0
+	pitch, yaw := -0.3, 3.927
+	power := 8.0
+
+	if fType >= 2 {
+		// 2D fractal: use config values and look straight down
+		camX = config.CenterX
+		camY = 0.5
+		camZ = config.CenterY
+		pitch = -1.570796 // Look straight down
+		yaw = 0.0
+		// Ebiten zoom is 2^power, so power is log2(zoom)
+		if config.Zoom > 0 {
+			power = math.Log2(config.Zoom)
+		} else {
+			power = 0.0
+		}
+	} else if fType == 0 {
+		// Mandelbulb defaults
+		camX, camY, camZ = 0.0, 1.5, 6.0
+		pitch, yaw = 0.0, 3.14159
+		power = 8.0
+	}
+
 	g := &Game{
 		config:            config,
 		width:             screenWidth,
 		height:            screenHeight,
-		camX:              5.0,
-		camY:              2.0,
-		camZ:              5.0,
-		camPitch:          -0.3,
-		camYaw:            3.927, // looking toward origin from positive X/Z
+		camX:              camX,
+		camY:              camY,
+		camZ:              camZ,
+		camPitch:          pitch,
+		camYaw:            yaw,
 		forwardSpeed:      2.0,
 		sideSpeed:         1.5,
 		rotSpeed:          3.0,
-		power:             8.0, // Mandelbulb power
+		power:             power,
 		boxScale:          2.7, // Mandelbox scale
 		fractalType:       fType,
 		iterations:        32,
@@ -233,7 +258,7 @@ func (g *Game) drawFractal(screen *ebiten.Image) {
 func (g *Game) Run() error {
 	ebiten.SetWindowSize(g.width, g.height)
 
-	title := "Fractalis 3D"
+	title := "Fractalis"
 	if g.config.FractalType != "" {
 		// Capitalize first letter
 		name := g.config.FractalType
