@@ -99,8 +99,8 @@ func applyPaintMode(color vec3, inSet bool, iterations float, maxIter float) vec
 		return color // No paint mode
 	}
 
-	// Inpainting modes (1-4): effects inside the set
-	if PaintMode < 4.5 && inSet {
+	// Inpainting modes (1-5): effects inside the set
+	if PaintMode < 5.5 && PaintMode > 0.5 && inSet {
 		if PaintMode < 1.5 {
 			// Solid inpaint: flat color fill
 			return mix(vec3(0.1, 0.2, 0.4), color, 0.3)
@@ -141,19 +141,19 @@ func applyPaintMode(color vec3, inSet bool, iterations float, maxIter float) vec
 		}
 	}
 
-	// Outpainting modes (5-8): effects outside the set
-	if PaintMode > 4.5 && !inSet {
+	// Outpainting modes (6-10): effects outside the set
+	if PaintMode > 5.5 && !inSet {
 		normIter := min(iterations / maxIter, 1.0)
 
-		if PaintMode < 5.5 {
+		if PaintMode < 6.5 {
 			// Glow outpaint: soft halo around fractal
 			glow := exp(-normIter * 2.0) * 0.6
 			return color + vec3(0.9, 0.7, 0.5) * glow
-		} else if PaintMode < 6.5 {
+		} else if PaintMode < 7.5 {
 			// Ripple outpaint: wave distortion
 			ripple := sin(normIter * 10.0 - Time * 0.5) * 0.3 + 0.7
 			return color * ripple + vec3(0.2, 0.3, 0.6) * (1.0 - ripple) * 0.3
-		} else if PaintMode < 7.5 {
+		} else if PaintMode < 8.5 {
 			// Fog outpaint: realistic moving cloud simulation
 			// Create moving cloud layers at different distances
 			basePos := vec3(normIter * 5.0, Time * 0.02, normIter * 3.0)
@@ -183,7 +183,7 @@ func applyPaintMode(color vec3, inSet bool, iterations float, maxIter float) vec
 
 			// Blend clouds with background, thicker near fractal
 			return mix(color, cloudColor, densityModulated * 0.7)
-		} else if PaintMode < 8.5 {
+		} else if PaintMode < 9.5 {
 			// Electric outpaint: discharge arcs
 			electric := abs(sin(normIter * 20.0 + Time * 1.5)) * exp(-normIter)
 			return color + vec3(0.3, 0.9, 1.0) * electric * 0.8
