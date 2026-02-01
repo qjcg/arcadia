@@ -1,0 +1,18 @@
+(defn factorial [n :int] :int
+  (if (<= n 1)
+    1
+    (* n (factorial (- n 1)))))
+
+(deftest factorial-test
+  (assert-eq (factorial 0) 1)
+  (assert-eq (factorial 1) 1)
+  (assert-eq (factorial 5) 120))
+
+(defbenchmark factorial-bench [b]
+  (for [i 0] (< i (. b N)) [(+ i 1)]
+    (factorial 10)))
+
+(defexample factorial-example
+  (println (factorial 3))
+  ; Output: 6
+)

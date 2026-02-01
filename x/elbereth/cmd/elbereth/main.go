@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
+	"elbereth/internal/ast"
 	"elbereth/internal/codegen"
 	"elbereth/internal/expander"
 	"elbereth/internal/lexer"
@@ -54,10 +56,23 @@ func main() {
 
 	case "test":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: elbereth test <file> [go test flags]")
+			fmt.Println("Usage: elbereth test <file1.elb> [file2.elb ...] [go test flags]")
 			os.Exit(1)
 		}
-		testFile(os.Args[2], os.Args[3:])
+		var files []string
+		var flags []string
+		for _, arg := range os.Args[2:] {
+			if strings.HasSuffix(arg, ".elb") {
+				files = append(files, arg)
+			} else {
+				// Special case: if user passes -run=Example, go test needs it.
+				// But we also want to make sure -v or -bench are passed correctly.
+				flags = append(flags, arg)
+			}
+		}
+		// If no -run is provided, default to running all tests.
+		// If user wants to run ONLY examples, go test needs -run=Example.
+		testFiles(files, flags)
 
 	case "gen":
 		if len(os.Args) < 3 {
@@ -192,20 +207,27 @@ func runFile(filename string) {
 	os.Remove(output)
 }
 
-func testFile(filename string, testFlags []string) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		fmt.Printf("Error reading file: %v\n", err)
-		os.Exit(1)
+func testFiles(filenames []string, testFlags []string) {
+	var allItems []ast.Node
+
+	for _, filename := range filenames {
+		data, err := os.ReadFile(filename)
+		if err != nil {
+			fmt.Printf("Error reading file %s: %v\n", filename, err)
+			os.Exit(1)
+		}
+
+		lex := lexer.New(string(data))
+		p := parser.New(lex)
+		prog, err := p.Parse()
+		if err != nil {
+			fmt.Printf("Parse error in %s: %v\n", filename, err)
+			os.Exit(1)
+		}
+		allItems = append(allItems, prog.Items...)
 	}
 
-	lex := lexer.New(string(data))
-	p := parser.New(lex)
-	prog, err := p.Parse()
-	if err != nil {
-		fmt.Printf("Parse error: %v\n", err)
-		os.Exit(1)
-	}
+	prog := &ast.Program{Items: allItems}
 
 	gen := codegen.New()
 	gen.SetTestMode(true)
@@ -230,7 +252,8 @@ func testFile(filename string, testFlags []string) {
 	defer os.Remove(tmpFileName)
 
 	// Run using go test
-	args := append([]string{"test", "-v", tmpFileName}, testFlags...)
+	args := []string{"test", "-v", tmpFileName}
+	args = append(args, testFlags...)
 	cmd := exec.Command("go", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

@@ -19,6 +19,8 @@ type Generator struct {
 	variants  map[string]string // variant tag -> parent type name
 	loopStack [][]string        // stack of loop binding names for recur
 	isTest    bool
+	pkgNames  map[string]bool
+	needsFmt  bool
 }
 
 // New creates a new code generator
@@ -28,6 +30,69 @@ func New() *Generator {
 		functions: make(map[string]*ast.Defn),
 		structs:   make(map[string]*ast.Deftype),
 		variants:  make(map[string]string),
+		pkgNames:  make(map[string]bool),
+	}
+}
+
+func (g *Generator) checkFmtUsage(node ast.Node) {
+	if node == nil || g.needsFmt {
+		return
+	}
+
+	switch n := node.(type) {
+	case *ast.Program:
+		for _, item := range n.Items {
+			g.checkFmtUsage(item)
+		}
+	case *ast.Defn:
+		for _, expr := range n.Body {
+			g.checkFmtUsage(expr)
+		}
+	case *ast.FuncCall:
+		if sym, ok := n.Func.(*ast.Symbol); ok {
+			if sym.Name == "println" || sym.Name == "print" || sym.Name == "str" {
+				g.needsFmt = true
+				return
+			}
+		}
+		g.checkFmtUsage(n.Func)
+		for _, arg := range n.Args {
+			g.checkFmtUsage(arg)
+		}
+	case *ast.IfExpr:
+		g.checkFmtUsage(n.Cond)
+		g.checkFmtUsage(n.Then)
+		g.checkFmtUsage(n.Else)
+	case *ast.DoExpr:
+		for _, expr := range n.Exprs {
+			g.checkFmtUsage(expr)
+		}
+	case *ast.LetExpr:
+		for _, b := range n.Bindings {
+			g.checkFmtUsage(b.Init)
+		}
+		for _, expr := range n.Body {
+			g.checkFmtUsage(expr)
+		}
+	case *ast.LoopExpr:
+		for _, b := range n.Bindings {
+			g.checkFmtUsage(b.Init)
+		}
+		for _, expr := range n.Body {
+			g.checkFmtUsage(expr)
+		}
+	case *ast.Deftest:
+		for _, expr := range n.Body {
+			g.checkFmtUsage(expr)
+		}
+	case *ast.Defbenchmark:
+		for _, expr := range n.Body {
+			g.checkFmtUsage(expr)
+		}
+	case *ast.Defexample:
+		for _, expr := range n.Body {
+			g.checkFmtUsage(expr)
+		}
 	}
 }
 
@@ -38,11 +103,18 @@ func (g *Generator) SetTestMode(isTest bool) {
 
 // Generate generates Go code from an AST program
 func (g *Generator) Generate(prog *ast.Program) (string, error) {
-	// First pass: collect definitions
+	// First pass: collect definitions and check fmt usage
 	for _, item := range prog.Items {
+		g.checkFmtUsage(item)
 		switch n := item.(type) {
 		case *ast.Import:
 			g.imports = append(g.imports, n)
+			if n.Alias != "" {
+				g.pkgNames[n.Alias] = true
+			} else {
+				parts := strings.Split(n.Path, "/")
+				g.pkgNames[parts[len(parts)-1]] = true
+			}
 		case *ast.Defn:
 			g.functions[n.Name] = n
 		case *ast.Deftype:
@@ -63,10 +135,33 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 	g.writeLine("package main")
 	g.writeLine("")
 
-	if len(g.imports) > 0 {
+	if g.isTest {
+		g.writeLine(`import (`)
+		g.writeLine(`  "testing"`)
+		hasFmt := false
+		for _, imp := range g.imports {
+			if imp.Path == "fmt" {
+				hasFmt = true
+			}
+		}
+		if g.needsFmt && !hasFmt {
+			g.writeLine(`  "fmt"`)
+		}
+
+		for _, imp := range g.imports {
+			if imp.Path == "testing" || imp.Path == "fmt" {
+				continue
+			}
+			if imp.Alias != "" {
+				g.writeLine(fmt.Sprintf("  %s \"%s\"", imp.Alias, imp.Path))
+			} else {
+				g.writeLine(fmt.Sprintf("  \"%s\"", imp.Path))
+			}
+		}
+		g.writeLine(`)`)
+	} else if len(g.imports) > 0 {
 		g.writeLine("import (")
 		g.indent++
-		// Always include fmt if not already there, or just always for safety since we use it
 		hasFmt := false
 		for _, imp := range g.imports {
 			if imp.Path == "fmt" {
@@ -78,36 +173,17 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 				g.writeLine(fmt.Sprintf("\"%s\"", imp.Path))
 			}
 		}
-		if !hasFmt {
+		if g.needsFmt && !hasFmt {
 			g.writeLine("\"fmt\"")
 		}
 		g.indent--
 		g.writeLine(")")
-	} else if g.isTest {
-		g.writeLine(`import (`)
-		g.writeLine(`  "fmt"`)
-		g.writeLine(`  "testing"`)
-		g.writeLine(`)`)
 	} else {
-		g.writeLine(`import "fmt"`)
+		if g.needsFmt {
+			g.writeLine(`import "fmt"`)
+		}
 	}
 	g.writeLine("")
-
-	// Add testing import if in test mode and not already present
-	if g.isTest {
-		hasTesting := false
-		for _, imp := range g.imports {
-			if imp.Path == "testing" {
-				hasTesting = true
-				break
-			}
-		}
-		if !hasTesting && len(g.imports) > 0 {
-			// This is a bit hacky, but if we have other imports, testing wasn't added to the block above
-			// because the loop only checks for fmt.
-			// Wait, I should probably improve the import generation logic above.
-		}
-	}
 
 	// Second pass: generate code
 	for _, item := range prog.Items {
@@ -179,11 +255,12 @@ func (g *Generator) genDef(d *ast.Def) {
 }
 
 func (g *Generator) genDefn(d *ast.Defn) {
-	g.write("func ")
 	name := sanitizeIdent(d.Name)
-	if name != "main" {
+	if name != "main" && !g.pkgNames[name] && !strings.Contains(name, ".") {
 		name = capitalize(name)
 	}
+
+	g.write("func ")
 	g.write(name)
 	g.write("(")
 
@@ -206,16 +283,19 @@ func (g *Generator) genDefn(d *ast.Defn) {
 
 	g.write(")")
 
+	isMain := name == "main"
 	if d.ReturnType != nil {
 		g.write(" ")
 		g.write(g.typeToGoString(d.ReturnType))
+	} else if !isMain {
+		g.write(" interface{}")
 	}
 
 	g.writeLine(" {")
 	g.indent++
 
 	for i, expr := range d.Body {
-		if d.ReturnType != nil && i == len(d.Body)-1 {
+		if !isMain && i == len(d.Body)-1 {
 			switch ex := expr.(type) {
 			case *ast.IfExpr:
 				g.genIf(ex, "return ")
@@ -229,8 +309,19 @@ func (g *Generator) genDefn(d *ast.Defn) {
 				g.genLoop(ex, "return ")
 				g.writeLine("")
 				continue
+			case *ast.FuncCall:
+				if sym, ok := ex.Func.(*ast.Symbol); ok {
+					name := sym.Name
+					if name == ">!" || name == "set!" || name == "println" || name == "print" || name == "str" {
+						// These either are statements or return multiple values in Go
+						g.genExpr(expr)
+						g.writeLine("")
+						g.writeLine("return nil")
+						continue
+					}
+				}
+				g.write("return ")
 			}
-			g.write("return ")
 		}
 		g.genExpr(expr)
 		g.writeLine("")
@@ -275,6 +366,9 @@ func (g *Generator) genDefexample(d *ast.Defexample) {
 		g.genExpr(expr)
 		g.writeLine("")
 	}
+	// Output comment is required for examples to run in a standalone file?
+	// Actually, just having an output comment is standard for example documentation.
+	g.writeLine("// Output:")
 	g.indent--
 	g.writeLine("}")
 }
@@ -315,7 +409,13 @@ func (g *Generator) genExpr(expr ast.Expr) {
 		case "t", "b":
 			// keep testing parameters small
 		default:
-			if name != "main" && !strings.Contains(name, ".") {
+			isSpecial := name == "main" || name == "assert" || name == "assert_eq" ||
+				name == "assert_true" || name == "assert_false" || name == "assert_err" ||
+				name == "for" || name == "go" || name == "chan" || name == "defer" ||
+				name == "select" || name == "recur" || name == "loop" || name == "let" ||
+				name == "do" || name == "if" || name == "fn" || name == "setb"
+
+			if !isSpecial && !g.pkgNames[name] && !strings.Contains(name, ".") {
 				name = capitalize(name)
 			}
 		}
@@ -436,12 +536,33 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 		}
 
 		switch sym.Name {
-		case "go":
+		case "addr", "&":
 			if len(call.Args) == 1 {
+				g.write("&(")
+				g.genExpr(call.Args[0])
+				g.write(")")
+				return
+			}
+		case "go":
+			if len(call.Args) >= 1 {
 				g.write("go func() {\n")
 				g.indent++
-				g.genExpr(call.Args[0])
-				g.write("\n")
+				for _, arg := range call.Args {
+					g.genExpr(arg)
+					g.writeLine("")
+				}
+				g.indent--
+				g.writeLine("}()")
+				return
+			}
+		case "defer":
+			if len(call.Args) >= 1 {
+				g.write("defer func() {\n")
+				g.indent++
+				for _, arg := range call.Args {
+					g.genExpr(arg)
+					g.writeLine("")
+				}
 				g.indent--
 				g.writeLine("}()")
 				return
@@ -472,14 +593,48 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 			}
 		case ".":
 			if len(call.Args) >= 2 {
-				g.genExpr(call.Args[0])
-				g.write(".")
+				fieldName := ""
 				if field, ok := call.Args[1].(*ast.Symbol); ok {
-					g.write(capitalize(sanitizeIdent(field.Name)))
+					fieldName = capitalize(sanitizeIdent(field.Name))
 				} else if field, ok := call.Args[1].(*ast.KeywordLit); ok {
-					g.write(capitalize(sanitizeIdent(field.Value)))
+					fieldName = capitalize(sanitizeIdent(field.Value))
+				}
+
+				if fieldName == "N" {
+					g.write("int64(")
+					g.genExpr(call.Args[0])
+					g.write(".N)")
 				} else {
-					g.genExpr(call.Args[1])
+					g.genExpr(call.Args[0])
+					g.write(".")
+					if fieldName != "" {
+						g.write(fieldName)
+					} else {
+						g.genExpr(call.Args[1])
+					}
+				}
+
+				if len(call.Args) > 2 {
+					g.write("(")
+					for i := 2; i < len(call.Args); i++ {
+						if i > 2 {
+							g.write(", ")
+						}
+						// Heuristic: if it's sync.WaitGroup.Add, cast to int
+						if fieldName == "Add" {
+							g.write("int(")
+							g.genExpr(call.Args[i])
+							g.write(")")
+						} else {
+							g.genExpr(call.Args[i])
+						}
+					}
+					g.write(")")
+				} else {
+					// Heuristic for 0-arg methods in Elbereth
+					if fieldName == "Done" || fieldName == "Wait" {
+						g.write("()")
+					}
 				}
 				return
 			}
@@ -488,16 +643,6 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 				g.genExpr(call.Args[0])
 				g.write(" = ")
 				g.genExpr(call.Args[1])
-				return
-			}
-		case "defer":
-			if len(call.Args) == 1 {
-				g.write("defer func() {\n")
-				g.indent++
-				g.genExpr(call.Args[0])
-				g.write("\n")
-				g.indent--
-				g.writeLine("}()")
 				return
 			}
 		case "+", "-", "*", "/", "%", "==", "!=", "<", "<=", ">", ">=":
@@ -561,14 +706,151 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 				g.write("[1:]")
 				return
 			}
+		case "last":
+			if len(call.Args) == 1 {
+				g.genExpr(call.Args[0])
+				g.write("[len(")
+				g.genExpr(call.Args[0])
+				g.write(")-1]")
+				return
+			}
+		case "for":
+			if len(call.Args) >= 3 {
+				g.write("for ")
+				if v, ok := call.Args[0].(*ast.VectorLit); ok {
+					for i := 0; i < len(v.Elts); i += 2 {
+						if i > 0 {
+							g.write(", ")
+						}
+						g.genExpr(v.Elts[i])
+						g.write(" := ")
+						g.genExpr(v.Elts[i+1])
+					}
+				}
+				g.write("; ")
+				g.genExpr(call.Args[1])
+				g.write("; ")
+				if v, ok := call.Args[2].(*ast.VectorLit); ok {
+					for i := 0; i < len(v.Elts); i++ {
+						if i > 0 {
+							g.write(", ")
+						}
+						// This is a bit tricky, assuming the update corresponds to the init
+						initVar := ""
+						if initV, ok := call.Args[0].(*ast.VectorLit); ok && i*2 < len(initV.Elts) {
+							if sym, ok := initV.Elts[i*2].(*ast.Symbol); ok {
+								initVar = capitalize(sanitizeIdent(sym.Name))
+							}
+						}
+						if initVar != "" {
+							g.write(initVar + " = ")
+						}
+						g.genExpr(v.Elts[i])
+					}
+				}
+				g.writeLine(" {")
+				g.indent++
+				for _, expr := range call.Args[3:] {
+					g.genExpr(expr)
+					g.writeLine("")
+				}
+				g.indent--
+				g.writeLine("}")
+				return
+			}
 		case "assert":
 			if len(call.Args) >= 1 && g.isTest {
 				g.write("if !")
 				g.genExpr(call.Args[0])
+				needsCast := true
+				if _, ok := call.Args[0].(*ast.BoolLit); ok {
+					needsCast = false
+				} else if fc, ok := call.Args[0].(*ast.FuncCall); ok {
+					if sym, ok := fc.Func.(*ast.Symbol); ok {
+						switch sym.Name {
+						case "==", "!=", "<", "<=", ">", ">=", "and", "or", "not":
+							needsCast = false
+						}
+					}
+				}
+				if needsCast {
+					g.write(".(bool)")
+				}
 				g.writeLine(" {")
 				g.indent++
 				g.write("t.Fatalf(\"assertion failed: %s\", ")
-				g.write(fmt.Sprintf("`%s`", call.Args[0].String()))
+				g.write("`" + call.Args[0].String() + "`")
+				g.writeLine(")")
+				g.indent--
+				g.writeLine("}")
+				return
+			}
+		case "assert-true":
+			if len(call.Args) >= 1 && g.isTest {
+				g.write("if !")
+				g.genExpr(call.Args[0])
+				needsCast := true
+				if _, ok := call.Args[0].(*ast.BoolLit); ok {
+					needsCast = false
+				} else if fc, ok := call.Args[0].(*ast.FuncCall); ok {
+					if sym, ok := fc.Func.(*ast.Symbol); ok {
+						switch sym.Name {
+						case "==", "!=", "<", "<=", ">", ">=", "and", "or", "not":
+							needsCast = false
+						}
+					}
+				}
+				if needsCast {
+					g.write(".(bool)")
+				}
+				g.writeLine(" {")
+				g.indent++
+				g.write("t.Fatalf(\"assertion failed: %s\", ")
+				g.write("`" + call.Args[0].String() + "`")
+				g.writeLine(")")
+				g.indent--
+				g.writeLine("}")
+				return
+			}
+		case "assert-false":
+			if len(call.Args) >= 1 && g.isTest {
+				g.write("if ")
+				g.genExpr(call.Args[0])
+				needsCast := true
+				if _, ok := call.Args[0].(*ast.BoolLit); ok {
+					needsCast = false
+				} else if fc, ok := call.Args[0].(*ast.FuncCall); ok {
+					if sym, ok := fc.Func.(*ast.Symbol); ok {
+						switch sym.Name {
+						case "==", "!=", "<", "<=", ">", ">=", "and", "or", "not":
+							needsCast = false
+						}
+					}
+				}
+				if needsCast {
+					g.write(".(bool)")
+				}
+				g.writeLine(" {")
+				g.indent++
+				g.write("t.Fatalf(\"assertion failed: NOT %s\", ")
+				g.write("`" + call.Args[0].String() + "`")
+				g.writeLine(")")
+				g.indent--
+				g.writeLine("}")
+				return
+			}
+		case "assert-err":
+			if len(call.Args) >= 1 && g.isTest {
+				// Result sums have :err variant.
+				// We assume it's a sum type with is_Result() or similar if using Sum types.
+				// Based on genDeftype, it generates Name interface and Name_Variant structs.
+				g.write("if _, ok := ")
+				g.genExpr(call.Args[0])
+				g.write(".(interface{ is_err() }); !ok {")
+				g.writeLine("")
+				g.indent++
+				g.write("t.Fatalf(\"assertion failed: expected error, got %v\", ")
+				g.genExpr(call.Args[0])
 				g.writeLine(")")
 				g.indent--
 				g.writeLine("}")
@@ -583,7 +865,7 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 				g.writeLine(" {")
 				g.indent++
 				g.write("t.Fatalf(\"assertion failed: %s == %s (got %v, want %v)\", ")
-				g.write(fmt.Sprintf("`%s`, `%s`, ", call.Args[0].String(), call.Args[1].String()))
+				g.write("`" + call.Args[0].String() + "`, `" + call.Args[1].String() + "`, ")
 				g.genExpr(call.Args[0])
 				g.write(", ")
 				g.genExpr(call.Args[1])
@@ -619,11 +901,83 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 	}
 
 	// Regular function call
-	g.genExpr(call.Func)
+	g.write("")
+	if sym, ok := call.Func.(*ast.Symbol); ok {
+		name := sanitizeIdent(sym.Name)
+		isSpecial := name == "assert" || name == "assert_eq" || name == "assert_true" ||
+			name == "assert_false" || name == "assert_err" || name == "for" ||
+			name == "go" || name == "chan" || name == "defer" || name == "select" ||
+			name == "recur" || name == "loop" || name == "let" || name == "do" ||
+			name == "if" || name == "fn" || name == "setb"
+
+		if !isSpecial && !g.pkgNames[name] && !strings.Contains(name, ".") {
+			// If it's capitalized, it might be a struct from another package
+			// or a function. We'll capitalize it.
+			name = capitalize(name)
+		}
+
+		// Check if it looks like a struct construction from another package
+		// e.g., sync.WaitGroup
+		if strings.Contains(name, ".") {
+			parts := strings.Split(name, ".")
+			if len(parts) == 2 && len(parts[1]) > 0 && parts[1][0] >= 'A' && parts[1][0] <= 'Z' {
+				// It might be a struct construction or a function call.
+				// In Elbereth, we use (Type {fields}) for struct construction.
+				if len(call.Args) == 1 {
+					if _, ok := call.Args[0].(*ast.MapLit); ok {
+						g.write(name)
+						g.write("{")
+						if m, ok := call.Args[0].(*ast.MapLit); ok {
+							for i, pair := range m.Pairs {
+								if i > 0 {
+									g.write(", ")
+								}
+								if ks, ok := pair.Key.(*ast.KeywordLit); ok {
+									g.write(capitalize(sanitizeIdent(ks.Value)))
+								} else if ss, ok := pair.Key.(*ast.Symbol); ok {
+									g.write(capitalize(sanitizeIdent(ss.Name)))
+								} else {
+									g.genExpr(pair.Key)
+								}
+								g.write(": ")
+								g.genExpr(pair.Value)
+							}
+						}
+						g.write("}")
+						return
+					}
+				}
+			}
+		}
+
+		g.write(name)
+	} else {
+		g.genExpr(call.Func)
+	}
 	g.write("(")
+	// Check if we have the function definition to do auto-referencing
+	var defn *ast.Defn
+	if sym, ok := call.Func.(*ast.Symbol); ok {
+		defn = g.functions[sym.Name]
+	}
+
 	for i, arg := range call.Args {
 		if i > 0 {
 			g.write(", ")
+		}
+		if defn != nil && i < len(defn.Params) {
+			param := defn.Params[i]
+			isPointer := false
+			if nt, ok := param.Type.(*ast.NamedType); ok && strings.HasPrefix(nt.Name, "*") {
+				isPointer = true
+			}
+			if isPointer {
+				// If it's already an address-of or something that returns a pointer, we don't need to ref it.
+				// But simpler is to always ref if it's a symbol.
+				if _, ok := arg.(*ast.Symbol); ok {
+					g.write("&")
+				}
+			}
 		}
 		g.genExpr(arg)
 	}
@@ -631,7 +985,13 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 }
 
 func (g *Generator) genIf(ifExpr *ast.IfExpr, prefix string) {
-	g.write("if ")
+	if prefix != "" {
+		g.writeLine("{")
+		g.indent++
+		g.write("if ")
+	} else {
+		g.write("if ")
+	}
 	g.genExpr(ifExpr.Cond)
 	g.writeLine(" {")
 	g.indent++
@@ -648,6 +1008,11 @@ func (g *Generator) genIf(ifExpr *ast.IfExpr, prefix string) {
 	}
 
 	g.write("}")
+	if prefix != "" {
+		g.writeLine("")
+		g.indent--
+		g.write("}")
+	}
 }
 
 func (g *Generator) genDo(doExpr *ast.DoExpr) {
@@ -684,6 +1049,10 @@ func (g *Generator) genMatch(m *ast.MatchExpr, prefix string) {
 		}
 	}
 
+	if prefix != "" {
+		g.writeLine("{")
+		g.indent++
+	}
 	if isTypeSwitch {
 		g.write("switch v := ")
 		g.genExpr(m.Val)
@@ -722,7 +1091,14 @@ func (g *Generator) genMatch(m *ast.MatchExpr, prefix string) {
 					// Bind the value if there's a binding symbol
 					if len(call.Args) > 0 {
 						if sym, ok := call.Args[0].(*ast.Symbol); ok {
-							g.writeLine(fmt.Sprintf("%s := v.Value", capitalize(sanitizeIdent(sym.Name))))
+							g.writeLine(fmt.Sprintf("%s := v.Value", func() string {
+								name := sanitizeIdent(sym.Name)
+								if name == "assert" || name == "assert_eq" {
+									return name
+								} else {
+									return capitalize(name)
+								}
+							}()))
 						}
 					}
 					g.genExprWithPrefix(c.Body, prefix)
@@ -768,6 +1144,11 @@ func (g *Generator) genMatch(m *ast.MatchExpr, prefix string) {
 		}
 	}
 	g.write("}")
+	if prefix != "" {
+		g.writeLine("")
+		g.indent--
+		g.write("}")
+	}
 }
 
 func (g *Generator) genExprWithPrefix(expr ast.Expr, prefix string) {
@@ -782,13 +1163,7 @@ func (g *Generator) genExprWithPrefix(expr ast.Expr, prefix string) {
 	case *ast.MatchExpr:
 		g.genMatch(ex, prefix)
 	case *ast.LoopExpr:
-		if prefix == "return " {
-			g.genLoop(ex, prefix)
-		} else {
-			// Complex case: loop as an expression that is not returning
-			g.write(prefix)
-			g.genLoop(ex, "")
-		}
+		g.genLoop(ex, prefix)
 	default:
 		g.write(prefix)
 		g.genExpr(ex)
@@ -982,5 +1357,8 @@ func sanitizeIdent(s string) string {
 	s = strings.ReplaceAll(s, "?", "p")
 	s = strings.ReplaceAll(s, "!", "b")
 	s = strings.ReplaceAll(s, "/", ".")
+	if s == "assert" || s == "assert_eq" {
+		return s
+	}
 	return s
 }

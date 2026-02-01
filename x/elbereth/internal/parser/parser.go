@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"elbereth/internal/ast"
 	"elbereth/internal/lexer"
@@ -964,8 +965,15 @@ func isTypeSymbol(tok lexer.Token) bool {
 	if tok.Type != lexer.TokenSymbol && tok.Type != lexer.TokenKeyword {
 		return false
 	}
+	if strings.HasPrefix(tok.Value, "*") {
+		return true
+	}
 	switch tok.Value {
 	case "int", "float", "string", "bool", "byte", "rune":
+		return true
+	}
+	// Capitalized names are often types in Go
+	if len(tok.Value) > 0 && tok.Value[0] >= 'A' && tok.Value[0] <= 'Z' {
 		return true
 	}
 	return false

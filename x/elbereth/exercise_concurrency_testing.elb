@@ -1,0 +1,23 @@
+(import "sync/atomic")
+(import "sync")
+
+(deftype Counter {val int64})
+
+(defn inc [c *Counter]
+  (atomic/AddInt64 (& (. c val)) 1))
+
+(deftest concurrent-counter-test
+  (let [c (Counter {val 0})
+        wg (sync/WaitGroup {})]
+    (. wg Add 100)
+    (for [i 0] (< i 100) [(+ i 1)]
+      (go
+        (inc c)
+        (. wg Done)))
+    (. wg Wait)
+    (assert-eq (. c val) 100)))
+
+(defbenchmark atomic-inc-bench [b]
+  (let [c (Counter {val 0})]
+    (for [i 0] (< i (. b N)) [(+ i 1)]
+      (inc c))))
