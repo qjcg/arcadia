@@ -68,6 +68,10 @@ type Game struct {
 	vantageSceneTime   float64
 	vantagePanning     bool
 	vantagePanProgress float64
+	vantageInitialized bool
+	vantageTargetX     float64
+	vantageTargetZ     float64
+	vantageHasTarget   bool
 }
 
 // NewGame creates a new fractal engine game
@@ -91,12 +95,16 @@ func NewGame(config persistence.Config) *Game {
 		fType = 6
 	case persistence.FractalMultibrot4:
 		fType = 7
-	case persistence.FractalCeltic:
+	case persistence.FractalMultibrot5:
 		fType = 8
-	case persistence.FractalPerpendicular:
+	case persistence.FractalCeltic:
 		fType = 9
-	case persistence.FractalManhattan:
+	case persistence.FractalPerpendicular:
 		fType = 10
+	case persistence.FractalManhattan:
+		fType = 11
+	case persistence.FractalNewton:
+		fType = 12
 	}
 
 	// Default camera settings vary by fractal type
@@ -146,7 +154,7 @@ func NewGame(config persistence.Config) *Game {
 		autopilotRadius:   2.5,
 		autopilotHeight:   0.5,
 		autopilotIterBase: config.MaxIter,
-		vantageSceneTime:  8.0, // 8 seconds per vantage point
+		vantageSceneTime:  5.0, // 5 seconds per vantage point (matches Bubble Tea)
 		vantageVantages:   defaultVantagePoints(),
 	}
 

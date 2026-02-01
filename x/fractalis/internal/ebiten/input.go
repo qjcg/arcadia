@@ -31,13 +31,19 @@ func (g *Game) handleInput() bool {
 		g.switchToFractal(7) // Multibrot 4
 	}
 	if inpututil.IsKeyJustPressed(ebiten.Key7) {
-		g.switchToFractal(8) // Celtic
+		g.switchToFractal(8) // Multibrot 5
 	}
 	if inpututil.IsKeyJustPressed(ebiten.Key8) {
-		g.switchToFractal(9) // Perpendicular
+		g.switchToFractal(9) // Celtic
 	}
 	if inpututil.IsKeyJustPressed(ebiten.Key9) {
-		g.switchToFractal(10) // Manhattan
+		g.switchToFractal(10) // Perpendicular
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyM) {
+		g.switchToFractal(11) // Manhattan
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyN) {
+		g.switchToFractal(12) // Newton
 	}
 	if inpututil.IsKeyJustPressed(ebiten.Key0) {
 		g.switchToFractal(g.fractalType)
@@ -192,25 +198,34 @@ func (g *Game) handleInput() bool {
 
 	// Toggle autopilot on Z (was P, re-mapped further below)
 	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
-		// Simple debounce - only toggle if we're not already processing a key
-		if !g.autopilotEnabled && !g.vantageEnabled {
-			g.autopilotEnabled = true
+		if g.vantageEnabled {
+			g.vantageEnabled = false
+			g.vantageInitialized = false
+		}
+		g.autopilotEnabled = !g.autopilotEnabled
+		if g.autopilotEnabled {
 			g.autopilotTime = 0
-		} else if g.autopilotEnabled {
-			g.autopilotEnabled = false
 		}
 	}
 
 	// Toggle vantage mode on V
 	if inpututil.IsKeyJustPressed(ebiten.KeyV) {
-		if !g.vantageEnabled && !g.autopilotEnabled {
+		if g.autopilotEnabled {
+			g.autopilotEnabled = false
+		}
+		shift := ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight)
+		if shift {
+			// Shift+V always jumps or starts
 			g.vantageEnabled = true
-			g.vantageIndex = 0
 			g.vantageTimer = 0
-			g.vantagePanning = false
-			g.moveToVantage(g.vantageVantages[0])
-		} else if g.vantageEnabled {
-			g.vantageEnabled = false
+			g.vantageInitialized = false
+		} else {
+			// v (no shift) toggles normally
+			g.vantageEnabled = !g.vantageEnabled
+			if g.vantageEnabled {
+				g.vantageTimer = 0
+				g.vantageInitialized = false
+			}
 		}
 	}
 

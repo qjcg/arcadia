@@ -20,10 +20,14 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 	}
 
 	vantageInfo := ""
-	if g.vantageEnabled && len(g.vantageVantages) > 0 {
-		vp := g.vantageVantages[g.vantageIndex]
+	if g.vantageEnabled {
 		remaining := g.vantageSceneTime - g.vantageTimer
-		vantageInfo = fmt.Sprintf("\nVantage: %s (%.1fs)\n%s\n", vp.Name, remaining, vp.Description)
+		if g.fractalType < 2 && g.vantageIndex >= 0 && g.vantageIndex < len(g.vantageVantages) {
+			vp := g.vantageVantages[g.vantageIndex]
+			vantageInfo = fmt.Sprintf("\nVantage: %s (%.1fs)\n%s\n", vp.Name, remaining, vp.Description)
+		} else {
+			vantageInfo = fmt.Sprintf("\nVantage: Random Scene (%.1fs)\nExploring interesting features...\n", remaining)
+		}
 	}
 
 	fractalName := "Mandelbulb"
@@ -52,13 +56,19 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 		fractalName = "Multibrot 4"
 		paramName = "ZoomExp"
 	} else if g.fractalType == 8 {
-		fractalName = "Celtic"
+		fractalName = "Multibrot 5"
 		paramName = "ZoomExp"
 	} else if g.fractalType == 9 {
-		fractalName = "Perpendicular"
+		fractalName = "Celtic"
 		paramName = "ZoomExp"
 	} else if g.fractalType == 10 {
+		fractalName = "Perpendicular"
+		paramName = "ZoomExp"
+	} else if g.fractalType == 11 {
 		fractalName = "Manhattan"
+		paramName = "ZoomExp"
+	} else if g.fractalType == 12 {
+		fractalName = "Newton"
 		paramName = "ZoomExp"
 	}
 

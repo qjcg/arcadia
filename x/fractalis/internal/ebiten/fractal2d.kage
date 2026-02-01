@@ -39,12 +39,28 @@ func df_abs(a vec2) vec2 {
 
 // SDF for 2D fractals
 func fractal2D_DE(p vec3) vec4 {
-	// Use emulated double precision for initial coordinate mapping
-	// cr := centerX + (col - 0.5*width) * (3.5 / (width * zoom))
-	dx := df_set(p.x - 0.5*Resolution.x)
-	dy := df_set(p.z - 0.5*Resolution.y)
-	c_x := df_add(vec2(CamPosHi.x, CamPosLo.x), df_mul(dx, UnitToSize))
-	c_y := df_add(vec2(CamPosHi.y, CamPosLo.y), df_mul(dy, UnitToSize))
+	// Coordinate mapping matching TUI/Core logic
+	// We map the world coordinate p to complex coordinate c
+	// In 2D path, p is in pixels. In 3D path, p is in world units.
+	var c_x, c_y vec2
+
+	if p.x > 50.0 || p.x < -50.0 || p.z > 50.0 || p.z < -50.0 {
+		// Raymarching world units (3D mode)
+		// Scale world units by UnitToSize to match 2D mode zoom/scale
+		df_p_x := df_mul(df_set(p.x), UnitToSize)
+		df_p_z := df_mul(df_set(p.z), UnitToSize)
+		c_x = df_add(vec2(CamPosHi.x, CamPosLo.x), df_p_x)
+		c_y = df_add(vec2(CamPosHi.y, CamPosLo.y), df_p_z)
+	} else {
+		// Pixel units (optimized 2D mode)
+		// Shift so (Res.x/2, Res.y/2) is at (CenterX, CenterY)
+		// Scale by UnitToSize
+		dx := df_mul(df_set(p.x - 0.5*Resolution.x), UnitToSize)
+		dy := df_mul(df_set(p.z - 0.5*Resolution.y), UnitToSize)
+
+		c_x = df_add(vec2(CamPosHi.x, CamPosLo.x), dx)
+		c_y = df_add(vec2(CamPosHi.y, CamPosLo.y), dy)
+	}
 
 	// For the iteration loop, we'll use emulated double for Mandelbrot/Julia at first
 	// as they are most common and sensitive to precision.
@@ -126,25 +142,48 @@ func fractal2D_DE(p vec3) vec4 {
 				z_x.x = zrSq*zrSq - ziSq*ziSq + fc_x
 				z_y.x = 2.0*zrSq*ziSq + fc_y
 				dr = 4.0*r2*r*dr + 1.0
-			} else if FractalType == 8.0 { // Celtic
+			} else if FractalType == 8.0 { // Multibrot 5
+				z_x.x = fz_x*(zr2*zr2-10.0*zr2*zi2+5.0*zi2*zi2) + fc_x
+				z_y.x = fz_y*(5.0*zr2*zr2-10.0*zr2*zi2+zi2*zi2) + fc_y
+				dr = 5.0*r2*r2*dr + 1.0
+			} else if FractalType == 9.0 { // Celtic
 				nZr := zr2 - zi2
 				nZi := 2.0 * fz_x * fz_y
 				z_x.x = abs(nZr) + fc_x
 				z_y.x = nZi + fc_y
 				dr = 2.0*r*dr + 1.0
-			} else if FractalType == 9.0 { // Perpendicular
+			} else if FractalType == 10.0 { // Perpendicular
 				nZr := zr2 - zi2
 				nZi := -2.0 * abs(fz_x*fz_y)
 				z_x.x = nZr + fc_x
 				z_y.x = nZi + fc_y
 				dr = 2.0*r*dr + 1.0
-			} else if FractalType == 10.0 { // Manhattan
+			} else if FractalType == 11.0 { // Manhattan
 				z_x.x = zr2 - zi2 + fc_x
 				z_y.x = 2.0*fz_x*fz_y + fc_y
 				dr = 2.0*r*dr + 1.0
 				if abs(z_x.x)+abs(z_y.x) > 4.0 {
 					break
 				}
+			} else if FractalType == 12.0 { // Newton
+				// Newton fractal for z^3 - 1 = 0
+				// z_{n+1} = z_n - (z_n^3 - 1) / (3*z_n^2)
+				// = 2/3 * z_n + 1 / (3*z_n^2)
+				// = (2*z_n^3 + 1) / (3*z_n^2)
+				for j := 0; j < 5; j++ { // Nested iterations for better quality
+					z2 := vec2(fz_x*fz_x - fz_y*fz_y, 2.0*fz_x*fz_y)
+					den := 3.0 * (z2.x*z2.x + z2.y*z2.y)
+					if den < 0.000001 { break }
+
+					nx := (2.0*(fz_x*fz_x*fz_x - 3.0*fz_x*fz_y*fz_y) + 1.0)
+					ny := 2.0*(3.0*fz_x*fz_x*fz_y - fz_y*fz_y*fz_y)
+
+					fz_x = (nx*z2.x + ny*z2.y) / den
+					fz_y = (ny*z2.x - nx*z2.y) / den
+				}
+				z_x.x = fz_x + fc_x
+				z_y.x = fz_y + fc_y
+				dr = 1.0
 			}
 			z_x.y = 0.0
 			z_y.y = 0.0

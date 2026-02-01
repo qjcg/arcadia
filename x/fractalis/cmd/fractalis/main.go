@@ -62,39 +62,12 @@ var (
 	showVersion bool
 
 	// All fractal types for random selection
-	allFractalTypes = []string{
-		FractalMandelbrot, FractalJulia, FractalBurningShip, FractalTricorn,
-		FractalMultibrot3, FractalMultibrot4, FractalCeltic, FractalPerpendicular,
-		FractalNewton,
-	}
+	allFractalTypes = search.AllFractalTypes
 
 	// Known interesting coordinates for random exploration
 	// These are "seed points" near interesting fractal features
-	interestingMandelbrot = []struct{ x, y float64 }{
-		{-0.7436, 0.1314}, // Spiral region
-		{-0.16, 1.0405},   // Elephant valley
-		{-0.7269, 0.1889}, // Seahorse valley
-		{-0.7453, 0.1127}, // Double spiral
-		{-0.1592, 1.0317}, // North region
-		{-0.7746, 0.1152}, // Tendril region
-		{0.2805, 0.0089},  // East mini-mandelbrot
-		{-0.1011, 0.9563}, // North filament
-		{-0.7500, 0.0000}, // Main body edge
-		{-0.1600, 1.0400}, // Antenna region
-	}
-
-	interestingJulia = []struct{ cr, ci float64 }{
-		{-0.4, 0.6},       // Dendrite
-		{0.285, 0.01},     // Douady rabbit
-		{-0.8, 0.156},     // San Marco dragon
-		{-0.7, 0.27},      // Classic
-		{-0.835, -0.2321}, // Siegel disk
-		{-0.123, 0.745},   // Douady rabbit variant
-		{0.3, 0.5},        // Swirls
-		{-0.79, 0.15},     // Dragon variant
-		{-0.162, 1.04},    // Spiral
-		{0.355, 0.355},    // Cross pattern
-	}
+	interestingMandelbrot = search.InterestingMandelbrot
+	interestingJulia      = search.InterestingJulia
 )
 
 // Use Config from persistence package
@@ -276,98 +249,19 @@ func (m *model) resetToDefaultState(fractalType string) {
 
 // applyRandom generates a completely random interesting view
 func (m *model) applyRandom() {
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	const maxAttempts = 5
-
-	for attempt := 0; attempt < maxAttempts; attempt++ {
-		// Random fractal type
-		fractalType := allFractalTypes[rng.Intn(len(allFractalTypes))]
-		m.config.FractalType = fractalType
-
-		// Random color scheme
-		if m.animationState.Color.ColorMode {
-			// Pick a random color scheme (excluding grayscale)
-			schemes := color.AllColorSchemes[1:]
-			m.config.ColorScheme = schemes[rng.Intn(len(schemes))]
-		} else {
-			m.config.ColorScheme = color.ColorGrayscale
-		}
-
-		// Random zoom (log-uniform between 1.0 and 1000.0, weighted toward mid-range)
-		// Using exponential distribution: zoom = 10^(uniform(0, 3))
-		logZoom := rng.Float64() * 3.0 // 0 to 3
-		zoom := math.Pow(10.0, logZoom)
-		m.config.Zoom = zoom
-
-		// Random iterations appropriate for zoom level
-		baseIter := animation.DefaultBaseIterations + rng.Intn(100)
-		zoomBonus := int(math.Log10(zoom) * animation.IterationScaleFactor)
-		m.config.MaxIter = baseIter + zoomBonus
-		if m.config.MaxIter > 300 {
-			m.config.MaxIter = 300
-		}
-		m.animationState.AutoPilot.BaseMaxIter = baseIter
-
-		// Random position based on fractal type
-		if fractalType == FractalJulia {
-			// Random Julia parameter from interesting set
-			juliaPt := interestingJulia[rng.Intn(len(interestingJulia))]
-			m.config.JuliaCr = juliaPt.cr
-			m.config.JuliaCi = juliaPt.ci
-
-			// Random viewing position with small offset
-			offset := 0.5 / zoom
-			m.config.CenterX = (rng.Float64()*2.0 - 1.0) * offset
-			m.config.CenterY = (rng.Float64()*2.0 - 1.0) * offset
-
-		} else if fractalType == FractalMandelbrot || fractalType == FractalMultibrot3 ||
-			fractalType == FractalMultibrot4 || fractalType == FractalCeltic ||
-			fractalType == FractalPerpendicular {
-			// Use interesting Mandelbrot coordinates as seed
-			seedPt := interestingMandelbrot[rng.Intn(len(interestingMandelbrot))]
-
-			// Add random offset proportional to zoom
-			maxOffset := 0.3 / zoom
-			m.config.CenterX = seedPt.x + (rng.Float64()*2.0-1.0)*maxOffset
-			m.config.CenterY = seedPt.y + (rng.Float64()*2.0-1.0)*maxOffset
-
-		} else if fractalType == FractalBurningShip {
-			// Burning ship interesting region
-			m.config.CenterX = -0.5 + (rng.Float64()*2.0-1.0)*0.3/zoom
-			m.config.CenterY = -0.6 + (rng.Float64()*2.0-1.0)*0.3/zoom
-
-		} else if fractalType == FractalTricorn {
-			// Tricorn interesting region
-			m.config.CenterX = -0.5 + (rng.Float64()*2.0-1.0)*0.3/zoom
-			m.config.CenterY = 0.0 + (rng.Float64()*2.0-1.0)*0.3/zoom
-		}
-
-		// Check if the result is interesting
-		if !m.isViewUniform() {
-			// Success! Found an interesting view
-			m.animationState.Messages.RandomMsg = fmt.Sprintf("Random: %s @ %.1fx", fractalType, zoom)
-			m.animationState.Messages.RandomTimer = 60
-			return
-		}
-	}
-
-	// If all attempts failed, fall back to a known-good interesting point
-	// Use first Mandelbrot interesting point
-	seedPt := interestingMandelbrot[0]
-	m.config.FractalType = FractalMandelbrot
-	m.config.CenterX = seedPt.x
-	m.config.CenterY = seedPt.y
-	m.config.Zoom = 10.0 + rng.Float64()*90.0 // 10x to 100x
-	m.config.MaxIter = 100 + rng.Intn(100)
+	// Random color scheme
 	if m.animationState.Color.ColorMode {
+		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		// Pick a random color scheme (excluding grayscale)
 		schemes := color.AllColorSchemes[1:]
 		m.config.ColorScheme = schemes[rng.Intn(len(schemes))]
 	} else {
 		m.config.ColorScheme = color.ColorGrayscale
 	}
 
-	m.animationState.Messages.RandomMsg = fmt.Sprintf("Random: %s @ %.1fx (fallback)", m.config.FractalType, m.config.Zoom)
+	// Use core randomization logic
+	msg := search.RandomizeConfig(&m.config, m.calculator)
+	m.animationState.Messages.RandomMsg = msg
 	m.animationState.Messages.RandomTimer = 60
 }
 
@@ -965,38 +859,58 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "V":
-			// Toggle vantage mode (mutually exclusive with autopilot)
+			// Vantage mode: Jump immediately if already on, or Start if off
 			if m.animationState.AutoPilot.Enabled {
-				// Exit autopilot when entering vantage mode
 				m.animationState.AutoPilot.Enabled = false
 			}
-			m.animationState.Vantage.Enabled = !m.animationState.Vantage.Enabled
+
 			if m.animationState.Vantage.Enabled {
-				// Entering vantage mode
-				// Store base iteration count for adaptive scaling
-				if m.animationState.AutoPilot.BaseMaxIter == 0 {
-					m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
-				}
-				// Initialize if needed
-				if !m.animationState.Vantage.Initialized {
-					m.animationState.Vantage.SceneTimer = 0
-					// Set default scene duration if not already set
-					if m.animationState.Vantage.SceneDuration == 0 {
-						m.animationState.Vantage.SceneDuration = 100 // Default 5 seconds (100 ticks at 50ms)
-					}
-				}
-				// Force dynamic color on, autopilot off
-				m.animationState.Color.DynamicColor = true
-				m.animationState.AutoPilot.Enabled = false
-				m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage Mode: ON (%.1fs/scene)", float64(m.animationState.Vantage.SceneDuration)/20.0)
+				// Already in vantage mode, jump immediately to next scene
+				m.animationState.Vantage.SceneTimer = 0
+				m.animationState.Vantage.Initialized = false
+				m.animationState.Messages.RandomMsg = "Vantage: Next Scene"
 				m.animationState.Messages.RandomTimer = 30
-				// Start the animation
 				return m, tickCmd()
-			} else {
-				// Exiting vantage mode
+			}
+
+			// Entering vantage mode
+			m.animationState.Vantage.Enabled = true
+			if m.animationState.AutoPilot.BaseMaxIter == 0 {
+				m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
+			}
+			m.animationState.Vantage.SceneTimer = 0
+			if m.animationState.Vantage.SceneDuration == 0 {
+				m.animationState.Vantage.SceneDuration = 100
+			}
+			m.animationState.Color.DynamicColor = true
+			m.animationState.AutoPilot.Enabled = false
+			m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage Mode: ON (%.1fs/scene)", float64(m.animationState.Vantage.SceneDuration)/20.0)
+			m.animationState.Messages.RandomTimer = 30
+			return m, tickCmd()
+
+		case "v":
+			// lowercase v: Toggle vantage mode normally
+			if m.animationState.Vantage.Enabled {
+				m.animationState.Vantage.Enabled = false
 				m.animationState.Vantage.Initialized = false
 				m.animationState.Messages.RandomMsg = "Vantage Mode: OFF"
 				m.animationState.Messages.RandomTimer = 30
+			} else {
+				if m.animationState.AutoPilot.Enabled {
+					m.animationState.AutoPilot.Enabled = false
+				}
+				m.animationState.Vantage.Enabled = true
+				if m.animationState.AutoPilot.BaseMaxIter == 0 {
+					m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
+				}
+				m.animationState.Vantage.SceneTimer = 0
+				if m.animationState.Vantage.SceneDuration == 0 {
+					m.animationState.Vantage.SceneDuration = 100
+				}
+				m.animationState.Color.DynamicColor = true
+				m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage Mode: ON (%.1fs/scene)", float64(m.animationState.Vantage.SceneDuration)/20.0)
+				m.animationState.Messages.RandomTimer = 30
+				return m, tickCmd()
 			}
 			return m, nil
 
@@ -1309,7 +1223,8 @@ func (m model) renderHelp() string {
 	help.WriteString("  r                  Reverse auto-pilot zoom direction (↑ ↔ ↓)\n")
 	help.WriteString("                     Direction indicator always visible in status bar\n")
 	help.WriteString("  }, {               Increase/decrease auto-pilot zoom speed\n")
-	help.WriteString("  V                  Toggle vantage mode (random scenes with slow pan)\n")
+	help.WriteString("  V                  Start/jump vantage mode (random scenes with slow pan)\n")
+	help.WriteString("  v                  Toggle vantage mode off/on\n")
 	help.WriteString("                     Dynamic color ON, auto-pilot OFF, new scene every N seconds\n")
 	help.WriteString("  >, <               Increase/decrease vantage scene duration (1-30 seconds)\n")
 	help.WriteString("  0                  Reset view (position, zoom, and iteration depth)\n\n")
@@ -1496,7 +1411,7 @@ func (m model) renderStatusBar() string {
 		inactiveStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240")). // Gray
 			Bold(false)
-		modeIndicator = inactiveStyle.Render(fmt.Sprintf("Explore (z/V to toggle)"))
+		modeIndicator = inactiveStyle.Render(fmt.Sprintf("Explore (z/v to toggle)"))
 	}
 
 	// Format zoom level - use scientific notation for high values
