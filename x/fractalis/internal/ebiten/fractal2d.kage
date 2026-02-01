@@ -54,9 +54,12 @@ func fractal2D_DE(p vec3) vec4 {
 	} else {
 		// Pixel units (optimized 2D mode)
 		// Shift so (Res.x/2, Res.y/2) is at (CenterX, CenterY)
-		// Scale by UnitToSize
+		// Scale by UnitToSize, accounting for aspect ratio
+		// For Y coordinate, we need to account for the viewport's aspect ratio
+		// to ensure the fractal is centered and properly scaled
+		aspect := Resolution.y / Resolution.x
 		dx := df_mul(df_set(p.x - 0.5*Resolution.x), UnitToSize)
-		dy := df_mul(df_set(p.z - 0.5*Resolution.y), UnitToSize)
+		dy := df_mul(df_set((p.z - 0.5*Resolution.y) * aspect), UnitToSize)
 
 		c_x = df_add(vec2(CamPosHi.x, CamPosLo.x), dx)
 		c_y = df_add(vec2(CamPosHi.y, CamPosLo.y), dy)
