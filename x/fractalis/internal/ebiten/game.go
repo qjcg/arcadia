@@ -17,6 +17,23 @@ const (
 	screenHeight = 600
 )
 
+// PaintMode represents the visual enhancement mode for fractal interior/exterior
+type PaintMode int
+
+const (
+	PaintModeNone PaintMode = iota
+	// Inpainting modes - enhance interior of fractal
+	InpaintSolidMode   // Solid color fill
+	InpaintNoisyMode   // Noisy turbulence pattern
+	InpaintIridMode    // Iridescent color shifting
+	InpaintFractalMode // Recursive fractal-in-fractal pattern
+	// Outpainting modes - enhance exterior of fractal
+	OutpaintGlowMode     // Soft glow halo around fractal
+	OutpaintRippleMode   // Ripple/wave distortion fields
+	OutpaintFogMode      // Foggy mist effect radiating outward
+	OutpaintElectricMode // Electric discharge-like arcs around boundary
+)
+
 // Game represents the fractal engine game
 type Game struct {
 	config      persistence.Config
@@ -72,6 +89,9 @@ type Game struct {
 	vantageTargetX     float64
 	vantageTargetZ     float64
 	vantageHasTarget   bool
+
+	// Paint mode state
+	paintMode PaintMode
 }
 
 // NewGame creates a new fractal engine game
@@ -161,6 +181,7 @@ func NewGame(config persistence.Config) *Game {
 		vantageEnabled:       config.VantageEnabled,
 		vantageSceneTime:     float64(config.VantageSceneDuration),
 		vantageVantages:      defaultVantagePoints(),
+		paintMode:            PaintModeNone,
 	}
 
 	g.calculator = search.NewInterestCalculator(func(cr, ci float64, cfg persistence.Config) float64 {
@@ -258,6 +279,7 @@ func (g *Game) drawFractal(screen *ebiten.Image) {
 		"FractalType": float32(g.fractalType),
 		"Iterations":  float32(g.iterations),
 		"ColorShift":  float32(g.colorShift),
+		"PaintMode":   float32(g.paintMode),
 	}
 
 	op := &ebiten.DrawRectShaderOptions{}
@@ -293,4 +315,28 @@ func (g *Game) Run() error {
 	g.initShader()
 
 	return ebiten.RunGame(g)
+}
+
+// getPaintModeName returns the name of the current paint mode
+func (g *Game) getPaintModeName() string {
+	switch g.paintMode {
+	case InpaintSolidMode:
+		return "Solid Inpaint"
+	case InpaintNoisyMode:
+		return "Noisy Inpaint"
+	case InpaintIridMode:
+		return "Iridescent Inpaint"
+	case InpaintFractalMode:
+		return "Fractal Inpaint"
+	case OutpaintGlowMode:
+		return "Glow Outpaint"
+	case OutpaintRippleMode:
+		return "Ripple Outpaint"
+	case OutpaintFogMode:
+		return "Fog Outpaint"
+	case OutpaintElectricMode:
+		return "Electric Outpaint"
+	default:
+		return "None"
+	}
 }

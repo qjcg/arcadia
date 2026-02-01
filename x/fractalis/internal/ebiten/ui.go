@@ -30,6 +30,11 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 		}
 	}
 
+	paintInfo := ""
+	if g.paintMode != PaintModeNone {
+		paintInfo = fmt.Sprintf("\nPaint: %s\n", g.getPaintModeName())
+	}
+
 	fractalName := "Mandelbulb"
 	paramName := "Power"
 	paramVal := g.power
@@ -75,20 +80,23 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 	uiText := fmt.Sprintf(
 		"3D Fractal Viewer - %s [%s]\n\n"+
 			"Controls:\n"+
-			"1-9        Switch Fractal (Mandelbrot, Julia, ...)\n"+
-			"F1/F2      3D Fractals (Mandelbulb / Mandelbox)\n"+
-			"WASD       Move X/Z (or Pan in 2D)\n"+
-			"Space/Shift Move Y\n"+
-			"I/O        Zoom In/Out (2D)\n"+
-			"Mouse/Arrows Look around (Click to capture, ESC to release)\n"+
-			"[]         Adjust %s / Iterations\n"+
-			"+/-        Adjust Autopilot Speed\n"+
-			"Z          Toggle Autopilot\n"+
-			"V          Toggle Vantage mode (tour)\n"+
-			"0          Reset View\n"+
-			"F          Toggle Fullscreen\n"+
-			"Q          Quit\n"+
-			"%s"+
+			"1-9              Switch Fractal (Mandelbrot, Julia, ...)\n"+
+			"F1/F2            3D Fractals (Mandelbulb / Mandelbox)\n"+
+			"WASD             Move X/Z (or Pan in 2D)\n"+
+			"Space/Shift      Move Y\n"+
+			"I/O              Zoom In/Out (2D)\n"+
+			"Mouse/Arrows     Look around (Click to capture, ESC to release)\n"+
+			"[]               Adjust %s / Iterations\n"+
+			"+/-              Adjust Autopilot Speed\n"+
+			"Z                Toggle Autopilot\n"+
+			"V                Toggle Vantage mode (tour)\n"+
+			"Shift+1-4        Inpaint modes (Solid/Noisy/Iridescent/Fractal)\n"+
+			"Ctrl+1-4         Outpaint modes (Glow/Ripple/Fog/Electric)\n"+
+			"Shift/Ctrl+0     Disable paint mode\n"+
+			"0                Reset View\n"+
+			"F                Toggle Fullscreen\n"+
+			"Q                Quit\n"+
+			"%s%s"+
 			"Position: (%.2f, %.2f, %.2f)\n"+
 			"Pitch/Yaw: (%.2f, %.2f)\n"+
 			"%s: %.2f | Iterations: %d\n"+
@@ -96,7 +104,7 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 			"FPS: %.1f",
 		fractalName, modeStr,
 		paramName,
-		vantageInfo,
+		vantageInfo, paintInfo,
 		g.camX, g.camY, g.camZ,
 		g.camPitch, g.camYaw,
 		paramName, paramVal, g.iterations,

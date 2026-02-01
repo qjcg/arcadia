@@ -236,6 +236,47 @@ func (g *Game) handleInput() bool {
 		ebiten.SetFullscreen(!ebiten.IsFullscreen())
 	}
 
+	// Paint mode controls (Shift+1-4 for inpaint, Ctrl+1-4 for outpaint)
+	shift := ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight)
+	ctrl := ebiten.IsKeyPressed(ebiten.KeyControlLeft) || ebiten.IsKeyPressed(ebiten.KeyControlRight)
+
+	if shift && !ctrl {
+		// Inpainting modes
+		if inpututil.IsKeyJustPressed(ebiten.Key1) {
+			g.paintMode = InpaintSolidMode
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key2) {
+			g.paintMode = InpaintNoisyMode
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key3) {
+			g.paintMode = InpaintIridMode
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key4) {
+			g.paintMode = InpaintFractalMode
+		}
+	}
+
+	if ctrl && !shift {
+		// Outpainting modes
+		if inpututil.IsKeyJustPressed(ebiten.Key1) {
+			g.paintMode = OutpaintGlowMode
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key2) {
+			g.paintMode = OutpaintRippleMode
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key3) {
+			g.paintMode = OutpaintFogMode
+		}
+		if inpututil.IsKeyJustPressed(ebiten.Key4) {
+			g.paintMode = OutpaintElectricMode
+		}
+	}
+
+	// Disable paint mode with Shift+0 or Ctrl+0
+	if (shift || ctrl) && inpututil.IsKeyJustPressed(ebiten.Key0) {
+		g.paintMode = PaintModeNone
+	}
+
 	// Quit on Q
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {
 		return true

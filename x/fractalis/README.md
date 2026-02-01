@@ -163,6 +163,17 @@ go run ./cmd/fractalis-ebiten-wasm
 - **Space/Shift** - Move up/down in Y
 - **Mouse** - Look around (click window to capture mouse, ESC to release)
 - **Arrow keys** - Alternative camera look control
+- **1-9** - Switch between fractal types
+- **F1/F2** - Switch to 3D fractals (Mandelbulb/Mandelbox)
+- **I/O** - Zoom in/out (2D fractals)
+- **[ ]** - Adjust power/scale or iterations
+- **Z** - Toggle autopilot mode
+- **V** - Toggle vantage tour mode
+- **Shift+1-4** - Inpainting modes (Solid/Noisy/Iridescent/Fractal)
+- **Ctrl+1-4** - Outpainting modes (Glow/Ripple/Fog/Electric)
+- **Shift/Ctrl+0** - Disable paint mode
+- **0** - Reset view to default
+- **F** - Toggle fullscreen
 - **Q** - Quit
 
 **Ebiten Engine Features:**
@@ -172,6 +183,8 @@ go run ./cmd/fractalis-ebiten-wasm
 - Dynamic color shifting animation
 - HDR tone mapping and gamma correction
 - Orbit trap coloring for fractal detail
+- **Inpainting effects** - Artistic enhancements inside the fractal body
+- **Outpainting effects** - Artistic enhancements outside the fractal boundary
 
 **Development:**
 ```bash
@@ -194,6 +207,30 @@ fractals serve 8081
 ```
 
 The WebAssembly version provides the same GPU-accelerated ray marching experience as the native version, accessible directly in your browser.
+
+### Paint Modes: Inpainting & Outpainting
+
+Fractalis features artistic enhancement modes that add visually stunning effects to either the interior (inpainting) or exterior (outpainting) of fractals, revealing the mathematical beauty in new ways.
+
+#### Inpainting Modes (Shift+1-4)
+Artistic effects applied inside the fractal body (the set):
+
+- **Shift+1 - Solid Inpaint**: Fills the interior with a deep blue tint, creating solid mass
+- **Shift+2 - Noisy Inpaint**: Adds turbulent noise patterns that swirl and shift with time
+- **Shift+3 - Iridescent Inpaint**: Creates constantly shifting rainbow-like iridescent colors inside
+- **Shift+4 - Fractal Inpaint**: Fills the interior with recursive glow patterns that pulse rhythmically
+
+#### Outpainting Modes (Ctrl+1-4)
+Artistic effects applied outside the fractal boundary (the exterior):
+
+- **Ctrl+1 - Glow Outpaint**: Creates a soft, warm halo glow radiating outward from the fractal boundary
+- **Ctrl+2 - Ripple Outpaint**: Adds rippling wave distortions that spread outward, revealing wave-like patterns
+- **Ctrl+3 - Fog Outpaint**: Applies a misty fog effect that gradually fades away from the boundary
+- **Ctrl+4 - Electric Outpaint**: Creates electric discharge arcs and bright streams around the fractal edge
+
+Use **Shift+0** or **Ctrl+0** to disable paint mode and return to default rendering.
+
+All paint modes work with both 2D and 3D fractals, providing real-time visual enhancement as you explore.
 
 ### Advanced Usage
 
