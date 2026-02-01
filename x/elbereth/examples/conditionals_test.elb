@@ -1,6 +1,6 @@
 ; Conditional expressions
 
-(defn main []
+(deftest conditionals-test
   (println "Testing conditionals:")
   (if (> 5 3)
     (println "5 is greater than 3")

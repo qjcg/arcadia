@@ -1,52 +1,58 @@
 version: '3'
 
+vars:
+  BIN_DIR: bin
+  BIN: '{{.BIN_DIR}}/elbereth'
+  BIN_INSTALLED: $GOBIN/elbereth
+
 tasks:
   build:
     desc: Build the elbereth compiler
     cmds:
-      - go build -o elbereth ./cmd/elbereth
+      - CGO_ENABLED=0 go build -ldflags '-s -w' -o {{.BIN}} ./cmd/elbereth
+    sources:
+      - '**/*.go'
+      - 'go.*'
+    generates:
+      - '{{.BIN}}'
+
+  install:
+    deps: [build]
+    cmd: cp {{.BIN}} $GOBIN
+    sources:
+      - '{{.BIN}}'
+    generates:
+      - '{{.BIN_INSTALLED}}'
 
   clean:
     desc: Clean build artifacts
     cmds:
-      - rm -f elbereth
+      - rm -rf {{.BIN_DIR}}
 
   test:
     desc: Run all tests and examples
+    deps: [build]
     cmds:
-      - task: build
-      - ./elbereth check test.elb
-      - ./elbereth run examples/hello.elb
-      - ./elbereth run examples/functions.elb
-      - ./elbereth run examples/conditionals.elb
-      - ./elbereth run examples/structs.elb
-      - ./elbereth run examples/concurrency.elb
-      - ./elbereth run examples/showcase.elb
-      - ./elbereth run test_return.elb
-      - ./elbereth run test_struct.elb
-      - ./elbereth run test_chan.elb
-      - ./elbereth run test_match.elb
-      - ./elbereth run test_defer.elb
-      - ./elbereth run test_import.elb
-      - ./elbereth run test_macro.elb
-      - ./elbereth run test_union.elb
-      - ./elbereth run test_loop.elb
+      - bash -c 'for f in examples/*_test.elb; do echo "Testing $f..."; {{.BIN}} test "$f" || exit 1; done'
       - go test ./internal/...
 
   run:
     desc: Run an example (pass FILE=path/to/file.elb)
+    deps: [build]
     cmds:
-      - ./elbereth run {{.FILE}}
+      - '{{.BIN}} run {{.FILE}}'
 
   repl:
     desc: Start the Elbereth interactive REPL
+    deps: [build]
     cmds:
-      - ./elbereth repl
+      - '{{.BIN}} repl'
 
   check:
     desc: Check a file without running (pass FILE=path/to/file.elb)
+    deps: [build]
     cmds:
-      - ./elbereth check {{.FILE}}
+      - '{{.BIN}} check {{.FILE}}'
 
   fmt:
     desc: Format Go code

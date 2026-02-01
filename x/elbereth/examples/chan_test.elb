@@ -1,4 +1,4 @@
-(defn main []
+(deftest chan-test
   (let [ch (chan int 1)]
     (go (do
           (println "Goroutine sending 42")

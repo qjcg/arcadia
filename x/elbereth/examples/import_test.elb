@@ -1,0 +1,6 @@
+(import "math")
+(import [tm "time"])
+
+(deftest import-test
+  (println "Square root of 16 is " (math/Sqrt 16.0))
+  (println "Current time: " (tm/Now)))

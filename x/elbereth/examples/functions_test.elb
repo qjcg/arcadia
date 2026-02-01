@@ -1,6 +1,6 @@
 ; Function definitions and calls
 
-(defn main []
+(deftest functions-test
   (println "Arithmetic Examples:")
   (println "5 + 3 = " (+ 5 3))
   (println "10 - 2 = " (- 10 2))

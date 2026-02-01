@@ -9,5 +9,5 @@
   {x int
    y int})
 
-(defn main []
+(deftest structs-test
   (println "Example struct support coming in v0.2"))

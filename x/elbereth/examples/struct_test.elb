@@ -2,7 +2,7 @@
   {x int
    y int})
 
-(defn main []
+(deftest struct-test
   (let [p (Point {:x 10 :y 20})]
     (println "Point p:" p)
     (println "x coord:" (. p :x))

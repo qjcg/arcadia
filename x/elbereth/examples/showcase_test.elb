@@ -39,7 +39,7 @@
   (println "Map: " {:x 10 :y 20})
   (println ""))
 
-(defn main []
+(deftest showcase-test
   (display-header)
   (arithmetic-demo)
   (comparison-demo)

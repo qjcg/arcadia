@@ -3,5 +3,5 @@
 
 (def answer 42)
 
-(defn main []
+(deftest smoke-test
   (println "Hello, Elbereth!"))

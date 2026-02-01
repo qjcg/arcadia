@@ -5,7 +5,7 @@
   (println "Worker" id "started")
   (>! ch (str "Hello from worker " id)))
 
-(defn main []
+(deftest concurrency-test
   (let [ch (chan string 2)]
     (go (worker 1 ch))
     (go (worker 2 ch))

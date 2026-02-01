@@ -1,6 +1,0 @@
-(import "math")
-(import [t "time"])
-
-(defn main []
-  (println "Square root of 16 is " (math/Sqrt 16.0))
-  (println "Current time: " (t/Now)))

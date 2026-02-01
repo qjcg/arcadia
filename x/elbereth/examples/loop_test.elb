@@ -4,6 +4,6 @@
       acc
       (recur (- i 1) (* acc i)))))
 
-(defn main []
+(deftest loop-test
   (println "Factorial of 5 is" (factorial 5))
   (println "Factorial of 10 is" (factorial 10)))

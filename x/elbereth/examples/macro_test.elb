@@ -2,7 +2,7 @@
   `(if (not ,condition)
      (do ,@body)))
 
-(defn main []
+(deftest macro-test
   (let [x 5]
     (unless (> x 10)
       (println "x is not greater than 10")

@@ -68,6 +68,42 @@ func (e *Expander) expandNode(node ast.Node, depth int) (ast.Node, error) {
 		n.Body = newBody
 		return n, nil
 
+	case *ast.Deftest:
+		var newBody []ast.Expr
+		for _, expr := range n.Body {
+			expanded, err := e.expandExpr(expr, depth+1)
+			if err != nil {
+				return nil, err
+			}
+			newBody = append(newBody, expanded)
+		}
+		n.Body = newBody
+		return n, nil
+
+	case *ast.Defbenchmark:
+		var newBody []ast.Expr
+		for _, expr := range n.Body {
+			expanded, err := e.expandExpr(expr, depth+1)
+			if err != nil {
+				return nil, err
+			}
+			newBody = append(newBody, expanded)
+		}
+		n.Body = newBody
+		return n, nil
+
+	case *ast.Defexample:
+		var newBody []ast.Expr
+		for _, expr := range n.Body {
+			expanded, err := e.expandExpr(expr, depth+1)
+			if err != nil {
+				return nil, err
+			}
+			newBody = append(newBody, expanded)
+		}
+		n.Body = newBody
+		return n, nil
+
 	case *ast.Def:
 		expanded, err := e.expandExpr(n.Value, depth+1)
 		if err != nil {

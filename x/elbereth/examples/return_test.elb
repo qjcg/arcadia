@@ -1,5 +1,5 @@
 (defn add [x :int y :int] :int
   (+ x y))
 
-(defn main []
+(deftest return-test
   (println "1 + 2 =" (add 1 2)))

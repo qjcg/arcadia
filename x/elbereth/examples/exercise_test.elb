@@ -11,8 +11,3 @@
 (defbenchmark factorial-bench [b]
   (for [i 0] (< i (. b N)) [(+ i 1)]
     (factorial 10)))
-
-(defexample factorial-example
-  (println (factorial 3))
-  ; Output: 6
-)
