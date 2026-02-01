@@ -41,28 +41,26 @@ func df_abs(a vec2) vec2 {
 func fractal2D_DE(p vec3) vec4 {
 	// Coordinate mapping matching TUI/Core logic
 	// We map the world coordinate p to complex coordinate c
-	// In 2D path, p is in pixels. In 3D path, p is in world units.
+	// In 2D path, p is in pixels (0 to Resolution). In 3D path, p is in world units.
 	var c_x, c_y vec2
 
-	if p.x > 50.0 || p.x < -50.0 || p.z > 50.0 || p.z < -50.0 {
+	// Check if we're within the screen bounds (pixel mode) vs world space (3D mode)
+	if p.x >= 0.0 && p.x <= Resolution.x && p.z >= 0.0 && p.z <= Resolution.y {
+		// Pixel units (optimized 2D mode)
+		// Shift so (Res.x/2, Res.y/2) is at (CenterX, CenterY)
+		// Scale by UnitToSize
+		dx := df_mul(df_set(p.x - 0.5*Resolution.x), UnitToSize)
+		dy := df_mul(df_set(p.z - 0.5*Resolution.y), UnitToSize)
+
+		c_x = df_add(vec2(CamPosHi.x, CamPosLo.x), dx)
+		c_y = df_add(vec2(CamPosHi.y, CamPosLo.y), dy)
+	} else {
 		// Raymarching world units (3D mode)
 		// Scale world units by UnitToSize to match 2D mode zoom/scale
 		df_p_x := df_mul(df_set(p.x), UnitToSize)
 		df_p_z := df_mul(df_set(p.z), UnitToSize)
 		c_x = df_add(vec2(CamPosHi.x, CamPosLo.x), df_p_x)
 		c_y = df_add(vec2(CamPosHi.y, CamPosLo.y), df_p_z)
-	} else {
-		// Pixel units (optimized 2D mode)
-		// Shift so (Res.x/2, Res.y/2) is at (CenterX, CenterY)
-		// Scale by UnitToSize, accounting for aspect ratio
-		// For Y coordinate, we need to account for the viewport's aspect ratio
-		// to ensure the fractal is centered and properly scaled
-		aspect := Resolution.y / Resolution.x
-		dx := df_mul(df_set(p.x - 0.5*Resolution.x), UnitToSize)
-		dy := df_mul(df_set((p.z - 0.5*Resolution.y) * aspect), UnitToSize)
-
-		c_x = df_add(vec2(CamPosHi.x, CamPosLo.x), dx)
-		c_y = df_add(vec2(CamPosHi.y, CamPosLo.y), dy)
 	}
 
 	// For the iteration loop, we'll use emulated double for Mandelbrot/Julia at first
