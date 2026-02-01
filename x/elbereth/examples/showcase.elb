@@ -1,0 +1,48 @@
+; Elbereth Language Showcase
+; A demonstration of core language features
+
+(def pi 3.14159)
+(def greeting "Welcome to Elbereth!")
+
+(defn display-header []
+  (println "====================================")
+  (println greeting)
+  (println "====================================")
+  (println ""))
+
+(defn arithmetic-demo []
+  (println "--- Arithmetic ---")
+  (println "2 + 3 = " (+ 2 3))
+  (println "10 - 4 = " (- 10 4))
+  (println "5 * 6 = " (* 5 6))
+  (println "20 / 4 = " (/ 20 4))
+  (println ""))
+
+(defn comparison-demo []
+  (println "--- Comparisons ---")
+  (println "5 > 3? " (> 5 3))
+  (println "2 < 8? " (< 2 8))
+  (println "7 == 7? " (== 7 7))
+  (println "4 != 5? " (!= 4 5))
+  (println ""))
+
+(defn control-flow-demo []
+  (println "--- Control Flow ---")
+  (if (> 10 5)
+    (println "10 is greater than 5 (if works!)")
+    (println "Math is broken"))
+  (println ""))
+
+(defn collection-demo []
+  (println "--- Collections ---")
+  (println "Vector: " [1 2 3])
+  (println "Map: " {:x 10 :y 20})
+  (println ""))
+
+(defn main []
+  (display-header)
+  (arithmetic-demo)
+  (comparison-demo)
+  (control-flow-demo)
+  (collection-demo)
+  (println "✨ Elbereth compiles to Go! ✨"))

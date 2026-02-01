@@ -6,4 +6,5 @@ use (
 	./examples/bento
 	./examples/go
 	./x/fractalis
+	./x/elbereth
 )

@@ -1,0 +1,44 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build the elbereth compiler
+    cmds:
+      - go build -o elbereth ./cmd/elbereth
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -f elbereth
+
+  test:
+    desc: Run basic tests
+    cmds:
+      - ./elbereth check test.elb
+      - ./elbereth run examples/hello.elb
+      - ./elbereth run examples/conditionals.elb
+
+  run:
+    desc: Run an example (pass FILE=path/to/file.elb)
+    cmds:
+      - ./elbereth run {{.FILE}}
+
+  repl:
+    desc: Start the Elbereth interactive REPL
+    cmds:
+      - ./elbereth repl
+
+  check:
+    desc: Check a file without running (pass FILE=path/to/file.elb)
+    cmds:
+      - ./elbereth check {{.FILE}}
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - go fmt ./...
+
+  lint:
+    desc: Run linter
+    cmds:
+      - golangci-lint run ./internal/...

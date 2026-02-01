@@ -1,0 +1,13 @@
+; Struct definitions
+
+(deftype Person
+  {name string
+   age int
+   email string})
+
+(deftype Point
+  {x int
+   y int})
+
+(defn main []
+  (println "Example struct support coming in v0.2"))

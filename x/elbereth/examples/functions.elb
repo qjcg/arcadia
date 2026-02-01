@@ -1,0 +1,13 @@
+; Function definitions and calls
+
+(defn main []
+  (println "Arithmetic Examples:")
+  (println "5 + 3 = " (+ 5 3))
+  (println "10 - 2 = " (- 10 2))
+  (println "4 * 3 = " (* 4 3))
+  (println "20 / 4 = " (/ 20 4))
+  (println "")
+  (println "Comparisons:")
+  (println "10 > 5? " (> 10 5))
+  (println "3 < 7? " (< 3 7))
+  (println "5 == 5? " (== 5 5)))
