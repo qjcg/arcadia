@@ -14,13 +14,16 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: elbereth <command> [args]")
+		printHelp()
 		os.Exit(1)
 	}
 
 	cmd := os.Args[1]
 
 	switch cmd {
+	case "-h", "--help", "help":
+		printHelp()
+
 	case "check":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: elbereth check <file>")
@@ -64,6 +67,27 @@ func main() {
 		fmt.Printf("Unknown command: %s\n", cmd)
 		os.Exit(1)
 	}
+}
+
+func printHelp() {
+	fmt.Println(`Elbereth - A practical Lisp dialect that compiles to Go
+
+Usage: elbereth <command> [args]
+
+Commands:
+  check <file>           Check syntax of an Elbereth file
+  build <file> [-o out]  Compile an Elbereth file to a binary
+  run <file>             Compile and run an Elbereth file
+  gen <file>             Generate Go code from an Elbereth file
+  repl                   Start an interactive REPL
+  help                   Show this help message
+
+Examples:
+  elbereth check hello.elb
+  elbereth build hello.elb -o hello
+  elbereth run hello.elb
+  elbereth gen hello.elb
+  elbereth repl`)
 }
 
 func checkFile(filename string) {

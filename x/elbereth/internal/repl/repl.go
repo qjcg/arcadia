@@ -1,14 +1,15 @@
 package repl
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
+	"github.com/chzyer/readline"
+
 	"elbereth/internal/ast"
-	"elbereth/internal/codegen"
+	"elbereth/internal/eval"
 	"elbereth/internal/lexer"
 	"elbereth/internal/parser"
 )
@@ -32,23 +33,28 @@ func New(input io.Reader, output io.Writer) *REPL {
 }
 
 func (r *REPL) Run() error {
-	scanner := bufio.NewScanner(r.input)
-	gen := codegen.New()
-	context := &evalContext{
-		gen: gen,
+	rl, err := readline.New("elb> ")
+	if err != nil {
+		return err
 	}
+	defer rl.Close()
+
+	evaluator := eval.New()
 
 	fmt.Fprintln(r.output, "Elbereth REPL v0.1.0")
 	fmt.Fprintln(r.output, "Type (exit) to quit, (help) for help")
 	fmt.Fprintln(r.output, "")
 
 	for {
-		fmt.Fprint(r.output, "elb> ")
-		if !scanner.Scan() {
+		line, err := rl.Readline()
+		if err != nil { // io.EOF or readline.ErrInterrupt
+			if err == readline.ErrInterrupt {
+				continue
+			}
 			break
 		}
 
-		line := strings.TrimSpace(scanner.Text())
+		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
@@ -63,15 +69,15 @@ func (r *REPL) Run() error {
 			continue
 		}
 
-		if err := r.eval(line, context); err != nil {
+		if err := r.eval(line, evaluator); err != nil {
 			fmt.Fprintf(r.output, "Error: %v\n", err)
 		}
 	}
 
-	return scanner.Err()
+	return nil
 }
 
-func (r *REPL) eval(input string, _ *evalContext) error {
+func (r *REPL) eval(input string, evaluator *eval.Evaluator) error {
 	// Lex and parse the input
 	lex := lexer.New(input)
 	p := parser.New(lex)
@@ -84,9 +90,17 @@ func (r *REPL) eval(input string, _ *evalContext) error {
 		return nil
 	}
 
-	// For now, just show AST representation
+	// Evaluate and print results
 	for _, item := range prog.Items {
-		r.printNode(item)
+		if expr, ok := item.(ast.Expr); ok {
+			val, err := evaluator.Eval(expr)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintln(r.output, val.String())
+		} else {
+			r.printNode(item)
+		}
 	}
 
 	return nil
@@ -183,8 +197,4 @@ Examples:
 For more information, see the documentation.
 `
 	fmt.Fprint(r.output, help)
-}
-
-type evalContext struct {
-	gen *codegen.Generator
 }
