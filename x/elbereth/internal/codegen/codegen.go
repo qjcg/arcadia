@@ -680,12 +680,16 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 				g.genExpr(call.Args[1])
 				return
 			}
-		case "+", "-", "*", "/", "%", "==", "!=", "<", "<=", ">", ">=":
+		case "+", "-", "*", "/", "%", "==", "!=", "<", "<=", ">", ">=", "=":
 			// Binary operators
 			if len(call.Args) >= 2 {
 				g.write("(")
 				g.genExprWithNumericAssertion(call.Args[0])
-				g.write(fmt.Sprintf(" %s ", sym.Name))
+				op := sym.Name
+				if op == "=" {
+					op = "=="
+				}
+				g.write(fmt.Sprintf(" %s ", op))
 				g.genExprWithNumericAssertion(call.Args[1])
 				g.write(")")
 				return
@@ -925,11 +929,89 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 				g.write("]")
 				return
 			}
+		case "mod":
+			if len(call.Args) == 2 {
+				g.write("(")
+				g.genExprWithNumericAssertion(call.Args[0])
+				g.write(" % ")
+				g.genExprWithNumericAssertion(call.Args[1])
+				g.write(")")
+				return
+			}
 		case "len":
 			if len(call.Args) > 0 {
 				g.write("len(")
 				g.genExpr(call.Args[0])
 				g.write(")")
+				return
+			}
+		case "map":
+			if len(call.Args) == 2 {
+				// (map fn coll)
+				g.write("func() []any {\n")
+				g.indent++
+				g.write("coll := ")
+				g.genExpr(call.Args[1])
+				g.writeLine("")
+				g.writeLine("res := make([]any, len(any(coll).([]any)))")
+				g.writeLine("for i, item := range any(coll).([]any) {")
+				g.indent++
+				g.write("res[i] = ")
+				g.genExpr(call.Args[0])
+				g.writeLine("(item)")
+				g.indent--
+				g.writeLine("}")
+				g.writeLine("return res")
+				g.indent--
+				g.write("}()")
+				return
+			}
+		case "filter":
+			if len(call.Args) == 2 {
+				// (filter pred coll)
+				g.write("func() []any {\n")
+				g.indent++
+				g.write("coll := ")
+				g.genExpr(call.Args[1])
+				g.writeLine("")
+				g.writeLine("res := make([]any, 0)")
+				g.writeLine("for _, item := range any(coll).([]any) {")
+				g.indent++
+				g.write("if ")
+				g.genExpr(call.Args[0])
+				g.writeLine("(item).(bool) {")
+				g.indent++
+				g.writeLine("res = append(res, item)")
+				g.indent--
+				g.writeLine("}")
+				g.indent--
+				g.writeLine("}")
+				g.writeLine("return res")
+				g.indent--
+				g.write("}()")
+				return
+			}
+		case "reduce":
+			if len(call.Args) == 3 {
+				// (reduce fn init coll)
+				g.write("func() any {\n")
+				g.indent++
+				g.write("coll := ")
+				g.genExpr(call.Args[2])
+				g.writeLine("")
+				g.write("var acc any = ")
+				g.genExpr(call.Args[1])
+				g.writeLine("")
+				g.writeLine("for _, item := range any(coll).([]any) {")
+				g.indent++
+				g.write("acc = ")
+				g.genExpr(call.Args[0])
+				g.writeLine("(acc, item)")
+				g.indent--
+				g.writeLine("}")
+				g.writeLine("return acc")
+				g.indent--
+				g.write("}()")
 				return
 			}
 		}
