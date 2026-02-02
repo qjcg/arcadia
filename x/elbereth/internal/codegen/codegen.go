@@ -229,25 +229,27 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 func (g *Generator) genDeftype(d *ast.Deftype) {
 	if len(d.Variants) > 0 {
 		// Sum type
-		g.writeLine(fmt.Sprintf("type %s interface { is_%s() }", capitalize(d.Name), capitalize(d.Name)))
+		name := sanitizeIdent(d.Name)
+		g.writeLine(fmt.Sprintf("type %s interface { is_%s() }", name, name))
 		for _, v := range d.Variants {
-			typeName := fmt.Sprintf("%s_%s", capitalize(d.Name), sanitizeIdent(strings.TrimPrefix(v.Name, ":")))
+			vName := sanitizeIdent(strings.TrimPrefix(v.Name, ":"))
+			typeName := fmt.Sprintf("%s_%s", name, vName)
 			if v.Type != nil {
 				g.writeLine(fmt.Sprintf("type %s struct { Value %s }", typeName, g.typeToGoString(v.Type)))
 			} else {
 				g.writeLine(fmt.Sprintf("type %s struct{}", typeName))
 			}
-			g.writeLine(fmt.Sprintf("func (%s) is_%s() {}", typeName, capitalize(d.Name)))
+			g.writeLine(fmt.Sprintf("func (%s) is_%s() {}", typeName, name))
 		}
 		return
 	}
 
-	g.write(fmt.Sprintf("type %s struct {\n", capitalize(d.Name)))
+	g.write(fmt.Sprintf("type %s struct {\n", sanitizeIdent(d.Name)))
 	g.indent++
 
 	for _, f := range d.Fields {
 		goType := g.typeToGoString(f.Type)
-		g.writeLine(fmt.Sprintf("%s %s", capitalize(f.Name), goType))
+		g.writeLine(fmt.Sprintf("%s %s", sanitizeIdent(f.Name), goType))
 	}
 
 	g.indent--
@@ -255,14 +257,15 @@ func (g *Generator) genDeftype(d *ast.Deftype) {
 }
 
 func (g *Generator) genDef(d *ast.Def) {
-	g.genExprWithPrefix(d.Value, "var "+capitalize(d.Name)+" = ")
+	name := sanitizeIdent(d.Name)
+	g.genExprWithPrefix(d.Value, "var "+name+" = ")
 	g.writeLine("")
 }
 
 func (g *Generator) genDefn(d *ast.Defn) {
 	name := sanitizeIdent(d.Name)
-	if name != "main" && !g.pkgNames[name] && !strings.Contains(name, ".") {
-		name = capitalize(name)
+	if name == "main" {
+		// main must be lowercase for package main
 	}
 
 	g.write("func ")
@@ -328,6 +331,9 @@ func (g *Generator) genDefn(d *ast.Defn) {
 						g.writeLine("return nil")
 						continue
 					}
+					// Special case: if it returns a value and we are at the end,
+					// we should probably NOT return nil if we have a non-void function.
+					// Actually, Elbereth functions currently default to returning interface{}.
 				}
 				g.write("return ")
 			default:
@@ -344,7 +350,7 @@ func (g *Generator) genDefn(d *ast.Defn) {
 
 func (g *Generator) genDeftest(d *ast.Deftest) {
 	g.write("func Test")
-	g.write(capitalize(sanitizeIdent(d.Name)))
+	g.write(sanitizeIdent(d.Name))
 	g.writeLine("(t *testing.T) {")
 	g.indent++
 	for _, expr := range d.Body {
@@ -357,7 +363,7 @@ func (g *Generator) genDeftest(d *ast.Deftest) {
 
 func (g *Generator) genDefbenchmark(d *ast.Defbenchmark) {
 	g.write("func Benchmark")
-	g.write(capitalize(sanitizeIdent(d.Name)))
+	g.write(sanitizeIdent(d.Name))
 	g.write(fmt.Sprintf("(%s *testing.B) {\n", sanitizeIdent(d.BParam)))
 	g.indent++
 	for _, expr := range d.Body {
@@ -370,7 +376,7 @@ func (g *Generator) genDefbenchmark(d *ast.Defbenchmark) {
 
 func (g *Generator) genDefexample(d *ast.Defexample) {
 	g.write("func Example")
-	g.write(capitalize(sanitizeIdent(d.Name)))
+	g.write(sanitizeIdent(d.Name))
 	g.writeLine("() {")
 	g.indent++
 	for _, expr := range d.Body {
@@ -440,9 +446,7 @@ func (g *Generator) genExpr(expr ast.Expr) {
 				name == "select" || name == "recur" || name == "loop" || name == "let" ||
 				name == "do" || name == "if" || name == "fn" || name == "setb"
 
-			if !isSpecial && !g.pkgNames[name] && !strings.Contains(name, ".") {
-				name = capitalize(name)
-			}
+			_ = isSpecial // keep for now
 		}
 		g.write(name)
 

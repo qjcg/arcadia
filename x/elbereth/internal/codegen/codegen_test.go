@@ -10,7 +10,7 @@ import (
 )
 
 func TestGenerateSimple(t *testing.T) {
-	input := `(defn add [x y] (+ x y))`
+	input := `(defn Add [x y] (+ x y))`
 	l := lexer.New(input)
 	p := parser.New(l)
 	prog, _ := p.Parse()
@@ -26,8 +26,8 @@ func TestGenerateSimple(t *testing.T) {
 	}
 }
 
-func TestGenerateStruct(t *testing.T) {
-	input := `(deftype p {x int y int})`
+func TestGenerateVisibility(t *testing.T) {
+	input := `(defn add [x y] (+ x y))`
 	l := lexer.New(input)
 	p := parser.New(l)
 	prog, _ := p.Parse()
@@ -35,8 +35,25 @@ func TestGenerateStruct(t *testing.T) {
 	gen := New()
 	code, _ := gen.Generate(prog)
 
-	if !strings.Contains(code, "type P struct") {
-		t.Errorf("expected type P struct, got %s", code)
+	if !strings.Contains(code, "func add") {
+		t.Errorf("expected func add (private), got %s", code)
+	}
+}
+
+func TestGenerateStruct(t *testing.T) {
+	input := `(deftype Point {X int Y int})`
+	l := lexer.New(input)
+	p := parser.New(l)
+	prog, _ := p.Parse()
+
+	gen := New()
+	code, _ := gen.Generate(prog)
+
+	if !strings.Contains(code, "type Point struct") {
+		t.Errorf("expected type Point struct, got %s", code)
+	}
+	if !strings.Contains(code, "X int64") {
+		t.Errorf("expected field X, got %s", code)
 	}
 }
 
