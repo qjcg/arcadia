@@ -1,0 +1,23 @@
+(defn helper-func [t *testing/T]
+  (. t Log "Logging from a helper function")
+  nil)
+
+(deftest t-interop-test
+  (. t Log "Starting Elbereth test interop demo")
+
+  (let [name "Elbereth"]
+    (. t Logf "Hello from %s" name))
+
+  (helper-func t)
+
+  (if false
+    (. t Error "This should not happen"))
+
+  (assert-true true))
+
+(defbenchmark benchmark-demo [b]
+  (. b ReportAllocs)
+  (for [i 0] (< i (. b N)) [(+ i 1)]
+    (let [s (str "alloc" i)]
+      (if (== (len s) 0)
+        (. b Fatal "Should not be empty")))))

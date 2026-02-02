@@ -265,7 +265,11 @@ func (g *Generator) genDefn(d *ast.Defn) {
 		if i > 0 {
 			g.write(", ")
 		}
-		g.write(capitalize(sanitizeIdent(p.Name)))
+		pName := sanitizeIdent(p.Name)
+		if pName != "t" && pName != "b" {
+			pName = capitalize(pName)
+		}
+		g.write(pName)
 		if p.Variadic {
 			g.write(" ...")
 		} else {
@@ -317,6 +321,8 @@ func (g *Generator) genDefn(d *ast.Defn) {
 						continue
 					}
 				}
+				g.write("return ")
+			default:
 				g.write("return ")
 			}
 		}
@@ -643,7 +649,7 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 					g.write(")")
 				} else {
 					// Heuristic for 0-arg methods in Elbereth
-					if fieldName == "Done" || fieldName == "Wait" {
+					if fieldName == "Done" || fieldName == "Wait" || fieldName == "ReportAllocs" || fieldName == "Skip" || fieldName == "Helper" {
 						g.write("()")
 					}
 				}
@@ -966,29 +972,9 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 		g.genExpr(call.Func)
 	}
 	g.write("(")
-	// Check if we have the function definition to do auto-referencing
-	var defn *ast.Defn
-	if sym, ok := call.Func.(*ast.Symbol); ok {
-		defn = g.functions[sym.Name]
-	}
-
 	for i, arg := range call.Args {
 		if i > 0 {
 			g.write(", ")
-		}
-		if defn != nil && i < len(defn.Params) {
-			param := defn.Params[i]
-			isPointer := false
-			if nt, ok := param.Type.(*ast.NamedType); ok && strings.HasPrefix(nt.Name, "*") {
-				isPointer = true
-			}
-			if isPointer {
-				// If it's already an address-of or something that returns a pointer, we don't need to ref it.
-				// But simpler is to always ref if it's a symbol.
-				if _, ok := arg.(*ast.Symbol); ok {
-					g.write("&")
-				}
-			}
 		}
 		g.genExprAsValue(arg)
 	}
@@ -1350,7 +1336,7 @@ func (g *Generator) typeToGoString(t ast.Type) string {
 		case "rune":
 			return "rune"
 		default:
-			return tt.Name
+			return sanitizeIdent(tt.Name)
 		}
 
 	case *ast.SliceType:
