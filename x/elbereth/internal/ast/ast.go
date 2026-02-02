@@ -388,6 +388,15 @@ type Defexample struct {
 func (n *Defexample) Pos() Position  { return n.Loc }
 func (n *Defexample) String() string { return fmt.Sprintf("(defexample %s ...)", n.Name) }
 
+// Package represents (package name)
+type Package struct {
+	Loc  Position
+	Name string
+}
+
+func (n *Package) Pos() Position  { return n.Loc }
+func (n *Package) String() string { return fmt.Sprintf("(package %s)", n.Name) }
+
 // Import represents (import "path") or (import [alias "path"])
 type Import struct {
 	Loc   Position
@@ -461,8 +470,9 @@ func (n *FuncType) String() string { return "fn" }
 
 // Program represents an entire Elbereth program
 type Program struct {
-	Loc   Position
-	Items []Node // mix of Def, Defn, Deftype, Defmacro, or Expr at top level
+	Loc     Position
+	Package string // inferred or declared via (defmodule)
+	Items   []Node // mix of Def, Defn, Deftype, Defmacro, or Expr at top level
 }
 
 func (n *Program) Pos() Position  { return n.Loc }

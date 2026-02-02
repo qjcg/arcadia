@@ -290,6 +290,10 @@ func (e *Evaluator) EvalTop(node ast.Node) (Value, error) {
 		e.Global.Set(n.Name, fn)
 		return fn, nil
 
+	case *ast.Package:
+		// Just ignore for evaluation
+		return NilVal{}, nil
+
 	case *ast.Import:
 		name := n.Path
 		if n.Alias != "" {

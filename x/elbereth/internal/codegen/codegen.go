@@ -132,7 +132,11 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 	}
 
 	// Write package declaration
-	g.writeLine("package main")
+	pkgName := "main"
+	if prog.Package != "" {
+		pkgName = prog.Package
+	}
+	g.writeLine(fmt.Sprintf("package %s", pkgName))
 	g.writeLine("")
 
 	if g.isTest {
@@ -206,6 +210,10 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 		case *ast.Defexample:
 			g.genDefexample(n)
 			g.writeLine("")
+		case *ast.Package:
+			// Package name handled in first pass
+		case *ast.Import:
+			// Imports handled in first pass
 		default:
 			// Top-level expressions are ignored in Go
 		}

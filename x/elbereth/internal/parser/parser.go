@@ -31,12 +31,18 @@ func New(lex *lexer.Lexer) *Parser {
 
 // Parse parses the entire program
 func (p *Parser) Parse() (*ast.Program, error) {
-	items := []ast.Node{}
+	prog := &ast.Program{
+		Loc:   p.position(),
+		Items: []ast.Node{},
+	}
 
 	for p.current.Type != lexer.TokenEOF {
 		item := p.parseTopLevel()
 		if item != nil {
-			items = append(items, item)
+			if pkg, ok := item.(*ast.Package); ok {
+				prog.Package = pkg.Name
+			}
+			prog.Items = append(prog.Items, item)
 		}
 		if len(p.errors) > 0 {
 			break
@@ -47,7 +53,7 @@ func (p *Parser) Parse() (*ast.Program, error) {
 		return nil, fmt.Errorf("parse errors: %v", p.errors)
 	}
 
-	return &ast.Program{Items: items}, nil
+	return prog, nil
 }
 
 // ============================================================================
@@ -90,6 +96,9 @@ func (p *Parser) parseTopLevel() ast.Node {
 			case "defexample":
 				p.advance()
 				return p.parseDefexampleAfterSymbol(loc)
+			case "package":
+				p.advance()
+				return p.parsePackageAfterSymbol(loc)
 			case "import":
 				p.advance()
 				return p.parseImportAfterSymbol(loc)
@@ -611,6 +620,22 @@ func (p *Parser) parseDefexampleAfterSymbol(loc ast.Position) ast.Node {
 
 	p.expect(lexer.TokenRParen)
 	return &ast.Defexample{Loc: loc, Name: name, Body: body}
+}
+
+func (p *Parser) parsePackageAfterSymbol(loc ast.Position) ast.Node {
+	// (package name)
+	if p.current.Type != lexer.TokenSymbol {
+		p.error("package: expected name symbol")
+		p.advance()
+		p.skipToRParen()
+		return &ast.NilLit{Loc: loc}
+	}
+
+	name := p.current.Value
+	p.advance()
+
+	p.expect(lexer.TokenRParen)
+	return &ast.Package{Loc: loc, Name: name}
 }
 
 func (p *Parser) parseImportAfterSymbol(loc ast.Position) ast.Node {
