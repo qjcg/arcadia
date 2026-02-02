@@ -704,11 +704,13 @@ Source (.elb)
 ### Command-Line Interface
 
 ```bash
-elbereth build <file.elb>           # compile to binary
-elbereth run <file.elb>             # compile and run
-elbereth repl                       # start interactive REPL
-elbereth fmt <file.elb>             # format code
-elbereth check <file.elb>           # type-check only
+elbereth init <module>        # initialize a module (runs go mod init)
+elbereth build <path>         # compile package(s) to binary or Go code
+elbereth run <path>           # compile and run main package
+elbereth test <path>          # compile and run tests
+elbereth tidy                 # tidy dependencies (runs go mod tidy)
+elbereth repl                 # start interactive REPL
+elbereth check <path>         # syntax and type check
 ```
 
 ### Main Entry Point
@@ -722,27 +724,20 @@ Compiles to Go's `func main()`.
 
 ### Packaging
 
+Elbereth uses Go's package system directly. A file declares its package using the `package` form:
+
 ```lisp
-(defmodule myapp
-  (:require [myapp.core :as core]
-            [myapp.api :as api]))
+(package myapp)
+
+(defn ExportedFunc [] ...)  ; Exported (starts with uppercase)
+(defn privateFunc [] ...)   ; Private (starts with lowercase)
 ```
 
-Module paths map to Go packages.
+Module paths and dependencies are managed via `go.mod`.
 
 ### Build Configuration
 
-Optional `elbereth.edn` in project root:
-
-```clojure
-{:name "myapp"
- :version "0.1.0"
- :main myapp.main
- :dependencies {
-   "github.com/charmbracelet/bubbletea" "0.24.0"
- }
- :build-opts {:target-go "1.21"}}
-```
+Elbereth directly uses `go.mod`, `go.sum`, and `go.work` files exactly like Go. Dependencies should be managed via `elbereth get` or `elbereth tidy` (which wrap `go get` and `go mod tidy`).
 
 ---
 

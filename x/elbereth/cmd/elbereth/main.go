@@ -62,18 +62,37 @@ func main() {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
 		}
+
 		if info.IsDir() {
-			buildDir(path)
+			buildPackage(path, *output)
 		} else {
-			buildFile(path, *output)
+			// Even if it's a file, we treat it as part of its package
+			buildPackage(filepath.Dir(path), *output)
 		}
 
 	case "run":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: elbereth run <file>")
+			fmt.Println("Usage: elbereth run <file_or_dir>")
 			os.Exit(1)
 		}
-		runFile(os.Args[2])
+		runPackage(os.Args[2])
+
+	case "init":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: elbereth init <module-name>")
+			os.Exit(1)
+		}
+		runGoCommand("mod", "init", os.Args[2])
+
+	case "mod":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: elbereth mod <command> [args...]")
+			os.Exit(1)
+		}
+		runGoCommand("mod", os.Args[2:]...)
+
+	case "get", "tidy":
+		runGoCommand(cmd, os.Args[2:]...)
 
 	case "test":
 		if len(os.Args) < 3 {
@@ -128,20 +147,24 @@ func printHelp() {
 Usage: elbereth <command> [args]
 
 Commands:
-  check <file>           Check syntax of an Elbereth file
-  build <file> [-o out]  Compile an Elbereth file to a binary
-  run <file>             Compile and run an Elbereth file
-  test <file>            Compile and run tests in an Elbereth file
-  gen <file>             Generate Go code from an Elbereth file
+  init <module>          Initialize a new Elbereth module (runs go mod init)
+  mod <cmd>              Run a Go module command (e.g., tidy, vendor)
+  get <pkg>              Add a dependency to the module (runs go get)
+  tidy                   Tidy module dependencies (runs go mod tidy)
+  check <path>           Check syntax of an Elbereth file or directory
+  build <path> [-o out]  Compile Elbereth package to a binary or Go package
+  run <path>             Compile and run an Elbereth package
+  test <path>            Compile and run tests in an Elbereth package
+  gen <path>             Generate Go code from an Elbereth file
   repl                   Start an interactive REPL
   version                Print the version of Elbereth
   help                   Show this help message
 
 Examples:
-  elbereth check hello.elb
-  elbereth build hello.elb -o hello
-  elbereth run hello.elb
-  elbereth gen hello.elb
+  elbereth init github.com/user/myproject
+  elbereth tidy
+  elbereth build .
+  elbereth run main.elb
   elbereth repl`)
 }
 
@@ -152,18 +175,6 @@ func checkDir(dir string) {
 		}
 		if !info.IsDir() && strings.HasSuffix(path, ".elb") {
 			checkFile(path)
-		}
-		return nil
-	})
-}
-
-func buildDir(dir string) {
-	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && strings.HasSuffix(path, ".elb") {
-			buildFile(path, "")
 		}
 		return nil
 	})
@@ -187,28 +198,111 @@ func checkFile(filename string) {
 	fmt.Printf("OK: %d top-level items\n", len(prog.Items))
 }
 
-func buildFile(filename string, output string) {
-	absPath, err := filepath.Abs(filename)
+func buildPackage(dir string, output string) {
+	// First, transcode all .elb files in the directory to .go
+	files, err := os.ReadDir(dir)
 	if err != nil {
-		fmt.Printf("Error getting absolute path: %v\n", err)
+		fmt.Printf("Error reading directory: %v\n", err)
 		os.Exit(1)
 	}
 
+	var hasElb bool
+	var isMain bool
+	for _, f := range files {
+		if !f.IsDir() && strings.HasSuffix(f.Name(), ".elb") {
+			hasElb = true
+			pkg, err := transcodeFile(filepath.Join(dir, f.Name()))
+			if err != nil {
+				fmt.Printf("Error transcoding %s: %v\n", f.Name(), err)
+				os.Exit(1)
+			}
+			if pkg == "main" {
+				isMain = true
+			}
+		}
+	}
+
+	if !hasElb {
+		// Maybe it's a Go-only package or sub-package path, pass to Go directly
+	}
+
+	// Now run go build on the package
+	var args []string
+	args = append(args, "build")
+	if output != "" {
+		args = append(args, "-o", output)
+	}
+	args = append(args, ".")
+
+	cmd := exec.Command("go", args...)
+	cmd.Dir = dir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		if isMain || hasElb {
+			fmt.Printf("Go build error: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
+	if isMain {
+		if output == "" {
+			output = filepath.Base(dir)
+			if output == "." || output == "/" {
+				output = "a.out"
+			}
+		}
+		fmt.Printf("Built executable: %s/%s\n", dir, output)
+	} else {
+		fmt.Printf("Compiled package in %s\n", dir)
+	}
+}
+
+func runPackage(path string) {
+	dir := path
+	info, err := os.Stat(path)
+	if err == nil && !info.IsDir() {
+		dir = filepath.Dir(path)
+	}
+
+	// Transcode all .elb files in the package directory
+	files, _ := os.ReadDir(dir)
+	for _, f := range files {
+		if !f.IsDir() && strings.HasSuffix(f.Name(), ".elb") {
+			_, err := transcodeFile(filepath.Join(dir, f.Name()))
+			if err != nil {
+				fmt.Printf("Error transcoding %s: %v\n", f.Name(), err)
+				os.Exit(1)
+			}
+		}
+	}
+
+	// Run using go run .
+	cmd := exec.Command("go", "run", ".")
+	cmd.Dir = dir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		os.Exit(1)
+	}
+}
+
+func transcodeFile(filename string) (string, error) {
+	absPath, _ := filepath.Abs(filename)
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		fmt.Printf("Error reading file: %v\n", err)
-		os.Exit(1)
+		return "", err
 	}
 
 	lex := lexer.New(string(data))
 	p := parser.New(lex)
 	prog, err := p.Parse()
 	if err != nil {
-		fmt.Printf("Parse error: %v\n", err)
-		os.Exit(1)
+		return "", err
 	}
 
-	// Infer package name from directory if not declared
 	if prog.Package == "" {
 		prog.Package = filepath.Base(filepath.Dir(absPath))
 		if prog.Package == "." || prog.Package == "/" {
@@ -218,65 +312,26 @@ func buildFile(filename string, output string) {
 
 	gen := codegen.New()
 	ex := expander.New()
-	if err := ex.Expand(prog); err != nil {
-		fmt.Printf("Expansion error: %v\n", err)
-		os.Exit(1)
-	}
+	ex.Expand(prog)
 	goCode, err := gen.Generate(prog)
 	if err != nil {
-		fmt.Printf("Code generation error: %v\n", err)
-		os.Exit(1)
+		return "", err
 	}
 
-	// If no output specified, use the filename base
-	if output == "" {
-		output = strings.TrimSuffix(filepath.Base(filename), ".elb")
-	}
-
-	// Write to a .go file in the same directory
 	goFileName := strings.TrimSuffix(absPath, ".elb") + ".go"
 	err = os.WriteFile(goFileName, []byte(goCode), 0o644)
-	if err != nil {
-		fmt.Printf("Error writing Go file: %v\n", err)
-		os.Exit(1)
-	}
-	// No defer removal here if we want to keep the Go files for the module system
-
-	// Compile using go build
-	// If it's package main, we build an executable.
-	// Otherwise, we just make sure it compiles.
-	var cmd *exec.Cmd
-	if prog.Package == "main" {
-		cmd = exec.Command("go", "build", "-o", output, goFileName)
-	} else {
-		fmt.Printf("Compiled package %s to %s\n", prog.Package, goFileName)
-		return
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
-		fmt.Printf("Compilation error: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("Built: %s\n", output)
+	return prog.Package, err
 }
 
-func runFile(filename string) {
-	output := "/tmp/elbereth_run_" + randomString()
-	buildFile(filename, output)
-
-	// Run the compiled binary
-	cmd := exec.Command(output)
+func runGoCommand(command string, args ...string) {
+	fullArgs := append([]string{command}, args...)
+	cmd := exec.Command("go", fullArgs...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		os.Exit(1)
 	}
-
-	os.Remove(output)
 }
 
 func testFiles(filenames []string, testFlags []string) {
@@ -324,6 +379,8 @@ func testFiles(filenames []string, testFlags []string) {
 	defer os.Remove(tmpFileName)
 
 	// Run using go test
+	// If the file is in a package, we might need more care.
+	// For now, this handles simple cases.
 	args := []string{"test", "-v", tmpFileName}
 	args = append(args, testFlags...)
 	cmd := exec.Command("go", args...)

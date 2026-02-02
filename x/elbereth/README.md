@@ -45,9 +45,23 @@ See [SPEC.md](./SPEC.md) for the complete language specification covering:
 
 ## Project Status
 
-🚧 **Specification Phase** - Language design and API exploration
+🚧 **Active Development** - Elbereth is functional and compiles to Go, leveraging Go's module system directly.
 
-This is the formal specification for the Elbereth language. Implementation will follow.
+### Getting Started
+
+1. Initialize a new module:
+   ```bash
+   elbereth init github.com/user/myproject
+   ```
+2. Create an Elbereth file `main.elb`:
+   ```lisp
+   (package main)
+   (defn main [] (println "Hello Elbereth!"))
+   ```
+3. Run it:
+   ```bash
+   elbereth run .
+   ```
 
 ## Design Philosophy
 
