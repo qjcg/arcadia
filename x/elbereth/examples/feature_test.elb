@@ -1,0 +1,43 @@
+(deftype Point {x int y int})
+
+(deftest struct-test
+  (let [p (Point {x 10 y 20})]
+    (assert-eq (. p x) 10)
+    (assert-eq (. p y) 20)))
+
+(deftype Result
+  (:ok int)
+  (:err string))
+
+(deftest sum-type-test
+  (let [r1 (:ok 42)
+        r2 (:err "oops")]
+    (match r1
+      (:ok val) (assert-eq val 42)
+      (:err _)  (assert false "should be ok"))
+    (match r2
+      (:ok _)   (assert false "should be err")
+      (:err msg) (assert-eq msg "oops"))))
+
+(deftest loop-test
+  (let [sum (loop [i 1 acc 0]
+              (if (<= i 10)
+                (recur (+ i 1) (+ acc i))
+                acc))]
+    (assert-eq sum 55)))
+
+(deftest chan-test
+  (let [ch (chan int 1)]
+    (>! ch 42)
+    (assert-eq (<! ch) 42)))
+
+(deftest select-test
+  (let [c1 (chan int 1)
+        c2 (chan string 1)]
+    (>! c1 1)
+    (select
+      [c1 v] (assert-eq v 1)
+      [c2 s] (assert false "wrong chan"))))
+
+(defn main []
+  (println "Running comprehensive tests..."))

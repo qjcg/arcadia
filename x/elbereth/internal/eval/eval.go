@@ -337,15 +337,17 @@ func (e *Evaluator) Eval(expr ast.Expr, env *Env) (Value, error) {
 		return StringVal{Value: ":" + node.Value}, nil
 
 	case *ast.Symbol:
-		if strings.Contains(node.Name, "/") {
+		if strings.Contains(node.Name, "/") && node.Name != "/" {
 			parts := strings.SplitN(node.Name, "/", 2)
-			if ns, ok := e.Namespaces[parts[0]]; ok {
-				if val, ok := ns.Get(parts[1]); ok {
-					return val, nil
+			if parts[0] != "" {
+				if ns, ok := e.Namespaces[parts[0]]; ok {
+					if val, ok := ns.Get(parts[1]); ok {
+						return val, nil
+					}
+					return nil, fmt.Errorf("symbol not found in namespace %s: %s", parts[0], parts[1])
 				}
-				return nil, fmt.Errorf("symbol not found in namespace %s: %s", parts[0], parts[1])
+				return nil, fmt.Errorf("unknown namespace: %s", parts[0])
 			}
-			return nil, fmt.Errorf("unknown namespace: %s", parts[0])
 		}
 		if val, ok := env.Get(node.Name); ok {
 			return val, nil

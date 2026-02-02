@@ -87,28 +87,28 @@ func (l *Lexer) Next() Token {
 	switch ch {
 	case '(':
 		l.advance()
-		return Token{Type: TokenLParen, Line: line, Column: col}
+		return Token{Type: TokenLParen, Value: "(", Line: line, Column: col}
 	case ')':
 		l.advance()
-		return Token{Type: TokenRParen, Line: line, Column: col}
+		return Token{Type: TokenRParen, Value: ")", Line: line, Column: col}
 	case '[':
 		l.advance()
-		return Token{Type: TokenLBracket, Line: line, Column: col}
+		return Token{Type: TokenLBracket, Value: "[", Line: line, Column: col}
 	case ']':
 		l.advance()
-		return Token{Type: TokenRBracket, Line: line, Column: col}
+		return Token{Type: TokenRBracket, Value: "]", Line: line, Column: col}
 	case '{':
 		l.advance()
-		return Token{Type: TokenLBrace, Line: line, Column: col}
+		return Token{Type: TokenLBrace, Value: "{", Line: line, Column: col}
 	case '}':
 		l.advance()
-		return Token{Type: TokenRBrace, Line: line, Column: col}
+		return Token{Type: TokenRBrace, Value: "}", Line: line, Column: col}
 	case '\'':
 		l.advance()
-		return Token{Type: TokenQuote, Line: line, Column: col}
+		return Token{Type: TokenQuote, Value: "'", Line: line, Column: col}
 	case '`':
 		l.advance()
-		return Token{Type: TokenBackquote, Line: line, Column: col}
+		return Token{Type: TokenBackquote, Value: "`", Line: line, Column: col}
 	}
 
 	// Unquote and unquote-splice

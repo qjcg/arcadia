@@ -155,7 +155,7 @@ func (e *Expander) expandExpr(expr ast.Expr, depth int) (ast.Expr, error) {
 			}
 			newArgs = append(newArgs, expanded)
 		}
-		return &ast.FuncCall{Loc: n.Loc, Func: newFunc, Args: newArgs}, nil
+		return e.reifyFuncCall(&ast.FuncCall{Loc: n.Loc, Func: newFunc, Args: newArgs}), nil
 
 	case *ast.IfExpr:
 		cond, err := e.expandExpr(n.Cond, depth+1)
@@ -349,7 +349,7 @@ func (e *Expander) expandBackquote(expr ast.Expr, bindings map[string]interface{
 			return nil, err
 		}
 
-		return &ast.FuncCall{Loc: n.Loc, Func: newFunc, Args: newArgs}, nil
+		return e.reifyFuncCall(&ast.FuncCall{Loc: n.Loc, Func: newFunc, Args: newArgs}), nil
 
 	case *ast.VectorLit:
 		var newElts []ast.Expr
@@ -443,4 +443,34 @@ func (e *Expander) expandBackquote(expr ast.Expr, bindings map[string]interface{
 	default:
 		return n, nil
 	}
+}
+
+func (e *Expander) reifyFuncCall(call *ast.FuncCall) ast.Expr {
+	if sym, ok := call.Func.(*ast.Symbol); ok {
+		switch sym.Name {
+		case "if":
+			if len(call.Args) >= 2 {
+				var elseExpr ast.Expr
+				if len(call.Args) >= 3 {
+					elseExpr = call.Args[2]
+				}
+				return &ast.IfExpr{Loc: call.Loc, Cond: call.Args[0], Then: call.Args[1], Else: elseExpr}
+			}
+		case "do":
+			return &ast.DoExpr{Loc: call.Loc, Exprs: call.Args}
+		case "let":
+			if len(call.Args) >= 1 {
+				if v, ok := call.Args[0].(*ast.VectorLit); ok {
+					var bindings []*ast.Binding
+					for i := 0; i+1 < len(v.Elts); i += 2 {
+						if nameSym, ok := v.Elts[i].(*ast.Symbol); ok {
+							bindings = append(bindings, &ast.Binding{Name: nameSym.Name, Init: v.Elts[i+1]})
+						}
+					}
+					return &ast.LetExpr{Loc: call.Loc, Bindings: bindings, Body: call.Args[1:]}
+				}
+			}
+		}
+	}
+	return call
 }

@@ -221,20 +221,20 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 func (g *Generator) genDeftype(d *ast.Deftype) {
 	if len(d.Variants) > 0 {
 		// Sum type
-		g.writeLine(fmt.Sprintf("type %s interface { is_%s() }", d.Name, d.Name))
+		g.writeLine(fmt.Sprintf("type %s interface { is_%s() }", capitalize(d.Name), capitalize(d.Name)))
 		for _, v := range d.Variants {
-			typeName := fmt.Sprintf("%s_%s", d.Name, sanitizeIdent(strings.TrimPrefix(v.Name, ":")))
+			typeName := fmt.Sprintf("%s_%s", capitalize(d.Name), sanitizeIdent(strings.TrimPrefix(v.Name, ":")))
 			if v.Type != nil {
 				g.writeLine(fmt.Sprintf("type %s struct { Value %s }", typeName, g.typeToGoString(v.Type)))
 			} else {
 				g.writeLine(fmt.Sprintf("type %s struct{}", typeName))
 			}
-			g.writeLine(fmt.Sprintf("func (%s) is_%s() {}", typeName, d.Name))
+			g.writeLine(fmt.Sprintf("func (%s) is_%s() {}", typeName, capitalize(d.Name)))
 		}
 		return
 	}
 
-	g.write(fmt.Sprintf("type %s struct {\n", d.Name))
+	g.write(fmt.Sprintf("type %s struct {\n", capitalize(d.Name)))
 	g.indent++
 
 	for _, f := range d.Fields {
@@ -247,10 +247,7 @@ func (g *Generator) genDeftype(d *ast.Deftype) {
 }
 
 func (g *Generator) genDef(d *ast.Def) {
-	g.write("var ")
-	g.write(capitalize(d.Name))
-	g.write(" = ")
-	g.genExpr(d.Value)
+	g.genExprWithPrefix(d.Value, "var "+capitalize(d.Name)+" = ")
 	g.writeLine("")
 }
 
@@ -373,6 +370,20 @@ func (g *Generator) genDefexample(d *ast.Defexample) {
 	g.writeLine("}")
 }
 
+func (g *Generator) genExprAsValue(expr ast.Expr) {
+	switch expr.(type) {
+	case *ast.IfExpr, *ast.MatchExpr, *ast.LoopExpr:
+		g.writeLine("func() interface{} {")
+		g.indent++
+		g.genExprWithPrefix(expr, "return ")
+		g.writeLine("")
+		g.indent--
+		g.write("}()")
+	default:
+		g.genExpr(expr)
+	}
+}
+
 func (g *Generator) genExpr(expr ast.Expr) {
 	if expr == nil {
 		return
@@ -427,7 +438,7 @@ func (g *Generator) genExpr(expr ast.Expr) {
 			if i > 0 {
 				g.write(", ")
 			}
-			g.genExpr(elt)
+			g.genExprAsValue(elt)
 		}
 		g.write("}")
 
@@ -437,9 +448,9 @@ func (g *Generator) genExpr(expr ast.Expr) {
 			if i > 0 {
 				g.write(", ")
 			}
-			g.genExpr(pair.Key)
+			g.genExprAsValue(pair.Key)
 			g.write(": ")
-			g.genExpr(pair.Value)
+			g.genExprAsValue(pair.Value)
 		}
 		g.write("}")
 
@@ -649,9 +660,9 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 			// Binary operators
 			if len(call.Args) >= 2 {
 				g.write("(")
-				g.genExpr(call.Args[0])
+				g.genExprWithNumericAssertion(call.Args[0])
 				g.write(fmt.Sprintf(" %s ", sym.Name))
-				g.genExpr(call.Args[1])
+				g.genExprWithNumericAssertion(call.Args[1])
 				g.write(")")
 				return
 			}
@@ -979,7 +990,7 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 				}
 			}
 		}
-		g.genExpr(arg)
+		g.genExprAsValue(arg)
 	}
 	g.write(")")
 }
@@ -1028,9 +1039,7 @@ func (g *Generator) genDo(doExpr *ast.DoExpr) {
 
 func (g *Generator) genLet(letExpr *ast.LetExpr) {
 	for _, binding := range letExpr.Bindings {
-		g.write(capitalize(sanitizeIdent(binding.Name)))
-		g.write(" := ")
-		g.genExpr(binding.Init)
+		g.genExprWithPrefix(binding.Init, capitalize(sanitizeIdent(binding.Name))+" := ")
 		g.writeLine("")
 	}
 	for _, expr := range letExpr.Body {
@@ -1054,9 +1063,9 @@ func (g *Generator) genMatch(m *ast.MatchExpr, prefix string) {
 		g.indent++
 	}
 	if isTypeSwitch {
-		g.write("switch v := ")
+		g.write("switch v := interface{}(")
 		g.genExpr(m.Val)
-		g.writeLine(".(type) {")
+		g.writeLine(").(type) {")
 	} else {
 		g.write("switch ")
 		g.genExpr(m.Val)
@@ -1090,7 +1099,7 @@ func (g *Generator) genMatch(m *ast.MatchExpr, prefix string) {
 					g.indent++
 					// Bind the value if there's a binding symbol
 					if len(call.Args) > 0 {
-						if sym, ok := call.Args[0].(*ast.Symbol); ok {
+						if sym, ok := call.Args[0].(*ast.Symbol); ok && sym.Name != "_" {
 							g.writeLine(fmt.Sprintf("%s := v.Value", func() string {
 								name := sanitizeIdent(sym.Name)
 								if name == "assert" || name == "assert_eq" {
@@ -1159,11 +1168,26 @@ func (g *Generator) genExprWithPrefix(expr ast.Expr, prefix string) {
 
 	switch ex := expr.(type) {
 	case *ast.IfExpr:
-		g.genIf(ex, prefix)
+		if prefix == "return " {
+			g.genIf(ex, prefix)
+		} else {
+			g.write(prefix)
+			g.genExprAsValue(ex)
+		}
 	case *ast.MatchExpr:
-		g.genMatch(ex, prefix)
+		if prefix == "return " {
+			g.genMatch(ex, prefix)
+		} else {
+			g.write(prefix)
+			g.genExprAsValue(ex)
+		}
 	case *ast.LoopExpr:
-		g.genLoop(ex, prefix)
+		if prefix == "return " {
+			g.genLoop(ex, prefix)
+		} else {
+			g.write(prefix)
+			g.genExprAsValue(ex)
+		}
 	default:
 		g.write(prefix)
 		g.genExpr(ex)
@@ -1209,9 +1233,7 @@ func (g *Generator) genLoop(l *ast.LoopExpr, prefix string) {
 	for _, b := range l.Bindings {
 		name := capitalize(sanitizeIdent(b.Name))
 		names = append(names, name)
-		g.write(name)
-		g.write(" := ")
-		g.genExpr(b.Init)
+		g.genExprWithPrefix(b.Init, name+" := ")
 		g.writeLine("")
 	}
 	// Push loop binding names to stack
@@ -1274,7 +1296,7 @@ func (g *Generator) genSelect(s *ast.SelectExpr) {
 			g.writeLine("default:")
 		} else {
 			g.write("case ")
-			if c.Binding != "" {
+			if c.Binding != "" && c.Binding != "_" {
 				g.write(fmt.Sprintf("%s := ", capitalize(sanitizeIdent(c.Binding))))
 			}
 			g.write("<-")
@@ -1282,6 +1304,9 @@ func (g *Generator) genSelect(s *ast.SelectExpr) {
 			g.writeLine(":")
 		}
 		g.indent++
+		if c.Binding != "" && c.Binding != "_" {
+			g.writeLine(fmt.Sprintf("_ = %s", capitalize(sanitizeIdent(c.Binding))))
+		}
 		for _, expr := range c.Body {
 			g.genExpr(expr)
 			g.writeLine("")
@@ -1294,6 +1319,15 @@ func (g *Generator) genSelect(s *ast.SelectExpr) {
 // ============================================================================
 // Helpers
 // ============================================================================
+
+func (g *Generator) genExprWithNumericAssertion(expr ast.Expr) {
+	g.write("interface{")
+	g.indent++
+	g.write("}(")
+	g.indent--
+	g.genExpr(expr)
+	g.write(").(int64)")
+}
 
 func (g *Generator) typeToGoString(t ast.Type) string {
 	if t == nil {
