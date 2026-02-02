@@ -81,3 +81,30 @@ func TestParseSumType(t *testing.T) {
 		t.Errorf("expected 2 variants, got %d", len(deftype.Variants))
 	}
 }
+
+func TestParsePackage(t *testing.T) {
+	input := `(package myutils)`
+	l := lexer.New(input)
+	p := New(l)
+	prog, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	if prog.Package != "myutils" {
+		t.Errorf("expected program package 'myutils', got %q", prog.Package)
+	}
+
+	if len(prog.Items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(prog.Items))
+	}
+
+	pkg, ok := prog.Items[0].(*ast.Package)
+	if !ok {
+		t.Fatalf("expected *ast.Package, got %T", prog.Items[0])
+	}
+
+	if pkg.Name != "myutils" {
+		t.Errorf("expected package name 'myutils', got %q", pkg.Name)
+	}
+}

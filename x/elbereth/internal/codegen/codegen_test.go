@@ -64,3 +64,24 @@ func TestGenerateWithExpander(t *testing.T) {
 		}
 	}
 }
+
+func TestGeneratePackage(t *testing.T) {
+	input := `(package myutils) (defn add [x y] (+ x y))`
+	l := lexer.New(input)
+	p := parser.New(l)
+	prog, _ := p.Parse()
+
+	gen := New()
+	code, err := gen.Generate(prog)
+	if err != nil {
+		t.Fatalf("Generate error: %v", err)
+	}
+
+	if !strings.Contains(code, "package myutils") {
+		t.Errorf("expected package myutils, got %s", code)
+	}
+
+	if strings.Contains(code, "package main") {
+		t.Errorf("did not expect package main, got %s", code)
+	}
+}
