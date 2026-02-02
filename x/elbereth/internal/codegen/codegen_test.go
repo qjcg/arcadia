@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"elbereth/internal/expander"
-	"elbereth/internal/lexer"
-	"elbereth/internal/parser"
+	"github.com/qjcg/arcadia/x/elbereth/internal/expander"
+	"github.com/qjcg/arcadia/x/elbereth/internal/lexer"
+	"github.com/qjcg/arcadia/x/elbereth/internal/parser"
 )
 
 func TestGenerateSimple(t *testing.T) {

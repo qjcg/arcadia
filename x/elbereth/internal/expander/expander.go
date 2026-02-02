@@ -3,7 +3,7 @@ package expander
 import (
 	"fmt"
 
-	"elbereth/internal/ast"
+	"github.com/qjcg/arcadia/x/elbereth/internal/ast"
 )
 
 // Expander expands macros in an Elbereth AST

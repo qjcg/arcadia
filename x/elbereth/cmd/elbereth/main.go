@@ -7,12 +7,12 @@ import (
 	"os/exec"
 	"strings"
 
-	"elbereth/internal/ast"
-	"elbereth/internal/codegen"
-	"elbereth/internal/expander"
-	"elbereth/internal/lexer"
-	"elbereth/internal/parser"
-	"elbereth/internal/repl"
+	"github.com/qjcg/arcadia/x/elbereth/internal/ast"
+	"github.com/qjcg/arcadia/x/elbereth/internal/codegen"
+	"github.com/qjcg/arcadia/x/elbereth/internal/expander"
+	"github.com/qjcg/arcadia/x/elbereth/internal/lexer"
+	"github.com/qjcg/arcadia/x/elbereth/internal/parser"
+	"github.com/qjcg/arcadia/x/elbereth/internal/repl"
 )
 
 const Version = "0.1.0"

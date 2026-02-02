@@ -5,7 +5,7 @@ import (
 	"math"
 	"strings"
 
-	"elbereth/internal/ast"
+	"github.com/qjcg/arcadia/x/elbereth/internal/ast"
 )
 
 // Value represents a runtime value

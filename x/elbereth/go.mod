@@ -1,4 +1,4 @@
-module elbereth
+module github.com/qjcg/arcadia/x/elbereth
 
 go 1.25.6
 

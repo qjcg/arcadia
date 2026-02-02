@@ -3,9 +3,9 @@ package expander
 import (
 	"testing"
 
-	"elbereth/internal/ast"
-	"elbereth/internal/lexer"
-	"elbereth/internal/parser"
+	"github.com/qjcg/arcadia/x/elbereth/internal/ast"
+	"github.com/qjcg/arcadia/x/elbereth/internal/lexer"
+	"github.com/qjcg/arcadia/x/elbereth/internal/parser"
 )
 
 func TestMacroExpansion(t *testing.T) {

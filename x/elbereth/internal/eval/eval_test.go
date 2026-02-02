@@ -3,8 +3,8 @@ package eval
 import (
 	"testing"
 
-	"elbereth/internal/lexer"
-	"elbereth/internal/parser"
+	"github.com/qjcg/arcadia/x/elbereth/internal/lexer"
+	"github.com/qjcg/arcadia/x/elbereth/internal/parser"
 )
 
 func TestEvalArithmetic(t *testing.T) {

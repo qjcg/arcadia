@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"elbereth/internal/ast"
-	"elbereth/internal/lexer"
+	"github.com/qjcg/arcadia/x/elbereth/internal/ast"
+	"github.com/qjcg/arcadia/x/elbereth/internal/lexer"
 )
 
 // Parser parses Elbereth source code into an AST

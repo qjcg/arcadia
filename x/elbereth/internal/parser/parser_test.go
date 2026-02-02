@@ -3,8 +3,8 @@ package parser
 import (
 	"testing"
 
-	"elbereth/internal/ast"
-	"elbereth/internal/lexer"
+	"github.com/qjcg/arcadia/x/elbereth/internal/ast"
+	"github.com/qjcg/arcadia/x/elbereth/internal/lexer"
 )
 
 func TestParseDefn(t *testing.T) {

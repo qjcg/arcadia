@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"elbereth/internal/ast"
-	"elbereth/internal/types"
+	"github.com/qjcg/arcadia/x/elbereth/internal/ast"
+	"github.com/qjcg/arcadia/x/elbereth/internal/types"
 )
 
 // Generator generates Go code from Elbereth AST
