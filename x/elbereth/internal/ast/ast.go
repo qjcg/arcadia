@@ -400,12 +400,27 @@ func (n *Package) String() string { return fmt.Sprintf("(package %s)", n.Name) }
 // Import represents (import "path") or (import [alias "path"])
 type Import struct {
 	Loc   Position
+	Specs []ImportSpec
+}
+
+type ImportSpec struct {
 	Path  string
 	Alias string // empty if no alias
 }
 
-func (n *Import) Pos() Position  { return n.Loc }
-func (n *Import) String() string { return fmt.Sprintf("(import %s)", n.Path) }
+func (n *Import) Pos() Position { return n.Loc }
+func (n *Import) String() string {
+	res := "(import"
+	for _, spec := range n.Specs {
+		if spec.Alias != "" {
+			res += fmt.Sprintf(" [%s %q]", spec.Alias, spec.Path)
+		} else {
+			res += fmt.Sprintf(" %q", spec.Path)
+		}
+	}
+	res += ")"
+	return res
+}
 
 // ============================================================================
 // Types

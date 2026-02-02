@@ -1,5 +1,5 @@
-(import "math")
-(import [tm "time"])
+(import "math"
+        [tm "time"])
 
 (deftest import-test
   (println "Square root of 16 is " (math/Sqrt 16.0))

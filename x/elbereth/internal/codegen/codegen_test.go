@@ -102,3 +102,26 @@ func TestGeneratePackage(t *testing.T) {
 		t.Errorf("did not expect package main, got %s", code)
 	}
 }
+
+func TestGenerateMultiImport(t *testing.T) {
+	input := `(import "fmt" "math" [time "time"])`
+	l := lexer.New(input)
+	p := parser.New(l)
+	prog, _ := p.Parse()
+
+	gen := New()
+	code, err := gen.Generate(prog)
+	if err != nil {
+		t.Fatalf("Generate error: %v", err)
+	}
+
+	if !strings.Contains(code, `"fmt"`) {
+		t.Errorf("expected fmt import, got %s", code)
+	}
+	if !strings.Contains(code, `"math"`) {
+		t.Errorf("expected math import, got %s", code)
+	}
+	if !strings.Contains(code, `time "time"`) {
+		t.Errorf("expected time aliased import, got %s", code)
+	}
+}

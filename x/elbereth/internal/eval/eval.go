@@ -299,20 +299,22 @@ func (e *Evaluator) EvalTop(node ast.Node) (Value, error) {
 		return NilVal{}, nil
 
 	case *ast.Import:
-		name := n.Path
-		if n.Alias != "" {
-			name = n.Alias
-		}
-		// If it's a known namespace, we're good
-		if _, ok := e.Namespaces[n.Path]; ok {
-			if n.Alias != "" {
-				e.Namespaces[name] = e.Namespaces[n.Path]
+		for _, spec := range n.Specs {
+			name := spec.Path
+			if spec.Alias != "" {
+				name = spec.Alias
 			}
-			return NilVal{}, nil
+			// If it's a known namespace, we're good
+			if _, ok := e.Namespaces[spec.Path]; ok {
+				if spec.Alias != "" {
+					e.Namespaces[name] = e.Namespaces[spec.Path]
+				}
+				continue
+			}
+			// Otherwise, create an empty one to avoid errors later,
+			// though it won't have any symbols.
+			e.Namespaces[name] = NewEnv(nil)
 		}
-		// Otherwise, create an empty one to avoid errors later,
-		// though it won't have any symbols.
-		e.Namespaces[name] = NewEnv(nil)
 		return NilVal{}, nil
 
 	case ast.Expr:

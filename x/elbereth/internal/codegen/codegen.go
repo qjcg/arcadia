@@ -16,7 +16,7 @@ type Generator struct {
 	inferredTypes map[ast.Expr]types.Type
 	functions     map[string]*ast.Defn // function definitions
 	structs       map[string]*ast.Deftype
-	imports       []*ast.Import
+	imports       []ast.ImportSpec
 	variants      map[string]string // variant tag -> parent type name
 	loopStack     [][]string        // stack of loop binding names for recur
 	isTest        bool
@@ -117,12 +117,14 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 		g.checkFmtUsage(item)
 		switch n := item.(type) {
 		case *ast.Import:
-			g.imports = append(g.imports, n)
-			if n.Alias != "" {
-				g.pkgNames[n.Alias] = true
-			} else {
-				parts := strings.Split(n.Path, "/")
-				g.pkgNames[parts[len(parts)-1]] = true
+			for _, spec := range n.Specs {
+				g.imports = append(g.imports, spec)
+				if spec.Alias != "" {
+					g.pkgNames[spec.Alias] = true
+				} else {
+					parts := strings.Split(spec.Path, "/")
+					g.pkgNames[parts[len(parts)-1]] = true
+				}
 			}
 		case *ast.Defn:
 			g.functions[n.Name] = n

@@ -108,3 +108,38 @@ func TestParsePackage(t *testing.T) {
 		t.Errorf("expected package name 'myutils', got %q", pkg.Name)
 	}
 }
+
+func TestParseImport(t *testing.T) {
+	input := `(import "fmt" "math" [time "time"])`
+	l := lexer.New(input)
+	p := New(l)
+	prog, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	if len(prog.Items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(prog.Items))
+	}
+
+	imp, ok := prog.Items[0].(*ast.Import)
+	if !ok {
+		t.Fatalf("expected *ast.Import, got %T", prog.Items[0])
+	}
+
+	if len(imp.Specs) != 3 {
+		t.Fatalf("expected 3 specs, got %d", len(imp.Specs))
+	}
+
+	if imp.Specs[0].Path != "fmt" {
+		t.Errorf("expected spec 0 path 'fmt', got %q", imp.Specs[0].Path)
+	}
+
+	if imp.Specs[1].Path != "math" {
+		t.Errorf("expected spec 1 path 'math', got %q", imp.Specs[1].Path)
+	}
+
+	if imp.Specs[2].Alias != "time" || imp.Specs[2].Path != "time" {
+		t.Errorf("expected spec 2 [time \"time\"], got [%s %q]", imp.Specs[2].Alias, imp.Specs[2].Path)
+	}
+}

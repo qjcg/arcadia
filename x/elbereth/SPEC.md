@@ -373,9 +373,9 @@ All values have Go runtime representations. Elbereth infers types at compile tim
 ### Importing Go Packages
 
 ```lisp
-(import "encoding/json")
-(import "fmt")
-(import "net/http")
+(import "encoding/json"
+        "fmt"
+        "net/http")
 
 ; aliased import
 (import [json "encoding/json"])

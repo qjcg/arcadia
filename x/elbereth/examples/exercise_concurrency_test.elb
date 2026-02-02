@@ -1,5 +1,5 @@
-(import "sync/atomic")
-(import "sync")
+(import "sync/atomic"
+        "sync")
 
 (deftype Counter {val int64})
 

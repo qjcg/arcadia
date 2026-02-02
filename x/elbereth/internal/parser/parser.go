@@ -639,35 +639,41 @@ func (p *Parser) parsePackageAfterSymbol(loc ast.Position) ast.Node {
 }
 
 func (p *Parser) parseImportAfterSymbol(loc ast.Position) ast.Node {
-	// (import "path") or (import [alias "path"])
-	var path, alias string
+	// (import "path" "path2" [alias "path3"] ...)
+	var specs []ast.ImportSpec
 
-	if p.current.Type == lexer.TokenString {
-		path = p.current.Value
-		p.advance()
-	} else if p.current.Type == lexer.TokenLBracket {
-		p.advance() // [
-		if p.current.Type != lexer.TokenSymbol {
-			p.error("import: expected alias symbol")
-		} else {
-			alias = p.current.Value
-			p.advance()
-		}
+	for p.current.Type != lexer.TokenRParen && p.current.Type != lexer.TokenEOF {
+		var path, alias string
 
-		if p.current.Type != lexer.TokenString {
-			p.error("import: expected path string")
-		} else {
+		if p.current.Type == lexer.TokenString {
 			path = p.current.Value
 			p.advance()
+		} else if p.current.Type == lexer.TokenLBracket {
+			p.advance() // [
+			if p.current.Type != lexer.TokenSymbol {
+				p.error("import: expected alias symbol")
+			} else {
+				alias = p.current.Value
+				p.advance()
+			}
+
+			if p.current.Type != lexer.TokenString {
+				p.error("import: expected path string")
+			} else {
+				path = p.current.Value
+				p.advance()
+			}
+			p.expect(lexer.TokenRBracket)
+		} else {
+			p.error("import: expected string or [alias \"path\"]")
+			p.advance()
+			break
 		}
-		p.expect(lexer.TokenRBracket)
-	} else {
-		p.error("import: expected string or [alias \"path\"]")
-		p.advance()
+		specs = append(specs, ast.ImportSpec{Path: path, Alias: alias})
 	}
 
 	p.expect(lexer.TokenRParen)
-	return &ast.Import{Loc: loc, Path: path, Alias: alias}
+	return &ast.Import{Loc: loc, Specs: specs}
 }
 
 func (p *Parser) parseFnAfterSymbol(loc ast.Position) ast.Expr {
