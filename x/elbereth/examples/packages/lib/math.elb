@@ -1,0 +1,7 @@
+(package lib)
+
+(defn Square [x]
+  (* x x))
+
+(defn Cube [x]
+  (* x (* x x)))

@@ -1,0 +1,5 @@
+(package lib)
+
+(deftest math-test
+  (assert-eq (Square 10) 100)
+  (assert-eq (Cube 2) 8))
