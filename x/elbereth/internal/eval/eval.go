@@ -59,15 +59,16 @@ type VectorVal struct {
 
 func (v VectorVal) TypeName() string { return "vector" }
 func (v VectorVal) String() string {
-	result := "["
+	var sb strings.Builder
+	sb.WriteByte('[')
 	for i, el := range v.Elements {
 		if i > 0 {
-			result += " "
+			sb.WriteByte(' ')
 		}
-		result += el.String()
+		sb.WriteString(el.String())
 	}
-	result += "]"
-	return result
+	sb.WriteByte(']')
+	return sb.String()
 }
 
 // MapVal represents a map
@@ -77,17 +78,20 @@ type MapVal struct {
 
 func (v MapVal) TypeName() string { return "map" }
 func (v MapVal) String() string {
-	result := "{"
+	var sb strings.Builder
+	sb.WriteByte('{')
 	first := true
 	for k, val := range v.Pairs {
 		if !first {
-			result += " "
+			sb.WriteByte(' ')
 		}
-		result += fmt.Sprintf("%s %s", k, val.String())
+		sb.WriteString(k)
+		sb.WriteByte(' ')
+		sb.WriteString(val.String())
 		first = false
 	}
-	result += "}"
-	return result
+	sb.WriteByte('}')
+	return sb.String()
 }
 
 // NodeVal represents an AST node as a value

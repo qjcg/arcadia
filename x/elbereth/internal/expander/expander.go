@@ -9,6 +9,7 @@ import (
 // Expander expands macros in an Elbereth AST
 type Expander struct {
 	macros map[string]*ast.Defmacro
+	gensym int
 }
 
 // New creates a new expander
@@ -254,7 +255,7 @@ func (e *Expander) expandExpr(expr ast.Expr, depth int) (ast.Expr, error) {
 		// When we hit a backquote in normal code (not inside a macro template),
 		// it should be fully expanded (unquoted parts substituted).
 		// For now, we expand it with no bindings.
-		return e.expandBackquote(n.Expr, nil, depth+1)
+		return e.expandBackquote(n.Expr, nil, nil, depth+1)
 
 	case *ast.UnquoteExpr:
 		return e.expandExpr(n.Expr, depth+1)
@@ -279,7 +280,9 @@ func (e *Expander) expandExpr(expr ast.Expr, depth int) (ast.Expr, error) {
 }
 
 func (e *Expander) expandMacroCall(macro *ast.Defmacro, call *ast.FuncCall, depth int) (ast.Expr, error) {
-	bindings := make(map[string]interface{})
+	e.gensym++
+	id := e.gensym
+	bindings := make(map[string]any)
 
 	for i, param := range macro.Params {
 		if param.Variadic {
@@ -299,16 +302,69 @@ func (e *Expander) expandMacroCall(macro *ast.Defmacro, call *ast.FuncCall, dept
 
 	// If template is backquoted, expand its content with bindings.
 	if bq, ok := template.(*ast.BackquoteExpr); ok {
-		return e.expandBackquote(bq.Expr, bindings, depth+1)
+		// Identify local variables to rename for hygiene
+		localRenames := make(map[string]string)
+		e.collectLocalBindings(bq.Expr, localRenames, id)
+		return e.expandBackquote(bq.Expr, bindings, localRenames, depth+1)
 	}
 
 	// Otherwise return template as is
 	return template, nil
 }
 
-func (e *Expander) expandBackquote(expr ast.Expr, bindings map[string]interface{}, depth int) (ast.Expr, error) {
+func (e *Expander) collectLocalBindings(expr ast.Expr, renames map[string]string, id int) {
+	if expr == nil {
+		return
+	}
+	switch n := expr.(type) {
+	case *ast.LetExpr:
+		for _, b := range n.Bindings {
+			if _, ok := renames[b.Name]; !ok {
+				renames[b.Name] = fmt.Sprintf("%s_%d", b.Name, id)
+			}
+		}
+		for _, inner := range n.Body {
+			e.collectLocalBindings(inner, renames, id)
+		}
+	case *ast.FuncCall:
+		// Also handle (let [...]) that are not yet reified
+		if sym, ok := n.Func.(*ast.Symbol); ok && sym.Name == "let" {
+			if len(n.Args) >= 1 {
+				if v, ok := n.Args[0].(*ast.VectorLit); ok {
+					for i := 0; i+1 < len(v.Elts); i += 2 {
+						if nameSym, ok := v.Elts[i].(*ast.Symbol); ok {
+							if _, ok := renames[nameSym.Name]; !ok {
+								renames[nameSym.Name] = fmt.Sprintf("%s_%d", nameSym.Name, id)
+							}
+						}
+					}
+				}
+			}
+		}
+		for _, arg := range n.Args {
+			e.collectLocalBindings(arg, renames, id)
+		}
+	case *ast.IfExpr:
+		e.collectLocalBindings(n.Cond, renames, id)
+		e.collectLocalBindings(n.Then, renames, id)
+		e.collectLocalBindings(n.Else, renames, id)
+	case *ast.DoExpr:
+		for _, inner := range n.Exprs {
+			e.collectLocalBindings(inner, renames, id)
+		}
+	case *ast.VectorLit:
+		for _, elt := range n.Elts {
+			e.collectLocalBindings(elt, renames, id)
+		}
+	}
+}
+
+func (e *Expander) expandBackquote(expr ast.Expr, bindings map[string]any, renames map[string]string, depth int) (ast.Expr, error) {
 	if depth > 1000 {
 		return nil, fmt.Errorf("maximum expansion depth exceeded in backquote")
+	}
+	if expr == nil {
+		return nil, nil
 	}
 
 	switch n := expr.(type) {
@@ -321,8 +377,13 @@ func (e *Expander) expandBackquote(expr ast.Expr, bindings map[string]interface{
 				}
 			}
 		}
-		// If not in bindings, return expression as is (or keep unquote if supporting nested)
 		return n.Expr, nil
+
+	case *ast.Symbol:
+		if newName, ok := renames[n.Name]; ok {
+			return &ast.Symbol{Loc: n.Loc, Name: newName}, nil
+		}
+		return n, nil
 
 	case *ast.FuncCall:
 		var newArgs []ast.Expr
@@ -337,14 +398,14 @@ func (e *Expander) expandBackquote(expr ast.Expr, bindings map[string]interface{
 					}
 				}
 			}
-			expanded, err := e.expandBackquote(arg, bindings, depth+1)
+			expanded, err := e.expandBackquote(arg, bindings, renames, depth+1)
 			if err != nil {
 				return nil, err
 			}
 			newArgs = append(newArgs, expanded)
 		}
 
-		newFunc, err := e.expandBackquote(n.Func, bindings, depth+1)
+		newFunc, err := e.expandBackquote(n.Func, bindings, renames, depth+1)
 		if err != nil {
 			return nil, err
 		}
@@ -364,7 +425,7 @@ func (e *Expander) expandBackquote(expr ast.Expr, bindings map[string]interface{
 					}
 				}
 			}
-			expanded, err := e.expandBackquote(elt, bindings, depth+1)
+			expanded, err := e.expandBackquote(elt, bindings, renames, depth+1)
 			if err != nil {
 				return nil, err
 			}
@@ -373,17 +434,17 @@ func (e *Expander) expandBackquote(expr ast.Expr, bindings map[string]interface{
 		return &ast.VectorLit{Loc: n.Loc, Elts: newElts}, nil
 
 	case *ast.IfExpr:
-		cond, err := e.expandBackquote(n.Cond, bindings, depth+1)
+		cond, err := e.expandBackquote(n.Cond, bindings, renames, depth+1)
 		if err != nil {
 			return nil, err
 		}
-		then, err := e.expandBackquote(n.Then, bindings, depth+1)
+		then, err := e.expandBackquote(n.Then, bindings, renames, depth+1)
 		if err != nil {
 			return nil, err
 		}
 		var elseExpr ast.Expr
 		if n.Else != nil {
-			elseExpr, err = e.expandBackquote(n.Else, bindings, depth+1)
+			elseExpr, err = e.expandBackquote(n.Else, bindings, renames, depth+1)
 			if err != nil {
 				return nil, err
 			}
@@ -403,7 +464,7 @@ func (e *Expander) expandBackquote(expr ast.Expr, bindings map[string]interface{
 					}
 				}
 			}
-			expanded, err := e.expandBackquote(ex, bindings, depth+1)
+			expanded, err := e.expandBackquote(ex, bindings, renames, depth+1)
 			if err != nil {
 				return nil, err
 			}
@@ -414,11 +475,12 @@ func (e *Expander) expandBackquote(expr ast.Expr, bindings map[string]interface{
 	case *ast.LetExpr:
 		var newBindings []*ast.Binding
 		for _, b := range n.Bindings {
-			expanded, err := e.expandBackquote(b.Init, bindings, depth+1)
-			if err != nil {
-				return nil, err
+			expandedInit, _ := e.expandBackquote(b.Init, bindings, renames, depth+1)
+			name := b.Name
+			if newName, ok := renames[name]; ok {
+				name = newName
 			}
-			newBindings = append(newBindings, &ast.Binding{Name: b.Name, Init: expanded, Type: b.Type})
+			newBindings = append(newBindings, &ast.Binding{Name: name, Init: expandedInit, Type: b.Type})
 		}
 		var newBody []ast.Expr
 		for _, ex := range n.Body {
@@ -432,7 +494,7 @@ func (e *Expander) expandBackquote(expr ast.Expr, bindings map[string]interface{
 					}
 				}
 			}
-			expanded, err := e.expandBackquote(ex, bindings, depth+1)
+			expanded, err := e.expandBackquote(ex, bindings, renames, depth+1)
 			if err != nil {
 				return nil, err
 			}

@@ -1,9 +1,9 @@
 package lib
 
-func Square(X interface{}) interface{} {
-	return (interface{}(X).(int64) * interface{}(X).(int64))
+func Square(X any) any {
+	return (any(X).(int64) * any(X).(int64))
 }
 
-func Cube(X interface{}) interface{} {
-	return (interface{}(X).(int64) * interface{}((interface{}(X).(int64) * interface{}(X).(int64))).(int64))
+func Cube(X any) any {
+	return (any(X).(int64) * any((any(X).(int64) * any(X).(int64))).(int64))
 }

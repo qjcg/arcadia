@@ -1,6 +1,9 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Type represents a type in the type system
 type Type interface {
@@ -87,14 +90,18 @@ type FuncType struct {
 }
 
 func (t *FuncType) String() string {
-	params := ""
+	var sb strings.Builder
+	sb.WriteString("fn(")
 	for i, p := range t.ParamTypes {
 		if i > 0 {
-			params += ", "
+			sb.WriteString(", ")
 		}
-		params += p.String()
+		sb.WriteString(p.String())
 	}
-	return fmt.Sprintf("fn(%s) %s", params, t.ReturnType)
+	sb.WriteByte(')')
+	sb.WriteByte(' ')
+	sb.WriteString(t.ReturnType.String())
+	return sb.String()
 }
 func (t *FuncType) isType() {}
 
