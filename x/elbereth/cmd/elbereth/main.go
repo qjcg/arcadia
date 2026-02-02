@@ -11,6 +11,9 @@ import (
 	"github.com/qjcg/arcadia/x/elbereth/internal/ast"
 	"github.com/qjcg/arcadia/x/elbereth/internal/codegen"
 	"github.com/qjcg/arcadia/x/elbereth/internal/expander"
+	"github.com/qjcg/arcadia/x/elbereth/internal/lang"
+	_ "github.com/qjcg/arcadia/x/elbereth/internal/lang/epdsl"
+	_ "github.com/qjcg/arcadia/x/elbereth/internal/lang/minimal"
 	"github.com/qjcg/arcadia/x/elbereth/internal/lexer"
 	"github.com/qjcg/arcadia/x/elbereth/internal/parser"
 	"github.com/qjcg/arcadia/x/elbereth/internal/repl"
@@ -289,6 +292,25 @@ func runPackage(path string) {
 	}
 }
 
+func parseWithLang(data []byte) (*ast.Program, error) {
+	lex := lexer.New(string(data))
+	p := parser.New(lex)
+	prog, err := p.Parse()
+	if err != nil {
+		return nil, err
+	}
+
+	if prog.Lang != "" {
+		l, err := lang.Get(prog.Lang)
+		if err != nil {
+			return nil, err
+		}
+		return l.Parse(string(data))
+	}
+
+	return prog, nil
+}
+
 func transcodeFile(filename string) (string, error) {
 	absPath, _ := filepath.Abs(filename)
 	data, err := os.ReadFile(filename)
@@ -296,23 +318,30 @@ func transcodeFile(filename string) (string, error) {
 		return "", err
 	}
 
-	lex := lexer.New(string(data))
-	p := parser.New(lex)
-	prog, err := p.Parse()
+	prog, err := parseWithLang(data)
 	if err != nil {
 		return "", err
 	}
 
 	if prog.Package == "" {
+		// Default to directory name, but force 'main' if it's a standalone run
+		// or if it's a special DSL.
 		prog.Package = filepath.Base(filepath.Dir(absPath))
-		if prog.Package == "." || prog.Package == "/" {
+		if prog.Package == "." || prog.Package == "/" || prog.Lang != "" {
 			prog.Package = "main"
 		}
 	}
 
 	gen := codegen.New()
-	ex := expander.New()
-	ex.Expand(prog)
+	if prog.Lang != "" {
+		l, _ := lang.Get(prog.Lang)
+		if err := l.Expand(prog); err != nil {
+			return "", err
+		}
+	} else {
+		ex := expander.New()
+		ex.Expand(prog)
+	}
 	goCode, err := gen.Generate(prog)
 	if err != nil {
 		return "", err
@@ -336,32 +365,42 @@ func runGoCommand(command string, args ...string) {
 
 func testFiles(filenames []string, testFlags []string) {
 	var allItems []ast.Node
+	var firstLang string
 
-	for _, filename := range filenames {
+	for i, filename := range filenames {
 		data, err := os.ReadFile(filename)
 		if err != nil {
 			fmt.Printf("Error reading file %s: %v\n", filename, err)
 			os.Exit(1)
 		}
 
-		lex := lexer.New(string(data))
-		p := parser.New(lex)
-		prog, err := p.Parse()
+		prog, err := parseWithLang(data)
 		if err != nil {
 			fmt.Printf("Parse error in %s: %v\n", filename, err)
 			os.Exit(1)
 		}
+		if i == 0 {
+			firstLang = prog.Lang
+		}
 		allItems = append(allItems, prog.Items...)
 	}
 
-	prog := &ast.Program{Items: allItems}
+	prog := &ast.Program{Items: allItems, Lang: firstLang}
 
 	gen := codegen.New()
 	gen.SetTestMode(true)
-	ex := expander.New()
-	if err := ex.Expand(prog); err != nil {
-		fmt.Printf("Expansion error: %v\n", err)
-		os.Exit(1)
+	if prog.Lang != "" {
+		l, _ := lang.Get(prog.Lang)
+		if err := l.Expand(prog); err != nil {
+			fmt.Printf("Expansion error: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		ex := expander.New()
+		if err := ex.Expand(prog); err != nil {
+			fmt.Printf("Expansion error: %v\n", err)
+			os.Exit(1)
+		}
 	}
 	goCode, err := gen.Generate(prog)
 	if err != nil {
@@ -399,19 +438,25 @@ func genCode(filename string) {
 		os.Exit(1)
 	}
 
-	lex := lexer.New(string(data))
-	p := parser.New(lex)
-	prog, err := p.Parse()
+	prog, err := parseWithLang(data)
 	if err != nil {
 		fmt.Printf("Parse error: %v\n", err)
 		os.Exit(1)
 	}
 
 	gen := codegen.New()
-	ex := expander.New()
-	if err := ex.Expand(prog); err != nil {
-		fmt.Printf("Expansion error: %v\n", err)
-		os.Exit(1)
+	if prog.Lang != "" {
+		l, _ := lang.Get(prog.Lang)
+		if err := l.Expand(prog); err != nil {
+			fmt.Printf("Expansion error: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		ex := expander.New()
+		if err := ex.Expand(prog); err != nil {
+			fmt.Printf("Expansion error: %v\n", err)
+			os.Exit(1)
+		}
 	}
 	goCode, err := gen.Generate(prog)
 	if err != nil {

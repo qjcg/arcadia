@@ -486,7 +486,8 @@ func (n *FuncType) String() string { return "fn" }
 // Program represents an entire Elbereth program
 type Program struct {
 	Loc     Position
-	Package string // inferred or declared via (defmodule)
+	Lang    string // From #lang ...
+	Package string // inferred or declared via (package ...)
 	Items   []Node // mix of Def, Defn, Deftype, Defmacro, or Expr at top level
 }
 

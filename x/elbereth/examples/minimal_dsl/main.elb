@@ -1,0 +1,4 @@
+#lang minimal
+Hello Elbereth!
+This is a DSL test.
+Every line here will be printed.

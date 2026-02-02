@@ -35,6 +35,7 @@ const (
 	TokenBackquote
 	TokenUnquote
 	TokenUnquoteSplice
+	TokenHashLang
 
 	// Special
 	TokenNewline
@@ -132,8 +133,14 @@ func (l *Lexer) Next() Token {
 	}
 
 	// Block comments
-	if ch == '#' && l.peekNext() == '|' {
-		return l.lexBlockComment()
+	if ch == '#' {
+		if l.peekNext() == '|' {
+			return l.lexBlockComment()
+		}
+		// Check for #lang
+		if l.input[l.pos:min(l.pos+5, len(l.input))] == "#lang" {
+			return l.lexHashLang()
+		}
 	}
 
 	// Keywords
@@ -208,6 +215,20 @@ func (l *Lexer) skipWhitespaceExceptNewline() {
 			break
 		}
 	}
+}
+
+func (l *Lexer) lexHashLang() Token {
+	line, col := l.line, l.column
+	l.pos += 5 // skip #lang
+	l.column += 5
+	return Token{Type: TokenHashLang, Value: "#lang", Line: line, Column: col}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func (l *Lexer) lexString() Token {
@@ -497,6 +518,8 @@ func (t TokenType) String() string {
 		return "UNQUOTE"
 	case TokenUnquoteSplice:
 		return "UNQUOTE_SPLICE"
+	case TokenHashLang:
+		return "HASHLANG"
 	case TokenNewline:
 		return "NEWLINE"
 	default:

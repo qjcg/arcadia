@@ -36,6 +36,20 @@ func (p *Parser) Parse() (*ast.Program, error) {
 		Items: []ast.Node{},
 	}
 
+	// Check for #lang at the very beginning
+	if p.current.Type == lexer.TokenHashLang {
+		p.advance()
+		if p.current.Type != lexer.TokenSymbol {
+			p.error("expected language name after #lang")
+		} else {
+			prog.Lang = p.current.Value
+			p.advance()
+			// If we found a #lang directive, we STOP parsing here
+			// and let the caller delegate the rest of the file.
+			return prog, nil
+		}
+	}
+
 	for p.current.Type != lexer.TokenEOF {
 		item := p.parseTopLevel()
 		if item != nil {
