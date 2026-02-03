@@ -1,0 +1,36 @@
+(package main)
+(import "net/http"
+        "golang.org/x/net/html"
+        "strings"
+        "os")
+
+(defn find-links [n *html.Node]
+  (if (!= n nil)
+    (do
+      (if (== (. n Type) html.ElementNode)
+        (if (== (. n Data) "a")
+          (doseq [attr (. n Attr)]
+            (if (== (. attr Key) "href")
+              (if (strings/HasPrefix (. attr Val) "http")
+                (println (. attr Val)))))))
+      (find-links (. n FirstChild))
+      (find-links (. n NextSibling))))
+  "done")
+
+(defn main []
+  (let [args os/Args]
+    (if (> (len args) 1)
+        (do
+          (println "Scraping CLI Argument:" (nth args 1))
+          (let [[res err] (http.Get (nth args 1))]
+            (if (== err nil)
+                (let [[doc _] (html.Parse (. res Body))]
+                   (find-links doc))
+                (println "Fetch Error"))))
+        (do
+          (println "Scraping Default (Hacker News)")
+          (let [[res err] (http.Get "https://news.ycombinator.com/")]
+            (if (== err nil)
+                (let [[doc _] (html.Parse (. res Body))]
+                   (find-links doc))
+                (println "Fetch Error")))))))
