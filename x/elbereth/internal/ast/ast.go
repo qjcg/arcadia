@@ -194,9 +194,9 @@ type LetExpr struct {
 }
 
 type Binding struct {
-	Name string
-	Init Expr
-	Type Type // nil if not specified
+	Names []string // Support [x y] for multi-value return
+	Init  Expr
+	Type  Type // nil if not specified
 }
 
 func (n *LetExpr) exprNode()      {}
@@ -239,6 +239,18 @@ type LoopExpr struct {
 func (n *LoopExpr) exprNode()      {}
 func (n *LoopExpr) Pos() Position  { return n.Loc }
 func (n *LoopExpr) String() string { return fmt.Sprintf("(loop ...)") }
+
+// DoseqExpr represents (doseq [x coll] body)
+type DoseqExpr struct {
+	Loc  Position
+	Var  string
+	Coll Expr
+	Body []Expr
+}
+
+func (n *DoseqExpr) exprNode()      {}
+func (n *DoseqExpr) Pos() Position  { return n.Loc }
+func (n *DoseqExpr) String() string { return fmt.Sprintf("(doseq [%s ...] ...)", n.Var) }
 
 // MatchExpr represents (match val pattern1 body1 ...)
 type MatchExpr struct {

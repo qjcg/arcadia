@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/qjcg/arcadia/x/elbereth/internal/ast"
+	"github.com/qjcg/arcadia/x/elbereth/internal/lexer"
 	"github.com/qjcg/arcadia/x/elbereth/internal/types"
 )
 
@@ -79,6 +80,11 @@ func (g *Generator) checkFmtUsage(node ast.Node) {
 		for _, b := range n.Bindings {
 			g.checkFmtUsage(b.Init)
 		}
+		for _, expr := range n.Body {
+			g.checkFmtUsage(expr)
+		}
+	case *ast.DoseqExpr:
+		g.checkFmtUsage(n.Coll)
 		for _, expr := range n.Body {
 			g.checkFmtUsage(expr)
 		}
@@ -212,6 +218,9 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 		case *ast.Def:
 			g.genDef(n)
 			g.writeLine("")
+		case *ast.DoseqExpr:
+			g.genDoseq(n)
+			g.writeLine("")
 		case *ast.Deftest:
 			g.genDeftest(n)
 			g.writeLine("")
@@ -225,6 +234,9 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 			// Package name handled in first pass
 		case *ast.Import:
 			// Imports handled in first pass
+		case *ast.FuncCall:
+			g.genExpr(n)
+			g.writeLine("")
 		default:
 			// Top-level expressions are ignored in Go
 		}
@@ -316,40 +328,12 @@ func (g *Generator) genDefn(d *ast.Defn) {
 
 	for i, expr := range d.Body {
 		if !isMain && i == len(d.Body)-1 {
-			switch ex := expr.(type) {
-			case *ast.IfExpr:
-				g.genIf(ex, "return ")
-				g.writeLine("")
-				continue
-			case *ast.MatchExpr:
-				g.genMatch(ex, "return ")
-				g.writeLine("")
-				continue
-			case *ast.LoopExpr:
-				g.genLoop(ex, "return ")
-				g.writeLine("")
-				continue
-			case *ast.FuncCall:
-				if sym, ok := ex.Func.(*ast.Symbol); ok {
-					name := sym.Name
-					if name == ">!" || name == "set!" || name == "println" || name == "print" || name == "str" {
-						// These either are statements or return multiple values in Go
-						g.genExpr(expr)
-						g.writeLine("")
-						g.writeLine("return nil")
-						continue
-					}
-					// Special case: if it returns a value and we are at the end,
-					// we should probably NOT return nil if we have a non-void function.
-					// Actually, Elbereth functions currently default to returning interface{}.
-				}
-				g.write("return ")
-			default:
-				g.write("return ")
-			}
+			g.genExprWithPrefix(expr, "return ")
+			g.writeLine("")
+		} else {
+			g.genExpr(expr)
+			g.writeLine("")
 		}
-		g.genExpr(expr)
-		g.writeLine("")
 	}
 
 	g.indent--
@@ -400,7 +384,7 @@ func (g *Generator) genDefexample(d *ast.Defexample) {
 
 func (g *Generator) genExprAsValue(expr ast.Expr) {
 	switch expr.(type) {
-	case *ast.IfExpr, *ast.MatchExpr, *ast.LoopExpr:
+	case *ast.IfExpr, *ast.MatchExpr, *ast.LoopExpr, *ast.DoExpr, *ast.DoseqExpr:
 		g.writeLine("func() any {")
 		g.indent++
 		g.genExprWithPrefix(expr, "return ")
@@ -422,7 +406,7 @@ func (g *Generator) genExpr(expr ast.Expr) {
 		g.write(fmt.Sprintf("int64(%d)", e.Value))
 
 	case *ast.FloatLit:
-		g.write(fmt.Sprintf("float64(%f)", e.Value))
+		g.write(fmt.Sprintf("%f", e.Value))
 
 	case *ast.StringLit:
 		g.write(fmt.Sprintf(`"%s"`, e.Value))
@@ -487,7 +471,7 @@ func (g *Generator) genExpr(expr ast.Expr) {
 		g.genIf(e, "")
 
 	case *ast.DoExpr:
-		g.genDo(e)
+		g.genDo(e, "")
 
 	case *ast.LetExpr:
 		g.genLet(e)
@@ -519,6 +503,9 @@ func (g *Generator) genExpr(expr ast.Expr) {
 
 	case *ast.SelectExpr:
 		g.genSelect(e)
+
+	case *ast.DoseqExpr:
+		g.genDoseq(e)
 
 	default:
 		g.write("/* unknown expr */")
@@ -609,17 +596,20 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 				g.write("make(chan ")
 				g.genExpr(call.Args[0])
 				if len(call.Args) >= 2 {
-					g.write(", ")
+					g.write(", int(")
 					g.genExpr(call.Args[1])
+					g.write(")")
 				}
 				g.write(")")
 				return
 			}
 		case ">!":
 			if len(call.Args) == 2 {
+				g.write("func() any { ")
 				g.genExpr(call.Args[0])
 				g.write(" <- ")
 				g.genExpr(call.Args[1])
+				g.write("; return nil }()")
 				return
 			}
 		case "<!":
@@ -630,6 +620,16 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 			}
 		case ".":
 			if len(call.Args) >= 2 {
+				// Handle Type Assertions (. val Type)
+				// Improved detection: if the second arg is a symbol containing a dot (like html.Attribute)
+				if ss, ok := call.Args[1].(*ast.Symbol); ok && (strings.Contains(ss.Name, ".") || strings.HasPrefix(ss.Name, "(") || isTypeSymbol(lexer.Token{Value: ss.Name})) && len(call.Args) == 2 {
+					g.genExpr(call.Args[0])
+					g.write(".(")
+					g.write(sanitizeIdent(ss.Name))
+					g.write(")")
+					return
+				}
+
 				fieldName := ""
 				if field, ok := call.Args[1].(*ast.Symbol); ok {
 					fieldName = sanitizeIdent(field.Name)
@@ -682,17 +682,49 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 				g.genExpr(call.Args[1])
 				return
 			}
-		case "+", "-", "*", "/", "%", "==", "!=", "<", "<=", ">", ">=", "=":
-			// Binary operators
+		case "+", "-", "*", "/", "%":
+			// Numeric operators
 			if len(call.Args) >= 2 {
 				g.write("(")
 				g.genExprWithNumericAssertion(call.Args[0])
+				g.write(fmt.Sprintf(" %s ", sym.Name))
+				g.genExprWithNumericAssertion(call.Args[1])
+				g.write(")")
+				return
+			}
+
+		case "==", "!=", "<", "<=", ">", ">=", "=":
+			// Comparison operators
+			if len(call.Args) >= 2 {
+				g.write("(")
 				op := sym.Name
 				if op == "=" {
 					op = "=="
 				}
-				g.write(fmt.Sprintf(" %s ", op))
-				g.genExprWithNumericAssertion(call.Args[1])
+
+				// Try to detect if we should use numeric assertions
+				isNumeric := false
+				if t, ok := g.inferredTypes[call.Args[0]]; ok && t == types.Int {
+					isNumeric = true
+				} else if t, ok := g.inferredTypes[call.Args[1]]; ok && t == types.Int {
+					isNumeric = true
+				} else if _, ok := call.Args[0].(*ast.IntLit); ok {
+					isNumeric = true
+				} else if _, ok := call.Args[1].(*ast.IntLit); ok {
+					isNumeric = true
+				}
+
+				if isNumeric {
+					g.genExprWithNumericAssertion(call.Args[0])
+					g.write(fmt.Sprintf(" %s ", op))
+					g.genExprWithNumericAssertion(call.Args[1])
+				} else {
+					g.write("(")
+					g.genExpr(call.Args[0])
+					g.write(fmt.Sprintf(") %s (", op))
+					g.genExpr(call.Args[1])
+					g.write(")")
+				}
 				g.write(")")
 				return
 			}
@@ -714,25 +746,25 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 			g.write(")")
 			return
 		case "println":
-			g.write("fmt.Println(")
+			g.write("func() any { fmt.Println(")
 			for i, arg := range call.Args {
 				if i > 0 {
 					g.write(", ")
 				}
 				g.genExpr(arg)
 			}
-			g.write(")")
+			g.write("); return nil }()")
 			return
 
 		case "print":
-			g.write("fmt.Print(")
+			g.write("func() any { fmt.Print(")
 			for i, arg := range call.Args {
 				if i > 0 {
 					g.write(", ")
 				}
 				g.genExpr(arg)
 			}
-			g.write(")")
+			g.write("); return nil }()")
 			return
 
 		case "first":
@@ -919,16 +951,18 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 			if len(call.Args) == 2 {
 				g.genExpr(call.Args[0])
 				g.write("[")
+				g.write("int(")
 				g.genExpr(call.Args[1])
-				g.write("]")
+				g.write(")]")
 				return
 			}
 		case "get":
 			if len(call.Args) >= 2 {
 				g.genExpr(call.Args[0])
 				g.write("[")
+				g.write("int(")
 				g.genExpr(call.Args[1])
-				g.write("]")
+				g.write(")]")
 				return
 			}
 		case "mod":
@@ -1102,6 +1136,12 @@ func (g *Generator) genIf(ifExpr *ast.IfExpr, prefix string) {
 		g.genExprWithPrefix(ifExpr.Else, prefix)
 		g.writeLine("")
 		g.indent--
+	} else if prefix != "" {
+		g.writeLine("} else {")
+		g.indent++
+		g.write(prefix)
+		g.writeLine("nil")
+		g.indent--
 	}
 
 	g.write("}")
@@ -1112,26 +1152,64 @@ func (g *Generator) genIf(ifExpr *ast.IfExpr, prefix string) {
 	}
 }
 
-func (g *Generator) genDo(doExpr *ast.DoExpr) {
-	g.writeLine("{")
-	g.indent++
-	for _, expr := range doExpr.Exprs {
-		g.genExpr(expr)
-		g.writeLine("")
+func (g *Generator) genDo(doExpr *ast.DoExpr, prefix string) {
+	if prefix != "" {
+		g.writeLine("{")
+		g.indent++
+		for i, expr := range doExpr.Exprs {
+			if i == len(doExpr.Exprs)-1 {
+				g.genExprWithPrefix(expr, prefix)
+				g.writeLine("")
+			} else {
+				g.genExpr(expr)
+				g.writeLine("")
+			}
+		}
+		g.indent--
+		g.write("}")
+	} else {
+		g.writeLine("{")
+		g.indent++
+		for _, expr := range doExpr.Exprs {
+			g.genExpr(expr)
+			g.writeLine("")
+		}
+		g.indent--
+		g.write("}")
 	}
-	g.indent--
-	g.write("}")
 }
 
 func (g *Generator) genLet(letExpr *ast.LetExpr) {
 	for _, binding := range letExpr.Bindings {
-		g.genExprWithPrefix(binding.Init, sanitizeIdent(binding.Name)+" := ")
+		prefix := ""
+		for i, name := range binding.Names {
+			if i > 0 {
+				prefix += ", "
+			}
+			prefix += sanitizeIdent(name)
+		}
+		g.genExprWithPrefix(binding.Init, prefix+" := ")
 		g.writeLine("")
 	}
 	for _, expr := range letExpr.Body {
 		g.genExpr(expr)
 		g.writeLine("")
 	}
+}
+
+func (g *Generator) genDoseq(d *ast.DoseqExpr) {
+	g.write("for _, ")
+	g.write(sanitizeIdent(d.Var))
+	g.write(" := range ")
+	g.genExpr(d.Coll)
+	g.writeLine(" {")
+	g.indent++
+	for _, expr := range d.Body {
+		g.genExpr(expr)
+		g.writeLine("")
+	}
+	g.indent--
+	g.writeLine("}")
 }
 
 func (g *Generator) genMatch(m *ast.MatchExpr, prefix string) {
@@ -1267,6 +1345,21 @@ func (g *Generator) genExprWithPrefix(expr ast.Expr, prefix string) {
 			g.write(prefix)
 			g.genExprAsValue(ex)
 		}
+	case *ast.DoExpr:
+		if prefix == "return " {
+			g.genDo(ex, prefix)
+		} else {
+			g.write(prefix)
+			g.genExpr(ex)
+		}
+	case *ast.DoseqExpr:
+		if prefix == "return " {
+			g.genDoseq(ex)
+			g.writeLine("return nil")
+		} else {
+			g.write(prefix)
+			g.genDoseq(ex)
+		}
 	default:
 		g.write(prefix)
 		g.genExpr(ex)
@@ -1287,20 +1380,12 @@ func (g *Generator) genFuncLit(fn *ast.FuncLit) {
 
 	for i, expr := range fn.Body {
 		if i == len(fn.Body)-1 {
-			switch ex := expr.(type) {
-			case *ast.IfExpr:
-				g.genIf(ex, "return ")
-				g.writeLine("")
-				continue
-			case *ast.MatchExpr:
-				g.genMatch(ex, "return ")
-				g.writeLine("")
-				continue
-			}
-			g.write("return ")
+			g.genExprWithPrefix(expr, "return ")
+			g.writeLine("")
+		} else {
+			g.genExpr(expr)
+			g.writeLine("")
 		}
-		g.genExpr(expr)
-		g.writeLine("")
 	}
 
 	g.indent--
@@ -1310,7 +1395,7 @@ func (g *Generator) genFuncLit(fn *ast.FuncLit) {
 func (g *Generator) genLoop(l *ast.LoopExpr, prefix string) {
 	var names []string
 	for _, b := range l.Bindings {
-		name := sanitizeIdent(b.Name)
+		name := sanitizeIdent(b.Names[0])
 		names = append(names, name)
 		g.genExprWithPrefix(b.Init, name+" := ")
 		g.writeLine("")
@@ -1401,8 +1486,22 @@ func (g *Generator) genSelect(s *ast.SelectExpr) {
 
 func (g *Generator) genExprWithNumericAssertion(expr ast.Expr) {
 	if t, ok := g.inferredTypes[expr]; ok && t == types.Int {
+		g.write("int64(")
+		g.genExpr(expr)
+		g.write(")")
+		return
+	}
+	if _, ok := expr.(*ast.IntLit); ok {
 		g.genExpr(expr)
 		return
+	}
+	if call, ok := expr.(*ast.FuncCall); ok {
+		if sym, ok := call.Func.(*ast.Symbol); ok && (sym.Name == "len" || sym.Name == "cap") {
+			g.write("int64(")
+			g.genExpr(expr)
+			g.write(")")
+			return
+		}
 	}
 	g.write("any(")
 	g.genExpr(expr)
@@ -1456,6 +1555,24 @@ func (g *Generator) writeLine(s string) {
 	g.buf.WriteString(strings.Repeat("  ", g.indent))
 	g.buf.WriteString(s)
 	g.buf.WriteString("\n")
+}
+
+func isTypeSymbol(tok lexer.Token) bool {
+	if tok.Type != lexer.TokenSymbol && tok.Type != lexer.TokenKeyword {
+		return false
+	}
+	if strings.HasPrefix(tok.Value, "*") {
+		return true
+	}
+	switch tok.Value {
+	case "int", "float", "string", "bool", "byte", "rune":
+		return true
+	}
+	// Capitalized names are often types in Go
+	if len(tok.Value) > 0 && tok.Value[0] >= 'A' && tok.Value[0] <= 'Z' {
+		return true
+	}
+	return false
 }
 
 func capitalize(s string) string {

@@ -43,25 +43,40 @@ func (c *Checker) Check(prog *ast.Program) (map[ast.Expr]Type, error) {
 
 	// Second pass: infer types for everything
 	for _, item := range prog.Items {
-		if expr, ok := item.(ast.Expr); ok {
-			_, err := c.infer(expr)
-			if err != nil {
-				return nil, err
-			}
-		} else if defn, ok := item.(*ast.Defn); ok {
-			err := c.checkDefn(defn)
-			if err != nil {
-				return nil, err
-			}
-		} else if d, ok := item.(*ast.Def); ok {
-			_, err := c.infer(d.Value)
-			if err != nil {
-				return nil, err
-			}
+		var err error
+		switch n := item.(type) {
+		case ast.Expr:
+			_, err = c.infer(n)
+		case *ast.Defn:
+			err = c.checkDefn(n)
+		case *ast.Def:
+			_, err = c.infer(n.Value)
+		case *ast.Deftest:
+			err = c.checkBody(n.Body)
+		case *ast.Defbenchmark:
+			c.pushScope()
+			c.setInScope(n.BParam, Nil)
+			err = c.checkBody(n.Body)
+			c.popScope()
+		case *ast.Defexample:
+			err = c.checkBody(n.Body)
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return c.types, nil
+}
+
+func (c *Checker) checkBody(body []ast.Expr) error {
+	for _, expr := range body {
+		_, err := c.infer(expr)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *Checker) checkDefn(d *ast.Defn) error {
@@ -117,29 +132,106 @@ func (c *Checker) infer(expr ast.Expr) (Type, error) {
 	case *ast.FuncCall:
 		res, err = c.inferFuncCall(n)
 	case *ast.IfExpr:
+		c.infer(n.Cond)
 		t1, err1 := c.infer(n.Then)
 		if err1 != nil {
 			return nil, err1
 		}
-		res = t1 // Assume Then type for now
+		if n.Else != nil {
+			c.infer(n.Else)
+		}
+		res = t1
 	case *ast.DoExpr:
-		if len(n.Exprs) > 0 {
-			res, err = c.infer(n.Exprs[len(n.Exprs)-1])
-		} else {
+		for _, ex := range n.Exprs {
+			res, err = c.infer(ex)
+		}
+		if len(n.Exprs) == 0 {
 			res = Nil
 		}
+	case *ast.VectorLit:
+		for _, el := range n.Elts {
+			c.infer(el)
+		}
+		res = Nil
+	case *ast.MapLit:
+		for _, p := range n.Pairs {
+			c.infer(p.Key)
+			c.infer(p.Value)
+		}
+		res = Nil
 	case *ast.LetExpr:
 		c.pushScope()
 		for _, b := range n.Bindings {
 			bt, _ := c.infer(b.Init)
-			c.setInScope(b.Name, bt)
+			for _, name := range b.Names {
+				c.setInScope(name, bt)
+			}
 		}
-		if len(n.Body) > 0 {
-			res, err = c.infer(n.Body[len(n.Body)-1])
-		} else {
+		for _, ex := range n.Body {
+			res, err = c.infer(ex)
+		}
+		if len(n.Body) == 0 {
 			res = Nil
 		}
 		c.popScope()
+	case *ast.MatchExpr:
+		c.infer(n.Val)
+		for _, cs := range n.Cases {
+			c.infer(cs.Pattern)
+			res, err = c.infer(cs.Body)
+		}
+	case *ast.LoopExpr:
+		c.pushScope()
+		for _, b := range n.Bindings {
+			bt, _ := c.infer(b.Init)
+			for _, name := range b.Names {
+				c.setInScope(name, bt)
+			}
+		}
+		for _, ex := range n.Body {
+			res, err = c.infer(ex)
+		}
+		c.popScope()
+	case *ast.DoseqExpr:
+		c.pushScope()
+		c.infer(n.Coll)
+		c.setInScope(n.Var, Nil) // Todo: infer from collection
+		for _, ex := range n.Body {
+			res, err = c.infer(ex)
+		}
+		c.popScope()
+	case *ast.FuncLit:
+		c.pushScope()
+		for _, p := range n.Params {
+			if p.Type != nil {
+				c.setInScope(p.Name, c.astTypeToType(p.Type))
+			} else {
+				c.setInScope(p.Name, Nil)
+			}
+		}
+		for _, ex := range n.Body {
+			res, err = c.infer(ex)
+		}
+		c.popScope()
+	case *ast.RecurExpr:
+		for _, arg := range n.Args {
+			c.infer(arg)
+		}
+		res = Nil
+	case *ast.SelectExpr:
+		for _, cs := range n.Cases {
+			if cs.Chan != nil {
+				c.infer(cs.Chan)
+			}
+			c.pushScope()
+			if cs.Binding != "" {
+				c.setInScope(cs.Binding, Nil)
+			}
+			for _, ex := range cs.Body {
+				res, err = c.infer(ex)
+			}
+			c.popScope()
+		}
 	default:
 		res = Nil
 	}
@@ -152,6 +244,32 @@ func (c *Checker) infer(expr ast.Expr) (Type, error) {
 }
 
 func (c *Checker) inferFuncCall(call *ast.FuncCall) (Type, error) {
+	if sym, ok := call.Func.(*ast.Symbol); ok {
+		switch sym.Name {
+		case "for":
+			if len(call.Args) >= 3 {
+				c.pushScope()
+				if initV, ok := call.Args[0].(*ast.VectorLit); ok {
+					for i := 0; i+1 < len(initV.Elts); i += 2 {
+						if nameSym, ok := initV.Elts[i].(*ast.Symbol); ok {
+							it, _ := c.infer(initV.Elts[i+1])
+							c.setInScope(nameSym.Name, it)
+						}
+					}
+				}
+				for i := 1; i < len(call.Args); i++ {
+					c.infer(call.Args[i])
+				}
+				c.popScope()
+				return Nil, nil
+			}
+		}
+	}
+
+	for _, arg := range call.Args {
+		c.infer(arg)
+	}
+
 	if sym, ok := call.Func.(*ast.Symbol); ok {
 		switch sym.Name {
 		case "+", "-", "*", "/", "%":

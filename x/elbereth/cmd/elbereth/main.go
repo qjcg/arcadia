@@ -75,10 +75,10 @@ func main() {
 
 	case "run":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: elbereth run <file_or_dir>")
+			fmt.Println("Usage: elbereth run <file_or_dir> [args...]")
 			os.Exit(1)
 		}
-		runPackage(os.Args[2])
+		runPackage(os.Args[2], os.Args[3:]...)
 
 	case "init":
 		if len(os.Args) < 3 {
@@ -262,7 +262,7 @@ func buildPackage(dir string, output string) {
 	}
 }
 
-func runPackage(path string) {
+func runPackage(path string, args ...string) {
 	dir := path
 	info, err := os.Stat(path)
 	if err == nil && !info.IsDir() {
@@ -281,8 +281,9 @@ func runPackage(path string) {
 		}
 	}
 
-	// Run using go run .
-	cmd := exec.Command("go", "run", ".")
+	// Run using go run . [args...]
+	goArgs := append([]string{"run", "."}, args...)
+	cmd := exec.Command("go", goArgs...)
 	cmd.Dir = dir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

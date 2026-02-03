@@ -240,6 +240,37 @@ func (e *Evaluator) registerBuiltins() {
 		return BoolVal{Value: true}, nil
 	}})
 
+	// Register fmt namespace
+	fmtEnv := NewEnv(nil)
+	fmtEnv.Set("Sprintf", BuiltinVal{Name: "fmt/Sprintf", Fn: func(args []Value) (Value, error) {
+		if len(args) < 1 {
+			return nil, fmt.Errorf("fmt/Sprintf requires at least 1 argument")
+		}
+		format, ok := args[0].(StringVal)
+		if !ok {
+			return nil, fmt.Errorf("fmt/Sprintf requires a format string")
+		}
+		var goArgs []any
+		for _, arg := range args[1:] {
+			// Basic conversion for now
+			switch v := arg.(type) {
+			case IntVal:
+				goArgs = append(goArgs, v.Value)
+			case FloatVal:
+				goArgs = append(goArgs, v.Value)
+			case StringVal:
+				goArgs = append(goArgs, v.Value)
+			case BoolVal:
+				goArgs = append(goArgs, v.Value)
+			default:
+				goArgs = append(goArgs, v.String())
+			}
+		}
+		return StringVal{Value: fmt.Sprintf(format.Value, goArgs...)}, nil
+	}})
+	fmtEnv.Set("Println", BuiltinVal{Name: "fmt/Println", Fn: e.builtinPrintln})
+	e.Namespaces["fmt"] = fmtEnv
+
 	// Pre-register some common namespaces
 	mathEnv := NewEnv(nil)
 	mathEnv.Set("Sqrt", BuiltinVal{Name: "math/Sqrt", Fn: func(args []Value) (Value, error) {
@@ -423,7 +454,18 @@ func (e *Evaluator) Eval(expr ast.Expr, env *Env) (Value, error) {
 			if err != nil {
 				return nil, err
 			}
-			childEnv.Set(b.Name, val)
+			if len(b.Names) == 1 {
+				childEnv.Set(b.Names[0], val)
+			} else {
+				// Basic support for vector destructuring in eval
+				if vec, ok := val.(VectorVal); ok {
+					for i, name := range b.Names {
+						if i < len(vec.Elements) {
+							childEnv.Set(name, vec.Elements[i])
+						}
+					}
+				}
+			}
 		}
 		var last Value = NilVal{}
 		for _, ex := range node.Body {

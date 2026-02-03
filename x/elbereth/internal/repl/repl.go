@@ -4,20 +4,33 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/chzyer/readline"
 
 	"github.com/qjcg/arcadia/x/elbereth/internal/ast"
+	"github.com/qjcg/arcadia/x/elbereth/internal/codegen"
 	"github.com/qjcg/arcadia/x/elbereth/internal/eval"
 	"github.com/qjcg/arcadia/x/elbereth/internal/expander"
 	"github.com/qjcg/arcadia/x/elbereth/internal/lexer"
 	"github.com/qjcg/arcadia/x/elbereth/internal/parser"
 )
 
+type Mode int
+
+const (
+	Interpreted Mode = iota
+	Compiled
+)
+
 type REPL struct {
-	input  io.Reader
-	output io.Writer
+	input       io.Reader
+	output      io.Writer
+	mode        Mode
+	history     []ast.Node // Accumulation of definitions
+	importSpecs []ast.ImportSpec
 }
 
 func New(input io.Reader, output io.Writer) *REPL {
@@ -30,7 +43,12 @@ func New(input io.Reader, output io.Writer) *REPL {
 	return &REPL{
 		input:  input,
 		output: output,
+		mode:   Interpreted,
 	}
+}
+
+func (r *REPL) SetMode(mode Mode) {
+	r.mode = mode
 }
 
 func (r *REPL) Run() error {
@@ -44,10 +62,16 @@ func (r *REPL) Run() error {
 	ex := expander.New()
 
 	fmt.Fprintln(r.output, "Elbereth REPL v0.1.0")
-	fmt.Fprintln(r.output, "Type (exit) to quit, (help) for help")
+	fmt.Fprintln(r.output, "Commands: (exit), (help), (mode compiled), (mode interpreted)")
 	fmt.Fprintln(r.output, "")
 
 	for {
+		prompt := "elb> "
+		if r.mode == Compiled {
+			prompt = "elb[c]> "
+		}
+		rl.SetPrompt(prompt)
+
 		line, err := rl.Readline()
 		if err != nil { // io.EOF or readline.ErrInterrupt
 			if err == readline.ErrInterrupt {
@@ -68,6 +92,25 @@ func (r *REPL) Run() error {
 
 		if line == "(help)" {
 			r.printHelp()
+			continue
+		}
+
+		if line == "(mode compiled)" {
+			r.mode = Compiled
+			fmt.Fprintln(r.output, "Switched to Compiled mode (experimental)")
+			continue
+		}
+
+		if line == "(mode interpreted)" {
+			r.mode = Interpreted
+			fmt.Fprintln(r.output, "Switched to Interpreted mode")
+			continue
+		}
+
+		if r.mode == Compiled {
+			if err := r.evalCompiled(line, ex); err != nil {
+				fmt.Fprintf(r.output, "Error: %v\n", err)
+			}
 			continue
 		}
 
@@ -189,17 +232,114 @@ func (r *REPL) exprToString(node ast.Expr) string {
 	}
 }
 
+func (r *REPL) evalCompiled(input string, ex *expander.Expander) error {
+	lex := lexer.New(input)
+	p := parser.New(lex)
+	prog, err := p.Parse()
+	if err != nil {
+		return fmt.Errorf("parse error: %w", err)
+	}
+
+	if len(prog.Items) == 0 {
+		return nil
+	}
+
+	// Expand macros
+	if err := ex.Expand(prog); err != nil {
+		return fmt.Errorf("macro expansion error: %w", err)
+	}
+
+	hasExpr := false
+	var lastExpr ast.Expr
+
+	for _, item := range prog.Items {
+		switch n := item.(type) {
+		case *ast.Import, *ast.Def, *ast.Defn, *ast.Deftype, *ast.Defmacro:
+			r.history = append(r.history, n)
+		case ast.Expr:
+			hasExpr = true
+			lastExpr = n
+		}
+	}
+
+	if !hasExpr {
+		// If it's just definitions, we might want to check if they compile
+		return r.checkCompilation()
+	}
+
+	// Create a temp program to evaluate the last expression
+	evalProg := &ast.Program{
+		Items: append([]ast.Node{}, r.history...),
+	}
+
+	// Wrap last expression in println if it's not already
+	wrappedExpr := &ast.FuncCall{
+		Func: &ast.Symbol{Name: "println"},
+		Args: []ast.Expr{lastExpr},
+	}
+
+	evalProg.Items = append(evalProg.Items, &ast.Defn{
+		Name: "main",
+		Body: []ast.Expr{wrappedExpr},
+	})
+
+	gen := codegen.New()
+	goCode, err := gen.Generate(evalProg)
+	if err != nil {
+		return fmt.Errorf("codegen error: %w", err)
+	}
+
+	// Write to temp file and run
+	tmpDir, err := os.MkdirTemp("", "elbereth-repl-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	tmpFile := filepath.Join(tmpDir, "main.go")
+	if err := os.WriteFile(tmpFile, []byte(goCode), 0o644); err != nil {
+		return err
+	}
+
+	// Need a go.mod if we want any imports to work reliably?
+	// Actually, if it's stdlib it should be fine.
+	// For now let's assume stdlib.
+
+	cmd := exec.Command("go", "run", "main.go")
+	cmd.Dir = tmpDir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("runtime error: %s\n%w", string(output), err)
+	}
+
+	fmt.Fprint(r.output, string(output))
+	return nil
+}
+
+func (r *REPL) checkCompilation() error {
+	evalProg := &ast.Program{
+		Items: append([]ast.Node{}, r.history...),
+	}
+	evalProg.Items = append(evalProg.Items, &ast.Defn{
+		Name: "main",
+		Body: []ast.Expr{&ast.NilLit{}},
+	})
+
+	gen := codegen.New()
+	_, err := gen.Generate(evalProg)
+	return err
+}
+
 func (r *REPL) printHelp() {
 	help := `Elbereth REPL Commands:
   (exit)          - Exit the REPL
   (help)          - Show this help message
+  (mode compiled) - Switch to compiled mode (supports all Go imports)
+  (mode interpreted) - Switch to interpreted mode (faster feedback)
 
 Examples:
-  (+ 1 2)         - Arithmetic
-  (defn f [x] x)  - Define a function
-  (def x 42)      - Define a variable
-
-For more information, see the documentation.
+  (import "math/rand")
+  (rand/Int63)
 `
 	fmt.Fprint(r.output, help)
 }

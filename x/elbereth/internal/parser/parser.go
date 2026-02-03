@@ -122,7 +122,7 @@ func (p *Parser) parseTopLevel() ast.Node {
 			// (but we need to handle the fact that we already consumed LParen)
 			name := p.current.Value
 			switch name {
-			case "fn", "if", "do", "let", "quote", "match", "loop", "recur", "select":
+			case "fn", "if", "do", "let", "quote", "match", "loop", "recur", "select", "doseq":
 				// We need to re-handle these because they are Exprs but can appear at top level
 				p.advance() // consume the symbol
 				switch name {
@@ -144,6 +144,8 @@ func (p *Parser) parseTopLevel() ast.Node {
 					return p.parseRecurAfterSymbol(loc)
 				case "select":
 					return p.parseSelectAfterSymbol(loc)
+				case "doseq":
+					return p.parseDoseqAfterSymbol(loc)
 				}
 			}
 		}
@@ -255,6 +257,8 @@ func (p *Parser) parseExpr() ast.Expr {
 				return p.parseRecurAfterSymbol(loc)
 			case "select":
 				return p.parseSelectAfterSymbol(loc)
+			case "doseq":
+				return p.parseDoseqAfterSymbol(loc)
 			}
 		}
 
@@ -795,6 +799,34 @@ func (p *Parser) parseLoopAfterSymbol(loc ast.Position) ast.Expr {
 	return &ast.LoopExpr{Loc: loc, Bindings: bindings, Body: body}
 }
 
+func (p *Parser) parseDoseqAfterSymbol(loc ast.Position) ast.Expr {
+	// (doseq [var coll] body...)
+	if p.current.Type != lexer.TokenLBracket {
+		p.error("doseq: expected [var coll] vector")
+		p.advance()
+		p.skipToRParen()
+		return &ast.NilLit{Loc: loc}
+	}
+	p.advance() // [
+
+	if p.current.Type != lexer.TokenSymbol {
+		p.error("doseq: expected variable name")
+	}
+	varName := p.current.Value
+	p.advance()
+
+	coll := p.parseExpr()
+	p.expect(lexer.TokenRBracket)
+
+	var body []ast.Expr
+	for p.current.Type != lexer.TokenRParen && p.current.Type != lexer.TokenEOF {
+		body = append(body, p.parseExpr())
+	}
+
+	p.expect(lexer.TokenRParen)
+	return &ast.DoseqExpr{Loc: loc, Var: varName, Coll: coll, Body: body}
+}
+
 func (p *Parser) parseRecurAfterSymbol(loc ast.Position) ast.Expr {
 	// (recur arg1 arg2 ...)
 	var args []ast.Expr
@@ -894,14 +926,26 @@ func (p *Parser) parseBindings() []*ast.Binding {
 
 	var bindings []*ast.Binding
 	for p.current.Type != lexer.TokenRBracket && p.current.Type != lexer.TokenEOF {
-		if p.current.Type != lexer.TokenSymbol {
-			p.error("expected binding name")
+		var names []string
+		if p.current.Type == lexer.TokenSymbol {
+			names = append(names, p.current.Value)
+			p.advance()
+		} else if p.current.Type == lexer.TokenLBracket {
+			p.advance() // [
+			for p.current.Type != lexer.TokenRBracket && p.current.Type != lexer.TokenEOF {
+				if p.current.Type != lexer.TokenSymbol {
+					p.error("expected symbol in destructuring")
+				} else {
+					names = append(names, p.current.Value)
+				}
+				p.advance()
+			}
+			p.expect(lexer.TokenRBracket)
+		} else {
+			p.error("expected binding name or [names]")
 			p.advance()
 			continue
 		}
-
-		name := p.current.Value
-		p.advance()
 
 		// Check for type annotation
 		var bindType ast.Type
@@ -913,7 +957,7 @@ func (p *Parser) parseBindings() []*ast.Binding {
 		// Parse initializer
 		init := p.parseExpr()
 
-		bindings = append(bindings, &ast.Binding{Name: name, Type: bindType, Init: init})
+		bindings = append(bindings, &ast.Binding{Names: names, Type: bindType, Init: init})
 	}
 
 	p.expect(lexer.TokenRBracket)

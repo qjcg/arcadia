@@ -113,8 +113,22 @@ func (e *Expander) expandNode(node ast.Node, depth int) (ast.Node, error) {
 		n.Value = expanded
 		return n, nil
 
-	case ast.Expr:
-		return e.expandExpr(n, depth+1)
+	case *ast.DoseqExpr:
+		expanded, err := e.expandExpr(n.Coll, depth+1)
+		if err != nil {
+			return nil, err
+		}
+		n.Coll = expanded
+		var newBody []ast.Expr
+		for _, expr := range n.Body {
+			expanded, err := e.expandExpr(expr, depth+1)
+			if err != nil {
+				return nil, err
+			}
+			newBody = append(newBody, expanded)
+		}
+		n.Body = newBody
+		return n, nil
 
 	default:
 		return n, nil
@@ -187,6 +201,21 @@ func (e *Expander) expandExpr(expr ast.Expr, depth int) (ast.Expr, error) {
 		}
 		return &ast.DoExpr{Loc: n.Loc, Exprs: newExprs}, nil
 
+	case *ast.DoseqExpr:
+		coll, err := e.expandExpr(n.Coll, depth+1)
+		if err != nil {
+			return nil, err
+		}
+		var newBody []ast.Expr
+		for _, ex := range n.Body {
+			expanded, err := e.expandExpr(ex, depth+1)
+			if err != nil {
+				return nil, err
+			}
+			newBody = append(newBody, expanded)
+		}
+		return &ast.DoseqExpr{Loc: n.Loc, Var: n.Var, Coll: coll, Body: newBody}, nil
+
 	case *ast.LetExpr:
 		var newBindings []*ast.Binding
 		for _, b := range n.Bindings {
@@ -194,7 +223,7 @@ func (e *Expander) expandExpr(expr ast.Expr, depth int) (ast.Expr, error) {
 			if err != nil {
 				return nil, err
 			}
-			newBindings = append(newBindings, &ast.Binding{Name: b.Name, Init: expanded, Type: b.Type})
+			newBindings = append(newBindings, &ast.Binding{Names: b.Names, Init: expanded, Type: b.Type})
 		}
 		var newBody []ast.Expr
 		for _, ex := range n.Body {
@@ -213,7 +242,7 @@ func (e *Expander) expandExpr(expr ast.Expr, depth int) (ast.Expr, error) {
 			if err != nil {
 				return nil, err
 			}
-			newBindings = append(newBindings, &ast.Binding{Name: b.Name, Init: expanded, Type: b.Type})
+			newBindings = append(newBindings, &ast.Binding{Names: b.Names, Init: expanded, Type: b.Type})
 		}
 		var newBody []ast.Expr
 		for _, ex := range n.Body {
@@ -319,8 +348,10 @@ func (e *Expander) collectLocalBindings(expr ast.Expr, renames map[string]string
 	switch n := expr.(type) {
 	case *ast.LetExpr:
 		for _, b := range n.Bindings {
-			if _, ok := renames[b.Name]; !ok {
-				renames[b.Name] = fmt.Sprintf("%s_%d", b.Name, id)
+			for _, name := range b.Names {
+				if _, ok := renames[name]; !ok {
+					renames[name] = fmt.Sprintf("%s_%d", name, id)
+				}
 			}
 		}
 		for _, inner := range n.Body {
@@ -476,11 +507,15 @@ func (e *Expander) expandBackquote(expr ast.Expr, bindings map[string]any, renam
 		var newBindings []*ast.Binding
 		for _, b := range n.Bindings {
 			expandedInit, _ := e.expandBackquote(b.Init, bindings, renames, depth+1)
-			name := b.Name
-			if newName, ok := renames[name]; ok {
-				name = newName
+			var newNames []string
+			for _, name := range b.Names {
+				if newName, ok := renames[name]; ok {
+					newNames = append(newNames, newName)
+				} else {
+					newNames = append(newNames, name)
+				}
 			}
-			newBindings = append(newBindings, &ast.Binding{Name: name, Init: expandedInit, Type: b.Type})
+			newBindings = append(newBindings, &ast.Binding{Names: newNames, Init: expandedInit, Type: b.Type})
 		}
 		var newBody []ast.Expr
 		for _, ex := range n.Body {
@@ -526,10 +561,18 @@ func (e *Expander) reifyFuncCall(call *ast.FuncCall) ast.Expr {
 					var bindings []*ast.Binding
 					for i := 0; i+1 < len(v.Elts); i += 2 {
 						if nameSym, ok := v.Elts[i].(*ast.Symbol); ok {
-							bindings = append(bindings, &ast.Binding{Name: nameSym.Name, Init: v.Elts[i+1]})
+							bindings = append(bindings, &ast.Binding{Names: []string{nameSym.Name}, Init: v.Elts[i+1]})
 						}
 					}
 					return &ast.LetExpr{Loc: call.Loc, Bindings: bindings, Body: call.Args[1:]}
+				}
+			}
+		case "doseq":
+			if len(call.Args) >= 1 {
+				if v, ok := call.Args[0].(*ast.VectorLit); ok && len(v.Elts) >= 2 {
+					if nameSym, ok := v.Elts[0].(*ast.Symbol); ok {
+						return &ast.DoseqExpr{Loc: call.Loc, Var: nameSym.Name, Coll: v.Elts[1], Body: call.Args[1:]}
+					}
 				}
 			}
 		}
