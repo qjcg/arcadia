@@ -97,7 +97,7 @@ func ParseOrg(r io.Reader, opts Options) (*Deck, error) {
 
 	for i, rs := range rawSlides {
 		config := org.New()
-		doc := config.Parse(strings.NewReader(rs+"\n"), "")
+		doc := config.Parse(strings.NewReader("#+OPTIONS: toc:nil\n"+rs+"\n"), "")
 
 		writer := org.NewHTMLWriter()
 		writer.HighlightCodeBlock = func(code, lang string, inline bool, params map[string]string) string {
@@ -168,7 +168,22 @@ func splitMarkdown(content string, sep string) []string {
 		}
 
 		if isSeparator && currentSlide.Len() > 0 {
-			slides = append(slides, currentSlide.String())
+			content := currentSlide.String()
+			trimmed := strings.TrimSpace(content)
+			// Check if it's just Org metadata or blank
+			isMetadataOrBlank := true
+			checkLines := strings.Split(trimmed, "\n")
+			for _, l := range checkLines {
+				l = strings.TrimSpace(l)
+				if l != "" && !strings.HasPrefix(l, "#+") {
+					isMetadataOrBlank = false
+					break
+				}
+			}
+
+			if !isMetadataOrBlank {
+				slides = append(slides, trimmed)
+			}
 			currentSlide.Reset()
 		}
 
@@ -183,7 +198,20 @@ func splitMarkdown(content string, sep string) []string {
 	}
 
 	if currentSlide.Len() > 0 {
-		slides = append(slides, currentSlide.String())
+		content := currentSlide.String()
+		trimmed := strings.TrimSpace(content)
+		isMetadataOrBlank := true
+		checkLines := strings.Split(trimmed, "\n")
+		for _, l := range checkLines {
+			l = strings.TrimSpace(l)
+			if l != "" && !strings.HasPrefix(l, "#+") {
+				isMetadataOrBlank = false
+				break
+			}
+		}
+		if !isMetadataOrBlank {
+			slides = append(slides, trimmed)
+		}
 	}
 
 	return slides
@@ -219,7 +247,22 @@ func splitOrg(content string, sep string) []string {
 		}
 
 		if isSeparator && currentSlide.Len() > 0 {
-			slides = append(slides, currentSlide.String())
+			content := currentSlide.String()
+			trimmed := strings.TrimSpace(content)
+			// Check if it's just Org metadata or blank
+			isMetadataOrBlank := true
+			checkLines := strings.Split(trimmed, "\n")
+			for _, l := range checkLines {
+				l = strings.TrimSpace(l)
+				if l != "" && !strings.HasPrefix(l, "#+") {
+					isMetadataOrBlank = false
+					break
+				}
+			}
+
+			if !isMetadataOrBlank {
+				slides = append(slides, trimmed)
+			}
 			currentSlide.Reset()
 		}
 
@@ -234,7 +277,20 @@ func splitOrg(content string, sep string) []string {
 	}
 
 	if currentSlide.Len() > 0 {
-		slides = append(slides, currentSlide.String())
+		content := currentSlide.String()
+		trimmed := strings.TrimSpace(content)
+		isMetadataOrBlank := true
+		checkLines := strings.Split(trimmed, "\n")
+		for _, l := range checkLines {
+			l = strings.TrimSpace(l)
+			if l != "" && !strings.HasPrefix(l, "#+") {
+				isMetadataOrBlank = false
+				break
+			}
+		}
+		if !isMetadataOrBlank {
+			slides = append(slides, trimmed)
+		}
 	}
 
 	return slides

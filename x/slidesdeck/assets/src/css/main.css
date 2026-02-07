@@ -1,6 +1,10 @@
 /* @import "tailwindcss"; */
 @import "./vendor/daisyui.css";
 
+[x-cloak] {
+  display: none !important;
+}
+
 /* Custom styles for slides */
 .slide {
   height: 100vh;
