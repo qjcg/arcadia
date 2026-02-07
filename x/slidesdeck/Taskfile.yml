@@ -3,14 +3,11 @@ version: '3'
 vars:
   BIN_DIR: bin
   BIN: '{{.BIN_DIR}}/slidesdeck'
+  BIN_INSTALLED: $GOBIN/slidesdeck
 
 tasks:
-  tools:
-    desc: Install tools
-    cmds:
-      - go get -tool github.com/a-h/templ/cmd/templ
-      - go get -tool github.com/air-verse/air
-      - go get -tool github.com/evanw/esbuild/cmd/esbuild
+  default:
+    deps: [build]
 
   build:templ:
     desc: Generate templ components
@@ -59,6 +56,19 @@ tasks:
       - 'assets/dist/**'
     generates:
       - '{{.BIN}}'
+
+  install:
+    desc: Install go binary
+    deps: [build]
+    cmds:
+      - cp {{.BIN}} {{.BIN_INSTALLED}}
+      - upx {{.BIN_INSTALLED}}
+    sources:
+      - '**/go.*'
+      - '**/*.go'
+      - 'assets/dist/**'
+    generates:
+      - '{{.BIN_INSTALLED}}'
 
   demo:
     deps: [build]
