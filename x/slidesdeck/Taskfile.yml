@@ -39,7 +39,7 @@ tasks:
   build:js:
     desc: Build JS with esbuild
     cmds:
-      - go tool esbuild {{.IN}} --bundle --minify --outfile={{.OUT}}
+    - go tool esbuild {{.IN}} --bundle --minify --external:worker_threads --outfile={{.OUT}}
     sources:
       - assets/src/js/**/*.js
     generates:

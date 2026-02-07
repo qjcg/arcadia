@@ -61,7 +61,7 @@ templ Layout(deck *parser.Deck, initialTheme string, css string, js string) {
 						// Theme button
 						<button
 							class="join-item btn btn-ghost btn-sm"
-							@click="originalTheme = currentTheme; searchQuery = ''; filteredThemes = themes; showThemePalette = true; $nextTick(() => { $refs.themeSearch?.focus(); scrollToCurrentTheme(); })"
+							@click="originalTheme = currentTheme; themeQuery = ''; filteredThemes = themes; showThemePalette = true; $nextTick(() => { $refs.themeSearch?.focus(); scrollToCurrentTheme(); })"
 							title="Themes (t)"
 						>
 							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.172-1.172a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" /></svg>
@@ -135,8 +135,8 @@ templ ThemePalette() {
 	<div
 		class="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-20 z-[60]"
 		x-show="showThemePalette"
-		@keydown.escape.window="showThemePalette = false; document.documentElement.setAttribute('data-theme', originalTheme); currentTheme = originalTheme; searchQuery = '';"
-		@click.self="showThemePalette = false; document.documentElement.setAttribute('data-theme', originalTheme); currentTheme = originalTheme; searchQuery = '';"
+		@keydown.escape.window="showThemePalette = false; document.documentElement.setAttribute('data-theme', originalTheme); currentTheme = originalTheme; themeQuery = '';"
+		@click.self="showThemePalette = false; document.documentElement.setAttribute('data-theme', originalTheme); currentTheme = originalTheme; themeQuery = '';"
 		x-cloak
 	>
 		<div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-base-300">
@@ -149,7 +149,7 @@ templ ThemePalette() {
 					class="w-full bg-transparent pl-12 pr-4 py-4 focus:outline-none border-b border-base-300 text-lg"
 					placeholder="Search themes..."
 					x-ref="themeSearch"
-					x-model="searchQuery"
+					x-model="themeQuery"
 					@input="searchThemes($event.target.value)"
 				/>
 			</div>
@@ -218,17 +218,17 @@ templ SearchPalette() {
 				<template x-for="(result, index) in searchResults" :key="result.id">
 					<div
 						class="px-6 py-4 rounded-xl hover:bg-base-200 cursor-pointer transition-all duration-200 search-item"
-						:class="selectedPaletteIndex === index ? 'bg-base-300 ring-2 ring-primary/20' : ''"
+						:class="selectedPaletteIndex === index ? 'bg-primary/10 ring-2 ring-primary/50' : ''"
 						@click="jumpToSlide(result.id)"
 						@mouseenter="selectedPaletteIndex = index"
 					>
-						<div class="flex justify-between items-start">
-							<div>
-								<h3 class="font-bold text-xl mb-1" x-text="result.title"></h3>
-								<p class="text-sm opacity-50">Slide <span x-text="result.id + 1"></span></p>
+							<div class="flex-1 min-w-0">
+								<div class="flex items-center gap-2 mb-1">
+									<span class="badge badge-sm badge-outline opacity-50 font-mono" x-text="'#' + (result.id + 1)"></span>
+									<h3 class="font-bold text-xl truncate" x-text="result.title"></h3>
+								</div>
+								<p class="text-sm opacity-60 line-clamp-1" x-text="result.content"></p>
 							</div>
-							<div class="badge badge-outline opacity-50" x-text="'#' + (result.id + 1)"></div>
-						</div>
 					</div>
 				</template>
 				<div x-show="searchQuery && searchResults.length === 0" class="p-12 text-center opacity-50">

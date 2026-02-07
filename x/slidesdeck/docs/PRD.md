@@ -50,8 +50,8 @@ self-contained HTML slideshows.
 - **Embedded Assets**: All optimized frontend resources are embedded into the Go binary for true single-executable portability.
 - **Robust Testing**: Comprehensive CLI testing using `testscript` to ensure reliable file conversion and CLI behavior.
 - **Interactivity**: Alpine.js (v3) for navigation (n/p/arrows/space), first/last slide (Shift+Alt+,/.), toggles (t for themes, f for fullscreen, N for line numbers, ? for help, / for search), and Shift+P for pause.
-- **Search Feature**: Full-text slide search using `flexsearch` via a Command Palette interface.
-- **Theme Support**: Command Palette based theme switching (using `flexsearch`). All daisyUI themes are included and categorized as `light:` or `dark:`. Default theme can be set via CLI flag.
+    - **Search Feature**: Full-text slide search using **`flexsearch`** (v0.8.2) via a Command Palette interface. The palette displays an instant overview of all slides when opened, with live results and automatic highlighting as you type.
+    - **Theme Support**: Command Palette based theme switching (using `flexsearch`). All daisyUI themes are included and categorized as `light:` or `dark:`. Default theme can be set via CLI flag. The theme palette opens with the current theme pre-selected.
 - **Pause/Break Mode**: A visually impressive, interactive break screen (triggered by `Shift+P`) with a configurable countdown timer and custom message. The state is persisted in Local Storage to survive browser restarts.
 - **Basic Styling**: A clean, readable default layout using daisyUI components.
 - **Slide Separators**: Default separation by first-level headings (`#` or `*`). Support for explicit separators (e.g., `---`) and custom strings.

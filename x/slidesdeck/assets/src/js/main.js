@@ -14,7 +14,9 @@ document.addEventListener('alpine:init', () => {
 
         // Search
         searchQuery: '',
+        themeQuery: '',
         searchResults: [],
+        allSlides: [],
         searchIndex: null,
 
         // Timer
@@ -32,6 +34,22 @@ document.addEventListener('alpine:init', () => {
         filteredThemes: [],
         currentTheme: '',
 
+        refreshSlides() {
+            this.allSlides = [];
+            const slides = document.querySelectorAll('.slide');
+            slides.forEach((slide, i) => {
+                const title = slide.querySelector('h1, h2, h3')?.textContent || `Slide ${i+1}`;
+                const content = slide.textContent || '';
+                const preview = content.trim().substring(0, 100).replace(/\s+/g, ' ') + (content.length > 100 ? '...' : '');
+                const slideData = { id: i, title, content: preview };
+                this.allSlides.push(slideData);
+                if (this.searchIndex) {
+                    this.searchIndex.add({ id: i, title, content });
+                }
+            });
+            return this.allSlides;
+        },
+
         init() {
             console.log('Slideshow initialized');
             this.totalSlides = document.querySelectorAll('.slide').length;
@@ -41,8 +59,11 @@ document.addEventListener('alpine:init', () => {
 
             // Initialize search index with prioritized fields
             try {
-                if (typeof FlexSearch !== 'undefined') {
-                    this.searchIndex = new FlexSearch.Document({
+                // Try multiple ways to find FlexSearch constructor
+                const FS = (typeof FlexSearch !== 'undefined') ? FlexSearch : (window.FlexSearch || null);
+
+                if (FS) {
+                    this.searchIndex = new FS.Document({
                         document: {
                             id: 'id',
                             index: [
@@ -52,18 +73,15 @@ document.addEventListener('alpine:init', () => {
                             store: true
                         }
                     });
-
-                    document.querySelectorAll('.slide').forEach((slide, i) => {
-                        const title = slide.querySelector('h1, h2, h3')?.textContent || `Slide ${i+1}`;
-                        const content = slide.textContent;
-                        this.searchIndex.add({ id: i, title, content });
-                    });
                 } else {
                     console.warn('FlexSearch not found, search will be disabled');
                 }
             } catch (e) {
                 console.error('Failed to initialize search index:', e);
             }
+
+            // Initial slide collection
+            this.refreshSlides();
 
             // Load persistent timer
             try {
@@ -114,6 +132,7 @@ document.addEventListener('alpine:init', () => {
                     this.showHelp = false;
                     this.selectedPaletteIndex = 0;
                     this.searchQuery = '';
+                    this.themeQuery = '';
                     return;
                 }
 
@@ -153,7 +172,7 @@ document.addEventListener('alpine:init', () => {
                         break;
                     case 't':
                         this.originalTheme = this.currentTheme;
-                        this.searchQuery = '';
+                        this.themeQuery = '';
                         this.filteredThemes = this.themes;
                         this.showThemePalette = true;
                         this.$nextTick(() => {
@@ -183,8 +202,9 @@ document.addEventListener('alpine:init', () => {
                         break;
                     case '/':
                         e.preventDefault();
+                        if (this.allSlides.length === 0) this.refreshSlides();
                         this.searchQuery = '';
-                        this.searchResults = [];
+                        this.searchResults = [...this.allSlides];
                         this.showSearch = true;
                         this.selectedPaletteIndex = 0;
                         this.$nextTick(() => this.$refs.slideSearch?.focus());
@@ -195,8 +215,8 @@ document.addEventListener('alpine:init', () => {
                 }
             });
 
-            this.$watch('searchQuery', () => {
-                if (!this.searchQuery && this.showThemePalette) {
+            this.$watch('themeQuery', () => {
+                if (!this.themeQuery && this.showThemePalette) {
                     this.$nextTick(() => this.scrollToCurrentTheme());
                 }
             });
@@ -207,32 +227,84 @@ document.addEventListener('alpine:init', () => {
             if (el) el.scrollIntoView({ block: 'nearest' });
         },
 
-        performSearch(query) {
+        async performSearch(query) {
+            const currentQuery = query;
             this.searchQuery = query;
-            this.selectedPaletteIndex = 0;
-            if (!query || !this.searchIndex) {
-                this.searchResults = [];
+
+            if (!query) {
+                this.searchResults = [...this.allSlides];
+                this.selectedPaletteIndex = 0;
                 return;
             }
 
-            const results = this.searchIndex.search(query, { limit: 20, enrich: true });
+            const q = query.toLowerCase();
 
-            let titleMatches = [];
-            let contentMatches = [];
+            // Simple fallback if search index is not initialized
+            if (!this.searchIndex) {
+                this.searchResults = this.allSlides.filter(s =>
+                    s.title.toLowerCase().includes(q) ||
+                    s.content.toLowerCase().includes(q)
+                );
+                this.selectedPaletteIndex = 0;
+                return;
+            }
 
-            results.forEach(r => {
-                if (r.field === 'title') titleMatches = r.result;
-                if (r.field === 'content') contentMatches = r.result;
-            });
+            try {
+                // Search title and content separately to enforce priority (Title > Content)
+                const [titleRes, contentRes] = await Promise.all([
+                    this.searchIndex.searchAsync(query, { index: 'title', enrich: true, limit: 20 }),
+                    this.searchIndex.searchAsync(query, { index: 'content', enrich: true, limit: 20 })
+                ]);
 
-            const merged = [...titleMatches];
-            contentMatches.forEach(cm => {
-                if (!merged.find(m => m.id === cm.id)) {
-                    merged.push(cm);
-                }
-            });
+                if (currentQuery !== this.searchQuery) return;
 
-            this.searchResults = merged.map(m => ({ id: m.id, title: m.doc.title }));
+                const extract = (res) => {
+                    if (!res) return [];
+                    if (Array.isArray(res)) {
+                        if (res.length > 0 && res[0].result) return res[0].result;
+                        return res;
+                    }
+                    return [];
+                };
+
+                const titleMatches = extract(titleRes);
+                const contentMatches = extract(contentRes);
+
+                const finalResults = [];
+                const seen = new Set();
+
+                const processMatch = (item) => {
+                    const id = (typeof item === 'object') ? item.id : item;
+                    if (id === undefined || seen.has(id)) return;
+
+                    seen.add(id);
+                    const doc = (typeof item === 'object' && item.doc) ? item.doc : (this.allSlides[id] || {});
+                    const title = doc.title || this.allSlides[id]?.title || `Slide ${id + 1}`;
+                    const rawContent = (typeof doc.content === 'string') ? doc.content : '';
+
+                    let preview = this.allSlides[id]?.content || '';
+                    if (rawContent && rawContent.length > 0) {
+                        const stripped = rawContent.trim().substring(0, 100).replace(/\s+/g, ' ');
+                        preview = stripped + (rawContent.length > 100 ? '...' : '');
+                    }
+
+                    finalResults.push({ id, title, content: preview });
+                };
+
+                titleMatches.forEach(processMatch);
+                contentMatches.forEach(processMatch);
+
+                this.searchResults = finalResults;
+                this.selectedPaletteIndex = 0;
+            } catch (e) {
+                console.error('Search failed:', e);
+                if (currentQuery !== this.searchQuery) return;
+                this.searchResults = this.allSlides.filter(s =>
+                    s.title.toLowerCase().includes(q) ||
+                    s.content.toLowerCase().includes(q)
+                );
+                this.selectedPaletteIndex = 0;
+            }
         },
 
         jumpToSlide(id) {
@@ -244,7 +316,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         searchThemes(query) {
-            this.searchQuery = query;
+            this.themeQuery = query;
             this.selectedPaletteIndex = 0;
             if (!query) {
                 this.filteredThemes = this.themes;
@@ -281,7 +353,7 @@ document.addEventListener('alpine:init', () => {
             this.currentTheme = theme;
             document.documentElement.setAttribute('data-theme', theme);
             this.showThemePalette = false;
-            this.searchQuery = '';
+            this.themeQuery = '';
         },
 
         startTimer() {

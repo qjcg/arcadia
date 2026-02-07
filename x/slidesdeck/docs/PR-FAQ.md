@@ -74,8 +74,9 @@ default theme with the `--theme` flag or switch themes at runtime
 using the "Command Palette" by pressing `t`.
 
 **Q: Can I search within my presentation?**  A: Yes. By pressing `/`,
-you can access a dedicated Search Command Palette that allows you to
-quickly find and jump to any slide by its title or content.
+you can access a dedicated Search Command Palette that provides an instant
+overview of all slides and allows you to quickly find and jump to any slide by
+its title or content with prioritied results and automatic highlighting.
 
 **Q: How do I manage breaks during long presentations?**  A:
 Slidesdeck features a built-in "Pause Mode." By pressing `Shift+P`,

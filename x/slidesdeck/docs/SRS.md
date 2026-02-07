@@ -90,7 +90,7 @@ Target users are developers, technical writers, and presenters who prefer text-b
 **FR-34**: The tool shall support selecting the default daisyUI theme via a `-t` or `--theme` flag.
 **FR-35**: The generated HTML shall include a "Command Palette" interface for switching themes at runtime.
 **FR-36**: The Command Palette shall list all available daisyUI themes, prefixed with `light:` or `dark:` (e.g., `light: cupcake`, `dark: dracula`).
-**FR-37**: The Command Palette shall use `flexsearch` for high-performance theme searching and filtering.
+**FR-37**: The Command Palette shall use latest **`flexsearch` (v0.8.2)** for high-performance theme searching and filtering.
 **FR-38**: The theme palette shall always open with the current theme selected/highlighted.
 **FR-39**: If search text is typed and then cleared, the selection shall revert to the currently active theme.
 **FR-40**: Pressing the `Escape` key shall close the palette without changing the current theme.
@@ -106,10 +106,10 @@ Target users are developers, technical writers, and presenters who prefer text-b
 **FR-48**: If Pause Mode is toggled off while a countdown is active, and then toggled back on, the countdown shall display the remaining time without being reset.
 **FR-49**: The countdown screen shall include a "Reset" button that stops the active countdown and removes it from Local Storage.
 **FR-50**: The tool shall include a help screen, toggled by the `?` key, displaying the tool name, a short description, and an overview of all keyboard shortcuts.
-**FR-51**: The tool shall include a "Slide Search" Command Palette, toggled by the `/` key.
-**FR-52**: The Slide Search Palette shall use `flexsearch` to provide fast, full-text search capability.
-**FR-53**: The search shall index both slide titles and slide content, with matching slide titles having priority in the results list.
-**FR-54**: Selecting a result from the search list and pressing `Enter` shall immediately jump to the corresponding slide and close the search palette.
+**FR-51**: The tool shall include a "Slide Search" Command Palette, toggled by the `/` key, which shall display all slides as a default listing upon being opened.
+**FR-52**: The Slide Search Palette shall use latest **`flexsearch` (v0.8.2)** to provide fast, full-text search capability. Matches shall be returned asynchronously.
+**FR-53**: The search shall index both slide titles and slide content. Matching slide titles shall have priority in the results list, appearing above content-only matches. Highlighting of the first result shall be automatic as users type.
+**FR-54**: Search results shall include a slide number, title, and a subtitle featuring a preview of the slide content. Selecting a result and pressing `Enter` shall immediately jump to the slide and close the palette.
 
 ### 3.2 Non-Functional Requirements
 **NFR-1**: Performance: Conversion should take less than 1 second for files up to 100 slides.
