@@ -1,0 +1,18 @@
+# Error Handling Test
+# Unsupported extension
+! exec slidesdeck input.txt
+stderr 'unsupported file extension: .txt'
+
+# Missing file
+! exec slidesdeck missing.md
+stderr 'missing.md'
+
+# Wrong number of arguments
+! exec slidesdeck
+stderr 'accepts 1 arg\(s\), received 0'
+
+! exec slidesdeck a.md b.md
+stderr 'accepts 1 arg\(s\), received 2'
+
+-- input.txt --
+Hello

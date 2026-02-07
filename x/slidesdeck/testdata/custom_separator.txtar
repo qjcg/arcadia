@@ -1,0 +1,21 @@
+# Custom Separator Test
+exec slidesdeck --separator !!! input.md
+stdout 'Generated 2 slides'
+grep 'Content 1' input.html
+grep 'Content 2' input.html
+
+# Custom Separator for Org
+exec slidesdeck -s SPLIT input.org
+stdout 'Generated 2 slides'
+grep 'Part 1' input.html
+grep 'Part 2' input.html
+
+-- input.md --
+Content 1
+!!!
+Content 2
+
+-- input.org --
+Part 1
+SPLIT
+Part 2

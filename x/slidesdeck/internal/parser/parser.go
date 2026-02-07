@@ -167,28 +167,35 @@ func splitMarkdown(content string, sep string) []string {
 			}
 		}
 
-		if isSeparator && currentSlide.Len() > 0 {
-			content := currentSlide.String()
-			trimmed := strings.TrimSpace(content)
-			// Check if it's just Org metadata or blank
-			isMetadataOrBlank := true
-			checkLines := strings.Split(trimmed, "\n")
-			for _, l := range checkLines {
-				l = strings.TrimSpace(l)
-				if l != "" && !strings.HasPrefix(l, "#+") {
-					isMetadataOrBlank = false
-					break
+		if isSeparator {
+			if sep != "" {
+				slides = append(slides, strings.TrimSpace(currentSlide.String()))
+				currentSlide.Reset()
+				continue
+			}
+
+			if currentSlide.Len() > 0 {
+				content := currentSlide.String()
+				trimmed := strings.TrimSpace(content)
+				// Check if it's just Org metadata or blank
+				isMetadataOrBlank := true
+				checkLines := strings.Split(trimmed, "\n")
+				for _, l := range checkLines {
+					l = strings.TrimSpace(l)
+					if l != "" && !strings.HasPrefix(l, "#+") {
+						isMetadataOrBlank = false
+						break
+					}
 				}
-			}
 
-			if !isMetadataOrBlank {
-				slides = append(slides, trimmed)
+				if !isMetadataOrBlank {
+					slides = append(slides, trimmed)
+				}
+				currentSlide.Reset()
 			}
-			currentSlide.Reset()
-		}
-
-		if isSeparator && (strings.TrimSpace(line) == "---" || (sep != "" && strings.TrimSpace(line) == sep)) {
-			continue
+			if strings.TrimSpace(line) == "---" {
+				continue
+			}
 		}
 
 		if currentSlide.Len() > 0 {
@@ -246,28 +253,35 @@ func splitOrg(content string, sep string) []string {
 			}
 		}
 
-		if isSeparator && currentSlide.Len() > 0 {
-			content := currentSlide.String()
-			trimmed := strings.TrimSpace(content)
-			// Check if it's just Org metadata or blank
-			isMetadataOrBlank := true
-			checkLines := strings.Split(trimmed, "\n")
-			for _, l := range checkLines {
-				l = strings.TrimSpace(l)
-				if l != "" && !strings.HasPrefix(l, "#+") {
-					isMetadataOrBlank = false
-					break
+		if isSeparator {
+			if sep != "" {
+				slides = append(slides, strings.TrimSpace(currentSlide.String()))
+				currentSlide.Reset()
+				continue
+			}
+
+			if currentSlide.Len() > 0 {
+				content := currentSlide.String()
+				trimmed := strings.TrimSpace(content)
+				// Check if it's just Org metadata or blank
+				isMetadataOrBlank := true
+				checkLines := strings.Split(trimmed, "\n")
+				for _, l := range checkLines {
+					l = strings.TrimSpace(l)
+					if l != "" && !strings.HasPrefix(l, "#+") {
+						isMetadataOrBlank = false
+						break
+					}
 				}
-			}
 
-			if !isMetadataOrBlank {
-				slides = append(slides, trimmed)
+				if !isMetadataOrBlank {
+					slides = append(slides, trimmed)
+				}
+				currentSlide.Reset()
 			}
-			currentSlide.Reset()
-		}
-
-		if isSeparator && (strings.TrimSpace(line) == "-----" || (sep != "" && strings.TrimSpace(line) == sep)) {
-			continue
+			if strings.TrimSpace(line) == "-----" {
+				continue
+			}
 		}
 
 		if currentSlide.Len() > 0 {
@@ -299,6 +313,10 @@ func splitOrg(content string, sep string) []string {
 func extractTitle(content string) string {
 	lines := strings.Split(content, "\n")
 	for _, l := range lines {
+		l = strings.TrimSpace(l)
+		if strings.HasPrefix(l, "#+TITLE:") {
+			return strings.TrimSpace(strings.TrimPrefix(l, "#+TITLE:"))
+		}
 		if strings.HasPrefix(l, "# ") {
 			return strings.TrimPrefix(l, "# ")
 		}
@@ -309,6 +327,10 @@ func extractTitle(content string) string {
 func extractOrgTitle(content string) string {
 	lines := strings.Split(content, "\n")
 	for _, l := range lines {
+		l = strings.TrimSpace(l)
+		if strings.HasPrefix(l, "#+TITLE:") {
+			return strings.TrimSpace(strings.TrimPrefix(l, "#+TITLE:"))
+		}
 		if strings.HasPrefix(l, "* ") {
 			return strings.TrimPrefix(l, "* ")
 		}

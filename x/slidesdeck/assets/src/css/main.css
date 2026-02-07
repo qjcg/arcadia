@@ -1,5 +1,7 @@
-/* @import "tailwindcss"; */
+@import "tailwindcss";
 @import "./vendor/daisyui.css";
+@import "./vendor/themes.css";
+@source "../../../internal/ui/**/*.templ";
 
 [x-cloak] {
   display: none !important;
@@ -26,4 +28,60 @@ pre {
   text-align: left;
   overflow-x: auto;
   max-width: 100%;
+  margin: 1rem 0;
+}
+
+/* Typography for slides */
+.slide h1 {
+  font-size: 4rem;
+  font-weight: 900;
+  margin-bottom: 2rem;
+  line-height: 1.1;
+}
+
+.slide h2 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+}
+
+.slide h3 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.slide p {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.9;
+}
+
+.slide ul, .slide ol {
+  text-align: left;
+  display: inline-block;
+  font-size: 1.5rem;
+  margin: 1rem 0;
+}
+
+.slide li {
+  margin-bottom: 0.5rem;
+}
+
+.slide table {
+  margin: 2rem auto;
+  border-collapse: collapse;
+  font-size: 1.25rem;
+}
+
+.slide th, .slide td {
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid currentColor;
+  opacity: 0.8;
+}
+
+.slide th {
+  font-weight: bold;
+  opacity: 1;
 }

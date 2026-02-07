@@ -1,0 +1,16 @@
+# Themes Test
+# Default theme should be dark
+exec slidesdeck input.md
+grep 'data-theme="dark"' input.html
+
+# Custom theme
+exec slidesdeck --theme retro input.md
+grep 'data-theme="retro"' input.html
+
+# Another custom theme
+exec slidesdeck -t synthwave input.md
+grep 'data-theme="synthwave"' input.html
+
+-- input.md --
+# Theme Test
+Check if theme is applied.

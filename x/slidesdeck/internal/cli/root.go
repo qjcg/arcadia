@@ -67,6 +67,8 @@ by default, or by explicit horizontal rules (--- or -----).`,
 			return err
 		}
 
+		fmt.Printf("Generated %d slides\n", len(deck.Slides))
+
 		// Load assets
 		cssFile, err := assets.Dist.Open("dist/main.css")
 		if err != nil {

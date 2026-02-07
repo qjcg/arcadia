@@ -1,10 +1,6 @@
 import './vendor/flexsearch.min.js';
 import './vendor/alpine.min.js';
 
-// Setup search index
-// FlexSearch will be available globally if imported this way from minified bundle
-// or I can use standard ESM if I had it.
-
 document.addEventListener('alpine:init', () => {
     Alpine.data('slideshow', () => ({
         currentSlide: 0,
@@ -14,6 +10,7 @@ document.addEventListener('alpine:init', () => {
         showHelp: false,
         showPause: false,
         lineNumbers: true,
+        selectedPaletteIndex: 0,
 
         // Search
         searchQuery: '',
@@ -36,39 +33,51 @@ document.addEventListener('alpine:init', () => {
         currentTheme: '',
 
         init() {
+            console.log('Slideshow initialized');
             this.totalSlides = document.querySelectorAll('.slide').length;
             this.currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            this.originalTheme = this.currentTheme;
             this.filteredThemes = this.themes;
 
             // Initialize search index with prioritized fields
-            this.searchIndex = new FlexSearch.Document({
-                document: {
-                    id: 'id',
-                    index: [
-                        { field: 'title', tokenize: 'forward', optimize: true, resolution: 9 },
-                        { field: 'content', tokenize: 'forward', optimize: true, resolution: 5 }
-                    ],
-                    store: true
-                }
-            });
+            try {
+                if (typeof FlexSearch !== 'undefined') {
+                    this.searchIndex = new FlexSearch.Document({
+                        document: {
+                            id: 'id',
+                            index: [
+                                { field: 'title', tokenize: 'forward', optimize: true, resolution: 9 },
+                                { field: 'content', tokenize: 'forward', optimize: true, resolution: 5 }
+                            ],
+                            store: true
+                        }
+                    });
 
-            document.querySelectorAll('.slide').forEach((slide, i) => {
-                const title = slide.querySelector('h1, h2, h3')?.textContent || `Slide ${i+1}`;
-                const content = slide.textContent;
-                this.searchIndex.add({ id: i, title, content });
-            });
+                    document.querySelectorAll('.slide').forEach((slide, i) => {
+                        const title = slide.querySelector('h1, h2, h3')?.textContent || `Slide ${i+1}`;
+                        const content = slide.textContent;
+                        this.searchIndex.add({ id: i, title, content });
+                    });
+                } else {
+                    console.warn('FlexSearch not found, search will be disabled');
+                }
+            } catch (e) {
+                console.error('Failed to initialize search index:', e);
+            }
 
             // Load persistent timer
-            const savedTimer = localStorage.getItem('slidesdeck_timer');
-            if (savedTimer) {
-                const data = JSON.parse(savedTimer);
-                if (new Date(data.endTime) > new Date()) {
-                    this.pauseMessage = data.message;
-                    this.endTime = new Date(data.endTime);
-                    this.showPause = true;
-                    this.startCountdown();
+            try {
+                const savedTimer = localStorage.getItem('slidesdeck_timer');
+                if (savedTimer) {
+                    const data = JSON.parse(savedTimer);
+                    if (new Date(data.endTime) > new Date()) {
+                        this.pauseMessage = data.message;
+                        this.endTime = new Date(data.endTime);
+                        this.showPause = true;
+                        this.startCountdown();
+                    }
                 }
-            }
+            } catch (e) {}
 
             // Handle hash for direct links to slides
             const hash = window.location.hash;
@@ -77,8 +86,57 @@ document.addEventListener('alpine:init', () => {
                 if (!isNaN(index)) this.currentSlide = index;
             }
 
+            this.$watch('selectedPaletteIndex', (index) => {
+                if (this.showThemePalette && this.filteredThemes[index]) {
+                    document.documentElement.setAttribute('data-theme', this.filteredThemes[index]);
+                    this.$nextTick(() => {
+                        const items = this.$refs.themeList?.querySelectorAll('.theme-item');
+                        if (items && items[index]) items[index].scrollIntoView({ block: 'nearest' });
+                    });
+                }
+                if (this.showSearch && this.searchResults[index]) {
+                    this.$nextTick(() => {
+                        const items = this.$refs.searchResults?.querySelectorAll('.search-item');
+                        if (items && items[index]) items[index].scrollIntoView({ block: 'nearest' });
+                    });
+                }
+            });
+
             window.addEventListener('keydown', (e) => {
-                if (this.showSearch || this.showThemePalette) return;
+                // Global shortcuts that work even when palettes are open
+                if (e.key === 'Escape') {
+                    if (this.showThemePalette) {
+                        document.documentElement.setAttribute('data-theme', this.originalTheme);
+                        this.currentTheme = this.originalTheme;
+                    }
+                    this.showSearch = false;
+                    this.showThemePalette = false;
+                    this.showHelp = false;
+                    this.selectedPaletteIndex = 0;
+                    this.searchQuery = '';
+                    return;
+                }
+
+                if (this.showSearch || this.showThemePalette) {
+                    const items = this.showSearch ? this.searchResults : this.filteredThemes;
+                    if (items.length > 0) {
+                        if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            this.selectedPaletteIndex = (this.selectedPaletteIndex + 1) % items.length;
+                        } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            this.selectedPaletteIndex = (this.selectedPaletteIndex - 1 + items.length) % items.length;
+                        } else if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (this.showSearch) {
+                                this.jumpToSlide(items[this.selectedPaletteIndex].id);
+                            } else {
+                                this.setTheme(items[this.selectedPaletteIndex]);
+                            }
+                        }
+                    }
+                    return;
+                }
 
                 switch(e.key) {
                     case 'n':
@@ -94,6 +152,9 @@ document.addEventListener('alpine:init', () => {
                         this.toggleFullscreen();
                         break;
                     case 't':
+                        this.originalTheme = this.currentTheme;
+                        this.searchQuery = '';
+                        this.filteredThemes = this.themes;
                         this.showThemePalette = true;
                         this.$nextTick(() => {
                             this.$refs.themeSearch?.focus();
@@ -122,7 +183,10 @@ document.addEventListener('alpine:init', () => {
                         break;
                     case '/':
                         e.preventDefault();
+                        this.searchQuery = '';
+                        this.searchResults = [];
                         this.showSearch = true;
+                        this.selectedPaletteIndex = 0;
                         this.$nextTick(() => this.$refs.slideSearch?.focus());
                         break;
                     case 'P':
@@ -132,7 +196,7 @@ document.addEventListener('alpine:init', () => {
             });
 
             this.$watch('searchQuery', () => {
-                if (!this.searchQuery) {
+                if (!this.searchQuery && this.showThemePalette) {
                     this.$nextTick(() => this.scrollToCurrentTheme());
                 }
             });
@@ -145,15 +209,14 @@ document.addEventListener('alpine:init', () => {
 
         performSearch(query) {
             this.searchQuery = query;
-            if (!query) {
+            this.selectedPaletteIndex = 0;
+            if (!query || !this.searchIndex) {
                 this.searchResults = [];
                 return;
             }
 
             const results = this.searchIndex.search(query, { limit: 20, enrich: true });
 
-            // FlexSearch results are grouped by field.
-            // We want to prioritize title matches.
             let titleMatches = [];
             let contentMatches = [];
 
@@ -162,7 +225,6 @@ document.addEventListener('alpine:init', () => {
                 if (r.field === 'content') contentMatches = r.result;
             });
 
-            // Merge results, prioritizing titles and ensuring uniqueness
             const merged = [...titleMatches];
             contentMatches.forEach(cm => {
                 if (!merged.find(m => m.id === cm.id)) {
@@ -182,9 +244,12 @@ document.addEventListener('alpine:init', () => {
         },
 
         searchThemes(query) {
-            this.searchQuery = query; // Use same query variable for $watch
+            this.searchQuery = query;
+            this.selectedPaletteIndex = 0;
             if (!query) {
                 this.filteredThemes = this.themes;
+                // Preview the current theme when clearing search
+                document.documentElement.setAttribute('data-theme', this.currentTheme);
                 return;
             }
 
@@ -199,13 +264,17 @@ document.addEventListener('alpine:init', () => {
                 const matchesSearch = t.includes(searchTerm.toLowerCase());
                 if (!matchesSearch) return false;
 
-                // Heuristic for light/dark (daisyui names are usually descriptive)
                 const isDark = ['dark', 'synthwave', 'halloween', 'forest', 'aqua', 'black', 'luxury', 'dracula', 'business', 'night', 'coffee', 'dim', 'sunset', 'abyss'].includes(t);
 
                 if (isDarkSearch) return isDark;
                 if (isLightSearch) return !isDark;
                 return true;
             });
+
+            // Preview the first match if any
+            if (this.filteredThemes.length > 0) {
+                document.documentElement.setAttribute('data-theme', this.filteredThemes[0]);
+            }
         },
 
         setTheme(theme) {
@@ -229,6 +298,7 @@ document.addEventListener('alpine:init', () => {
         startCountdown() {
             this.timerRunning = true;
             this.updateRemaining();
+            if (this.timerInterval) clearInterval(this.timerInterval);
             this.timerInterval = setInterval(() => this.updateRemaining(), 1000);
         },
 
@@ -253,6 +323,7 @@ document.addEventListener('alpine:init', () => {
         resetTimer() {
             this.stopTimer();
             this.timeRemaining = '00:00';
+            this.showPause = false;
             localStorage.removeItem('slidesdeck_timer');
         },
 

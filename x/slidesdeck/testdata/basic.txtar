@@ -2,18 +2,33 @@
 exec slidesdeck --help
 stdout 'Slidesdeck is a single-purpose CLI tool'
 
-# Convert a simple markdown file
-exec slidesdeck input.md
+# Convert a simple org file
+exec slidesdeck input.org
 exists input.html
-stdout 'Converting input.md'
+stdout 'Converting input.org'
+! stdout '<nav>'
 
 # Check specific output path
 exec slidesdeck -o out.html input.md
 exists out.html
+
+# Check if titles are correctly extracted and present in output
+exec slidesdeck input.org
+grep '<title>My Org Presentation</title>' input.html
+grep 'Slide 1' input.html
+grep 'Slide 2' input.html
 
 -- input.md --
 # Slide 1
 Hello
 ---
 # Slide 2
+World
+
+-- input.org --
+#+TITLE: My Org Presentation
+* Slide 1
+Hello
+-----
+* Slide 2
 World

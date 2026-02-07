@@ -1,5 +1,9 @@
 version: '3'
 
+vars:
+  BIN_DIR: bin
+  BIN: '{{.BIN_DIR}}/slidesdeck'
+
 tasks:
   tools:
     desc: Install tools
@@ -8,27 +12,65 @@ tasks:
       - go get -tool github.com/air-verse/air
       - go get -tool github.com/evanw/esbuild/cmd/esbuild
 
-  generate:
+  build:templ:
     desc: Generate templ components
     cmds:
       - go tool templ generate
+    sources:
+      - '**/*.templ'
+      - '**/go.*'
+      - '**/*.go'
+    generates:
+      - '**/*_templ.go'
 
-  css:
+  build:css:
     desc: Build CSS with Tailwind v4
     cmds:
       - go run scripts/split_themes.go
-      - ./tailwindcss -i assets/src/css/main.css -o assets/dist/main.css --minify
+      - ./tailwindcss -i {{.IN}} -o {{.OUT}} --minify
+    sources:
+      - 'assets/src/**/*.css'
+    generates:
+      - '{{.OUT}}'
+    vars:
+      IN: assets/src/css/main.css
+      OUT: assets/dist/main.css
 
-  js:
+  build:js:
     desc: Build JS with esbuild
     cmds:
-      - go tool esbuild assets/src/js/main.js --bundle --minify --outfile=assets/dist/main.js
+      - go tool esbuild {{.IN}} --bundle --minify --outfile={{.OUT}}
+    sources:
+      - assets/src/js/**/*.js
+    generates:
+      - '{{.OUT}}'
+    vars:
+      IN: assets/src/js/main.js
+      OUT: assets/dist/main.js
 
   build:
     desc: Build the project
-    deps: [generate, css, js]
+    deps: [build:templ, build:css, build:js]
     cmds:
-      - go build -o bin/slidesdeck main.go
+      - go build -o {{.BIN}} .
+    sources:
+      - '**/go.*'
+      - '**/*.go'
+      - 'assets/dist/**'
+    generates:
+      - '{{.BIN}}'
+
+  demo:
+    deps: [build]
+    cmds:
+      - '{{.BIN}} examples/overview.org'
+      - xdg-open examples/overview.html
+    sources:
+      - examples/overview.org
+    generates:
+      - examples/overview.html
+
+  clean: rm -rf {{.BIN}} assets/dist examples/*.html
 
   dev:
     desc: Run with hot reload

@@ -1,24 +1,15 @@
 package main
 
 import (
-	"os"
 	"testing"
 
-	"github.com/charmbracelet/arcadia/x/slidesdeck/internal/cli"
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
 func TestMain(m *testing.M) {
-	os.Exit(testscript.RunMain(m, map[string]func() int{
-		"slidesdeck": mainFunc,
-	}))
-}
-
-func mainFunc() int {
-	if err := cli.Execute(); err != nil {
-		return 1
-	}
-	return 0
+	testscript.Main(m, map[string]func(){
+		"slidesdeck": main,
+	})
 }
 
 func TestCLI(t *testing.T) {
