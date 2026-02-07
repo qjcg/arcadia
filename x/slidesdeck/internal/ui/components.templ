@@ -1,0 +1,171 @@
+package ui
+
+import (
+	"fmt"
+	"github.com/charmbracelet/arcadia/x/slidesdeck/internal/parser"
+)
+
+templ Layout(deck *parser.Deck, initialTheme string, css string, js string) {
+	<!DOCTYPE html>
+	<html lang="en" data-theme={ initialTheme }>
+		<head>
+			<meta charset="UTF-8" />
+			<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+			<title>{ deck.Title }</title>
+			@templ.Raw("<style type=\"text/css\">\n" + css + "\n</style>")
+		</head>
+		<body class="bg-base-100 text-base-content" x-data="slideshow">
+			<div class="h-screen w-screen overflow-hidden relative">
+				// Slides container
+				<div class="slides-container h-full w-full">
+					for i, slide := range deck.Slides {
+						<section
+							class="slide absolute inset-0 transition-opacity duration-300"
+							x-show={ fmt.Sprintf("currentSlide == %d", i) }
+							x-cloak
+						>
+							<div class="max-w-4xl mx-auto">
+								@templ.Raw(slide.Content)
+							</div>
+						</section>
+					}
+				</div>
+
+				// Slide number
+				<div class="absolute bottom-4 right-4 text-sm opacity-50">
+					<span x-text="currentSlide + 1"></span> / <span x-text="totalSlides"></span>
+				</div>
+
+				// Help screen
+				<div
+					class="absolute inset-0 bg-base-300/90 flex items-center justify-center z-50"
+					x-show="showHelp"
+					x-transition
+					@click.self="showHelp = false"
+					x-cloak
+				>
+					<div class="bg-base-100 p-8 rounded-2xl shadow-xl max-w-lg w-full">
+						<h2 class="text-3xl font-bold mb-4">Slidesdeck Help</h2>
+						<div class="space-y-2">
+							<div class="flex justify-between"><span>Next Slide</span><kbd class="kbd kbd-sm">n</kbd> / <kbd class="kbd kbd-sm">→</kbd></div>
+							<div class="flex justify-between"><span>Previous Slide</span><kbd class="kbd kbd-sm">p</kbd> / <kbd class="kbd kbd-sm">←</kbd></div>
+							<div class="flex justify-between"><span>First Slide</span><kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">Alt</kbd>+<kbd class="kbd kbd-sm">,</kbd></div>
+							<div class="flex justify-between"><span>Last Slide</span><kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">Alt</kbd>+<kbd class="kbd kbd-sm">.</kbd></div>
+							<div class="flex justify-between"><span>Fullscreen</span><kbd class="kbd kbd-sm">f</kbd></div>
+							<div class="flex justify-between"><span>Theme Palette</span><kbd class="kbd kbd-sm">t</kbd></div>
+							<div class="flex justify-between"><span>Search</span><kbd class="kbd kbd-sm">/</kbd></div>
+							<div class="flex justify-between"><span>Line Numbers</span><kbd class="kbd kbd-sm">N</kbd></div>
+							<div class="flex justify-between"><span>Pause Mode</span><kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">P</kbd></div>
+							<div class="flex justify-between"><span>Toggle Help</span><kbd class="kbd kbd-sm">?</kbd></div>
+						</div>
+						<div class="mt-6 text-center">
+							<button class="btn btn-primary" @click="showHelp = false">Close</button>
+						</div>
+					</div>
+				</div>
+
+				// Theme Palette
+				@ThemePalette()
+
+				// Search Palette
+				@SearchPalette()
+
+				// Pause Mode
+				@PauseMode()
+			</div>
+
+			@templ.Raw("<script type=\"text/javascript\">\n" + js + "\n</script>")
+		</body>
+	</html>
+}
+
+templ ThemePalette() {
+	<div
+		class="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-20 z-[60]"
+		x-show="showThemePalette"
+		@keydown.escape.window="showThemePalette = false"
+		x-cloak
+	>
+		<div class="bg-base-100 rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
+			<input
+				type="text"
+				class="input input-ghost w-full focus:outline-none border-b border-base-300 rounded-none h-14"
+				placeholder="Search themes..."
+				x-ref="themeSearch"
+				@input="searchThemes($event.target.value)"
+			/>
+			<div class="max-h-96 overflow-y-auto">
+				<template x-for="theme in filteredThemes" :key="theme">
+					<div
+						class="px-4 py-3 hover:bg-base-200 cursor-pointer flex justify-between items-center"
+						:class="currentTheme === theme ? 'bg-primary text-primary-content' : ''"
+						@click="setTheme(theme)"
+					>
+						<span x-text="(['dark', 'synthwave', 'halloween', 'forest', 'aqua', 'black', 'luxury', 'dracula', 'business', 'night', 'coffee', 'dim', 'sunset', 'abyss'].includes(theme) ? 'dark: ' : 'light: ') + theme"></span>
+						<span x-show="currentTheme === theme">✓</span>
+					</div>
+				</template>
+			</div>
+		</div>
+	</div>
+}
+
+templ SearchPalette() {
+	<div
+		class="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-20 z-[60]"
+		x-show="showSearch"
+		@keydown.escape.window="showSearch = false"
+		x-cloak
+	>
+		<div class="bg-base-100 rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden">
+			<input
+				type="text"
+				class="input input-ghost w-full focus:outline-none border-b border-base-300 rounded-none h-14 text-xl"
+				placeholder="Search slides..."
+				x-ref="slideSearch"
+				@input="performSearch($event.target.value)"
+			/>
+			<div class="max-h-96 overflow-y-auto">
+				<template x-for="result in searchResults" :key="result.id">
+					<div
+						class="px-4 py-4 hover:bg-base-200 cursor-pointer border-b border-base-300 last:border-0"
+						@click="jumpToSlide(result.id)"
+					>
+						<h3 class="font-bold text-lg" x-text="result.title"></h3>
+						<p class="text-sm opacity-60">Slide <span x-text="result.id + 1"></span></p>
+					</div>
+				</template>
+				<div x-show="searchQuery && searchResults.length === 0" class="p-8 text-center opacity-50">
+					No slides found matching "<span x-text="searchQuery"></span>"
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ PauseMode() {
+	<div
+		class="absolute inset-0 bg-base-100 flex flex-col items-center justify-center z-[100]"
+		x-show="showPause"
+		x-cloak
+	>
+		<div class="text-center">
+			<h1 class="text-9xl font-black mb-8" x-text="timeRemaining">00:00</h1>
+			<p class="text-4xl opacity-70" x-text="pauseMessage"></p>
+
+			<div class="mt-12 flex gap-4 justify-center" x-show="!timerRunning">
+				<input type="text" class="input input-bordered text-lg w-64" placeholder="Break message..." x-model="pauseMessage" />
+				<input type="number" class="input input-bordered text-lg w-24" placeholder="Mins" x-model="pauseMinutes" />
+				<button class="btn btn-primary btn-lg" @click="startTimer()">Start Break</button>
+			</div>
+
+			<div class="mt-8" x-show="timerRunning">
+				<button class="btn btn-ghost" @click="resetTimer()">Reset</button>
+			</div>
+
+			<button class="btn btn-circle btn-outline absolute top-8 right-8" @click="showPause = false">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+			</button>
+		</div>
+	</div>
+}

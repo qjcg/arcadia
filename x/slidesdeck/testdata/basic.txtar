@@ -1,0 +1,19 @@
+# Basic CLI test
+exec slidesdeck --help
+stdout 'Slidesdeck is a single-purpose CLI tool'
+
+# Convert a simple markdown file
+exec slidesdeck input.md
+exists input.html
+stdout 'Converting input.md'
+
+# Check specific output path
+exec slidesdeck -o out.html input.md
+exists out.html
+
+-- input.md --
+# Slide 1
+Hello
+---
+# Slide 2
+World

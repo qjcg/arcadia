@@ -1,0 +1,35 @@
+version: '3'
+
+tasks:
+  tools:
+    desc: Install tools
+    cmds:
+      - go get -tool github.com/a-h/templ/cmd/templ
+      - go get -tool github.com/air-verse/air
+      - go get -tool github.com/evanw/esbuild/cmd/esbuild
+
+  generate:
+    desc: Generate templ components
+    cmds:
+      - go tool templ generate
+
+  css:
+    desc: Build CSS with Tailwind v4
+    cmds:
+      - ./tailwindcss -i assets/src/css/main.css -o assets/dist/main.css --minify
+
+  js:
+    desc: Build JS with esbuild
+    cmds:
+      - go tool esbuild assets/src/js/main.js --bundle --minify --outfile=assets/dist/main.js
+
+  build:
+    desc: Build the project
+    deps: [generate, css, js]
+    cmds:
+      - go build -o bin/slidesdeck main.go
+
+  dev:
+    desc: Run with hot reload
+    cmds:
+      - go tool air

@@ -7,4 +7,5 @@ use (
 	./examples/go
 	./x/elbereth
 	./x/fractalis
+	./x/slidesdeck
 )
