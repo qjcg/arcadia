@@ -231,29 +231,71 @@ document.addEventListener('alpine:init', () => {
             const currentQuery = query;
             this.searchQuery = query;
 
-            if (!query) {
+            if (!query || !query.trim()) {
                 this.searchResults = [...this.allSlides];
                 this.selectedPaletteIndex = 0;
                 return;
             }
 
-            const q = query.toLowerCase();
+            // Split query into tokens (orderless-style: multiple words/fragments)
+            const tokens = query.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+            if (tokens.length === 0) {
+                this.searchResults = [...this.allSlides];
+                this.selectedPaletteIndex = 0;
+                return;
+            }
+
+            // Helper function to check if all tokens match in a given text
+            const matchesAllTokens = (text) => {
+                const lowerText = text.toLowerCase();
+                return tokens.every(token => lowerText.includes(token));
+            };
+
+            // Helper to score a match (higher = better)
+            // Title matches score higher, more token matches in title = even higher
+            const scoreMatch = (slide) => {
+                let score = 0;
+                const titleLower = slide.title.toLowerCase();
+                const contentLower = slide.content.toLowerCase();
+
+                // Check each token
+                for (const token of tokens) {
+                    // Title match is worth 10 points per token
+                    if (titleLower.includes(token)) {
+                        score += 10;
+                        // Bonus if token appears at start of title
+                        if (titleLower.startsWith(token)) score += 5;
+                    }
+                    // Content match is worth 1 point per token
+                    if (contentLower.includes(token)) {
+                        score += 1;
+                    }
+                }
+
+                return score;
+            };
 
             // Simple fallback if search index is not initialized
             if (!this.searchIndex) {
-                this.searchResults = this.allSlides.filter(s =>
-                    s.title.toLowerCase().includes(q) ||
-                    s.content.toLowerCase().includes(q)
+                // Filter slides where ALL tokens match (orderless)
+                const matchingSlides = this.allSlides.filter(s =>
+                    matchesAllTokens(s.title) || matchesAllTokens(s.content)
                 );
+
+                // Sort by score (title matches first)
+                matchingSlides.sort((a, b) => scoreMatch(b) - scoreMatch(a));
+
+                this.searchResults = matchingSlides;
                 this.selectedPaletteIndex = 0;
                 return;
             }
 
             try {
-                // Search title and content separately to enforce priority (Title > Content)
+                // For orderless search, we search with the full query first
+                // to get candidates, then filter by requiring all tokens
                 const [titleRes, contentRes] = await Promise.all([
-                    this.searchIndex.searchAsync(query, { index: 'title', enrich: true, limit: 20 }),
-                    this.searchIndex.searchAsync(query, { index: 'content', enrich: true, limit: 20 })
+                    this.searchIndex.searchAsync(query, { index: 'title', enrich: true, limit: 50 }),
+                    this.searchIndex.searchAsync(query, { index: 'content', enrich: true, limit: 50 })
                 ]);
 
                 if (currentQuery !== this.searchQuery) return;
@@ -270,39 +312,80 @@ document.addEventListener('alpine:init', () => {
                 const titleMatches = extract(titleRes);
                 const contentMatches = extract(contentRes);
 
-                const finalResults = [];
-                const seen = new Set();
-
-                const processMatch = (item) => {
+                const candidateIds = new Set();
+                titleMatches.forEach(item => {
                     const id = (typeof item === 'object') ? item.id : item;
-                    if (id === undefined || seen.has(id)) return;
+                    if (id !== undefined) candidateIds.add(id);
+                });
+                contentMatches.forEach(item => {
+                    const id = (typeof item === 'object') ? item.id : item;
+                    if (id !== undefined) candidateIds.add(id);
+                });
 
-                    seen.add(id);
-                    const doc = (typeof item === 'object' && item.doc) ? item.doc : (this.allSlides[id] || {});
-                    const title = doc.title || this.allSlides[id]?.title || `Slide ${id + 1}`;
-                    const rawContent = (typeof doc.content === 'string') ? doc.content : '';
+                // Process candidates: require all tokens to match (orderless)
+                const scoredResults = [];
 
-                    let preview = this.allSlides[id]?.content || '';
-                    if (rawContent && rawContent.length > 0) {
+                for (const id of candidateIds) {
+                    const slide = this.allSlides[id];
+                    if (!slide) continue;
+
+                    // Orderless check: ALL tokens must match somewhere
+                    const titleMatchesAll = matchesAllTokens(slide.title);
+                    const contentMatchesAll = matchesAllTokens(slide.content);
+
+                    if (titleMatchesAll || contentMatchesAll) {
+                        const score = scoreMatch(slide);
+                        scoredResults.push({ id, slide, score });
+                    }
+                }
+
+                // Also check slides that weren't in FlexSearch results
+                // (FlexSearch might miss some matches with its tokenization)
+                for (let i = 0; i < this.allSlides.length; i++) {
+                    if (candidateIds.has(i)) continue;
+                    const slide = this.allSlides[i];
+
+                    const titleMatchesAll = matchesAllTokens(slide.title);
+                    const contentMatchesAll = matchesAllTokens(slide.content);
+
+                    if (titleMatchesAll || contentMatchesAll) {
+                        const score = scoreMatch(slide);
+                        scoredResults.push({ id: i, slide, score });
+                    }
+                }
+
+                // Sort by score descending
+                scoredResults.sort((a, b) => b.score - a.score);
+
+                // Build final results
+                const finalResults = scoredResults.map(({ id, slide }) => {
+                    const rawContent = slide.content || '';
+                    let preview = rawContent;
+                    if (rawContent.length > 0) {
                         const stripped = rawContent.trim().substring(0, 100).replace(/\s+/g, ' ');
                         preview = stripped + (rawContent.length > 100 ? '...' : '');
                     }
 
-                    finalResults.push({ id, title, content: preview });
-                };
-
-                titleMatches.forEach(processMatch);
-                contentMatches.forEach(processMatch);
+                    return {
+                        id,
+                        title: slide.title || `Slide ${id + 1}`,
+                        content: preview
+                    };
+                });
 
                 this.searchResults = finalResults;
                 this.selectedPaletteIndex = 0;
             } catch (e) {
                 console.error('Search failed:', e);
                 if (currentQuery !== this.searchQuery) return;
-                this.searchResults = this.allSlides.filter(s =>
-                    s.title.toLowerCase().includes(q) ||
-                    s.content.toLowerCase().includes(q)
+
+                // Fallback to simple orderless matching
+                const matchingSlides = this.allSlides.filter(s =>
+                    matchesAllTokens(s.title) || matchesAllTokens(s.content)
                 );
+                matchingSlides.sort((a, b) => scoreMatch(b) - scoreMatch(a));
+
+                this.searchResults = matchingSlides;
                 this.selectedPaletteIndex = 0;
             }
         },
