@@ -40,14 +40,16 @@ document.addEventListener('alpine:init', () => {
             this.currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
             this.filteredThemes = this.themes;
 
-            // Initialize search index
+            // Initialize search index with prioritized fields
             this.searchIndex = new FlexSearch.Document({
                 document: {
                     id: 'id',
-                    index: ['title', 'content'],
+                    index: [
+                        { field: 'title', tokenize: 'forward', optimize: true, resolution: 9 },
+                        { field: 'content', tokenize: 'forward', optimize: true, resolution: 5 }
+                    ],
                     store: true
-                },
-                tokenize: 'forward'
+                }
             });
 
             document.querySelectorAll('.slide').forEach((slide, i) => {
@@ -119,19 +121,28 @@ document.addEventListener('alpine:init', () => {
                 this.searchResults = [];
                 return;
             }
-            const results = this.searchIndex.search(query, { limit: 10, enrich: true });
-            // Combine and sort results
-            let combined = [];
-            if (results.length > 0) {
-                results.forEach(r => {
-                    r.result.forEach(item => {
-                        if (!combined.find(c => c.id === item.id)) {
-                            combined.push({ id: item.id, title: item.doc.title });
-                        }
-                    });
-                });
-            }
-            this.searchResults = combined;
+
+            const results = this.searchIndex.search(query, { limit: 20, enrich: true });
+
+            // FlexSearch results are grouped by field.
+            // We want to prioritize title matches.
+            let titleMatches = [];
+            let contentMatches = [];
+
+            results.forEach(r => {
+                if (r.field === 'title') titleMatches = r.result;
+                if (r.field === 'content') contentMatches = r.result;
+            });
+
+            // Merge results, prioritizing titles and ensuring uniqueness
+            const merged = [...titleMatches];
+            contentMatches.forEach(cm => {
+                if (!merged.find(m => m.id === cm.id)) {
+                    merged.push(cm);
+                }
+            });
+
+            this.searchResults = merged.map(m => ({ id: m.id, title: m.doc.title }));
         },
 
         jumpToSlide(id) {
@@ -160,7 +171,6 @@ document.addEventListener('alpine:init', () => {
                 if (!matchesSearch) return false;
 
                 // Heuristic for light/dark (daisyui names are usually descriptive)
-                // In a real version we'd use a map.
                 const isDark = ['dark', 'synthwave', 'halloween', 'forest', 'aqua', 'black', 'luxury', 'dracula', 'business', 'night', 'coffee', 'dim', 'sunset', 'abyss'].includes(t);
 
                 if (isDarkSearch) return isDark;

@@ -53,11 +53,15 @@ by default, or by explicit horizontal rules (--- or -----).`,
 		}
 		defer f.Close()
 
+		opts := parser.Options{
+			Separator: separator,
+		}
+
 		var deck *parser.Deck
 		if ext == ".md" {
-			deck, err = parser.ParseMarkdown(f)
+			deck, err = parser.ParseMarkdown(f, opts)
 		} else {
-			deck, err = parser.ParseOrg(f)
+			deck, err = parser.ParseOrg(f, opts)
 		}
 		if err != nil {
 			return err

@@ -1,0 +1,31 @@
+[data-theme=corporate]{
+  color-scheme:light;
+  --color-base-100:oklch(100% 0 0);
+  --color-base-200:oklch(93% 0 0);
+  --color-base-300:oklch(86% 0 0);
+  --color-base-content:oklch(22.389% .031 278.072);
+  --color-primary:oklch(58% .158 241.966);
+  --color-primary-content:oklch(100% 0 0);
+  --color-secondary:oklch(55% .046 257.417);
+  --color-secondary-content:oklch(100% 0 0);
+  --color-accent:oklch(60% .118 184.704);
+  --color-accent-content:oklch(100% 0 0);
+  --color-neutral:oklch(0% 0 0);
+  --color-neutral-content:oklch(100% 0 0);
+  --color-info:oklch(60% .126 221.723);
+  --color-info-content:oklch(100% 0 0);
+  --color-success:oklch(62% .194 149.214);
+  --color-success-content:oklch(100% 0 0);
+  --color-warning:oklch(85% .199 91.936);
+  --color-warning-content:oklch(0% 0 0);
+  --color-error:oklch(70% .191 22.216);
+  --color-error-content:oklch(0% 0 0);
+  --radius-selector:.25rem;
+  --radius-field:.25rem;
+  --radius-box:.25rem;
+  --size-selector:.25rem;
+  --size-field:.25rem;
+  --border:1px;
+  --depth:0;
+  --noise:0
+}

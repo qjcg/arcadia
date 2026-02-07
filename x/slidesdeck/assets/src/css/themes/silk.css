@@ -1,0 +1,31 @@
+[data-theme=silk]{
+  color-scheme:light;
+  --color-base-100:oklch(97% .0035 67.78);
+  --color-base-200:oklch(95% .0081 61.42);
+  --color-base-300:oklch(90% .0081 61.42);
+  --color-base-content:oklch(40% .0081 61.42);
+  --color-primary:oklch(23.27% .0249 284.3);
+  --color-primary-content:oklch(94.22% .2505 117.44);
+  --color-secondary:oklch(23.27% .0249 284.3);
+  --color-secondary-content:oklch(73.92% .2135 50.94);
+  --color-accent:oklch(23.27% .0249 284.3);
+  --color-accent-content:oklch(88.92% .2061 189.9);
+  --color-neutral:oklch(20% 0 0);
+  --color-neutral-content:oklch(80% .0081 61.42);
+  --color-info:oklch(80.39% .1148 241.68);
+  --color-info-content:oklch(30.39% .1148 241.68);
+  --color-success:oklch(83.92% .0901 136.87);
+  --color-success-content:oklch(23.92% .0901 136.87);
+  --color-warning:oklch(83.92% .1085 80);
+  --color-warning-content:oklch(43.92% .1085 80);
+  --color-error:oklch(75.1% .1814 22.37);
+  --color-error-content:oklch(35.1% .1814 22.37);
+  --radius-selector:2rem;
+  --radius-field:.5rem;
+  --radius-box:1rem;
+  --size-selector:.25rem;
+  --size-field:.25rem;
+  --border:2px;
+  --depth:1;
+  --noise:0
+}

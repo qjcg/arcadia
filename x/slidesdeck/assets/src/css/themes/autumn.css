@@ -1,0 +1,31 @@
+[data-theme=autumn]{
+  color-scheme:light;
+  --color-base-100:oklch(95.814% 0 0);
+  --color-base-200:oklch(89.107% 0 0);
+  --color-base-300:oklch(82.4% 0 0);
+  --color-base-content:oklch(19.162% 0 0);
+  --color-primary:oklch(40.723% .161 17.53);
+  --color-primary-content:oklch(88.144% .032 17.53);
+  --color-secondary:oklch(61.676% .169 23.865);
+  --color-secondary-content:oklch(12.335% .033 23.865);
+  --color-accent:oklch(73.425% .094 60.729);
+  --color-accent-content:oklch(14.685% .018 60.729);
+  --color-neutral:oklch(54.367% .037 51.902);
+  --color-neutral-content:oklch(90.873% .007 51.902);
+  --color-info:oklch(69.224% .097 207.284);
+  --color-info-content:oklch(13.844% .019 207.284);
+  --color-success:oklch(60.995% .08 174.616);
+  --color-success-content:oklch(12.199% .016 174.616);
+  --color-warning:oklch(70.081% .164 56.844);
+  --color-warning-content:oklch(14.016% .032 56.844);
+  --color-error:oklch(53.07% .241 24.16);
+  --color-error-content:oklch(90.614% .048 24.16);
+  --radius-selector:1rem;
+  --radius-field:.5rem;
+  --radius-box:1rem;
+  --size-selector:.25rem;
+  --size-field:.25rem;
+  --border:1px;
+  --depth:1;
+  --noise:0
+}

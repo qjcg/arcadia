@@ -16,6 +16,7 @@ tasks:
   css:
     desc: Build CSS with Tailwind v4
     cmds:
+      - go run scripts/split_themes.go
       - ./tailwindcss -i assets/src/css/main.css -o assets/dist/main.css --minify
 
   js:

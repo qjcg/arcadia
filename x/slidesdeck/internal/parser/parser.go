@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"strings"
@@ -24,15 +25,18 @@ type Deck struct {
 	Slides []Slide
 }
 
-func ParseMarkdown(r io.Reader) (*Deck, error) {
+type Options struct {
+	Separator string
+}
+
+func ParseMarkdown(r io.Reader, opts Options) (*Deck, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
 
 	content := string(data)
-	// Split by first level headings or ---
-	rawSlides := splitMarkdown(content)
+	rawSlides := splitMarkdown(content, opts.Separator)
 
 	md := goldmark.New(
 		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
@@ -70,15 +74,14 @@ func ParseMarkdown(r io.Reader) (*Deck, error) {
 	return deck, nil
 }
 
-func ParseOrg(r io.Reader) (*Deck, error) {
+func ParseOrg(r io.Reader, opts Options) (*Deck, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
 
 	content := string(data)
-	// Simple org splitting by * headings
-	rawSlides := splitOrg(content)
+	rawSlides := splitOrg(content, opts.Separator)
 
 	deck := &Deck{Title: "Org Presentation"}
 	for i, rs := range rawSlides {
@@ -104,33 +107,96 @@ func ParseOrg(r io.Reader) (*Deck, error) {
 	return deck, nil
 }
 
-func splitMarkdown(content string) []string {
+func splitMarkdown(content string, sep string) []string {
 	content = strings.ReplaceAll(content, "\r\n", "\n")
 
-	// Split by ---
-	parts := strings.Split(content, "\n---\n")
+	var slides []string
+	var currentSlide strings.Builder
 
-	var finalBlocks []string
-	for _, p := range parts {
-		finalBlocks = append(finalBlocks, strings.TrimSpace(p))
+	scanner := bufio.NewScanner(strings.NewReader(content))
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		isSeparator := false
+		if sep != "" {
+			isSeparator = strings.TrimSpace(line) == sep
+		} else {
+			// Default logic: # Heading or ---
+			isSeparator = strings.HasPrefix(line, "# ") || (strings.TrimSpace(line) == "---")
+		}
+
+		if isSeparator && currentSlide.Len() > 0 {
+			slides = append(slides, currentSlide.String())
+			currentSlide.Reset()
+		}
+
+		// If it was a '---' separator, don't include it in content
+		if isSeparator && strings.TrimSpace(line) == "---" && sep == "" {
+			continue
+		}
+
+		// If it was a custom separator, don't include it
+		if isSeparator && sep != "" {
+			continue
+		}
+
+		if currentSlide.Len() > 0 {
+			currentSlide.WriteString("\n")
+		}
+		currentSlide.WriteString(line)
 	}
 
-	return finalBlocks
+	if currentSlide.Len() > 0 {
+		slides = append(slides, currentSlide.String())
+	}
+
+	return slides
 }
 
-func splitOrg(content string) []string {
+func splitOrg(content string, sep string) []string {
 	content = strings.ReplaceAll(content, "\r\n", "\n")
 
-	parts := strings.Split(content, "\n* ")
-	var finalBlocks []string
-	for i, p := range parts {
-		block := p
-		if i > 0 {
-			block = "* " + p
+	var slides []string
+	var currentSlide strings.Builder
+
+	scanner := bufio.NewScanner(strings.NewReader(content))
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		isSeparator := false
+		if sep != "" {
+			isSeparator = strings.TrimSpace(line) == sep
+		} else {
+			// Default logic: * Heading or -----
+			isSeparator = strings.HasPrefix(line, "* ") || (strings.TrimSpace(line) == "-----")
 		}
-		finalBlocks = append(finalBlocks, strings.TrimSpace(block))
+
+		if isSeparator && currentSlide.Len() > 0 {
+			slides = append(slides, currentSlide.String())
+			currentSlide.Reset()
+		}
+
+		// If it was a '-----' separator, don't include it in content
+		if isSeparator && strings.TrimSpace(line) == "-----" && sep == "" {
+			continue
+		}
+
+		// If it was a custom separator, don't include it
+		if isSeparator && sep != "" {
+			continue
+		}
+
+		if currentSlide.Len() > 0 {
+			currentSlide.WriteString("\n")
+		}
+		currentSlide.WriteString(line)
 	}
-	return finalBlocks
+
+	if currentSlide.Len() > 0 {
+		slides = append(slides, currentSlide.String())
+	}
+
+	return slides
 }
 
 func extractTitle(content string) string {
