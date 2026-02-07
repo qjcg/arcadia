@@ -76,3 +76,8 @@ tasks:
     desc: Run with hot reload
     cmds:
       - go tool air
+
+  test:
+    desc: Run tests
+    cmds:
+      - go tool gotestsum ./...

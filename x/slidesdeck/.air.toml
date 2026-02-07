@@ -8,7 +8,7 @@ tmp_dir = "bin"
 [build]
   args_bin = []
   bin = ""
-  cmd = "go tool task build"
+  cmd = "task build"
   delay = 1000
   entrypoint = ["./bin/slidesdeck", "examples/overview.org"]
   exclude_dir = ["assets", "tmp", "vendor", "testdata"]
