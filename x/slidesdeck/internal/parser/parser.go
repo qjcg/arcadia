@@ -7,14 +7,13 @@ import (
 	"io"
 	"strings"
 
-	"github.com/alecthomas/chroma/v2/formatters/html"
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/niklasfasching/go-org/org"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
-	"github.com/yuin/goldmark/parser"
+	goldmarkparser "github.com/yuin/goldmark/parser"
 	goldmarkhtml "github.com/yuin/goldmark/renderer/html"
 )
 
@@ -43,7 +42,7 @@ func ParseMarkdown(r io.Reader, opts Options) (*Deck, error) {
 	rawSlides := splitMarkdown(content, opts.Separator)
 
 	md := goldmark.New(
-		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
+		goldmark.WithParserOptions(goldmarkparser.WithAutoHeadingID()),
 		goldmark.WithRendererOptions(goldmarkhtml.WithUnsafe()),
 		goldmark.WithExtensions(
 			highlighting.NewHighlighting(
@@ -98,7 +97,7 @@ func ParseOrg(r io.Reader, opts Options) (*Deck, error) {
 
 	for i, rs := range rawSlides {
 		config := org.New()
-		doc := config.Parse(strings.NewReader(rs), "")
+		doc := config.Parse(strings.NewReader(rs+"\n"), "")
 
 		writer := org.NewHTMLWriter()
 		writer.HighlightCodeBlock = func(code, lang string, inline bool, params map[string]string) string {
@@ -110,7 +109,7 @@ func ParseOrg(r io.Reader, opts Options) (*Deck, error) {
 			if style == nil {
 				style = styles.Fallback
 			}
-			formatter := html.New(html.WithLineNumbers(true), html.TabWidth(2))
+			formatter := chromahtml.New(chromahtml.WithLineNumbers(true), chromahtml.TabWidth(2))
 
 			iterator, err := lexer.Tokenise(nil, code)
 			if err != nil {
@@ -150,16 +149,22 @@ func splitMarkdown(content string, sep string) []string {
 	var slides []string
 	var currentSlide strings.Builder
 
+	inCodeBlock := false
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	for scanner.Scan() {
 		line := scanner.Text()
 
+		if strings.HasPrefix(strings.TrimSpace(line), "```") {
+			inCodeBlock = !inCodeBlock
+		}
+
 		isSeparator := false
-		if sep != "" {
-			isSeparator = strings.TrimSpace(line) == sep
-		} else {
-			// Default logic: # Heading or ---
-			isSeparator = strings.HasPrefix(line, "# ") || (strings.TrimSpace(line) == "---")
+		if !inCodeBlock {
+			if sep != "" {
+				isSeparator = strings.TrimSpace(line) == sep
+			} else {
+				isSeparator = strings.HasPrefix(line, "# ") || (strings.TrimSpace(line) == "---")
+			}
 		}
 
 		if isSeparator && currentSlide.Len() > 0 {
@@ -167,13 +172,7 @@ func splitMarkdown(content string, sep string) []string {
 			currentSlide.Reset()
 		}
 
-		// If it was a '---' separator, don't include it in content
-		if isSeparator && strings.TrimSpace(line) == "---" && sep == "" {
-			continue
-		}
-
-		// If it was a custom separator, don't include it
-		if isSeparator && sep != "" {
+		if isSeparator && (strings.TrimSpace(line) == "---" || (sep != "" && strings.TrimSpace(line) == sep)) {
 			continue
 		}
 
@@ -196,16 +195,27 @@ func splitOrg(content string, sep string) []string {
 	var slides []string
 	var currentSlide strings.Builder
 
+	inBlock := false
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	for scanner.Scan() {
 		line := scanner.Text()
+		trimmed := strings.TrimSpace(strings.ToLower(line))
+
+		if strings.HasPrefix(trimmed, "#+begin_") || strings.HasPrefix(trimmed, "#+end_") {
+			if strings.HasPrefix(trimmed, "#+begin_") {
+				inBlock = true
+			} else {
+				inBlock = false
+			}
+		}
 
 		isSeparator := false
-		if sep != "" {
-			isSeparator = strings.TrimSpace(line) == sep
-		} else {
-			// Default logic: * Heading or -----
-			isSeparator = strings.HasPrefix(line, "* ") || (strings.TrimSpace(line) == "-----")
+		if !inBlock {
+			if sep != "" {
+				isSeparator = strings.TrimSpace(line) == sep
+			} else {
+				isSeparator = strings.HasPrefix(line, "* ") || (strings.TrimSpace(line) == "-----")
+			}
 		}
 
 		if isSeparator && currentSlide.Len() > 0 {
@@ -213,13 +223,7 @@ func splitOrg(content string, sep string) []string {
 			currentSlide.Reset()
 		}
 
-		// If it was a '-----' separator, don't include it in content
-		if isSeparator && strings.TrimSpace(line) == "-----" && sep == "" {
-			continue
-		}
-
-		// If it was a custom separator, don't include it
-		if isSeparator && sep != "" {
+		if isSeparator && (strings.TrimSpace(line) == "-----" || (sep != "" && strings.TrimSpace(line) == sep)) {
 			continue
 		}
 

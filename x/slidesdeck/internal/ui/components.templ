@@ -16,7 +16,6 @@ templ Layout(deck *parser.Deck, initialTheme string, css string, js string) {
 		</head>
 		<body class="bg-base-100 text-base-content" x-data="slideshow">
 			<div class="h-screen w-screen overflow-hidden relative">
-				// Slides container
 				<div class="slides-container h-full w-full">
 					for i, slide := range deck.Slides {
 						<section
