@@ -100,6 +100,7 @@ templ ThemePalette() {
 						class="px-4 py-3 hover:bg-base-200 cursor-pointer flex justify-between items-center"
 						:class="currentTheme === theme ? 'bg-primary text-primary-content' : ''"
 						@click="setTheme(theme)"
+						:data-theme-name="theme"
 					>
 						<span x-text="(['dark', 'synthwave', 'halloween', 'forest', 'aqua', 'black', 'luxury', 'dracula', 'business', 'night', 'coffee', 'dim', 'sunset', 'abyss'].includes(theme) ? 'dark: ' : 'light: ') + theme"></span>
 						<span x-show="currentTheme === theme">✓</span>

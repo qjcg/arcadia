@@ -95,10 +95,27 @@ document.addEventListener('alpine:init', () => {
                         break;
                     case 't':
                         this.showThemePalette = true;
-                        this.$nextTick(() => this.$refs.themeSearch?.focus());
+                        this.$nextTick(() => {
+                            this.$refs.themeSearch?.focus();
+                            this.scrollToCurrentTheme();
+                        });
                         break;
                     case 'N':
                         this.lineNumbers = !this.lineNumbers;
+                        break;
+                    case ',':
+                    case '<':
+                        if (e.shiftKey && e.altKey) {
+                            this.currentSlide = 0;
+                            this.updateHash();
+                        }
+                        break;
+                    case '.':
+                    case '>':
+                        if (e.shiftKey && e.altKey) {
+                            this.currentSlide = this.totalSlides - 1;
+                            this.updateHash();
+                        }
                         break;
                     case '?':
                         this.showHelp = !this.showHelp;
@@ -113,6 +130,17 @@ document.addEventListener('alpine:init', () => {
                         break;
                 }
             });
+
+            this.$watch('searchQuery', () => {
+                if (!this.searchQuery) {
+                    this.$nextTick(() => this.scrollToCurrentTheme());
+                }
+            });
+        },
+
+        scrollToCurrentTheme() {
+            const el = document.querySelector(`[data-theme-name="${this.currentTheme}"]`);
+            if (el) el.scrollIntoView({ block: 'nearest' });
         },
 
         performSearch(query) {
@@ -154,6 +182,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         searchThemes(query) {
+            this.searchQuery = query; // Use same query variable for $watch
             if (!query) {
                 this.filteredThemes = this.themes;
                 return;
@@ -183,6 +212,7 @@ document.addEventListener('alpine:init', () => {
             this.currentTheme = theme;
             document.documentElement.setAttribute('data-theme', theme);
             this.showThemePalette = false;
+            this.searchQuery = '';
         },
 
         startTimer() {

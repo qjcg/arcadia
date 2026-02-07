@@ -2,11 +2,15 @@ package parser
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"strings"
 
+	"github.com/alecthomas/chroma/v2/formatters/html"
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/niklasfasching/go-org/org"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
@@ -52,7 +56,11 @@ func ParseMarkdown(r io.Reader, opts Options) (*Deck, error) {
 		),
 	)
 
-	deck := &Deck{Title: "Markdown Presentation"}
+	deck := &Deck{Title: extractTitle(content)}
+	if deck.Title == "" {
+		deck.Title = "Markdown Presentation"
+	}
+
 	for i, rs := range rawSlides {
 		var buf strings.Builder
 		if err := md.Convert([]byte(rs), &buf); err != nil {
@@ -83,11 +91,40 @@ func ParseOrg(r io.Reader, opts Options) (*Deck, error) {
 	content := string(data)
 	rawSlides := splitOrg(content, opts.Separator)
 
-	deck := &Deck{Title: "Org Presentation"}
+	deck := &Deck{Title: extractOrgTitle(content)}
+	if deck.Title == "" {
+		deck.Title = "Org Presentation"
+	}
+
 	for i, rs := range rawSlides {
 		config := org.New()
 		doc := config.Parse(strings.NewReader(rs), "")
-		html, err := doc.Write(org.NewHTMLWriter())
+
+		writer := org.NewHTMLWriter()
+		writer.HighlightCodeBlock = func(code, lang string, inline bool, params map[string]string) string {
+			lexer := lexers.Get(lang)
+			if lexer == nil {
+				lexer = lexers.Fallback
+			}
+			style := styles.Get("dracula")
+			if style == nil {
+				style = styles.Fallback
+			}
+			formatter := html.New(html.WithLineNumbers(true), html.TabWidth(2))
+
+			iterator, err := lexer.Tokenise(nil, code)
+			if err != nil {
+				return code
+			}
+
+			var buf bytes.Buffer
+			if err := formatter.Format(&buf, style, iterator); err != nil {
+				return code
+			}
+			return buf.String()
+		}
+
+		html, err := doc.Write(writer)
 		if err != nil {
 			return nil, err
 		}
