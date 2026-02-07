@@ -1,0 +1,88 @@
+* Welcome to Slidesdeck
+**Plain text, polished slides.**
+
+Slidesdeck is a single-purpose CLI tool that transforms your notes into professional, self-contained HTML slideshows.
+
+- Type 'n' or 'p' to navigate
+- Type '?' to see all help
+- Type 't' to change themes
+
+-----
+
+* Slide Separation
+Slides are separated by first-level headings (like this one) by default.
+
+You can also use explicit separators:
+#+BEGIN_EXAMPLE
+-----
+#+END_EXAMPLE
+
+* Rich Formatting
+Org-mode supports various formatting options:
+- *Bold* text
+- /Italic/ text
+- _Underlined_ text
+- +Strikethrough+ text
+- ~Code~ and =Verbatim=
+
+* Lists and Tables
+** Bullet points
+- Simple
+- Nested
+  - Even deeper
+** Numbered lists
+1. First item
+2. Second item
+** Tables
+| Feature         | Status |
+|-----------------+--------|
+| Markdown        | Done   |
+| Org-mode        | Done   |
+| Self-contained  | Yes    |
+
+* Syntax Highlighting
+Slidesdeck uses Chroma for high-quality syntax highlighting.
+
+#+BEGIN_SRC go
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello from Slidesdeck!")
+}
+#+END_SRC
+
+Toggle line numbers with 'N'.
+
+* Integrated Search
+Press '/' at any time to open the **Search Palette**.
+
+- High-performance full-text search (FlexSearch)
+- Priority given to slide titles
+- Press Enter to jump to the slide
+
+* Theme Command Palette
+Press 't' to open the **Theme Switcher**.
+
+- 30+ daisyUI themes available
+- Search by name or prefix:
+  - 'dark: ' for dark themes
+  - 'light: ' for light themes
+
+* Pause Mode
+Manage break times professionally.
+
+- Press 'Shift+P' to configure a break
+- Set a countdown timer or a return time
+- Persistent state (survives browser close)
+- Large, clear display for participants
+
+* Portable and Fast
+- Generated as a single HTML file
+- Zero external dependencies
+- Powered by Go, Tailwind CSS v4, and Alpine.js
+- Blazing fast conversion
+
+* Go forth and Present!
+Slidesdeck - Technical presentations for the modern era.
