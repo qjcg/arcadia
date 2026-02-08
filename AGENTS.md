@@ -79,3 +79,18 @@
 
 - Write clean, modular code.
 - Generally go packages should be created under an `internal` subdirectory unless the library code is intended for export
+
+## Issue Tracking
+
+- Use `go tool bd` to manage tasks and implementation plans
+- When creating work items, use these flags for maximum clarity:
+  - `--type`: (bug|feature|task|epic|chore)
+  - `--description`: Detailed explanation of the task
+  - `--acceptance`: Clear criteria for when the task is considered done
+  - `--deps`: Comma-separated dependencies (e.g., `sv-123`)
+  - `--design`: Any critical technical design notes
+  - `--estimate`: Time estimate in minutes. Estimate time for an agent such as yourself, NOT a human.
+  - `--priority`: Priority level (P0-P4)
+  - `--labels`: Comma-separated labels
+  - `--parent`: Link to a parent epic or task for hierarchy
+- Use `bd list` or `bd ready` to check current queue
