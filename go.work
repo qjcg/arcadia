@@ -8,4 +8,5 @@ use (
 	./x/elbereth
 	./x/fractalis
 	./x/slidesdeck
+	./x/sv
 )
