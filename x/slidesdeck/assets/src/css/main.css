@@ -120,7 +120,7 @@ pre {
 }
 
 [data-theme="gradient-dark"] .slide h2 {
-  background: linear-gradient(135deg, #FAD961 0%, #F76B1C 100%);
+  background: linear-gradient(135deg, #7DFFB3 0%, #43CBFF 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
