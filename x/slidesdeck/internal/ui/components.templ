@@ -350,23 +350,29 @@ templ PauseMode() {
 		</div>
 
 		<div class="text-center w-full max-w-4xl px-8 z-10 flex flex-col items-center">
-			<div class="mb-4 relative">
+			<div class="mb-4 relative" x-show="timerRunning">
 				<h1 class="inline-block text-[12rem] font-black leading-none tracking-tighter font-mono tabular-nums pause-timer" x-text="timeRemaining">00:00:00</h1>
 				<div
 					class="absolute -bottom-2 left-0 h-2 bg-gradient-to-r from-primary via-secondary to-accent rounded-full transition-all duration-1000 ease-linear"
 					:style="`width: ${progress}%`"
 					x-show="timerRunning"
 				></div>
+				<div
+					class="text-4xl font-black tabular-nums opacity-30 mt-4 animate-in fade-in duration-1000"
+					x-text="`until ${pauseUntilDisplay}`"
+					x-show="timerRunning"
+					x-cloak
+				></div>
 			</div>
 
-			<p class="text-6xl font-black opacity-90 mb-20 tracking-tight" x-text="pauseMessage"></p>
+			<p class="text-6xl font-black opacity-90 mb-20 tracking-tight" x-text="pauseMessage" x-show="timerRunning"></p>
 
 			<div class="absolute bottom-12 left-12 text-left opacity-30 group" x-show="currentTime">
 				<div class="text-[10px] uppercase font-black tracking-widest mb-1">Current Time</div>
 				<div class="text-4xl font-black tabular-nums" x-text="currentTime"></div>
 			</div>
 
-			<div class="absolute bottom-12 right-12 text-right opacity-30" x-show="timerRunning && pauseMode === 'until'">
+			<div class="absolute bottom-12 right-12 text-right opacity-30" x-show="timerRunning">
 				<div class="text-[10px] uppercase font-black tracking-widest mb-1">Resuming At</div>
 				<div class="text-4xl font-black tabular-nums" x-text="pauseUntilDisplay"></div>
 			</div>
@@ -420,7 +426,7 @@ templ PauseMode() {
 			</div>
 
 			<div class="mt-12 group" x-show="timerRunning">
-				<button class="btn btn-ghost btn-xl text-4xl px-20 h-32 rounded-full border-2 border-transparent hover:border-error hover:text-error transition-all duration-300" @click="resetTimer()">
+				<button class="btn btn-ghost btn-xl text-4xl px-20 h-32 rounded-full border-2 border-transparent hover:border-error hover:text-error transition-all duration-300 opacity-20 hover:opacity-100" @click="resetTimer()">
 					RESET TIMER
 				</button>
 			</div>

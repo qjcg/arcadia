@@ -647,6 +647,7 @@ document.addEventListener('alpine:init', () => {
                 this.pauseUntilDisplay = target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             } else {
                 this.endTime = new Date(now.getTime() + this.pauseMinutes * 60000);
+                this.pauseUntilDisplay = this.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
             this.timerRunning = true;
             localStorage.setItem('slidesdeck_timer', JSON.stringify({
