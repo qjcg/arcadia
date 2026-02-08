@@ -290,7 +290,8 @@ document.addEventListener('alpine:init', () => {
                         this.themeQuery = '';
                         this.filteredThemes = this.themes;
                         this.showThemePalette = true;
-                        this.selectedPaletteIndex = 0;
+                        this.selectedPaletteIndex = this.themes.indexOf(this.currentTheme);
+                        if (this.selectedPaletteIndex === -1) this.selectedPaletteIndex = 0;
                         this.$nextTick(() => {
                             this.$refs.themeSearch?.focus();
                             this.scrollToCurrentTheme();
@@ -301,7 +302,8 @@ document.addEventListener('alpine:init', () => {
                         this.fontThemeQuery = '';
                         this.filteredFontThemes = this.fontThemes;
                         this.showFontThemePalette = true;
-                        this.selectedPaletteIndex = 0;
+                        this.selectedPaletteIndex = this.fontThemes.findIndex(t => t.name === this.currentFontTheme);
+                        if (this.selectedPaletteIndex === -1) this.selectedPaletteIndex = 0;
                         this.$nextTick(() => {
                             this.$refs.fontThemeSearch?.focus();
                             this.scrollToCurrentFontTheme();
@@ -358,8 +360,10 @@ document.addEventListener('alpine:init', () => {
         },
 
         scrollToCurrentTheme() {
-            const el = document.querySelector(`[data-theme-name="${this.currentTheme}"]`);
-            if (el) el.scrollIntoView({ block: 'nearest' });
+            this.$nextTick(() => {
+                const el = document.querySelector(`[data-theme-name="${this.currentTheme}"]`);
+                if (el) el.scrollIntoView({ block: 'center' });
+            });
         },
 
         async performSearch(query) {
@@ -637,8 +641,10 @@ document.addEventListener('alpine:init', () => {
         },
 
         scrollToCurrentFontTheme() {
-            const el = document.querySelector(`[data-font-theme-name="${this.currentFontTheme}"]`);
-            if (el) el.scrollIntoView({ block: 'nearest' });
+            this.$nextTick(() => {
+                const el = document.querySelector(`[data-font-theme-name="${this.currentFontTheme}"]`);
+                if (el) el.scrollIntoView({ block: 'center' });
+            });
         },
 
         startTimer() {
