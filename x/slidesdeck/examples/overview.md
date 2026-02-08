@@ -24,56 +24,123 @@ Slidesdeck is a single-purpose CLI tool that transforms your notes into professi
 
 ---
 
-# Standard Formatting
-Markdown supports various formatting options:
-- **Bold** text
-- *Italic* text
-- ~~Strikethrough~~ text
-- `Code` and inline snippets
-
----
-
 # Multi-Format Support
 Slidesdeck natively supports both:
 1. **Org-mode** (.org)
 2. **Markdown** (.md)
 
 Both formats use standard separators:
-- First-level headings (e.g., `* Header`)
-- Horizontal rules (e.g., `-----` or `---`)
+- First-level headings (e.g., `# Header` or `* Header`)
+- Horizontal rules (e.g., `---` or `-----`)
 - Custom separators via `--separator` flag
 
 ---
 
-# Lists and Deep Nesting
-## Unordered Lists
-- Simple item
-- Nested item
-    - Even deeper
-## Ordered Lists
-1. First item
-2. Second item
-    1. Sub-item
-## Checklists
-- [x] Feature A
-- [x] Feature B
-- [ ] Feature C
+# Checklists and Lists
+## Technical Task Tracking
+- [x] Integrate Goldmark for Markdown
+- [x] Add Org-mode support via go-org
+- [x] Implement orderless search
+- [ ] Add PDF export (coming soon)
+
+## Nested Structures
+- Level 1
+    - Level 2
+        - Level 3
 
 ---
 
 # Tables for Technical Data
-| Feature         | Org-mode | Markdown |
-|-----------------|----------|----------|
-| Tables          | Supported| Supported|
-| Lists           | Supported| Supported|
-| Code Blocks     | Supported| Supported|
-| Search          | Included | Included |
-| Themes          | 30+      | 30+      |
+| Feature         | Markdown | Org-mode | Search |
+|-----------------|:--------:|:--------:|:------:|
+| Format Support  | ✅       | ✅       | Native |
+| Syntax Highlighting | ✅   | ✅       | Chroma |
+| Theme Palettes  | ✅       | ✅       | Built-in|
+| Command Palette | ✅       | ✅       | FlexSearch|
 
 ---
 
-# Syntax Highlighting
-Slidesdeck uses Chroma for high-quality syntax highlighting.
+# Data Modeling with CUE
+CUE is powerful for configuration and validation.
+
+```cue
+#User: {
+    id:   int
+    name: string
+    role: "admin" | "member"
+    tags: [...string]
+}
+
+myUser: #User & {
+    id:   101
+    name: "Gopher"
+    role: "admin"
+    tags: ["core", "dev"]
+}
+```
+
+---
+
+# System Scripting: Python
+Perfect for quick logic and data processing.
+
+```python
+import sys
+
+def analyze_complexity(code):
+    lines = code.split('\n')
+    score = sum(1 for line in lines if "if" in line or "for" in line)
+    return f"Complexity Score: {score}"
+
+print(analyze_complexity("if True:\n  for i in range(10): pass"))
+```
+
+---
+
+# Power of Rust
+Memory safety and performance without a runtime.
+
+```rust
+fn main() {
+    let languages = vec!["Go", "Rust", "Python", "CUE"];
+
+    for lang in languages.iter() {
+        println!("Slidesdeck supports: {} with high-quality highlighting", lang);
+    }
+
+    // Pattern matching example
+    let status = Some(200);
+    match status {
+        Some(200..=299) => println!("Success!"),
+        _ => println!("Request failed"),
+    }
+}
+```
+
+---
+
+# Frontend Logic: JavaScript
+Modern ESM and interactive features.
+
+```javascript
+export class SearchService {
+    constructor(index) {
+        this.index = index;
+    }
+
+    async search(query) {
+        const tokens = query.toLowerCase().split(/\s+/);
+        return this.index.filter(doc =>
+            tokens.every(token => doc.text.includes(token))
+        );
+    }
+}
+```
+
+---
+
+# Backend Systems: Go
+The engine behind Slidesdeck.
 
 ```go
 package main
@@ -81,64 +148,36 @@ package main
 import "fmt"
 
 func main() {
-    // High-performance Go code
-    fmt.Println("Hello from Slidesdeck!")
+    msg := "Built with ❤️ using Charm components"
+    for i := 0; i < 3; i++ {
+        fmt.Printf("%d: %s\n", i+1, msg)
+    }
 }
 ```
-
-- Toggle line numbers with <kbd>N</kbd>
-- Built-in "Copy" button for code blocks
 
 ---
 
 # Command Palette Search
 Press <kbd>/</kbd> at any time to open the **Search Palette**.
 
-- Powered by **FlexSearch** (v0.8.2)
-- High-performance full-text search
-- Priority given to slide titles
-- Automatic highlighting as you type
+- Powered by **FlexSearch**
+- **Orderless Logic**: Search "python logic" to find "System Scripting: Python"
+- Automatic highlighting
 - Instant jump to any slide
-
----
-
-# Color Theme Palette
-Press <kbd>t</kbd> to open the **Theme Switcher**.
-
-- 30+ built-in daisyUI themes
-- Search by name or category:
-    - 'dark: ' for dark themes
-    - 'light: ' for light themes
-- Current theme is always pre-selected
-- Apply custom CSS via `--theme-file`
-
----
-
-# Font Theme Palette
-Press <kbd>Shift+T</kbd> (<kbd>T</kbd>) to open the **Font Switcher**.
-
-- 16 professionally curated font themes
-- Pairings for headings, body, and code
-- Example themes:
-    - *Elegant*: Playfair Display / Source Sans
-    - *Tech*: Space Grotesk / JetBrains Mono
-    - *Brutalist*: Archivo Black / Space Grotesk
-- Apply custom fonts via `--fonttheme-file`
 
 ---
 
 # Interactive Pause Mode
 Manage break times professionally with <kbd>Shift+P</kbd>.
 
-- Configurable countdown timer
-- Custom break messages
-- Persistent state (survives browser close/reload)
-- Full-screen, high-contrast display
-- "Reset" button to clear active timers
+- **Countdown Message**: Customize what's shown during the break
+- **Duration**: Choose "Until Time" or "In Minutes"
+- Persistent state survives browser reload
+- Full-screen high-contrast display
 
 ---
 
-# Keyboard Shortcuts Cheat Sheet
+# Keyboard Shortcuts
 | Key                                            | Action                  |
 |------------------------------------------------|-------------------------|
 | <kbd>n</kbd> / <kbd>→</kbd> / <kbd>Spc</kbd> | Next Slide              |
@@ -152,18 +191,10 @@ Manage break times professionally with <kbd>Shift+P</kbd>.
 
 ---
 
-# Portable and Fast
-- Generated as a single HTML file
-- Zero external dependencies
-- Powered by Go, Tailwind CSS v4, and Alpine.js
-- Blazing fast conversion (<200ms)
-
----
-
 # Go forth and Present!
 Slidesdeck - Technical presentations for the modern era.
 
 *Start your next talk with a simple command:*
 ```bash
-slidesdeck overview.org
+slidesdeck overview.md
 ```

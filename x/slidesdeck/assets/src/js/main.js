@@ -142,12 +142,12 @@ document.addEventListener('alpine:init', () => {
                     if (pre.parentElement.classList.contains('code-wrapper')) return;
 
                     const wrapper = document.createElement('div');
-                    wrapper.className = 'code-wrapper relative group';
+                    wrapper.className = 'code-wrapper relative group w-full block';
                     pre.parentNode.insertBefore(wrapper, pre);
                     wrapper.appendChild(pre);
 
                     const btn = document.createElement('button');
-                    btn.className = 'btn btn-ghost btn-xs absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200';
+                    btn.className = 'btn btn-ghost btn-xs absolute top-2 right-2 opacity-0 btn-copy transition-opacity duration-200';
                     btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>`;
                     btn.onclick = () => {
                         const code = pre.querySelector('code') || pre;
@@ -337,7 +337,15 @@ document.addEventListener('alpine:init', () => {
                         this.$nextTick(() => this.$refs.slideSearch?.focus());
                         break;
                     case 'P':
-                        if (e.shiftKey) this.showPause = !this.showPause;
+                        if (e.shiftKey) {
+                            this.showPause = !this.showPause;
+                            if (this.showPause && !this.timerRunning) {
+                                this.$nextTick(() => {
+                                    this.$refs.pauseMessageInput?.focus();
+                                    this.$refs.pauseMessageInput?.select();
+                                });
+                            }
+                        }
                         break;
                 }
             });

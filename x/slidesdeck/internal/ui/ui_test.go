@@ -187,7 +187,7 @@ func TestUI(t *testing.T) {
 			name:      "Pause Mode structural elements",
 			component: PauseMode(),
 			contains: []string{
-				"Break Message",
+				"Countdown Message",
 				"x-text=\"timeRemaining\"",
 				"START",
 				"x-model=\"pauseMinutes\"",

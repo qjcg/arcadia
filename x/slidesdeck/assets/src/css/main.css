@@ -3,6 +3,7 @@
 @import "./vendor/themes.css";
 @import "./fontthemes.css";
 @source "../../../internal/ui/**/*.templ";
+@source "../js/**/*.js";
 
 [x-cloak] {
   display: none !important;
@@ -44,6 +45,10 @@
   scroll-snap-align: start;
 }
 
+.code-wrapper:hover .btn-copy {
+  opacity: 1;
+}
+
 /* Ensure code blocks look good */
 pre {
   padding: 1rem;
@@ -69,16 +74,27 @@ pre {
 }
 
 .slide kbd {
-  background-color: var(--color-base-200);
-  border: 1px solid var(--color-base-300);
-  border-bottom: 2px solid var(--color-base-300);
-  border-radius: 0.25rem;
-  padding: 0.1rem 0.4rem;
-  font-size: 0.8em;
-  font-weight: bold;
+  background-color: var(--color-base-300);
+  border: 1px solid var(--color-base-content);
+  border-bottom-width: 3px;
+  border-radius: 0.375rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.85em;
+  font-weight: 800;
+  box-shadow: 0 2px 0 0 var(--color-base-content);
+  color: var(--color-base-content);
+}
+
+.kbd {
+  background-color: var(--color-base-300);
+  border: 1px solid var(--color-base-content);
+  border-bottom-width: 3px;
+  box-shadow: 0 2px 0 0 var(--color-base-content);
+  font-weight: 800;
 }
 
 .slide h1 {
+  color: var(--color-primary);
   font-size: 4rem;
   font-weight: 900;
   margin-bottom: 2rem;
@@ -86,6 +102,7 @@ pre {
 }
 
 .slide h2 {
+  color: var(--color-secondary);
   font-size: 3.5rem;
   font-weight: 800;
   margin-bottom: 1.5rem;
@@ -93,9 +110,18 @@ pre {
 }
 
 .slide h3 {
+  color: var(--color-accent);
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 1rem;
+}
+
+.slide strong {
+  color: var(--color-primary);
+}
+
+.slide em {
+  color: var(--color-secondary);
 }
 
 .slide p {
@@ -109,25 +135,147 @@ pre {
   display: inline-block;
   font-size: 1.5rem;
   margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.slide ul {
+  list-style-type: disc;
+}
+
+.slide ul:has(input[type="checkbox"]), .slide ul:has(li.checked), .slide ul:has(li.unchecked), .slide ul:has(li.indeterminate) {
+  list-style-type: none;
+  padding-left: 0.5rem;
+}
+
+.slide ol {
+  list-style-type: decimal;
 }
 
 .slide li {
   margin-bottom: 0.5rem;
 }
 
+.slide li::marker {
+  color: var(--color-primary);
+  font-weight: 800;
+}
+
+.slide hr {
+  border: none;
+  height: 4px;
+  background: linear-gradient(to right, var(--color-primary), var(--color-secondary), var(--color-accent));
+  width: 50%;
+  margin: 2rem auto;
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+.slide blockquote {
+  border-left: 8px solid var(--color-accent);
+  padding: 1rem 2rem;
+  margin: 1.5rem 0;
+  background-color: var(--color-base-200);
+  font-style: italic;
+  font-size: 1.75rem;
+  border-radius: 0 1rem 1rem 0;
+  text-align: left;
+}
+
+.slide blockquote p {
+  margin-bottom: 0;
+}
+
+.slide a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  transition: all 0.2s ease;
+}
+
+.slide a:hover {
+  color: var(--color-secondary);
+}
+
+.slide input[type="checkbox"] {
+  appearance: checkbox;
+  accent-color: var(--color-primary);
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-right: 0.75rem;
+  vertical-align: middle;
+  cursor: default;
+}
+
 .slide table {
   margin: 2rem auto;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 1.25rem;
+  width: 100%;
+  max-width: 900px;
+  background-color: var(--color-base-200, color-mix(in srgb, var(--color-base-100), transparent 50%));
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--color-base-300);
 }
 
 .slide th, .slide td {
-  padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid currentColor;
-  opacity: 0.8;
+  padding: 1rem 1.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-base-300);
 }
 
 .slide th {
-  font-weight: bold;
+  background-color: var(--color-base-300);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
   opacity: 1;
+}
+
+.slide tr:last-child td {
+  border-bottom: none;
+}
+
+.slide tr:hover td {
+  background-color: var(--color-base-300);
+  transition: background-color 0.2s ease;
+}
+
+/* Dynamic Slide Backgrounds */
+.slide.bg-primary {
+  background-color: var(--color-primary);
+  color: var(--color-primary-content);
+}
+
+.slide.bg-primary h1, .slide.bg-primary h2, .slide.bg-primary h3, .slide.bg-primary strong, .slide.bg-primary em {
+  color: var(--color-primary-content);
+}
+
+.slide.bg-primary .kbd, .slide.bg-primary kbd {
+  background-color: var(--color-primary-content);
+  color: var(--color-primary);
+  border-color: var(--color-primary-content);
+  box-shadow: 0 2px 0 0 var(--color-primary-content);
+}
+
+.slide.bg-secondary {
+  background-color: var(--color-secondary);
+  color: var(--color-secondary-content);
+}
+
+.slide.bg-secondary h1, .slide.bg-secondary h2, .slide.bg-secondary h3, .slide.bg-secondary strong, .slide.bg-secondary em {
+  color: var(--color-secondary-content);
+}
+
+.slide.bg-accent {
+  background-color: var(--color-accent);
+  color: var(--color-accent-content);
+}
+
+.slide.bg-accent h1, .slide.bg-accent h2, .slide.bg-accent h3, .slide.bg-accent strong, .slide.bg-accent em {
+  color: var(--color-accent-content);
 }

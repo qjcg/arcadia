@@ -13,6 +13,7 @@ import (
 	"github.com/niklasfasching/go-org/org"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
+	"github.com/yuin/goldmark/extension"
 	goldmarkparser "github.com/yuin/goldmark/parser"
 	goldmarkhtml "github.com/yuin/goldmark/renderer/html"
 )
@@ -45,6 +46,7 @@ func ParseMarkdown(r io.Reader, opts Options) (*Deck, error) {
 		goldmark.WithParserOptions(goldmarkparser.WithAutoHeadingID()),
 		goldmark.WithRendererOptions(goldmarkhtml.WithUnsafe()),
 		goldmark.WithExtensions(
+			extension.GFM,
 			highlighting.NewHighlighting(
 				highlighting.WithStyle("dracula"),
 				highlighting.WithFormatOptions(
@@ -96,6 +98,11 @@ func ParseOrg(r io.Reader, opts Options) (*Deck, error) {
 	}
 
 	for i, rs := range rawSlides {
+		// go-org is strict about [X] vs [x], but users expect [x] to work too.
+		rs = strings.ReplaceAll(rs, "- [x] ", "- [X] ")
+		rs = strings.ReplaceAll(rs, "+ [x] ", "+ [X] ")
+		rs = strings.ReplaceAll(rs, "* [x] ", "* [X] ")
+
 		config := org.New()
 		doc := config.Parse(strings.NewReader("#+OPTIONS: toc:nil\n"+rs+"\n"), "")
 
@@ -127,6 +134,11 @@ func ParseOrg(r io.Reader, opts Options) (*Deck, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		// Inject native checkboxes for Org-mode checklists
+		html = strings.ReplaceAll(html, "<li class=\"checked\">", "<li class=\"checked\"><input type=\"checkbox\" checked disabled> ")
+		html = strings.ReplaceAll(html, "<li class=\"unchecked\">", "<li class=\"unchecked\"><input type=\"checkbox\" disabled> ")
+		html = strings.ReplaceAll(html, "<li class=\"indeterminate\">", "<li class=\"indeterminate\"><input type=\"checkbox\" disabled> ")
 
 		title := extractOrgTitle(rs)
 		if title == "" {

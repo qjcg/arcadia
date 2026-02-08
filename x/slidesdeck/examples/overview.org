@@ -1,4 +1,4 @@
-#+TITLE: Welcome to Slidesdeck
+#+TITLE: Slidesdeck Expanded Overview
 #+OPTIONS: toc:nil
 
 * Welcome to Slidesdeck
@@ -27,19 +27,10 @@ Slidesdeck is a single-purpose CLI tool that transforms your notes into professi
 
 -----
 
-* Standard Formatting
-Markdown supports various formatting options:
-- **Bold** text
-- *Italic* text
-- ~~Strikethrough~~ text
-- `Code` and inline snippets
-
------
-
 * Multi-Format Support
 Slidesdeck natively supports both:
-1. **Org-mode** (.org)
-2. **Markdown** (.md)
+1. *Org-mode* (.org)
+2. *Markdown* (.md)
 
 Both formats use standard separators:
 - First-level headings (e.g., =* Header=)
@@ -48,118 +39,147 @@ Both formats use standard separators:
 
 -----
 
-* Lists and Deep Nesting
-** Unordered Lists
-- Simple item
-- Nested item
-  - Even deeper
-** Ordered Lists
-1. First item
-2. Second item
-   1. Sub-item
-** Checklists
-- [x] Feature A
-- [x] Feature B
-- [ ] Feature C
+* Checklists and Lists
+** Technical Task Tracking
+- [X] Integrity checks with Go
+- [X] High-fidelity Org parsing
+- [X] Native checkbox rendering
+- [ ] Direct export to PDF
+** Nested Structures
+- Infrastructure
+  - Database
+    - Replication
+    - Backups
 
 -----
 
 * Tables for Technical Data
-| Feature         | Org-mode | Markdown |
-|-----------------+----------+----------|
-| Tables          | Supported| Supported|
-| Lists           | Supported| Supported|
-| Code Blocks     | Supported| Supported|
-| Search          | Included | Included |
-| Themes          | 30+      | 30+      |
+| Feature         | Markdown | Org-mode | Search |
+|-----------------+----------+----------+--------|
+| Format Support  | ✅       | ✅       | Native |
+| Highlighting    | ✅       | ✅       | Chroma |
+| Theme Palettes  | ✅       | ✅       | Builtin|
+| Command Palette | ✅       | ✅       | Flex   |
 
 -----
 
-* Syntax Highlighting
-Slidesdeck uses Chroma for high-quality syntax highlighting.
+* Data Modeling with CUE
+CUE is powerful for configuration and validation.
+
+#+begin_src cue
+#User: {
+    id:   int
+    name: string
+    role: "admin" | "member"
+    tags: [...string]
+}
+
+myUser: #User & {
+    id:   101
+    name: "Gopher"
+    role: "member"
+    tags: ["org-mode", "test"]
+}
+#+end_src
+
+-----
+
+* System Scripting: Python
+Perfect for quick logic and data processing.
+
+#+begin_src python
+import os
+
+def list_workspace_files():
+    return [f for f in os.listdir('.') if f.endswith('.org')]
+
+print(f"Found Org files: {list_workspace_files()}")
+#+end_src
+
+-----
+
+* Power of Rust
+Memory safety and performance without a runtime.
+
+#+begin_src rust
+#[derive(Debug)]
+struct Slide {
+    title: String,
+    id: u32,
+}
+
+fn main() {
+    let s = Slide { title: "Rust Intro".into(), id: 42 };
+    println!("Rendering: {:?}", s);
+}
+#+end_src
+
+-----
+
+* Frontend Logic: JavaScript
+Modern ESM and interactive features.
+
+#+begin_src javascript
+const slideshow = {
+    current: 0,
+    next() {
+        this.current++;
+        console.log(`Now at ${this.current}`);
+    }
+};
+slideshow.next();
+#+end_src
+
+-----
+
+* Backend Systems: Go
+The engine behind Slidesdeck.
 
 #+begin_src go
 package main
 
-import "fmt"
+import "os"
 
 func main() {
-    // High-performance Go code
-    fmt.Println("Hello from Slidesdeck!")
+    // Elegant system management
+    f, _ := os.Create("presentation.html")
+    defer f.Close()
 }
 #+end_src
-
-- Toggle line numbers with @@html:<kbd>N</kbd>@@
-- Built-in "Copy" button for code blocks
 
 -----
 
 * Command Palette Search
-Press @@html:<kbd>/</kbd>@@ at any time to open the **Search Palette**.
+Press @@html:<kbd>/</kbd>@@ at any time to open the *Search Palette*.
 
-- Powered by **FlexSearch** (v0.8.2)
-- High-performance full-text search
-- Priority given to slide titles
-- Automatic highlighting as you type
+- Powered by *FlexSearch*
+- *Orderless Logic*: Search "rust power" to find "Power of Rust"
+- Automatic highlighting
 - Instant jump to any slide
-
------
-
-* Color Theme Palette
-Press @@html:<kbd>t</kbd>@@ to open the **Theme Switcher**.
-
-- 30+ built-in daisyUI themes
-- Search by name or category:
-  - 'dark: ' for dark themes
-  - 'light: ' for light themes
-- Current theme is always pre-selected
-- Apply custom CSS via =--theme-file=
-
------
-
-* Font Theme Palette
-Press @@html:<kbd>Shift+T</kbd>@@ (@@html:<kbd>T</kbd>@@) to open the **Font Switcher**.
-
-- 16 professionally curated font themes
-- Pairings for headings, body, and code
-- Example themes:
-  - *Elegant*: Playfair Display / Source Sans
-  - *Tech*: Space Grotesk / JetBrains Mono
-  - *Brutalist*: Archivo Black / Space Grotesk
-- Apply custom fonts via =--fonttheme-file=
 
 -----
 
 * Interactive Pause Mode
 Manage break times professionally with @@html:<kbd>Shift+P</kbd>@@.
 
-- Configurable countdown timer
-- Custom break messages
-- Persistent state (survives browser close/reload)
-- Full-screen, high-contrast display
-- "Reset" button to clear active timers
+- *Countdown Message*: Customize what's shown during the break
+- *Duration*: Choose "Until Time" or "In Minutes"
+- Persistent state survives browser reload
+- Full-screen high-contrast display
 
 -----
 
-* Keyboard Shortcuts Cheat Sheet
-| Key                                            | Action                  |
-|------------------------------------------------|-------------------------|
-| @@html:<kbd>n</kbd>@@ / @@html:<kbd>→</kbd>@@ / @@html:<kbd>Spc</kbd>@@ | Next Slide              |
-| @@html:<kbd>p</kbd>@@ / @@html:<kbd>←</kbd>@@ | Previous Slide          |
-| @@html:<kbd>/</kbd>@@                          | Search Palette          |
-| @@html:<kbd>t</kbd>@@ / @@html:<kbd>T</kbd>@@ | Theme / Font Palettes   |
-| @@html:<kbd>f</kbd>@@                          | Toggle Fullscreen       |
-| @@html:<kbd>N</kbd>@@                          | Toggle Line Numbers     |
-| @@html:<kbd>Shift+P</kbd>@@                    | Pause Mode              |
-| @@html:<kbd>?</kbd>@@                          | Help Screen             |
-
------
-
-* Portable and Fast
-- Generated as a single HTML file
-- Zero external dependencies
-- Powered by Go, Tailwind CSS v4, and Alpine.js
-- Blazing fast conversion (<200ms)
+* Keyboard Shortcuts
+| Key                                          | Action                |
+|----------------------------------------------+-----------------------|
+| @@html:<kbd>n</kbd>@@ / @@html:<kbd>→</kbd>@@ | Next Slide            |
+| @@html:<kbd>p</kbd>@@ / @@html:<kbd>←</kbd>@@ | Previous Slide        |
+| @@html:<kbd>/</kbd>@@                        | Search Palette        |
+| @@html:<kbd>t</kbd>@@ / @@html:<kbd>T</kbd>@@ | Theme / Font Palettes |
+| @@html:<kbd>f</kbd>@@                        | Toggle Fullscreen     |
+| @@html:<kbd>N</kbd>@@                        | Toggle Line Numbers   |
+| @@html:<kbd>Shift+P</kbd>@@                  | Pause Mode            |
+| @@html:<kbd>?</kbd>@@                        | Help Screen           |
 
 -----
 

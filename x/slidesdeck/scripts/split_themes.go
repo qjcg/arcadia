@@ -1,3 +1,9 @@
+// split_themes.go extracts individual daisyUI color themes from a single
+// themes.css file into separate CSS files under assets/src/css/themes/.
+//
+// This allows the application to load and bundle themes independently,
+// reducing the footprint when only specific themes are needed or making
+// the themes easier to manage as individual assets.
 package main
 
 import (
