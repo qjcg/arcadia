@@ -16,7 +16,7 @@ import (
 	"github.com/charmbracelet/arcadia/x/slidesdeck/internal/parser"
 )
 
-func Layout(deck *parser.Deck, initialTheme string, css string, js string) templ.Component {
+func Layout(deck *parser.Deck, initialTheme string, initialFontTheme string, css string, customCss string, js string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -50,46 +50,59 @@ func Layout(deck *parser.Deck, initialTheme string, css string, js string) templ
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" data-font-theme=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(deck.Title)
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(initialFontTheme)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/components.templ`, Line: 14, Col: 22}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/components.templ`, Line: 10, Col: 79}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</title>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.Raw("<style type=\"text/css\">\n"+css+"\n</style>").Render(ctx, templ_7745c5c3_Buffer)
+		var templ_7745c5c3_Var4 string
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(deck.Title)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/components.templ`, Line: 14, Col: 22}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</head><body class=\"bg-base-100 text-base-content\" x-data=\"slideshow\"><div class=\"h-screen w-screen overflow-hidden relative\"><div class=\"slides-container h-full w-full\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</title><!-- Google Fonts Loader --><link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templ.Raw("<style type=\"text/css\">\n"+css+"\n"+customCss+"\n</style>").Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</head><body class=\"bg-base-100 text-base-content\" x-data=\"slideshow\"><div class=\"h-screen w-screen overflow-hidden relative\"><div class=\"slides-container h-full w-full\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for i, slide := range deck.Slides {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<section class=\"slide absolute inset-0 transition-opacity duration-300\" x-show=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<section class=\"slide absolute inset-0 transition-opacity duration-300\" x-show=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("currentSlide == %d", i))
+			var templ_7745c5c3_Var5 string
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("currentSlide == %d", i))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/components.templ`, Line: 23, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/ui/components.templ`, Line: 26, Col: 52}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" x-cloak><div class=\"max-w-4xl mx-auto\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" x-cloak><div class=\"max-w-4xl mx-auto\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -97,16 +110,20 @@ func Layout(deck *parser.Deck, initialTheme string, css string, js string) templ
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></section>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></section>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div><div class=\"fixed bottom-4 left-0 right-0 flex justify-center z-40\"><div class=\"join bg-base-200 shadow-lg border border-base-300\"><button class=\"join-item btn btn-ghost btn-sm\" @click=\"prev()\" :disabled=\"currentSlide === 0\" title=\"Previous (p, ←)\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-4 w-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 19l-7-7 7-7\"></path></svg></button><button class=\"join-item btn btn-ghost btn-sm no-animation pointer-events-none\"><span x-text=\"currentSlide + 1\"></span> / <span x-text=\"totalSlides\"></span></button><button class=\"join-item btn btn-ghost btn-sm\" @click=\"next()\" :disabled=\"currentSlide === totalSlides - 1\" title=\"Next (n, Space, →)\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-4 w-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 5l7 7-7 7\"></path></svg></button><button class=\"join-item btn btn-ghost btn-sm\" @click=\"originalTheme = currentTheme; themeQuery = ''; filteredThemes = themes; showThemePalette = true; $nextTick(() => { $refs.themeSearch?.focus(); scrollToCurrentTheme(); })\" title=\"Themes (t)\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-4 w-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.172-1.172a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z\"></path></svg></button><button class=\"join-item btn btn-ghost btn-sm\" @click=\"toggleFullscreen()\" title=\"Fullscreen (f)\"><svg x-show=\"!document.fullscreenElement\" xmlns=\"http://www.w3.org/2000/svg\" class=\"h-4 w-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4\"></path></svg> <svg x-show=\"document.fullscreenElement\" xmlns=\"http://www.w3.org/2000/svg\" class=\"h-4 w-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" x-cloak><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4\"></path></svg></button><button class=\"join-item btn btn-ghost btn-sm text-lg\" @click=\"showHelp = !showHelp\" title=\"Help (?)\">?</button></div></div><div class=\"absolute inset-0 bg-base-300/90 flex items-center justify-center z-50\" x-show=\"showHelp\" x-transition @click.self=\"showHelp = false\" x-cloak><div class=\"bg-base-100 p-8 rounded-2xl shadow-xl max-w-lg w-full\"><h2 class=\"text-3xl font-bold mb-4\">Slidesdeck Help</h2><div class=\"space-y-2\"><div class=\"flex items-center justify-between gap-4\"><span>Next Slide</span><div class=\"flex items-center gap-1\"><kbd class=\"kbd kbd-sm\">n</kbd><span class=\"opacity-50\">/</span><kbd class=\"kbd kbd-sm\">→</kbd></div></div><div class=\"flex items-center justify-between gap-4\"><span>Previous Slide</span><div class=\"flex items-center gap-1\"><kbd class=\"kbd kbd-sm\">p</kbd><span class=\"opacity-50\">/</span><kbd class=\"kbd kbd-sm\">←</kbd></div></div><div class=\"flex items-center justify-between gap-4\"><span>First Slide</span><kbd class=\"kbd kbd-sm\">Shift+Alt+,</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Last Slide</span><kbd class=\"kbd kbd-sm\">Shift+Alt+.</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Fullscreen</span><kbd class=\"kbd kbd-sm\">f</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Theme Palette</span><kbd class=\"kbd kbd-sm\">t</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Search</span><kbd class=\"kbd kbd-sm\">/</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Line Numbers</span><kbd class=\"kbd kbd-sm\">N</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Pause Mode</span><kbd class=\"kbd kbd-sm\">Shift+P</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Toggle Help</span><kbd class=\"kbd kbd-sm\">?</kbd></div></div><div class=\"mt-6 text-center\"><button class=\"btn btn-primary\" @click=\"showHelp = false\">Close</button></div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div><div class=\"fixed bottom-4 left-0 right-0 flex justify-center z-40\"><div class=\"join bg-base-200 shadow-lg border border-base-300\"><button class=\"join-item btn btn-ghost btn-sm\" @click=\"prev()\" :disabled=\"currentSlide === 0\" title=\"Previous (p, ←)\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-4 w-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 19l-7-7 7-7\"></path></svg></button><button class=\"join-item btn btn-ghost btn-sm no-animation pointer-events-none\"><span x-text=\"currentSlide + 1\"></span> / <span x-text=\"totalSlides\"></span></button><button class=\"join-item btn btn-ghost btn-sm\" @click=\"next()\" :disabled=\"currentSlide === totalSlides - 1\" title=\"Next (n, Space, →)\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-4 w-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 5l7 7-7 7\"></path></svg></button><button class=\"join-item btn btn-ghost btn-sm\" @click=\"originalTheme = currentTheme; themeQuery = ''; filteredThemes = themes; showThemePalette = true; selectedPaletteIndex = 0; $nextTick(() => { $refs.themeSearch?.focus(); scrollToCurrentTheme(); })\" title=\"Themes (t)\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-4 w-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.172-1.172a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z\"></path></svg></button><button class=\"join-item btn btn-ghost btn-sm\" @click=\"originalFontTheme = currentFontTheme; fontThemeQuery = ''; filteredFontThemes = fontThemes; showFontThemePalette = true; selectedPaletteIndex = 0; $nextTick(() => { $refs.fontThemeSearch?.focus(); scrollToCurrentFontTheme(); })\" title=\"Font Themes (T)\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-4 w-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h7\"></path></svg></button><button class=\"join-item btn btn-ghost btn-sm\" @click=\"toggleFullscreen()\" title=\"Fullscreen (f)\"><svg x-show=\"!document.fullscreenElement\" xmlns=\"http://www.w3.org/2000/svg\" class=\"h-4 w-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4\"></path></svg> <svg x-show=\"document.fullscreenElement\" xmlns=\"http://www.w3.org/2000/svg\" class=\"h-4 w-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" x-cloak><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4\"></path></svg></button><button class=\"join-item btn btn-ghost btn-sm text-lg\" @click=\"showHelp = !showHelp\" title=\"Help (?)\">?</button></div></div><div class=\"absolute inset-0 bg-base-300/90 flex items-center justify-center z-50\" x-show=\"showHelp\" x-transition @click.self=\"showHelp = false\" x-cloak><div class=\"bg-base-100 p-8 rounded-2xl shadow-xl max-w-lg w-full\"><h2 class=\"text-3xl font-bold mb-4\">Slidesdeck Help</h2><div class=\"space-y-2\"><div class=\"flex items-center justify-between gap-4\"><span>Next Slide</span><div class=\"flex items-center gap-1\"><kbd class=\"kbd kbd-sm\">n</kbd><span class=\"opacity-50\">/</span><kbd class=\"kbd kbd-sm\">→</kbd></div></div><div class=\"flex items-center justify-between gap-4\"><span>Previous Slide</span><div class=\"flex items-center gap-1\"><kbd class=\"kbd kbd-sm\">p</kbd><span class=\"opacity-50\">/</span><kbd class=\"kbd kbd-sm\">←</kbd></div></div><div class=\"flex items-center justify-between gap-4\"><span>First Slide</span><kbd class=\"kbd kbd-sm\">Shift+Alt+,</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Last Slide</span><kbd class=\"kbd kbd-sm\">Shift+Alt+.</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Fullscreen</span><kbd class=\"kbd kbd-sm\">f</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Theme Palette</span><kbd class=\"kbd kbd-sm\">t</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Font Theme Palette</span><kbd class=\"kbd kbd-sm\">Shift+T</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Search</span><kbd class=\"kbd kbd-sm\">/</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Line Numbers</span><kbd class=\"kbd kbd-sm\">N</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Pause Mode</span><kbd class=\"kbd kbd-sm\">Shift+P</kbd></div><div class=\"flex items-center justify-between gap-4\"><span>Toggle Help</span><kbd class=\"kbd kbd-sm\">?</kbd></div></div><div class=\"mt-6 text-center\"><button class=\"btn btn-primary\" @click=\"showHelp = false\">Close</button></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = ThemePalette().Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = FontThemePalette().Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -118,7 +135,7 @@ func Layout(deck *parser.Deck, initialTheme string, css string, js string) templ
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -126,7 +143,7 @@ func Layout(deck *parser.Deck, initialTheme string, css string, js string) templ
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -150,12 +167,12 @@ func ThemePalette() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var5 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var5 == nil {
-			templ_7745c5c3_Var5 = templ.NopComponent
+		templ_7745c5c3_Var6 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var6 == nil {
+			templ_7745c5c3_Var6 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"absolute inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-20 z-[60]\" x-show=\"showThemePalette\" @keydown.escape.window=\"showThemePalette = false; document.documentElement.setAttribute('data-theme', originalTheme); currentTheme = originalTheme; themeQuery = '';\" @click.self=\"showThemePalette = false; document.documentElement.setAttribute('data-theme', originalTheme); currentTheme = originalTheme; themeQuery = '';\" x-cloak><div class=\"bg-base-100 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-base-300\"><div class=\"relative\"><div class=\"absolute inset-y-0 left-4 flex items-center pointer-events-none opacity-50\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z\"></path></svg></div><input type=\"text\" class=\"w-full bg-transparent pl-12 pr-4 py-4 focus:outline-none border-b border-base-300 text-lg\" placeholder=\"Search themes...\" x-ref=\"themeSearch\" x-model=\"themeQuery\" @input=\"searchThemes($event.target.value)\"></div><div class=\"max-h-96 overflow-y-auto p-2 space-y-1 theme-list\" x-ref=\"themeList\"><template x-for=\"(theme, index) in filteredThemes\" :key=\"theme\"><div class=\"px-4 py-2 rounded-xl cursor-pointer flex justify-between items-center transition-all duration-200 theme-item\" :class=\"selectedPaletteIndex === index ? 'bg-base-200 ring-2 ring-primary/20' : (currentTheme === theme ? 'bg-primary/10' : '')\" @click=\"setTheme(theme)\" @mouseenter=\"selectedPaletteIndex = index\" :data-theme-name=\"theme\"><div class=\"flex items-center gap-4\"><div :data-theme=\"theme\" class=\"bg-base-100 w-12 h-8 rounded-lg border border-base-300 flex overflow-hidden shadow-sm shrink-0\"><div class=\"bg-primary w-1/4 h-full\"></div><div class=\"bg-secondary w-1/4 h-full\"></div><div class=\"bg-accent w-1/4 h-full\"></div><div class=\"bg-neutral w-1/4 h-full\"></div></div><div><div class=\"font-medium capitalize leading-none mb-1\" x-text=\"theme\"></div><div class=\"text-[10px] opacity-50 uppercase tracking-widest font-bold\" x-text=\"(['dark', 'synthwave', 'halloween', 'forest', 'aqua', 'black', 'luxury', 'dracula', 'business', 'night', 'coffee', 'dim', 'sunset', 'abyss'].includes(theme) ? 'Dark' : 'Light')\"></div></div></div><div class=\"flex items-center gap-2\"><span x-show=\"currentTheme === theme\" class=\"text-primary\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path fill-rule=\"evenodd\" d=\"M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z\" clip-rule=\"evenodd\"></path></svg></span></div></div></template></div><div class=\"p-3 bg-base-200/50 border-t border-base-300 flex justify-between items-center text-[10px] uppercase tracking-wider font-bold opacity-50\"><div class=\"flex gap-4\"><span>↑↓ Navigate</span> <span>↵ Select</span></div><span>Esc to close</span></div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"absolute inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-20 z-[60]\" x-show=\"showThemePalette\" @keydown.escape.window=\"showThemePalette = false; document.documentElement.setAttribute('data-theme', originalTheme); currentTheme = originalTheme; themeQuery = '';\" @click.self=\"showThemePalette = false; document.documentElement.setAttribute('data-theme', originalTheme); currentTheme = originalTheme; themeQuery = '';\" x-cloak><div class=\"bg-base-100 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-base-300\"><div class=\"relative\"><div class=\"absolute inset-y-0 left-4 flex items-center pointer-events-none opacity-50\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z\"></path></svg></div><input type=\"text\" class=\"w-full bg-transparent pl-12 pr-4 py-4 focus:outline-none border-b border-base-300 text-lg\" placeholder=\"Search themes...\" x-ref=\"themeSearch\" x-model=\"themeQuery\" @input=\"searchThemes($event.target.value)\"></div><div class=\"max-h-96 overflow-y-auto p-2 space-y-1 theme-list\" x-ref=\"themeList\"><template x-for=\"(theme, index) in filteredThemes\" :key=\"theme\"><div class=\"px-4 py-2 rounded-xl cursor-pointer flex justify-between items-center transition-all duration-200 theme-item\" :class=\"selectedPaletteIndex === index ? 'bg-base-200 ring-2 ring-primary/20' : (currentTheme === theme ? 'bg-primary/10' : '')\" @click=\"setTheme(theme)\" @mouseenter=\"selectedPaletteIndex = index\" :data-theme-name=\"theme\"><div class=\"flex items-center gap-4\"><div :data-theme=\"theme\" class=\"bg-base-100 w-12 h-8 rounded-lg border border-base-300 flex overflow-hidden shadow-sm shrink-0\"><div class=\"bg-primary w-1/4 h-full\"></div><div class=\"bg-secondary w-1/4 h-full\"></div><div class=\"bg-accent w-1/4 h-full\"></div><div class=\"bg-neutral w-1/4 h-full\"></div></div><div><div class=\"font-medium capitalize leading-none mb-1\" x-text=\"theme\"></div><div class=\"text-[10px] opacity-50 uppercase tracking-widest font-bold\" x-text=\"(['dark', 'synthwave', 'halloween', 'forest', 'aqua', 'black', 'luxury', 'dracula', 'business', 'night', 'coffee', 'dim', 'sunset', 'abyss'].includes(theme) ? 'Dark' : 'Light')\"></div></div></div><div class=\"flex items-center gap-2\"><span x-show=\"currentTheme === theme\" class=\"text-primary\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path fill-rule=\"evenodd\" d=\"M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z\" clip-rule=\"evenodd\"></path></svg></span></div></div></template></div><div class=\"p-3 bg-base-200/50 border-t border-base-300 flex justify-between items-center text-[10px] uppercase tracking-wider font-bold opacity-50\"><div class=\"flex gap-4\"><span>↑↓ Navigate</span> <span>↵ Select</span></div><span>Esc to close</span></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -179,12 +196,12 @@ func SearchPalette() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var6 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var6 == nil {
-			templ_7745c5c3_Var6 = templ.NopComponent
+		templ_7745c5c3_Var7 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var7 == nil {
+			templ_7745c5c3_Var7 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"absolute inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-20 z-[60]\" x-show=\"showSearch\" @keydown.escape.window=\"showSearch = false\" x-cloak><div class=\"bg-base-100 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-base-300\"><div class=\"relative\"><div class=\"absolute inset-y-0 left-4 flex items-center pointer-events-none opacity-50\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z\"></path></svg></div><input type=\"text\" class=\"w-full bg-transparent pl-12 pr-4 py-6 focus:outline-none border-b border-base-300 text-2xl\" placeholder=\"Search slides...\" x-ref=\"slideSearch\" x-model=\"searchQuery\" @input=\"performSearch($event.target.value)\"></div><div class=\"max-h-96 overflow-y-auto p-2 space-y-1 search-results\" x-ref=\"searchResults\"><template x-for=\"(result, index) in searchResults\" :key=\"result.id\"><div class=\"px-6 py-4 rounded-xl hover:bg-base-200 cursor-pointer transition-all duration-200 search-item\" :class=\"selectedPaletteIndex === index ? 'bg-primary/10 ring-2 ring-primary/50' : ''\" @click=\"jumpToSlide(result.id)\" @mouseenter=\"selectedPaletteIndex = index\"><div class=\"flex-1 min-w-0\"><div class=\"flex items-center gap-2 mb-1\"><span class=\"badge badge-sm badge-outline opacity-50 font-mono\" x-text=\"'#' + (result.id + 1)\"></span><h3 class=\"font-bold text-xl truncate\" x-text=\"result.title\"></h3></div><p class=\"text-sm opacity-60 line-clamp-1\" x-text=\"result.content\"></p></div></div></template><div x-show=\"searchQuery && searchResults.length === 0\" class=\"p-12 text-center opacity-50\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-12 w-12 mx-auto mb-4 opacity-20\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9.172 9.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg><p class=\"text-lg\">No slides found matching \"<span class=\"font-bold\" x-text=\"searchQuery\"></span>\"</p></div></div><div class=\"p-4 bg-base-200/50 border-t border-base-300 flex justify-between items-center text-xs uppercase tracking-widest font-bold opacity-50\"><div class=\"flex gap-6\"><span>↑↓ Navigate</span> <span>↵ Jump to slide</span></div><span>Esc to close</span></div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"absolute inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-20 z-[60]\" x-show=\"showSearch\" @keydown.escape.window=\"showSearch = false\" x-cloak><div class=\"bg-base-100 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-base-300\"><div class=\"relative\"><div class=\"absolute inset-y-0 left-4 flex items-center pointer-events-none opacity-50\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z\"></path></svg></div><input type=\"text\" class=\"w-full bg-transparent pl-12 pr-4 py-6 focus:outline-none border-b border-base-300 text-2xl\" placeholder=\"Search slides...\" x-ref=\"slideSearch\" x-model=\"searchQuery\" @input=\"performSearch($event.target.value)\"></div><div class=\"max-h-96 overflow-y-auto p-2 space-y-1 search-results\" x-ref=\"searchResults\"><template x-for=\"(result, index) in searchResults\" :key=\"result.id\"><div class=\"px-6 py-4 rounded-xl hover:bg-base-200 cursor-pointer transition-all duration-200 search-item\" :class=\"selectedPaletteIndex === index ? 'bg-primary/10 ring-2 ring-primary/50' : ''\" @click=\"jumpToSlide(result.id)\" @mouseenter=\"selectedPaletteIndex = index\"><div class=\"flex-1 min-w-0\"><div class=\"flex items-center gap-2 mb-1\"><span class=\"badge badge-sm badge-outline opacity-50 font-mono\" x-text=\"'#' + (result.id + 1)\"></span><h3 class=\"font-bold text-xl truncate\" x-text=\"result.title\"></h3></div><p class=\"text-sm opacity-60 line-clamp-1\" x-text=\"result.content\"></p></div></div></template><div x-show=\"searchQuery && searchResults.length === 0\" class=\"p-12 text-center opacity-50\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-12 w-12 mx-auto mb-4 opacity-20\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9.172 9.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg><p class=\"text-lg\">No slides found matching \"<span class=\"font-bold\" x-text=\"searchQuery\"></span>\"</p></div></div><div class=\"p-4 bg-base-200/50 border-t border-base-300 flex justify-between items-center text-xs uppercase tracking-widest font-bold opacity-50\"><div class=\"flex gap-6\"><span>↑↓ Navigate</span> <span>↵ Jump to slide</span></div><span>Esc to close</span></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -208,12 +225,41 @@ func PauseMode() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var7 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var7 == nil {
-			templ_7745c5c3_Var7 = templ.NopComponent
+		templ_7745c5c3_Var8 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var8 == nil {
+			templ_7745c5c3_Var8 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"absolute inset-0 bg-base-100 flex flex-col items-center justify-center z-[100]\" x-show=\"showPause\" x-cloak><div class=\"text-center\"><h1 class=\"text-9xl font-black mb-8\" x-text=\"timeRemaining\">00:00</h1><p class=\"text-4xl opacity-70\" x-text=\"pauseMessage\"></p><div class=\"mt-12 flex gap-4 justify-center\" x-show=\"!timerRunning\"><input type=\"text\" class=\"input input-bordered text-lg w-64\" placeholder=\"Break message...\" x-model=\"pauseMessage\"> <input type=\"number\" class=\"input input-bordered text-lg w-24\" placeholder=\"Mins\" x-model=\"pauseMinutes\"> <button class=\"btn btn-primary btn-lg\" @click=\"startTimer()\">Start Break</button></div><div class=\"mt-8\" x-show=\"timerRunning\"><button class=\"btn btn-ghost\" @click=\"resetTimer()\">Reset</button></div><button class=\"btn btn-circle btn-outline absolute top-8 right-8\" @click=\"showPause = false\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 18L18 6M6 6l12 12\"></path></svg></button></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div class=\"absolute inset-0 bg-base-100 flex flex-col items-center justify-center z-[100]\" x-show=\"showPause\" x-cloak><div class=\"text-center\"><h1 class=\"text-9xl font-black mb-8\" x-text=\"timeRemaining\">00:00</h1><p class=\"text-4xl opacity-70\" x-text=\"pauseMessage\"></p><div class=\"mt-12 flex gap-4 justify-center\" x-show=\"!timerRunning\"><input type=\"text\" class=\"input input-bordered text-lg w-64\" placeholder=\"Break message...\" x-model=\"pauseMessage\"> <input type=\"number\" class=\"input input-bordered text-lg w-24\" placeholder=\"Mins\" x-model=\"pauseMinutes\"> <button class=\"btn btn-primary btn-lg\" @click=\"startTimer()\">Start Break</button></div><div class=\"mt-8\" x-show=\"timerRunning\"><button class=\"btn btn-ghost\" @click=\"resetTimer()\">Reset</button></div><button class=\"btn btn-circle btn-outline absolute top-8 right-8\" @click=\"showPause = false\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 18L18 6M6 6l12 12\"></path></svg></button></div></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func FontThemePalette() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var9 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var9 == nil {
+			templ_7745c5c3_Var9 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"absolute inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-20 z-[60]\" x-show=\"showFontThemePalette\" @keydown.escape.window=\"showFontThemePalette = false; document.documentElement.setAttribute('data-font-theme', originalFontTheme); currentFontTheme = originalFontTheme; fontThemeQuery = ''; loadGoogleFonts(originalFontTheme);\" @click.self=\"showFontThemePalette = false; document.documentElement.setAttribute('data-font-theme', originalFontTheme); currentFontTheme = originalFontTheme; fontThemeQuery = ''; loadGoogleFonts(originalFontTheme);\" x-cloak><div class=\"bg-base-100 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-base-300\"><div class=\"relative\"><div class=\"absolute inset-y-0 left-4 flex items-center pointer-events-none opacity-50\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z\"></path></svg></div><input type=\"text\" class=\"w-full bg-transparent pl-12 pr-4 py-4 focus:outline-none border-b border-base-300 text-lg\" placeholder=\"Search font themes...\" x-ref=\"fontThemeSearch\" x-model=\"fontThemeQuery\" @input=\"searchFontThemes($event.target.value)\"></div><div class=\"max-h-96 overflow-y-auto p-2 space-y-1 font-theme-list\" x-ref=\"fontThemeList\"><template x-for=\"(theme, index) in filteredFontThemes\" :key=\"theme.name\"><div class=\"px-4 py-3 rounded-xl cursor-pointer flex justify-between items-center transition-all duration-200 font-theme-item\" :class=\"selectedPaletteIndex === index ? 'bg-base-200 ring-2 ring-primary/20' : (currentFontTheme === theme.name ? 'bg-primary/10' : '')\" @click=\"setFontTheme(theme.name)\" @mouseenter=\"selectedPaletteIndex = index\" :data-font-theme-name=\"theme.name\"><div class=\"flex items-center gap-4\"><div class=\"w-12 h-10 rounded-lg border border-base-300 flex items-center justify-center bg-base-200 shrink-0\" :style=\"`font-family: ${theme.headingFont.split(',')[0].replace(/'/g, '')}`\"><span class=\"text-xl font-bold\">Aa</span></div><div><div class=\"font-medium leading-none mb-1\" x-text=\"theme.displayName\"></div><div class=\"text-[10px] opacity-50\" x-text=\"theme.description\"></div><div class=\"text-[9px] opacity-40 uppercase tracking-wider mt-1\"><span x-text=\"theme.category\" class=\"badge badge-xs badge-outline\"></span></div></div></div><div class=\"flex items-center gap-2\"><span x-show=\"currentFontTheme === theme.name\" class=\"text-primary\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path fill-rule=\"evenodd\" d=\"M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z\" clip-rule=\"evenodd\"></path></svg></span></div></div></template></div><div class=\"p-3 bg-base-200/50 border-t border-base-300 flex justify-between items-center text-[10px] uppercase tracking-wider font-bold opacity-50\"><div class=\"flex gap-4\"><span>↑↓ Navigate</span> <span>↵ Select</span></div><span>Esc to close</span></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

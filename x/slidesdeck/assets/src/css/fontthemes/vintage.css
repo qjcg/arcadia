@@ -1,0 +1,10 @@
+/* Vintage Font Theme */
+html[data-font-theme="vintage"] {
+  --font-heading: 'Abril Fatface', serif;
+  --font-body: 'Lora', serif;
+  --font-code: 'Courier Prime', monospace;
+}
+
+html[data-font-theme="vintage"] .slide h1 {
+  letter-spacing: 0.02em;
+}

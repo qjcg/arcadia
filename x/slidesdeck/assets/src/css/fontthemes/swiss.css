@@ -1,0 +1,7 @@
+/* Swiss Font Theme */
+html[data-font-theme="swiss"] {
+  --font-heading: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-body: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-code: 'SF Mono', Monaco, monospace;
+}
+

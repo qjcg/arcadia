@@ -1,0 +1,11 @@
+/* Playful Font Theme */
+html[data-font-theme="playful"] {
+  --font-heading: 'Fredoka', sans-serif;
+  --font-body: 'Quicksand', sans-serif;
+  --font-code: 'Nova Mono', monospace;
+}
+
+html[data-font-theme="playful"] .slide h1,
+html[data-font-theme="playful"] .slide h2 {
+  letter-spacing: 0.01em;
+}

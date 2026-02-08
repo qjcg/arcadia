@@ -11,6 +11,24 @@ grep 'data-theme="retro"' input.html
 exec slidesdeck -t synthwave input.md
 grep 'data-theme="synthwave"' input.html
 
+# Font Themes Test
+# Default font theme should be modern
+exec slidesdeck input.md
+grep 'data-font-theme="modern"' input.html
+
+# Custom font theme
+exec slidesdeck --fonttheme elegant input.md
+grep 'data-font-theme="elegant"' input.html
+
+# Another custom font theme
+exec slidesdeck -f startup input.md
+grep 'data-font-theme="startup"' input.html
+
+# Combined theme and font theme
+exec slidesdeck --theme light --fonttheme luxury input.md
+grep 'data-theme="light"' input.html
+grep 'data-font-theme="luxury"' input.html
+
 -- input.md --
 # Theme Test
 Check if theme is applied.

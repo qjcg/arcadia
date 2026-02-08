@@ -1,0 +1,7 @@
+/* Friendly Font Theme */
+html[data-font-theme="friendly"] {
+  --font-heading: 'Nunito', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+  --font-code: 'IBM Plex Mono', monospace;
+}
+

@@ -27,6 +27,7 @@ tasks:
       - ./tailwindcss -i {{.IN}} -o {{.OUT}} --minify
     sources:
       - 'assets/src/**/*.css'
+      - 'scripts/split_themes.go'
     generates:
       - '{{.OUT}}'
     vars:
@@ -80,7 +81,11 @@ tasks:
     generates:
       - examples/overview.html
 
-  clean: rm -rf {{.BIN}} assets/dist examples/*.html
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.BIN}} assets/dist examples/*.html
+      - mkdir -p assets/dist
 
   dev:
     desc: Run with hot reload

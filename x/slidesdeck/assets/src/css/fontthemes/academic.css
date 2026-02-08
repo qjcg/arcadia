@@ -1,0 +1,7 @@
+/* Academic Font Theme */
+html[data-font-theme="academic"] {
+  --font-heading: 'Crimson Text', serif;
+  --font-body: 'Crimson Text', serif;
+  --font-code: 'Inconsolata', monospace;
+}
+

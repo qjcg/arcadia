@@ -1,0 +1,50 @@
+# Theme Files Test
+# Provide custom theme CSS file
+exec slidesdeck --theme-file custom-theme.css input.md
+grep '\[data-theme=custom-theme\]' input.html
+grep 'color: red;' input.html
+
+# Provide multiple custom theme CSS files
+exec slidesdeck --theme-file custom-theme.css --theme-file custom-theme-2.css input.md
+grep '\[data-theme=custom-theme\]' input.html
+grep '\[data-theme=custom-theme-2\]' input.html
+
+# Font Theme Files Test
+# Provide custom font theme CSS file
+exec slidesdeck --fonttheme-file custom-font.css input.md
+grep 'html\[data-font-theme="custom-font"\]' input.html
+grep '--font-heading: serif;' input.html
+
+# Provide multiple custom font theme CSS files
+exec slidesdeck --fonttheme-file custom-font.css --fonttheme-file custom-font-2.css input.md
+grep 'html\[data-font-theme="custom-font"\]' input.html
+grep 'html\[data-font-theme="custom-font-2"\]' input.html
+
+# Combined custom theme and font theme files
+exec slidesdeck --theme-file custom-theme.css --fonttheme-file custom-font.css input.md
+grep '\[data-theme=custom-theme\]' input.html
+grep 'html\[data-font-theme="custom-font"\]' input.html
+
+-- input.md --
+# Custom File Test
+Check if custom CSS files are applied.
+
+-- custom-theme.css --
+[data-theme=custom-theme] {
+  color: red;
+}
+
+-- custom-theme-2.css --
+[data-theme=custom-theme-2] {
+  color: blue;
+}
+
+-- custom-font.css --
+html[data-font-theme="custom-font"] {
+  --font-heading: serif;
+}
+
+-- custom-font-2.css --
+html[data-font-theme="custom-font-2"] {
+  --font-heading: sans-serif;
+}

@@ -1,0 +1,7 @@
+/* Tech Font Theme */
+html[data-font-theme="tech"] {
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-body: 'Space Grotesk', sans-serif;
+  --font-code: 'JetBrains Mono', monospace;
+}
+

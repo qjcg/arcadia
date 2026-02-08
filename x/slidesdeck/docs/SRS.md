@@ -128,12 +128,12 @@ Target users are developers, technical writers, and presenters who prefer text-b
 
 ## 4. System Architecture
 The tool will follow a standard compiler-like architecture:
-1. **Frontend**: Alpine.js (v3) for interactivity, Tailwind CSS (v4) with daisyUI (v5) for styling. Assets are modular, bundled by **`esbuild`**, and embedded into the binary.
+1. **Frontend**: Alpine.js (v3) for interactivity, Tailwind CSS (v4) with daisyUI (v5) for styling. Assets are modular, processed by the Tailwind CLI (CSS) and **`esbuild`** (JS), and embedded into the binary.
 2. **Backend**: Go with `templ` for HTML components.
 3. **Parsers**: `goldmark` for Markdown, `github.com/niklasfasching/go-org` for Org-mode.
 4. **Syntax Highlighting**: `chroma` (alecthomas/chroma) for source code presentation.
 5. **Development**: `air` for hot reloading.
-6. **Build Pipeline**: `esbuild` for asset bundling and minification.
+6. **Build Pipeline**: Tailwind CLI for CSS, and `esbuild` for JS bundling and minification.
 
 ## 5. Appendix
 ### 5.1 Sample Commands

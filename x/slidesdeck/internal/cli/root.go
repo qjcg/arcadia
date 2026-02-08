@@ -15,9 +15,12 @@ import (
 )
 
 var (
-	outputPath   string
-	defaultTheme string
-	separator    string
+	outputPath       string
+	defaultTheme     string
+	defaultFontTheme string
+	separator        string
+	themeFiles       []string
+	fontThemeFiles   []string
 )
 
 var rootCmd = &cobra.Command{
@@ -77,6 +80,26 @@ by default, or by explicit horizontal rules (--- or -----).`,
 		defer cssFile.Close()
 		cssData, _ := io.ReadAll(cssFile)
 
+		var customStyles strings.Builder
+		for _, tf := range themeFiles {
+			data, err := os.ReadFile(tf)
+			if err != nil {
+				return fmt.Errorf("failed to read theme file %s: %w", tf, err)
+			}
+			customStyles.WriteString("/* Theme File: " + tf + " */\n")
+			customStyles.Write(data)
+			customStyles.WriteString("\n")
+		}
+		for _, ftf := range fontThemeFiles {
+			data, err := os.ReadFile(ftf)
+			if err != nil {
+				return fmt.Errorf("failed to read fonttheme file %s: %w", ftf, err)
+			}
+			customStyles.WriteString("/* FontTheme File: " + ftf + " */\n")
+			customStyles.Write(data)
+			customStyles.WriteString("\n")
+		}
+
 		jsFile, err := assets.Dist.Open("dist/main.js")
 		if err != nil {
 			return err
@@ -91,7 +114,7 @@ by default, or by explicit horizontal rules (--- or -----).`,
 		}
 		defer out.Close()
 
-		return ui.Layout(deck, defaultTheme, string(cssData), string(jsData)).Render(context.Background(), out)
+		return ui.Layout(deck, defaultTheme, defaultFontTheme, string(cssData), customStyles.String(), string(jsData)).Render(context.Background(), out)
 	},
 }
 
@@ -102,5 +125,8 @@ func Execute() error {
 func init() {
 	rootCmd.Flags().StringVarP(&outputPath, "output", "o", "", "Output file path (default: same as input with .html extension)")
 	rootCmd.Flags().StringVarP(&defaultTheme, "theme", "t", "dark", "Default daisyUI theme")
+	rootCmd.Flags().StringVarP(&defaultFontTheme, "fonttheme", "f", "modern", "Default font theme (modern, elegant, classic, tech, minimal, editorial, friendly, corporate, academic, creative, luxury, startup, vintage, swiss, playful, brutalist)")
 	rootCmd.Flags().StringVarP(&separator, "separator", "s", "", "Custom slide separator (overrides headings)")
+	rootCmd.Flags().StringSliceVar(&themeFiles, "theme-file", nil, "Additional daisyUI theme CSS file (can be repeated)")
+	rootCmd.Flags().StringSliceVar(&fontThemeFiles, "fonttheme-file", nil, "Additional font theme CSS file (can be repeated)")
 }

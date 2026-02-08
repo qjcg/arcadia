@@ -45,8 +45,8 @@ self-contained HTML slideshows.
 
 ### 3.1 Version 1.0 (MVP)
 - **Multi-format Support**: Markdown (CommonMark) and Org-mode.
-- **Self-contained Output**: Single HTML file with embedded Tailwind CSS (v4) and daisyUI (v5) styling. CSS and JS are bundled and optimized via **`esbuild`**.
-- **Modular Design**: CSS themes are stored in separate files and bundled as needed.
+- **Self-contained Output**: Single HTML file with embedded Tailwind CSS (v4) and daisyUI (v5) styling. CSS is processed with the Tailwind CLI, and JS is bundled and optimized via **`esbuild`**.
+- **Modular Design**: All color and font themes are stored in separate CSS files under `assets/src/css/` and bundled during the build process.
 - **Embedded Assets**: All optimized frontend resources are embedded into the Go binary for true single-executable portability.
 - **Robust Testing**: Comprehensive CLI testing using `testscript` to ensure reliable file conversion and CLI behavior.
 - **Interactivity**: Alpine.js (v3) for navigation (n/p/arrows/space), first/last slide (Shift+Alt+,/.), toggles (t for themes, f for fullscreen, N for line numbers, ? for help, / for search), and Shift+P for pause.

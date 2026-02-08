@@ -1,0 +1,23 @@
+/* Font Themes Index */
+html {
+  --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-code: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+}
+
+@import "./fontthemes/academic.css";
+@import "./fontthemes/brutalist.css";
+@import "./fontthemes/classic.css";
+@import "./fontthemes/corporate.css";
+@import "./fontthemes/creative.css";
+@import "./fontthemes/editorial.css";
+@import "./fontthemes/elegant.css";
+@import "./fontthemes/friendly.css";
+@import "./fontthemes/luxury.css";
+@import "./fontthemes/minimal.css";
+@import "./fontthemes/modern.css";
+@import "./fontthemes/playful.css";
+@import "./fontthemes/startup.css";
+@import "./fontthemes/swiss.css";
+@import "./fontthemes/tech.css";
+@import "./fontthemes/vintage.css";

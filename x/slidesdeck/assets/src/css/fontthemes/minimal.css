@@ -1,0 +1,7 @@
+/* Minimal Font Theme */
+html[data-font-theme="minimal"] {
+  --font-heading: 'DM Sans', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-code: 'DM Mono', monospace;
+}
+

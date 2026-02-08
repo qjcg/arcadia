@@ -1,0 +1,7 @@
+/* Classic Font Theme */
+html[data-font-theme="classic"] {
+  --font-heading: 'Libre Baskerville', serif;
+  --font-body: 'Libre Baskerville', serif;
+  --font-code: 'Source Code Pro', monospace;
+}
+

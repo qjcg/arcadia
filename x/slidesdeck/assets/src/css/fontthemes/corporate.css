@@ -1,0 +1,7 @@
+/* Corporate Font Theme */
+html[data-font-theme="corporate"] {
+  --font-heading: 'Work Sans', sans-serif;
+  --font-body: 'Work Sans', sans-serif;
+  --font-code: 'Ubuntu Mono', monospace;
+}
+

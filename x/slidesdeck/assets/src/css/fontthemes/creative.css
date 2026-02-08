@@ -1,0 +1,11 @@
+/* Creative Font Theme */
+html[data-font-theme="creative"] {
+  --font-heading: 'Bebas Neue', sans-serif;
+  --font-body: 'Lato', sans-serif;
+  --font-code: 'JetBrains Mono', monospace;
+}
+
+html[data-font-theme="creative"] .slide h1 {
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}

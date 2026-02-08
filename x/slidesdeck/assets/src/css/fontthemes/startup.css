@@ -1,0 +1,7 @@
+/* Startup Font Theme */
+html[data-font-theme="startup"] {
+  --font-heading: 'Manrope', sans-serif;
+  --font-body: 'Manrope', sans-serif;
+  --font-code: 'JetBrains Mono', monospace;
+}
+

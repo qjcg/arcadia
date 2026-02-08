@@ -1,0 +1,12 @@
+/* Editorial Font Theme */
+html[data-font-theme="editorial"] {
+  --font-heading: 'Oswald', sans-serif;
+  --font-body: 'Merriweather', serif;
+  --font-code: 'Roboto Mono', monospace;
+}
+
+html[data-font-theme="editorial"] .slide h1,
+html[data-font-theme="editorial"] .slide h2 {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}

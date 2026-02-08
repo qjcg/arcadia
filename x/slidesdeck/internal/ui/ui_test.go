@@ -148,11 +148,12 @@ func TestUI(t *testing.T) {
 	}{
 		{
 			name:      "Layout main elements",
-			component: Layout(deck, "dark", "body { color: red; }", "console.log('hi');"),
+			component: Layout(deck, "dark", "modern", "body { color: red; }", "[data-theme=custom] { color: blue; }", "console.log('hi');"),
 			contains: []string{
 				"<title>Test Deck</title>",
 				"data-theme=\"dark\"",
 				"body { color: red; }",
+				"[data-theme=custom] { color: blue; }",
 				"console.log('hi');",
 				"<h1>Slide 1 Content</h1>",
 				"<h2>Slide 2 Content</h2>",
@@ -213,7 +214,7 @@ func TestLayoutThemeInjection(t *testing.T) {
 	for _, theme := range themes {
 		t.Run(theme, func(t *testing.T) {
 			deck := &parser.Deck{Title: "Title", Slides: []parser.Slide{{ID: 0, Title: "T", Content: "C"}}}
-			component := Layout(deck, theme, "", "")
+			component := Layout(deck, theme, "modern", "", "", "")
 			var buf bytes.Buffer
 			_ = component.Render(context.Background(), &buf)
 			expected := "data-theme=\"" + theme + "\""

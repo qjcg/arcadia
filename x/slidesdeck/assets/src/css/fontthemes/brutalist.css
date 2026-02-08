@@ -1,0 +1,12 @@
+/* Brutalist Font Theme */
+html[data-font-theme="brutalist"] {
+  --font-heading: 'Archivo Black', sans-serif;
+  --font-body: 'Space Grotesk', sans-serif;
+  --font-code: 'Share Tech Mono', monospace;
+}
+
+html[data-font-theme="brutalist"] .slide h1,
+html[data-font-theme="brutalist"] .slide h2 {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "./vendor/daisyui.css";
 @import "./vendor/themes.css";
+@import "./fontthemes.css";
 @source "../../../internal/ui/**/*.templ";
 
 [x-cloak] {
@@ -32,6 +33,19 @@ pre {
 }
 
 /* Typography for slides */
+/* Font families using CSS variables */
+.slide h1, .slide h2, .slide h3, .slide h4, .slide h5, .slide h6 {
+  font-family: var(--font-heading);
+}
+
+.slide p, .slide li, .slide td, .slide th {
+  font-family: var(--font-body);
+}
+
+.slide code, .slide pre, .slide kbd {
+  font-family: var(--font-code);
+}
+
 .slide h1 {
   font-size: 4rem;
   font-weight: 900;

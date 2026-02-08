@@ -1,0 +1,11 @@
+/* Luxury Font Theme */
+html[data-font-theme="luxury"] {
+  --font-heading: 'Cormorant Garamond', serif;
+  --font-body: 'Montserrat', sans-serif;
+  --font-code: 'Fira Code', monospace;
+}
+
+html[data-font-theme="luxury"] .slide h1 {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}

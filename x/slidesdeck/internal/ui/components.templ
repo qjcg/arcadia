@@ -5,14 +5,17 @@ import (
 	"github.com/charmbracelet/arcadia/x/slidesdeck/internal/parser"
 )
 
-templ Layout(deck *parser.Deck, initialTheme string, css string, js string) {
+templ Layout(deck *parser.Deck, initialTheme string, initialFontTheme string, css string, customCss string, js string) {
 	<!DOCTYPE html>
-	<html lang="en" data-theme={ initialTheme }>
+	<html lang="en" data-theme={ initialTheme } data-font-theme={ initialFontTheme }>
 		<head>
 			<meta charset="UTF-8" />
 			<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 			<title>{ deck.Title }</title>
-			@templ.Raw("<style type=\"text/css\">\n" + css + "\n</style>")
+			<!-- Google Fonts Loader -->
+			<link rel="preconnect" href="https://fonts.googleapis.com" />
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+			@templ.Raw("<style type=\"text/css\">\n" + css + "\n" + customCss + "\n</style>")
 		</head>
 		<body class="bg-base-100 text-base-content" x-data="slideshow">
 			<div class="h-screen w-screen overflow-hidden relative">
@@ -61,10 +64,19 @@ templ Layout(deck *parser.Deck, initialTheme string, css string, js string) {
 						// Theme button
 						<button
 							class="join-item btn btn-ghost btn-sm"
-							@click="originalTheme = currentTheme; themeQuery = ''; filteredThemes = themes; showThemePalette = true; $nextTick(() => { $refs.themeSearch?.focus(); scrollToCurrentTheme(); })"
+							@click="originalTheme = currentTheme; themeQuery = ''; filteredThemes = themes; showThemePalette = true; selectedPaletteIndex = 0; $nextTick(() => { $refs.themeSearch?.focus(); scrollToCurrentTheme(); })"
 							title="Themes (t)"
 						>
 							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.172-1.172a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" /></svg>
+						</button>
+
+						// Font Theme button
+						<button
+							class="join-item btn btn-ghost btn-sm"
+							@click="originalFontTheme = currentFontTheme; fontThemeQuery = ''; filteredFontThemes = fontThemes; showFontThemePalette = true; selectedPaletteIndex = 0; $nextTick(() => { $refs.fontThemeSearch?.focus(); scrollToCurrentFontTheme(); })"
+							title="Font Themes (T)"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" /></svg>
 						</button>
 
 						// Fullscreen button
@@ -105,6 +117,7 @@ templ Layout(deck *parser.Deck, initialTheme string, css string, js string) {
 							<div class="flex items-center justify-between gap-4"><span>Last Slide</span><kbd class="kbd kbd-sm">Shift+Alt+.</kbd></div>
 							<div class="flex items-center justify-between gap-4"><span>Fullscreen</span><kbd class="kbd kbd-sm">f</kbd></div>
 							<div class="flex items-center justify-between gap-4"><span>Theme Palette</span><kbd class="kbd kbd-sm">t</kbd></div>
+							<div class="flex items-center justify-between gap-4"><span>Font Theme Palette</span><kbd class="kbd kbd-sm">Shift+T</kbd></div>
 							<div class="flex items-center justify-between gap-4"><span>Search</span><kbd class="kbd kbd-sm">/</kbd></div>
 							<div class="flex items-center justify-between gap-4"><span>Line Numbers</span><kbd class="kbd kbd-sm">N</kbd></div>
 							<div class="flex items-center justify-between gap-4"><span>Pause Mode</span><kbd class="kbd kbd-sm">Shift+P</kbd></div>
@@ -118,6 +131,9 @@ templ Layout(deck *parser.Deck, initialTheme string, css string, js string) {
 
 				// Theme Palette
 				@ThemePalette()
+
+				// Font Theme Palette
+				@FontThemePalette()
 
 				// Search Palette
 				@SearchPalette()
@@ -270,6 +286,68 @@ templ PauseMode() {
 			<button class="btn btn-circle btn-outline absolute top-8 right-8" @click="showPause = false">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
 			</button>
+		</div>
+	</div>
+}
+
+templ FontThemePalette() {
+	<div
+		class="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-20 z-[60]"
+		x-show="showFontThemePalette"
+		@keydown.escape.window="showFontThemePalette = false; document.documentElement.setAttribute('data-font-theme', originalFontTheme); currentFontTheme = originalFontTheme; fontThemeQuery = ''; loadGoogleFonts(originalFontTheme);"
+		@click.self="showFontThemePalette = false; document.documentElement.setAttribute('data-font-theme', originalFontTheme); currentFontTheme = originalFontTheme; fontThemeQuery = ''; loadGoogleFonts(originalFontTheme);"
+		x-cloak
+	>
+		<div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-base-300">
+			<div class="relative">
+				<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none opacity-50">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+				</div>
+				<input
+					type="text"
+					class="w-full bg-transparent pl-12 pr-4 py-4 focus:outline-none border-b border-base-300 text-lg"
+					placeholder="Search font themes..."
+					x-ref="fontThemeSearch"
+					x-model="fontThemeQuery"
+					@input="searchFontThemes($event.target.value)"
+				/>
+			</div>
+			<div class="max-h-96 overflow-y-auto p-2 space-y-1 font-theme-list" x-ref="fontThemeList">
+				<template x-for="(theme, index) in filteredFontThemes" :key="theme.name">
+					<div
+						class="px-4 py-3 rounded-xl cursor-pointer flex justify-between items-center transition-all duration-200 font-theme-item"
+						:class="selectedPaletteIndex === index ? 'bg-base-200 ring-2 ring-primary/20' : (currentFontTheme === theme.name ? 'bg-primary/10' : '')"
+						@click="setFontTheme(theme.name)"
+						@mouseenter="selectedPaletteIndex = index"
+						:data-font-theme-name="theme.name"
+					>
+						<div class="flex items-center gap-4">
+							<div class="w-12 h-10 rounded-lg border border-base-300 flex items-center justify-center bg-base-200 shrink-0" :style="`font-family: ${theme.headingFont.split(',')[0].replace(/'/g, '')}`">
+								<span class="text-xl font-bold">Aa</span>
+							</div>
+							<div>
+								<div class="font-medium leading-none mb-1" x-text="theme.displayName"></div>
+								<div class="text-[10px] opacity-50" x-text="theme.description"></div>
+								<div class="text-[9px] opacity-40 uppercase tracking-wider mt-1">
+									<span x-text="theme.category" class="badge badge-xs badge-outline"></span>
+								</div>
+							</div>
+						</div>
+						<div class="flex items-center gap-2">
+							<span x-show="currentFontTheme === theme.name" class="text-primary">
+								<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+							</span>
+						</div>
+					</div>
+				</template>
+			</div>
+			<div class="p-3 bg-base-200/50 border-t border-base-300 flex justify-between items-center text-[10px] uppercase tracking-wider font-bold opacity-50">
+				<div class="flex gap-4">
+					<span>↑↓ Navigate</span>
+					<span>↵ Select</span>
+				</div>
+				<span>Esc to close</span>
+			</div>
 		</div>
 	</div>
 }
