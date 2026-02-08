@@ -1,7 +1,7 @@
 # Themes Test
-# Default theme should be dark
+# Default theme should be gradient-dark
 exec slidesdeck input.md
-grep 'data-theme="dark"' input.html
+grep 'data-theme="gradient-dark"' input.html
 
 # Custom theme
 exec slidesdeck --theme retro input.md

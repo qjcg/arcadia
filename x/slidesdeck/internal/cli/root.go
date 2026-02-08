@@ -124,7 +124,7 @@ func Execute() error {
 
 func init() {
 	rootCmd.Flags().StringVarP(&outputPath, "output", "o", "", "Output file path (default: same as input with .html extension)")
-	rootCmd.Flags().StringVarP(&defaultTheme, "theme", "t", "dark", "Default daisyUI theme")
+	rootCmd.Flags().StringVarP(&defaultTheme, "theme", "t", "gradient-dark", "Default daisyUI theme")
 	rootCmd.Flags().StringVarP(&defaultFontTheme, "fonttheme", "f", "modern", "Default font theme (modern, elegant, classic, tech, minimal, editorial, friendly, corporate, academic, creative, luxury, startup, vintage, swiss, playful, brutalist)")
 	rootCmd.Flags().StringVarP(&separator, "separator", "s", "", "Custom slide separator (overrides headings)")
 	rootCmd.Flags().StringSliceVar(&themeFiles, "theme-file", nil, "Additional daisyUI theme CSS file (can be repeated)")
