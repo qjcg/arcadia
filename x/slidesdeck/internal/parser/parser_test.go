@@ -228,3 +228,33 @@ World`
 		t.Errorf("code highlighting seems missing in org")
 	}
 }
+
+func TestOrgHeadingLevels(t *testing.T) {
+	input := "* Slide Title\n** Subheading"
+	deck, err := ParseOrg(strings.NewReader(input), Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := deck.Slides[0].Content
+	if !strings.Contains(content, "<h1") || !strings.Contains(content, "Slide Title") {
+		t.Errorf("Expected <h1> for level 1 heading, got: %s", content)
+	}
+	if !strings.Contains(content, "<h2") || !strings.Contains(content, "Subheading") {
+		t.Errorf("Expected <h2> for level 2 heading, got: %s", content)
+	}
+}
+
+func TestMarkdownHeadingLevels(t *testing.T) {
+	input := "# Slide Title\n## Subheading"
+	deck, err := ParseMarkdown(strings.NewReader(input), Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := deck.Slides[0].Content
+	if !strings.Contains(content, "<h1") || !strings.Contains(content, "Slide Title") {
+		t.Errorf("Expected <h1> for level 1 heading, got: %s", content)
+	}
+	if !strings.Contains(content, "<h2") || !strings.Contains(content, "Subheading") {
+		t.Errorf("Expected <h2> for level 2 heading, got: %s", content)
+	}
+}

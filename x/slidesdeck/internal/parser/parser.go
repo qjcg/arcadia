@@ -140,6 +140,16 @@ func ParseOrg(r io.Reader, opts Options) (*Deck, error) {
 		html = strings.ReplaceAll(html, "<li class=\"unchecked\">", "<li class=\"unchecked\"><input type=\"checkbox\" disabled> ")
 		html = strings.ReplaceAll(html, "<li class=\"indeterminate\">", "<li class=\"indeterminate\"><input type=\"checkbox\" disabled> ")
 
+		// Promote headings: go-org defaults to h2 for level 1 headlines
+		for i := 2; i <= 6; i++ {
+			oldOpen := fmt.Sprintf("<h%d", i)
+			newOpen := fmt.Sprintf("<h%d", i-1)
+			oldClose := fmt.Sprintf("</h%d", i)
+			newClose := fmt.Sprintf("</h%d", i-1)
+			html = strings.ReplaceAll(html, oldOpen, newOpen)
+			html = strings.ReplaceAll(html, oldClose, newClose)
+		}
+
 		title := extractOrgTitle(rs)
 		if title == "" {
 			title = fmt.Sprintf("Slide %d", i+1)
