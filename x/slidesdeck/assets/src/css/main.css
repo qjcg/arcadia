@@ -101,13 +101,21 @@ pre {
   line-height: 1.1;
 }
 
-[data-theme^="gradient-"] .slide h1 {
+[data-theme="gradient-dark"] .slide h1 {
   background: linear-gradient(135deg, #00C6FF, #0072FF, #7A2FF7);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  color: var(--color-primary); /* Fallback */
+  color: var(--color-primary);
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+[data-theme="gradient-dark"] .slide h2 {
+  background: linear-gradient(135deg, #00C6FF, #0072FF);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--color-primary);
 }
 
 [data-theme="gradient-light"] .slide h1 {
@@ -115,31 +123,15 @@ pre {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  color: var(--color-primary); /* Fallback */
-}
-
-.slide h2 {
-  color: color-mix(in oklch, var(--color-secondary), var(--color-base-content) 15%);
-  font-size: 3.5rem;
-  font-weight: 800;
-  margin-bottom: 1.5rem;
-  line-height: 1.2;
-}
-
-[data-theme="gradient-dark"] .slide h2 {
-  background: linear-gradient(135deg, #FAD961, #F76B1C);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: var(--color-secondary); /* Fallback */
+  color: var(--color-primary);
 }
 
 [data-theme="gradient-light"] .slide h2 {
-  background: linear-gradient(135deg, #43E97B, #38F9D7);
+  background: linear-gradient(135deg, #7928CA, #0070F3);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  color: var(--color-secondary); /* Fallback */
+  color: var(--color-primary);
 }
 
 
