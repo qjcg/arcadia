@@ -213,9 +213,9 @@ World`
 		t.Fatal(err)
 	}
 
-	// Now handling #+TITLE:
-	if deck.Title != "Org Presentation" {
-		t.Errorf("expected Org Presentation, got %q", deck.Title)
+	// Now handling first slide title as deck title
+	if deck.Title != "Slide 1" {
+		t.Errorf("expected Slide 1, got %q", deck.Title)
 	}
 	if len(deck.Slides) != 2 {
 		t.Errorf("expected 2 slides, got %d", len(deck.Slides))

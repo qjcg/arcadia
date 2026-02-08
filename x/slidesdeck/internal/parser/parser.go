@@ -80,6 +80,10 @@ func ParseMarkdown(r io.Reader, opts Options) (*Deck, error) {
 		})
 	}
 
+	if len(deck.Slides) > 0 {
+		deck.Title = deck.Slides[0].Title
+	}
+
 	return deck, nil
 }
 
@@ -160,6 +164,10 @@ func ParseOrg(r io.Reader, opts Options) (*Deck, error) {
 			Title:   title,
 			Content: html,
 		})
+	}
+
+	if len(deck.Slides) > 0 {
+		deck.Title = deck.Slides[0].Title
 	}
 
 	return deck, nil

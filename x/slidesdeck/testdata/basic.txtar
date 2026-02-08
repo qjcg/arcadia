@@ -14,7 +14,7 @@ exists out.html
 
 # Check if titles are correctly extracted and present in output
 exec slidesdeck input.org
-grep '<title>My Org Presentation</title>' input.html
+grep '<title>Slide 1</title>' input.html
 grep 'Slide 1' input.html
 grep 'Slide 2' input.html
 
