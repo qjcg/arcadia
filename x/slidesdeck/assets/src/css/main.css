@@ -99,7 +99,9 @@ pre {
   font-weight: 900;
   margin-bottom: 2rem;
   line-height: 1.1;
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  margin-inline: auto;
 }
 
 .slide h2 {
@@ -108,7 +110,9 @@ pre {
   font-weight: 800;
   margin-bottom: 1.5rem;
   line-height: 1.2;
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  margin-inline: auto;
 }
 
 [data-theme="gradient-dark"] .slide h1 {
