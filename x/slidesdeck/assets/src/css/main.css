@@ -99,7 +99,7 @@ pre {
   font-weight: 900;
   margin-bottom: 2rem;
   line-height: 1.1;
-  display: block;
+  display: inline-block;
 }
 
 .slide h2 {
@@ -108,11 +108,11 @@ pre {
   font-weight: 800;
   margin-bottom: 1.5rem;
   line-height: 1.2;
-  display: block;
+  display: inline-block;
 }
 
 [data-theme="gradient-dark"] .slide h1 {
-  background: linear-gradient(135deg, #00CFFF 0%, #007AFF 25%, #5856D6 50%, #AF52DE 100%);
+  background: linear-gradient(135deg, #00CFFF 0%, #007AFF 30%, #5856D6 70%, #AF52DE 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -120,7 +120,7 @@ pre {
 }
 
 [data-theme="gradient-dark"] .slide h2 {
-  background: linear-gradient(135deg, #00CFFF 0%, #007AFF 100%);
+  background: linear-gradient(135deg, #00CFFF 0%, #AF52DE 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -134,7 +134,7 @@ pre {
 }
 
 [data-theme="gradient-light"] .slide h2 {
-  background: linear-gradient(135deg, #FF2D55 0%, #AF52DE 100%);
+  background: linear-gradient(135deg, #FF2D55 0%, #5856D6 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
