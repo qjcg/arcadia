@@ -3,7 +3,7 @@ version: '3'
 vars:
   BIN_DIR: bin
   BIN: '{{.BIN_DIR}}/slidesdeck'
-  BIN_INSTALLED: $GOBIN/slidesdeck
+  BIN_INSTALLED: '$GOBIN/slidesdeck'
 
 tasks:
   default:
@@ -73,10 +73,6 @@ tasks:
     cmds:
       - cp {{.BIN}} {{.BIN_INSTALLED}}
       - upx {{.BIN_INSTALLED}}
-    sources:
-      - '**/go.*'
-      - '**/*.go'
-      - 'assets/dist/**'
     generates:
       - '{{.BIN_INSTALLED}}'
 

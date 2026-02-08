@@ -110,6 +110,8 @@ Target users are developers, technical writers, and presenters who prefer text-b
 **FR-52**: The Slide Search Palette shall use latest **`flexsearch` (v0.8.2)** to provide fast, full-text search capability. Matches shall be returned asynchronously.
 **FR-53**: The search shall index both slide titles and slide content. Matching slide titles shall have priority in the results list, appearing above content-only matches. Highlighting of the first result shall be automatic as users type.
 **FR-54**: Search results shall include a slide number, title, and a subtitle featuring a preview of the slide content. Selecting a result and pressing `Enter` shall immediately jump to the slide and close the palette.
+**FR-55**: The tool shall include a "Copy to Clipboard" button on all code blocks. The button shall be visible on hover and provide visual feedback upon successful copying.
+**FR-56**: The "Copy to Clipboard" functionality shall automatically strip line numbers from the code content before copying.
 
 ### 3.2 Non-Functional Requirements
 **NFR-1**: Performance: Conversion should take less than 1 second for files up to 100 slides.

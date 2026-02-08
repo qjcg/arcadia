@@ -11,6 +11,7 @@ Slidesdeck is a single-purpose CLI tool that transforms your Markdown or Emacs O
 - **Command Palette**: Switch between dozens of daisyUI themes at runtime using a high-performance search interface.
 - **Font Themes**: Choose from 16 professionally curated typography pairings using Google Fonts.
 - **Pause Mode**: Manage presentation breaks with a configurable, persistent countdown timer (`Shift+P`).
+- **Copy Button**: Instant "Copy to Clipboard" button on all code blocks with automatic line-number stripping.
 - **Syntax Highlighting**: Built-in high-quality highlighting with Chroma, line numbers included by default.
 - **Keyboard-First**: Navigate slides, toggle fullscreen, and manage themes entirely via the keyboard.
 - **Customizable**: Supply [custom theme and font theme CSS files](docs/CUSTOM_THEMES.md).

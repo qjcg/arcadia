@@ -27,18 +27,20 @@ func TestSearchPaletteStructure(t *testing.T) {
 		"x-for=\"(result, index) in searchResults\"",
 		"search-results",
 		"selectedPaletteIndex",
-		"ring-2 ring-primary/50",
-		"badge badge-sm badge-outline",
-		"font-bold text-xl",
-		"text-sm opacity-60 line-clamp-1",
-		"'#' + (result.id + 1)",
+		"bg-primary text-primary-content shadow-xl scale-[1.02]",
+		"font-black text-2xl leading-tight mb-1 truncate",
+		"text-lg opacity-70 line-clamp-1",
+		"result.id + 1",
 		"x-text=\"result.title\"",
 		"x-text=\"result.content\"",
 		"x-show=\"searchQuery && searchResults.length === 0\"",
-		"No slides found",
-		"↑↓ Navigate",
-		"↵ Jump to slide",
-		"Esc to close",
+		"No matches found",
+		"↑↓",
+		"Navigate",
+		"↵",
+		"Select",
+		"Esc",
+		"Close",
 	}
 
 	for _, element := range structuralElements {
@@ -53,7 +55,7 @@ func TestSearchPaletteStructure(t *testing.T) {
 	}
 
 	// Test highlighting classes
-	highlightClass := "bg-primary/10 ring-2 ring-primary/50"
+	highlightClass := "bg-primary text-primary-content shadow-xl scale-[1.02]"
 	if !strings.Contains(rendered, highlightClass) {
 		t.Errorf("Missing highlight class: %s", highlightClass)
 	}
@@ -79,20 +81,20 @@ func TestSearchPaletteInteractions(t *testing.T) {
 		{
 			name: "empty query shows all text",
 			contains: []string{
-				"bg-black/50 backdrop-blur-sm",
+				"bg-base-100/60 backdrop-blur-xl",
 				"absolute inset-0",
 				"x-show=\"showSearch\"",
 				"@keydown.escape.window=\"showSearch = false\"",
-				"bg-base-100 rounded-2xl shadow-2xl",
-				"max-w-2xl",
+				"bg-base-100 rounded-[2.5rem] shadow-3xl",
+				"max-w-3xl",
 				"Search slides...",
 			},
 		},
 		{
 			name: "search functionality complete",
 			contains: []string{
-				"px-6 py-4 rounded-xl hover:bg-base-200 cursor-pointer",
-				"selectedPaletteIndex === index ? 'bg-primary/10 ring-2 ring-primary/50' : ''",
+				"px-8 py-6 rounded-[1.5rem] cursor-pointer",
+				"selectedPaletteIndex === index ? 'bg-primary text-primary-content shadow-xl scale-[1.02] -translate-y-1' : 'hover:bg-base-200 border border-transparent hover:border-base-300'",
 				"@click=\"jumpToSlide(result.id)\"",
 				"@mouseenter=\"selectedPaletteIndex = index\"",
 			},
@@ -101,9 +103,8 @@ func TestSearchPaletteInteractions(t *testing.T) {
 			name: "search result content preview",
 			contains: []string{
 				"flex-1 min-w-0",
-				"badge badge-sm badge-outline opacity-50 font-mono",
-				"<h3 class=\"font-bold text-xl truncate\"",
-				"p class=\"text-sm opacity-60 line-clamp-1\"",
+				"<h3 class=\"font-black text-2xl leading-tight mb-1 truncate\"",
+				"p class=\"text-lg opacity-70 line-clamp-1\"",
 			},
 		},
 	}
@@ -167,7 +168,8 @@ func TestUI(t *testing.T) {
 				"Search themes...",
 				"x-ref=\"themeSearch\"",
 				"theme-list",
-				"Esc to close",
+				"Esc",
+				"Close",
 			},
 		},
 		{
@@ -177,17 +179,17 @@ func TestUI(t *testing.T) {
 				"Search slides...",
 				"x-ref=\"slideSearch\"",
 				"search-results",
-				"No slides found matching",
-				"Jump to slide",
+				"No matches found",
+				"Select",
 			},
 		},
 		{
 			name:      "Pause Mode structural elements",
 			component: PauseMode(),
 			contains: []string{
-				"Break message...",
+				"Break Message",
 				"x-text=\"timeRemaining\"",
-				"Start Break",
+				"START",
 				"x-model=\"pauseMinutes\"",
 			},
 		},

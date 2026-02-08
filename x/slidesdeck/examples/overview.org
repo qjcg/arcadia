@@ -57,6 +57,21 @@ func main() {
 
 Toggle line numbers with 'N'.
 
+* Syntax: CUE
+
+#+begin_src cue
+  #Network: {
+  	name!: string
+  	type: *"LAN" | "WAN"
+  }
+
+  defaultNetwork: #Network & {
+  	name: "test"
+  	type: "WAN"
+  }
+#+end_src
+
+
 * Integrated Search
 Press '/' at any time to open the **Search Palette**.
 

@@ -25,9 +25,15 @@ document.addEventListener('alpine:init', () => {
         timerRunning: false,
         pauseMessage: 'Taking a break...',
         pauseMinutes: 5,
-        timeRemaining: '00:00',
+        pauseUntil: '',
+        pauseMode: 'minutes', // 'minutes' or 'until'
+        timeRemaining: '00:00:00',
+        pauseUntilDisplay: '',
+        progress: 0,
         endTime: null,
+        startTime: null,
         timerInterval: null,
+        currentTime: '',
 
         // Color Themes
         themes: [
@@ -58,6 +64,19 @@ document.addEventListener('alpine:init', () => {
         filteredFontThemes: [],
         currentFontTheme: '',
         loadedFonts: new Set(),
+
+        copyToClipboard(text, el) {
+            if (!navigator.clipboard) return;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalInner = el.innerHTML;
+                el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>`;
+                el.classList.replace('btn-ghost', 'btn-success');
+                setTimeout(() => {
+                    el.innerHTML = originalInner;
+                    el.classList.replace('btn-success', 'btn-ghost');
+                }, 2000);
+            });
+        },
 
         refreshSlides() {
             this.allSlides = [];
@@ -111,8 +130,35 @@ document.addEventListener('alpine:init', () => {
                 console.error('Failed to initialize search index:', e);
             }
 
-            // Initial slide collection
             this.refreshSlides();
+
+            // Current time updates
+            this.updateClock();
+            setInterval(() => this.updateClock(), 1000);
+
+            // Initialize copy buttons
+            this.$nextTick(() => {
+                document.querySelectorAll('pre').forEach(pre => {
+                    if (pre.parentElement.classList.contains('code-wrapper')) return;
+
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'code-wrapper relative group';
+                    pre.parentNode.insertBefore(wrapper, pre);
+                    wrapper.appendChild(pre);
+
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-ghost btn-xs absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200';
+                    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>`;
+                    btn.onclick = () => {
+                        const code = pre.querySelector('code') || pre;
+                        // Clone and remove line numbers if present
+                        const clone = code.cloneNode(true);
+                        clone.querySelectorAll('span[style*="user-select:none"]').forEach(ln => ln.remove());
+                        this.copyToClipboard(clone.innerText.trim(), btn);
+                    };
+                    wrapper.appendChild(btn);
+                });
+            });
 
             // Load persistent timer
             try {
@@ -121,6 +167,10 @@ document.addEventListener('alpine:init', () => {
                     const data = JSON.parse(savedTimer);
                     if (new Date(data.endTime) > new Date()) {
                         this.pauseMessage = data.message;
+                        this.pauseMode = data.pauseMode || 'minutes';
+                        this.pauseUntil = data.pauseUntil || '';
+                        this.pauseUntilDisplay = data.pauseUntilDisplay || '';
+                        this.startTime = new Date(data.startTime || new Date());
                         this.endTime = new Date(data.endTime);
                         this.showPause = true;
                         this.startCountdown();
@@ -176,6 +226,7 @@ document.addEventListener('alpine:init', () => {
                     this.showThemePalette = false;
                     this.showFontThemePalette = false;
                     this.showHelp = false;
+                    this.showPause = false;
                     this.selectedPaletteIndex = 0;
                     this.searchQuery = '';
                     this.themeQuery = '';
@@ -584,11 +635,27 @@ document.addEventListener('alpine:init', () => {
 
         startTimer() {
             const now = new Date();
-            this.endTime = new Date(now.getTime() + this.pauseMinutes * 60000);
+            this.startTime = now;
+            if (this.pauseMode === 'until' && this.pauseUntil) {
+                const [hours, minutes] = this.pauseUntil.split(':').map(Number);
+                let target = new Date(now);
+                target.setHours(hours, minutes, 0, 0);
+                if (target <= now) {
+                    target.setDate(target.getDate() + 1);
+                }
+                this.endTime = target;
+                this.pauseUntilDisplay = target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } else {
+                this.endTime = new Date(now.getTime() + this.pauseMinutes * 60000);
+            }
             this.timerRunning = true;
             localStorage.setItem('slidesdeck_timer', JSON.stringify({
+                startTime: this.startTime,
                 endTime: this.endTime,
-                message: this.pauseMessage
+                message: this.pauseMessage,
+                pauseMode: this.pauseMode,
+                pauseUntil: this.pauseUntil,
+                pauseUntilDisplay: this.pauseUntilDisplay
             }));
             this.startCountdown();
         },
@@ -602,15 +669,27 @@ document.addEventListener('alpine:init', () => {
 
         updateRemaining() {
             const now = new Date();
+            const total = this.endTime - this.startTime;
             const diff = this.endTime - now;
+
             if (diff <= 0) {
                 this.timeRemaining = '00:00';
+                this.progress = 100;
                 this.stopTimer();
                 return;
             }
-            const mins = Math.floor(diff / 60000);
+
+            this.progress = (total > 0) ? Math.max(0, Math.min(100, (1 - diff / total) * 100)) : 0;
+
+            const hours = Math.floor(diff / 3600000);
+            const mins = Math.floor((diff % 3600000) / 60000);
             const secs = Math.floor((diff % 60000) / 1000);
-            this.timeRemaining = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+            if (hours > 0) {
+                this.timeRemaining = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else {
+                this.timeRemaining = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
         },
 
         stopTimer() {
@@ -651,6 +730,11 @@ document.addEventListener('alpine:init', () => {
                     document.exitFullscreen();
                 }
             }
+        },
+
+        updateClock() {
+            const now = new Date();
+            this.currentTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
     }));
 });

@@ -52,6 +52,7 @@ self-contained HTML slideshows.
 - **Interactivity**: Alpine.js (v3) for navigation (n/p/arrows/space), first/last slide (Shift+Alt+,/.), toggles (t for themes, f for fullscreen, N for line numbers, ? for help, / for search), and Shift+P for pause.
     - **Search Feature**: Full-text slide search using **`flexsearch`** (v0.8.2) via a Command Palette interface. The palette displays an instant overview of all slides when opened, with live results and automatic highlighting as you type.
     - **Theme Support**: Command Palette based theme switching (using `flexsearch`). All daisyUI themes are included and categorized as `light:` or `dark:`. Default theme can be set via CLI flag. The theme palette opens with the current theme pre-selected.
+    - **Code Interaction**: Automatic "Copy" button for code blocks with line-number stripping and visual feedback.
 - **Pause/Break Mode**: A visually impressive, interactive break screen (triggered by `Shift+P`) with a configurable countdown timer and custom message. The state is persisted in Local Storage to survive browser restarts.
 - **Basic Styling**: A clean, readable default layout using daisyUI components.
 - **Slide Separators**: Default separation by first-level headings (`#` or `*`). Support for explicit separators (e.g., `---`) and custom strings.

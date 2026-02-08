@@ -179,8 +179,7 @@ func splitMarkdown(content string, sep string) []string {
 				trimmed := strings.TrimSpace(content)
 				// Check if it's just Org metadata or blank
 				isMetadataOrBlank := true
-				checkLines := strings.Split(trimmed, "\n")
-				for _, l := range checkLines {
+				for l := range strings.SplitSeq(trimmed, "\n") {
 					l = strings.TrimSpace(l)
 					if l != "" && !strings.HasPrefix(l, "#+") {
 						isMetadataOrBlank = false
@@ -208,8 +207,7 @@ func splitMarkdown(content string, sep string) []string {
 		content := currentSlide.String()
 		trimmed := strings.TrimSpace(content)
 		isMetadataOrBlank := true
-		checkLines := strings.Split(trimmed, "\n")
-		for _, l := range checkLines {
+		for l := range strings.SplitSeq(trimmed, "\n") {
 			l = strings.TrimSpace(l)
 			if l != "" && !strings.HasPrefix(l, "#+") {
 				isMetadataOrBlank = false
@@ -265,8 +263,7 @@ func splitOrg(content string, sep string) []string {
 				trimmed := strings.TrimSpace(content)
 				// Check if it's just Org metadata or blank
 				isMetadataOrBlank := true
-				checkLines := strings.Split(trimmed, "\n")
-				for _, l := range checkLines {
+				for l := range strings.SplitSeq(trimmed, "\n") {
 					l = strings.TrimSpace(l)
 					if l != "" && !strings.HasPrefix(l, "#+") {
 						isMetadataOrBlank = false
@@ -294,8 +291,7 @@ func splitOrg(content string, sep string) []string {
 		content := currentSlide.String()
 		trimmed := strings.TrimSpace(content)
 		isMetadataOrBlank := true
-		checkLines := strings.Split(trimmed, "\n")
-		for _, l := range checkLines {
+		for l := range strings.SplitSeq(trimmed, "\n") {
 			l = strings.TrimSpace(l)
 			if l != "" && !strings.HasPrefix(l, "#+") {
 				isMetadataOrBlank = false
@@ -311,28 +307,26 @@ func splitOrg(content string, sep string) []string {
 }
 
 func extractTitle(content string) string {
-	lines := strings.Split(content, "\n")
-	for _, l := range lines {
+	for l := range strings.SplitSeq(content, "\n") {
 		l = strings.TrimSpace(l)
-		if strings.HasPrefix(l, "#+TITLE:") {
-			return strings.TrimSpace(strings.TrimPrefix(l, "#+TITLE:"))
+		if after, found := strings.CutPrefix(l, "#+TITLE:"); found {
+			return strings.TrimSpace(after)
 		}
-		if strings.HasPrefix(l, "# ") {
-			return strings.TrimPrefix(l, "# ")
+		if after, found := strings.CutPrefix(l, "# "); found {
+			return after
 		}
 	}
 	return ""
 }
 
 func extractOrgTitle(content string) string {
-	lines := strings.Split(content, "\n")
-	for _, l := range lines {
+	for l := range strings.SplitSeq(content, "\n") {
 		l = strings.TrimSpace(l)
-		if strings.HasPrefix(l, "#+TITLE:") {
-			return strings.TrimSpace(strings.TrimPrefix(l, "#+TITLE:"))
+		if after, found := strings.CutPrefix(l, "#+TITLE:"); found {
+			return strings.TrimSpace(after)
 		}
-		if strings.HasPrefix(l, "* ") {
-			return strings.TrimPrefix(l, "* ")
+		if after, found := strings.CutPrefix(l, "* "); found {
+			return after
 		}
 	}
 	return ""

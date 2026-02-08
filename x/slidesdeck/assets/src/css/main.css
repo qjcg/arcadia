@@ -8,6 +8,28 @@
   display: none !important;
 }
 
+@keyframes gradient-bg {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.pause-timer {
+  background: linear-gradient(
+    to right,
+    var(--color-primary, #ff0000),
+    var(--color-secondary, #00ff00),
+    var(--color-accent, #0000ff),
+    var(--color-primary, #ff0000)
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--color-primary, #ff0000); /* Fallback */
+  animation: gradient-bg 8s linear infinite;
+  display: inline-block;
+}
+
 /* Custom styles for slides */
 .slide {
   height: 100vh;
