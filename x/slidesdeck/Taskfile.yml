@@ -20,14 +20,23 @@ tasks:
     generates:
       - '**/*_templ.go'
 
-  build:css:
-    desc: Build CSS with Tailwind v4
+  build:css-split-themes:
+    desc: Split out the tailwind themes into individual modular CSS files.
     cmds:
       - go run scripts/split_themes.go
+    sources:
+      - scripts/split_themes.go
+      - assets/src/css/vendor/themes.css
+    generates:
+      - assets/src/css/themes/*.css
+
+  build:css:
+    desc: Build CSS with Tailwind v4
+    deps: [build:css-split-themes]
+    cmds:
       - ./tailwindcss -i {{.IN}} -o {{.OUT}} --minify
     sources:
       - 'assets/src/**/*.css'
-      - 'scripts/split_themes.go'
     generates:
       - '{{.OUT}}'
     vars:
