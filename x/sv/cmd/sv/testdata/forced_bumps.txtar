@@ -1,0 +1,32 @@
+# Setup git repo
+exec git init
+exec git config user.email test@example.com
+exec git config user.name "Test User"
+exec git commit --allow-empty -m initial
+exec git tag v1.0.0
+
+# Force major bump
+exec sv major
+stdout '^\. -> v2.0.0'
+
+# Force minor bump
+exec sv minor
+stdout '^\. -> v1.1.0'
+
+# Force patch bump
+exec sv patch
+stdout '^\. -> v1.0.1'
+
+# Force bump in submodule
+mkdir x
+mkdir x/mod
+cp mod_go_mod x/mod/go.mod
+exec git add .
+exec git commit -m mod
+exec git tag x/mod/v2.3.4
+
+exec sv minor -p x/mod
+stdout '^x/mod -> x/mod/v2.4.0'
+
+-- mod_go_mod --
+module example.com/mod
