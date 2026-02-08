@@ -1,0 +1,23 @@
+[data-theme=gradient-light]{
+  color-scheme:light;
+  --color-base-100:oklch(100% 0 0);
+  --color-base-200:oklch(97% 0 0);
+  --color-base-300:oklch(92% 0 0);
+  --color-base-content:oklch(20% 0 0);
+  --color-primary:oklch(55% .25 280);
+  --color-primary-content:oklch(100% 0 0);
+  --color-secondary:oklch(60% .2 350);
+  --color-secondary-content:oklch(100% 0 0);
+  --color-accent:oklch(70% .15 190);
+  --color-accent-content:oklch(100% 0 0);
+  --color-neutral:oklch(90% 0 0);
+  --color-neutral-content:oklch(20% 0 0);
+  --color-info:oklch(60% .15 230);
+  --color-success:oklch(60% .15 150);
+  --color-warning:oklch(80% .15 85);
+  --color-error:oklch(55% .2 20);
+  --radius-selector:1rem;
+  --radius-field:.5rem;
+  --radius-box:1rem;
+  --border:1px;
+}

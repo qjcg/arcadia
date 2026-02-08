@@ -101,6 +101,15 @@ pre {
   line-height: 1.1;
 }
 
+[data-theme^="gradient-"] .slide h1 {
+  background: linear-gradient(to bottom right, var(--color-primary), var(--color-secondary), var(--color-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--color-primary); /* Fallback */
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
 .slide h2 {
   color: color-mix(in oklch, var(--color-secondary), var(--color-base-content) 15%);
   font-size: 3.5rem;
@@ -108,6 +117,15 @@ pre {
   margin-bottom: 1.5rem;
   line-height: 1.2;
 }
+
+[data-theme^="gradient-"] .slide h2 {
+  background: linear-gradient(to bottom right, var(--color-secondary), var(--color-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--color-secondary); /* Fallback */
+}
+
 
 .slide h3 {
   color: color-mix(in oklch, var(--color-accent), var(--color-base-content) 15%);
