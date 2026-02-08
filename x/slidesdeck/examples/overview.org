@@ -1,3 +1,4 @@
+#+TITLE: Welcome to Slidesdeck
 #+OPTIONS: toc:nil
 
 * Welcome to Slidesdeck
@@ -5,42 +6,74 @@
 
 Slidesdeck is a single-purpose CLI tool that transforms your notes into professional, self-contained HTML slideshows.
 
-- Type 'n' or 'p' to navigate
-- Type '?' to see all help
-- Type 't' to change themes
+- Type @@html:<kbd>n</kbd>@@ or @@html:<kbd>p</kbd>@@ to navigate
+- Type @@html:<kbd>?</kbd>@@ to see all help
+- Type @@html:<kbd>/</kbd>@@ to search slides
+- Type @@html:<kbd>t</kbd>@@ to change color themes
+- Type @@html:<kbd>T</kbd>@@ to change font themes
 
 -----
 
-* Slide Separation
-Slides are separated by first-level headings (like this one) by default.
+* Core Philosophies
+** Simplicity
+- No complex configuration
+- One command to convert
+** Portability
+- Single HTML file output
+- Zero external CSS/JS dependencies (all embedded)
+** Developer Experience
+- Native Go performance
+- Clear errors and fast feedback loop
 
-You can also use explicit separators:
-#+begin_src text
 -----
-#+end_src
 
-* Rich Formatting
-Org-mode supports various formatting options:
-- *Bold* text
-- /Italic/ text
-- _Underlined_ text
-- +Strikethrough+ text
-- ~Code~ and =Verbatim=
+* Standard Formatting
+Markdown supports various formatting options:
+- **Bold** text
+- *Italic* text
+- ~~Strikethrough~~ text
+- `Code` and inline snippets
 
-* Lists and Tables
-** Bullet points
-- Simple
-- Nested
+-----
+
+* Multi-Format Support
+Slidesdeck natively supports both:
+1. **Org-mode** (.org)
+2. **Markdown** (.md)
+
+Both formats use standard separators:
+- First-level headings (e.g., =* Header=)
+- Horizontal rules (e.g., =-----= or =---=)
+- Custom separators via =--separator= flag
+
+-----
+
+* Lists and Deep Nesting
+** Unordered Lists
+- Simple item
+- Nested item
   - Even deeper
-** Numbered lists
+** Ordered Lists
 1. First item
 2. Second item
-** Tables
-| Feature         | Status |
-|-----------------+--------|
-| Markdown        | Done   |
-| Org-mode        | Done   |
-| Self-contained  | Yes    |
+   1. Sub-item
+** Checklists
+- [x] Feature A
+- [x] Feature B
+- [ ] Feature C
+
+-----
+
+* Tables for Technical Data
+| Feature         | Org-mode | Markdown |
+|-----------------+----------+----------|
+| Tables          | Supported| Supported|
+| Lists           | Supported| Supported|
+| Code Blocks     | Supported| Supported|
+| Search          | Included | Included |
+| Themes          | 30+      | 30+      |
+
+-----
 
 * Syntax Highlighting
 Slidesdeck uses Chroma for high-quality syntax highlighting.
@@ -51,55 +84,89 @@ package main
 import "fmt"
 
 func main() {
+    // High-performance Go code
     fmt.Println("Hello from Slidesdeck!")
 }
 #+end_src
 
-Toggle line numbers with 'N'.
+- Toggle line numbers with @@html:<kbd>N</kbd>@@
+- Built-in "Copy" button for code blocks
 
-* Syntax: CUE
+-----
 
-#+begin_src cue
-  #Network: {
-  	name!: string
-  	type: *"LAN" | "WAN"
-  }
+* Command Palette Search
+Press @@html:<kbd>/</kbd>@@ at any time to open the **Search Palette**.
 
-  defaultNetwork: #Network & {
-  	name: "test"
-  	type: "WAN"
-  }
-#+end_src
-
-
-* Integrated Search
-Press '/' at any time to open the **Search Palette**.
-
-- High-performance full-text search (FlexSearch)
+- Powered by **FlexSearch** (v0.8.2)
+- High-performance full-text search
 - Priority given to slide titles
-- Press Enter to jump to the slide
+- Automatic highlighting as you type
+- Instant jump to any slide
 
-* Theme Command Palette
-Press 't' to open the **Theme Switcher**.
+-----
 
-- 30+ daisyUI themes available
-- Search by name or prefix:
+* Color Theme Palette
+Press @@html:<kbd>t</kbd>@@ to open the **Theme Switcher**.
+
+- 30+ built-in daisyUI themes
+- Search by name or category:
   - 'dark: ' for dark themes
   - 'light: ' for light themes
+- Current theme is always pre-selected
+- Apply custom CSS via =--theme-file=
 
-* Pause Mode
-Manage break times professionally.
+-----
 
-- Press 'Shift+P' to configure a break
-- Set a countdown timer or a return time
-- Persistent state (survives browser close)
-- Large, clear display for participants
+* Font Theme Palette
+Press @@html:<kbd>Shift+T</kbd>@@ (@@html:<kbd>T</kbd>@@) to open the **Font Switcher**.
+
+- 16 professionally curated font themes
+- Pairings for headings, body, and code
+- Example themes:
+  - *Elegant*: Playfair Display / Source Sans
+  - *Tech*: Space Grotesk / JetBrains Mono
+  - *Brutalist*: Archivo Black / Space Grotesk
+- Apply custom fonts via =--fonttheme-file=
+
+-----
+
+* Interactive Pause Mode
+Manage break times professionally with @@html:<kbd>Shift+P</kbd>@@.
+
+- Configurable countdown timer
+- Custom break messages
+- Persistent state (survives browser close/reload)
+- Full-screen, high-contrast display
+- "Reset" button to clear active timers
+
+-----
+
+* Keyboard Shortcuts Cheat Sheet
+| Key                                            | Action                  |
+|------------------------------------------------|-------------------------|
+| @@html:<kbd>n</kbd>@@ / @@html:<kbd>→</kbd>@@ / @@html:<kbd>Spc</kbd>@@ | Next Slide              |
+| @@html:<kbd>p</kbd>@@ / @@html:<kbd>←</kbd>@@ | Previous Slide          |
+| @@html:<kbd>/</kbd>@@                          | Search Palette          |
+| @@html:<kbd>t</kbd>@@ / @@html:<kbd>T</kbd>@@ | Theme / Font Palettes   |
+| @@html:<kbd>f</kbd>@@                          | Toggle Fullscreen       |
+| @@html:<kbd>N</kbd>@@                          | Toggle Line Numbers     |
+| @@html:<kbd>Shift+P</kbd>@@                    | Pause Mode              |
+| @@html:<kbd>?</kbd>@@                          | Help Screen             |
+
+-----
 
 * Portable and Fast
 - Generated as a single HTML file
 - Zero external dependencies
 - Powered by Go, Tailwind CSS v4, and Alpine.js
-- Blazing fast conversion
+- Blazing fast conversion (<200ms)
+
+-----
 
 * Go forth and Present!
 Slidesdeck - Technical presentations for the modern era.
+
+/Start your next talk with a simple command:/
+#+begin_src bash
+slidesdeck overview.org
+#+end_src
