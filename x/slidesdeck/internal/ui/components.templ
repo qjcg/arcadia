@@ -99,16 +99,16 @@ templ Layout(deck *parser.Deck, initialTheme string, css string, js string) {
 					<div class="bg-base-100 p-8 rounded-2xl shadow-xl max-w-lg w-full">
 						<h2 class="text-3xl font-bold mb-4">Slidesdeck Help</h2>
 						<div class="space-y-2">
-							<div class="flex justify-between"><span>Next Slide</span><kbd class="kbd kbd-sm">n</kbd> / <kbd class="kbd kbd-sm">→</kbd></div>
-							<div class="flex justify-between"><span>Previous Slide</span><kbd class="kbd kbd-sm">p</kbd> / <kbd class="kbd kbd-sm">←</kbd></div>
-							<div class="flex justify-between"><span>First Slide</span><kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">Alt</kbd>+<kbd class="kbd kbd-sm">,</kbd></div>
-							<div class="flex justify-between"><span>Last Slide</span><kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">Alt</kbd>+<kbd class="kbd kbd-sm">.</kbd></div>
-							<div class="flex justify-between"><span>Fullscreen</span><kbd class="kbd kbd-sm">f</kbd></div>
-							<div class="flex justify-between"><span>Theme Palette</span><kbd class="kbd kbd-sm">t</kbd></div>
-							<div class="flex justify-between"><span>Search</span><kbd class="kbd kbd-sm">/</kbd></div>
-							<div class="flex justify-between"><span>Line Numbers</span><kbd class="kbd kbd-sm">N</kbd></div>
-							<div class="flex justify-between"><span>Pause Mode</span><kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">P</kbd></div>
-							<div class="flex justify-between"><span>Toggle Help</span><kbd class="kbd kbd-sm">?</kbd></div>
+							<div class="flex items-center justify-between gap-4"><span>Next Slide</span><div class="flex items-center gap-1"><kbd class="kbd kbd-sm">n</kbd><span class="opacity-50">/</span><kbd class="kbd kbd-sm">→</kbd></div></div>
+							<div class="flex items-center justify-between gap-4"><span>Previous Slide</span><div class="flex items-center gap-1"><kbd class="kbd kbd-sm">p</kbd><span class="opacity-50">/</span><kbd class="kbd kbd-sm">←</kbd></div></div>
+							<div class="flex items-center justify-between gap-4"><span>First Slide</span><kbd class="kbd kbd-sm">Shift+Alt+,</kbd></div>
+							<div class="flex items-center justify-between gap-4"><span>Last Slide</span><kbd class="kbd kbd-sm">Shift+Alt+.</kbd></div>
+							<div class="flex items-center justify-between gap-4"><span>Fullscreen</span><kbd class="kbd kbd-sm">f</kbd></div>
+							<div class="flex items-center justify-between gap-4"><span>Theme Palette</span><kbd class="kbd kbd-sm">t</kbd></div>
+							<div class="flex items-center justify-between gap-4"><span>Search</span><kbd class="kbd kbd-sm">/</kbd></div>
+							<div class="flex items-center justify-between gap-4"><span>Line Numbers</span><kbd class="kbd kbd-sm">N</kbd></div>
+							<div class="flex items-center justify-between gap-4"><span>Pause Mode</span><kbd class="kbd kbd-sm">Shift+P</kbd></div>
+							<div class="flex items-center justify-between gap-4"><span>Toggle Help</span><kbd class="kbd kbd-sm">?</kbd></div>
 						</div>
 						<div class="mt-6 text-center">
 							<button class="btn btn-primary" @click="showHelp = false">Close</button>
