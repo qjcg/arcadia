@@ -59,9 +59,34 @@
 
 ## CLI tools
 
-- Use `cobra` via `github.com/spf13/cobra`
-- Use `viper` via `github.com/spf13/viper`
+- Use [cobra](https://github.com/spf13/cobra)
+- Use [viper](https://github.com/spf13/viper)
+
+### Testscript
 - Write tests for CLI tools with [testscript](https://pkg.go.dev/github.com/rogpeppe/go-internal/testscript)
+- When using testscript, your `main_test.go` file should follow the approach below (substituting "sv" for the name of the CLI tool in question):
+
+```go
+package main
+
+import (
+	"testing"
+
+	"github.com/rogpeppe/go-internal/testscript"
+)
+
+func TestMain(m *testing.M) {
+	testscript.Main(m, map[string]func(){
+		"sv": main,
+	})
+}
+
+func TestCLI(t *testing.T) {
+	testscript.Run(t, testscript.Params{
+		Dir: "testdata",
+	})
+}
+```
 
 ## Text User Interface (TUI)
 
@@ -94,3 +119,83 @@
   - `--labels`: Comma-separated labels
   - `--parent`: Link to a parent epic or task for hierarchy
 - Use `bd list` or `bd ready` to check current queue
+
+## Testing
+
+When writing tests, adhere to the following advice from the book Unit Testing by Vladimir Khorikov.
+
+Focus on tests that align with the Four Pillars of a Valuable Test, and heed his guidance on What Not to Test.
+
+### Four Pillars of a Valuable Test
+
+Khorikov defines four key attributes for measuring the value of a unit test:
+
+#### 1. Protection against Regressions
+- Evaluates how effectively a test finds bugs
+- Considers code complexity, coverage, and domain significance
+- Focuses on catching meaningful business logic issues
+
+#### 2. Resistance to Refactoring
+- Determines whether a test can survive code changes without breaking
+- Measures the coupling between test and implementation
+- Aims to minimize false positives
+- Considered a binary attribute: either a test resists refactoring or it doesn't
+
+#### 3. Fast Feedback
+- Measures how quickly a test can be executed
+- Depends on test dependencies and size
+- Balances thoroughness with performance
+
+#### 4. Maintainability
+- Assesses how easy the test is to set up and understand
+- Considers test readability and complexity of dependencies
+
+### What Not to Test
+
+#### Avoid Testing Implementation Details
+
+Khorikov emphasizes that tests should not focus on implementation details, but instead should verify:
+
+- Observable behavior
+- End results that a business person can understand
+- Meaningful units of behavior
+
+#### Don't Test Code That Doesn't Contribute to Observable Behavior
+
+Khorikov suggests avoiding tests for code that doesn't:
+
+- Expose an operation that helps the client achieve a goal
+- Expose a state that helps the client achieve a goal
+
+#### Steer Clear of Overly Fragile Tests
+
+Avoid tests that:
+
+- Break with every small refactoring
+- Are tightly coupled to implementation
+- Cannot be traced back to a business requirement
+
+#### Minimize Excessive Mocking
+
+Khorikov recommends limiting mock usage to:
+
+- Shared, out-of-process dependencies
+- External services
+
+#### Red Flags for Tests to Avoid
+
+Don't test code that:
+
+- Doesn't have a clear connection to business requirements
+- Is overly complex and highly collaborative
+- Requires extensive mocking to test
+
+#### Principles for Test Elimination
+
+If a test:
+
+- Generates frequent false alarms
+- Is difficult to maintain
+- Doesn't provide clear value in catching potential bugs
+
+Then you should consider refactoring or deleting it.

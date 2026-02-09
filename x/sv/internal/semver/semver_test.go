@@ -38,6 +38,34 @@ func TestCalculateNext(t *testing.T) {
 			commits: []string{"feat!: break"},
 			want:    "v2.0.0",
 		},
+		{
+			name:    "breaking change footer",
+			current: "v1.0.0",
+			path:    ".",
+			commits: []string{"feat: something", "BREAKING CHANGE: something broke"},
+			want:    "v2.0.0",
+		},
+		{
+			name:    "multiple commits",
+			current: "v1.0.0",
+			path:    ".",
+			commits: []string{"fix: bug1", "fix: bug2", "feat: feat1"},
+			want:    "v1.1.0",
+		},
+		{
+			name:    "no relevant commits",
+			current: "v1.0.0",
+			path:    ".",
+			commits: []string{"chore: docs", "style: lint"},
+			want:    "v1.0.0",
+		},
+		{
+			name:    "initial version",
+			current: "",
+			path:    ".",
+			commits: []string{"feat: initial"},
+			want:    "v0.1.0",
+		},
 	}
 
 	for _, tt := range tests {

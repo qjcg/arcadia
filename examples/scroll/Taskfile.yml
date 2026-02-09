@@ -19,6 +19,11 @@ tasks:
     cmds:
       - bunx scroll list | bunx scroll build
 
+  test:
+    deps: [build]
+    cmds:
+      - bun test
+
   clean:
     cmds:
       - rm -rf */main.html

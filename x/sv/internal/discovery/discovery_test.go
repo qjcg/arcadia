@@ -7,11 +7,7 @@ import (
 )
 
 func TestFindModules(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "sv-discovery-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// Create a dummy monorepo structure
 	dirs := []string{
@@ -61,11 +57,7 @@ func TestFindModules(t *testing.T) {
 }
 
 func TestGetCurrentModule(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "sv-current-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	os.MkdirAll(filepath.Join(tmpDir, "x/mod1"), 0o755)
 	os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module root"), 0o644)
