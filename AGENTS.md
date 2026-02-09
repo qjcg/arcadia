@@ -1,70 +1,82 @@
 # Agents
 
-## Build
+## Foundations
 
-- Use `task` via `github.com/go-task/task/v3/cmd/task`
-  - When needed, create a `Taskfile.yaml`
-  - `task` fully replaces `make` and `Makefiles`, NEVER use those.
-- Where hot reload is needed, use `air` via `github.com/air-verse/air`
-  - Use hot reload with:
-    - Web UIs
-	- Games
-	- Backend servers
-  - When using air, call it via task, as in `task dev`, which might call `go tool air`
+### System Architecture
+- Prefer a "modular monolith" architecture over microservices.
 
-## CI
+### Code Organization
+- Write clean, modular code.
+- Organize Go packages under an `internal` subdirectory unless the library code is intended for export.
 
-- use `lefthook` for git hooks
-  - for hooks that involve running multi-line shell commands, those shell commands should live in a separate directory
-- lint via `golangci-lint`, called via `go run`
+### Git
+- Commit work incrementally in feature branches off `main`.
+- Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
-## Git
+### Documentation
+- Write documentation in Markdown format.
+- Store documentation in a `docs/` directory, except for `README.md`.
+- Maintain a concise, clear, and useful `README.md`.
 
-- Always commit your work as you go, in feature branches off of `main`
-- Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/)
+## Workflow
 
-## Docs
+### Issue Tracking
+- ALWAYS use `go tool bd` to manage tasks and implementation plans.
+- Apply these flags when creating work items for maximum clarity:
+  - `--type`: (bug|feature|task|epic|chore)
+  - `--description`: Detailed explanation of the task
+  - `--acceptance`: Clear criteria for when the task is considered done
+  - `--deps`: Comma-separated dependencies (e.g., `sv-123`)
+  - `--design`: Any critical technical design notes
+  - `--estimate`: Time estimate in minutes. Estimate time for an agent such as yourself, NOT a human.
+  - `--priority`: Priority level (P0-P4)
+  - `--labels`: Comma-separated labels
+  - `--parent`: Link to a parent epic or task for hierarchy
+- Use `bd list` or `bd ready` to check the current queue.
 
-- Write docs in markdown format
-- Put docs in a `docs` directory, except for the README.md
-- The README.md should be concise, clear and useful.
+### Build & Development
+- Use `task` via `github.com/go-task/task/v3/cmd/task`.
+  - Create a `Taskfile.yaml` when needed.
+  - Replace `make` and `Makefiles` entirely with `task`.
+- Use `air` via `github.com/air-verse/air` for hot reloading.
+  - Apply hot reload to Web UIs, Games, and Backend servers.
+  - Trigger `air` via `task` (e.g., `task dev` calling `go tool air`).
 
-## Backend
+### CI/CD
+- Use `github.com/evilmartians/lefthook` for git hooks.
+  - Store multi-line shell commands for hooks in a separate directory.
+- Lint using `github.com/golangci-lint/golangci-lint` via `go run`.
 
-- Always use Go as the backend language
-- db
-  - Use sqlite via `github.com/ncruces/go-sqlite3`
-  - Use `sqlc` via `github.com/sqlc-dev/sqlc/cmd/sqlc`
-  - Use `migrate` via `github.com/golang-migrate/migrate/v4/cmd/migrate` for db migrations
-  - Always embed migrations into the go binary
-- authN
-  - Use passkeys via `github.com/go-webauthn/webauthn`
-- authZ
-  - use `casbin` via `github.com/casbin/casbin/v3`
-- For quick and dirty scripts, use https://github.com/bitfield/script
+## Tech Stacks
 
-## Frontend
+### Backend
+- Build backends exclusively with Go.
+- Database:
+  - Use `github.com/ncruces/go-sqlite3` for SQLite.
+  - Use `github.com/sqlc-dev/sqlc/cmd/sqlc` for type-safe SQL.
+  - Use `github.com/golang-migrate/migrate/v4/cmd/migrate` for migrations.
+  - Embed migrations into the Go binary.
+- Authentication:
+  - Use `github.com/go-webauthn/webauthn` for passkeys.
+- Authorization:
+  - Use `github.com/casbin/casbin/v3` for RBAC/ABAC.
+- Scripting:
+  - Use `github.com/bitfield/script` for rapid shell-like scripting.
 
-- Templ
-- templUI
-- HTMX
-- Alpine.js
-- tailwindcss
+### Frontend
+- Use `github.com/a-h/templ` for server-side templates.
+- Use `HTMX` via `htmx.org` for dynamic interactions.
+- Use `Alpine.js` via `alpinejs.dev` for client-side state.
+- Use `tailwindcss` for styling.
+- Use `daisyui` for components.
 
-## Games
+## Project Types
 
-- Use ebiten via `github.com/hajimehoshi/ebiten/v2`
-  - Build games as [WebAssembly](https://ebitengine.org/en/documents/webassembly.html) (Option 1. WasmServe)
-	- Once the webassembly is built, serve it for browsers via `go run github.com/hajimehoshi/wasmserve@latest ./path/to/yourgame`
-
-## CLI tools
-
-- Use [cobra](https://github.com/spf13/cobra)
-- Use [viper](https://github.com/spf13/viper)
-
-### Testscript
-- Write tests for CLI tools with [testscript](https://pkg.go.dev/github.com/rogpeppe/go-internal/testscript)
-- When using testscript, your `main_test.go` file should follow the approach below (substituting "sv" for the name of the CLI tool in question):
+### CLI Tools
+- Use `github.com/spf13/cobra` for command structure.
+- Use `github.com/spf13/viper` for configuration.
+- Test CLI tools with `github.com/rogpeppe/go-internal/testscript`.
+- Follow this `main_test.go` pattern for `testscript`:
 
 ```go
 package main
@@ -88,47 +100,24 @@ func TestCLI(t *testing.T) {
 }
 ```
 
-## Text User Interface (TUI)
+### TUI (Text User Interface)
+- Use `github.com/charmbracelet/bubbletea` as the TUI framework.
 
-- Use `github.com/charmbracelet/bubbletea` (TUI framework)
+### AI Agent Software
+- Use `github.com/charmbracelet/fantasy` for building AI Agent services.
 
-## AI Agent Software
+### Games
+- Use `github.com/hajimehoshi/ebiten/v2` for game development.
+- Target WebAssembly (WasmServe option).
+- Serve for browsers via `go run github.com/hajimehoshi/wasmserve@latest ./path/to/game`.
 
-- For building AI Agent services, use `https://github.com/charmbracelet/fantasy`
+## Quality
 
-## System architecture
-
-- Prefer a "modular monolith" architecture to microservices
-
-## Code organization
-
-- Write clean, modular code.
-- Generally go packages should be created under an `internal` subdirectory unless the library code is intended for export
-
-## Issue Tracking
-
-- Use `go tool bd` to manage tasks and implementation plans
-- When creating work items, use these flags for maximum clarity:
-  - `--type`: (bug|feature|task|epic|chore)
-  - `--description`: Detailed explanation of the task
-  - `--acceptance`: Clear criteria for when the task is considered done
-  - `--deps`: Comma-separated dependencies (e.g., `sv-123`)
-  - `--design`: Any critical technical design notes
-  - `--estimate`: Time estimate in minutes. Estimate time for an agent such as yourself, NOT a human.
-  - `--priority`: Priority level (P0-P4)
-  - `--labels`: Comma-separated labels
-  - `--parent`: Link to a parent epic or task for hierarchy
-- Use `bd list` or `bd ready` to check current queue
-
-## Testing
+### Testing
 
 When writing tests, adhere to the following advice from the book Unit Testing by Vladimir Khorikov.
 
 Focus on tests that align with the Four Pillars of a Valuable Test, and heed his guidance on What Not to Test.
-
-### Four Pillars of a Valuable Test
-
-Khorikov defines four key attributes for measuring the value of a unit test:
 
 #### 1. Protection against Regressions
 - Evaluates how effectively a test finds bugs

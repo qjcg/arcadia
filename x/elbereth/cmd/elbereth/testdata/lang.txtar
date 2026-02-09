@@ -1,0 +1,46 @@
+# Setup
+elbereth init example.com/langtest
+
+# Arithmetic
+mkdir math
+cp arithmetic.elb math/main.elb
+elbereth run math/main.elb
+stdout '6'
+stdout '7'
+stdout '24'
+stdout '50'
+stdout '1'
+
+# Definitions
+mkdir logic
+cp defs.elb logic/main.elb
+elbereth run logic/main.elb
+stdout '42'
+stdout '84'
+
+# Multi-lang (minimal)
+mkdir min
+cp minimal.elb min/main.elb
+elbereth run min/main.elb
+stdout 'Hello from minimal'
+
+-- arithmetic.elb --
+(package main)
+(defn main []
+  (println (+ 1 2 3))
+  (println (- 10 3))
+  (println (* 2 3 4))
+  (println (/ 100 2))
+  (println (% 10 3)))
+
+-- defs.elb --
+(package main)
+(def x 42)
+(defn double [n] (* n 2))
+(defn main []
+  (println x)
+  (println (double x)))
+
+-- minimal.elb --
+#lang minimal
+Hello from minimal

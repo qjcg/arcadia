@@ -1,0 +1,35 @@
+# elbereth help
+elbereth help
+stdout 'Usage: elbereth <command> \[args\]'
+
+# elbereth version
+elbereth version
+stdout 'elbereth version 0.1.0'
+
+# elbereth init
+elbereth init example.com/testmod
+exists go.mod
+grep 'module example.com/testmod' go.mod
+
+# elbereth check
+cp hello.elb hello.elb
+elbereth check hello.elb
+stdout 'OK: 2 top-level items'
+
+# elbereth run
+elbereth run hello.elb
+stdout 'Hello, Elbereth!'
+
+# elbereth gen
+elbereth gen hello.elb
+stdout 'func main\(\)'
+
+# elbereth build
+elbereth build . -o testmod
+exists testmod
+exec ./testmod
+stdout 'Hello, Elbereth!'
+
+-- hello.elb --
+(package main)
+(defn main [] (println "Hello, Elbereth!"))

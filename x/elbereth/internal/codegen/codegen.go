@@ -686,9 +686,12 @@ func (g *Generator) genFuncCall(call *ast.FuncCall) {
 			// Numeric operators
 			if len(call.Args) >= 2 {
 				g.write("(")
-				g.genExprWithNumericAssertion(call.Args[0])
-				g.write(fmt.Sprintf(" %s ", sym.Name))
-				g.genExprWithNumericAssertion(call.Args[1])
+				for i, arg := range call.Args {
+					if i > 0 {
+						g.write(fmt.Sprintf(" %s ", sym.Name))
+					}
+					g.genExprWithNumericAssertion(arg)
+				}
 				g.write(")")
 				return
 			}
