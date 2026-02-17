@@ -1,3 +1,8 @@
+---
+name: doggo
+description: DNS command-line client
+---
+
 # DNS Skill with Doggo
 
 This skill uses the `doggo` DNS client for querying DNS records.
