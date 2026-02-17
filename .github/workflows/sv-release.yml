@@ -1,0 +1,49 @@
+name: Release Modules
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-go@v6
+      with:
+        go-version-file: go.work
+
+    - name: Install sv
+      run: CGO_ENABLED=0 go install -ldflags '-s -w' ./x/sv/cmd/sv
+
+    - name: Compute version bumps
+      id: bumps
+      run: |
+        CHANGES=$(sv next --all)
+        if [[ -n "$CHANGES" ]]; then
+          echo "tags<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGES" | awk '{print $3}' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Tag and Release
+      if: steps.bumps.outputs.tags != ''
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+
+        while read tag; do
+          git tag "$tag"
+        done <<< "${{ steps.bumps.outputs.tags }}"
+
+        git push origin --tags
+
+        while read tag; do
+          gh release create "$tag" --generate-notes
+        done <<< "${{ steps.bumps.outputs.tags }}"
