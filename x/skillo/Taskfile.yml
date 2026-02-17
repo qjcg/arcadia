@@ -1,0 +1,40 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default:
+    deps: [test]
+
+  build:
+    desc: Build skillo binary
+    cmds:
+      - go build -ldflags '-s -w' -o skillo ./cmd/skillo
+    sources:
+      - '**/*.go'
+      - go.mod
+      - go.sum
+    generates:
+      - ./skillo
+
+  clean:
+    desc: Remove built binary
+    cmd: rm -f ./skillo
+    status:
+      - '! test -f ./skillo'
+
+  install:
+    desc: Install skillo binary to $GOBIN
+    cmds:
+      - CGO_ENABLED=0 go install -ldflags '-s -w' ./cmd/skillo
+      - upx $GOBIN/skillo
+    sources:
+      - '**/*.go'
+      - go.mod
+      - go.sum
+    generates:
+      - '$GOBIN/skillo'
+
+  test:
+    desc: Run all tests
+    cmd: go test -v ./...

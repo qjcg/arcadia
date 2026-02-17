@@ -1,0 +1,18 @@
+env HOME=$WORK/home
+mkdir $WORK/home
+
+# Initialize skillo
+skillo init
+
+# Test get with real GitHub repo (arcadia monorepo) using @latest
+# Note: arcadia v0.30.0 doesn't include agents/skills/ in the module, so no skills are extracted
+skillo get github.com/qjcg/arcadia@latest
+stdout 'Installed github.com/qjcg/arcadia@latest'
+stdout 'Warning: No SKILL.md found'
+
+# Verify module was installed
+grep 'github.com/qjcg/arcadia' $WORK/home/.skillo/go.mod
+
+# Test get with specific version
+skillo get github.com/qjcg/arcadia@v0.29.0
+stdout 'Installed github.com/qjcg/arcadia@v0.29.0'

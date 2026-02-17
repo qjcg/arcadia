@@ -1,0 +1,10 @@
+# Test version command
+skillo --version
+stdout 'skillo version 0.0.1'
+
+# Test help
+skillo --help
+stdout 'Agent skills manager'
+stdout 'Usage:'
+stdout 'init'
+stdout 'get'
