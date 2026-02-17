@@ -1,6 +1,6 @@
 module github.com/qjcg/arcadia/cmd/horeb
 
-go 1.25.6
+go 1.26.0
 
 require (
 	github.com/rogpeppe/go-internal v1.14.1
