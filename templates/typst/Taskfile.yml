@@ -1,0 +1,38 @@
+version: '3'
+
+tasks:
+  default:
+    deps: [spec]
+
+  spec:
+    desc: Compile example spec to PDF
+    cmds:
+      - typst compile spec-example.typ
+
+  diploma:
+    desc: Compile diploma to PDF
+    cmds:
+      - typst compile diploma-example.typ
+
+  diploma:batch:
+    desc: Compile a batch of diplomas
+    cmds:
+      - typst compile diploma-batch.typ
+
+  diploma:input:
+    desc: Compile a batch of diplomas
+    cmds:
+      - >
+        typst compile diploma-input.typ diploma-input_fooman.pdf
+        --input student=FooMan
+        --input course='Plan9 for Dummies'
+        --input instructor='Rob Pike'
+        --input dates='Feb 16-18, 2026'
+      - >
+        typst compile diploma-input.typ diploma-input_barman.pdf
+        --input student=BarMan
+        --input course='Plan9 for Dummies'
+        --input instructor='Rob Pike'
+        --input dates='Feb 16-18, 2026'
+
+  clean: rm -f *.pdf
