@@ -2,7 +2,6 @@ go 1.26.0
 
 use (
 	.
-	./agents/skills/doggo
 	./cmd/horeb
 	./examples/bento
 	./examples/go
