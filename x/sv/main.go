@@ -15,6 +15,7 @@ import (
 var (
 	modulePath string
 	allModules bool
+	verbose    bool
 )
 
 func main() {
@@ -38,39 +39,42 @@ func setupCLI(out, err io.Writer) *cobra.Command {
 				return err
 			}
 
+			var modules []discovery.Module
 			if allModules {
-				modules, err := discovery.FindModules(root)
+				var err error
+				modules, err = discovery.FindModules(root)
 				if err != nil {
 					return err
 				}
-				for _, m := range modules {
-					if err := runNext(cmd.OutOrStdout(), root, m); err != nil {
-						fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
+			} else {
+				var m discovery.Module
+				var err error
+				if modulePath != "" {
+					absPath, err := filepath.Abs(modulePath)
+					if err != nil {
+						return err
+					}
+					rel, err := filepath.Rel(root, absPath)
+					if err != nil {
+						return err
+					}
+					m = discovery.Module{Name: filepath.ToSlash(rel), Path: absPath}
+				} else {
+					cwd, _ := os.Getwd()
+					m, err = discovery.GetCurrentModule(root, cwd)
+					if err != nil {
+						return err
 					}
 				}
-				return nil
+				modules = []discovery.Module{m}
 			}
 
-			var m discovery.Module
-			if modulePath != "" {
-				absPath, err := filepath.Abs(modulePath)
-				if err != nil {
-					return err
-				}
-				rel, err := filepath.Rel(root, absPath)
-				if err != nil {
-					return err
-				}
-				m = discovery.Module{Name: filepath.ToSlash(rel), Path: absPath}
-			} else {
-				cwd, _ := os.Getwd()
-				m, err = discovery.GetCurrentModule(root, cwd)
-				if err != nil {
-					return err
+			for _, m := range modules {
+				if err := runNext(cmd.OutOrStdout(), root, m, verbose); err != nil {
+					fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
 				}
 			}
-
-			return runNext(cmd.OutOrStdout(), root, m)
+			return nil
 		},
 	}
 
@@ -83,20 +87,40 @@ func setupCLI(out, err io.Writer) *cobra.Command {
 				return err
 			}
 
-			cwd, _ := os.Getwd()
-			m, err := discovery.GetCurrentModule(root, cwd)
-			if err != nil {
-				return err
+			var modules []discovery.Module
+			if allModules {
+				var err error
+				modules, err = discovery.FindModules(root)
+				if err != nil {
+					return err
+				}
+			} else {
+				var m discovery.Module
+				var err error
+				if modulePath != "" {
+					absPath, err := filepath.Abs(modulePath)
+					if err != nil {
+						return err
+					}
+					rel, err := filepath.Rel(root, absPath)
+					if err != nil {
+						return err
+					}
+					m = discovery.Module{Name: filepath.ToSlash(rel), Path: absPath}
+				} else {
+					cwd, _ := os.Getwd()
+					m, err = discovery.GetCurrentModule(root, cwd)
+					if err != nil {
+						return err
+					}
+				}
+				modules = []discovery.Module{m}
 			}
 
-			tag, err := git.LatestTag(root, m.Name)
-			if err != nil {
-				return err
-			}
-			if tag == "" {
-				fmt.Fprintln(cmd.OutOrStdout(), "no tags found")
-			} else {
-				fmt.Fprintln(cmd.OutOrStdout(), tag)
+			for _, m := range modules {
+				if err := runCurrent(cmd.OutOrStdout(), root, m, verbose); err != nil {
+					fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
+				}
 			}
 			return nil
 		},
@@ -104,6 +128,11 @@ func setupCLI(out, err io.Writer) *cobra.Command {
 
 	nextCmd.Flags().BoolVarP(&allModules, "all", "a", false, "Calculate next version for all modules")
 	nextCmd.Flags().StringVarP(&modulePath, "path", "p", "", "Explicit module path")
+	nextCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show module names with tags (used with -a)")
+
+	currentCmd.Flags().BoolVarP(&allModules, "all", "a", false, "Show current version for all modules")
+	currentCmd.Flags().StringVarP(&modulePath, "path", "p", "", "Explicit module path")
+	currentCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show module names with tags (used with -a)")
 
 	rootCmd.AddCommand(nextCmd, currentCmd,
 		createBumpCmd("major", semver.BumpMajor, "Force a major version bump"),
@@ -123,47 +152,51 @@ func createBumpCmd(name string, bump semver.Bump, doc string) *cobra.Command {
 				return err
 			}
 
+			var modules []discovery.Module
 			if allModules {
-				modules, err := discovery.FindModules(root)
+				var err error
+				modules, err = discovery.FindModules(root)
 				if err != nil {
 					return err
 				}
-				for _, m := range modules {
-					if err := runBump(cmd.OutOrStdout(), root, m, bump); err != nil {
-						fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
+			} else {
+				var m discovery.Module
+				var err error
+				if modulePath != "" {
+					absPath, err := filepath.Abs(modulePath)
+					if err != nil {
+						return err
+					}
+					rel, err := filepath.Rel(root, absPath)
+					if err != nil {
+						return err
+					}
+					m = discovery.Module{Name: filepath.ToSlash(rel), Path: absPath}
+				} else {
+					cwd, _ := os.Getwd()
+					m, err = discovery.GetCurrentModule(root, cwd)
+					if err != nil {
+						return err
 					}
 				}
-				return nil
+				modules = []discovery.Module{m}
 			}
 
-			var m discovery.Module
-			if modulePath != "" {
-				absPath, err := filepath.Abs(modulePath)
-				if err != nil {
-					return err
-				}
-				rel, err := filepath.Rel(root, absPath)
-				if err != nil {
-					return err
-				}
-				m = discovery.Module{Name: filepath.ToSlash(rel), Path: absPath}
-			} else {
-				cwd, _ := os.Getwd()
-				m, err = discovery.GetCurrentModule(root, cwd)
-				if err != nil {
-					return err
+			for _, m := range modules {
+				if err := runBump(cmd.OutOrStdout(), root, m, bump, verbose); err != nil {
+					fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
 				}
 			}
-
-			return runBump(cmd.OutOrStdout(), root, m, bump)
+			return nil
 		},
 	}
 	cmd.Flags().BoolVarP(&allModules, "all", "a", false, "Bump all modules")
 	cmd.Flags().StringVarP(&modulePath, "path", "p", "", "Explicit module path")
+	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show module names with tags (used with -a)")
 	return cmd
 }
 
-func runBump(out io.Writer, root string, m discovery.Module, bump semver.Bump) error {
+func runBump(out io.Writer, root string, m discovery.Module, bump semver.Bump, verbose bool) error {
 	tag, err := git.LatestTag(root, m.Name)
 	if err != nil {
 		return err
@@ -174,15 +207,33 @@ func runBump(out io.Writer, root string, m discovery.Module, bump semver.Bump) e
 		return err
 	}
 
-	if m.Name == "." {
-		fmt.Fprintf(out, ". -> %s\n", next)
-	} else {
+	if verbose && allModules {
 		fmt.Fprintf(out, "%s -> %s\n", m.Name, next)
+	} else {
+		fmt.Fprintln(out, next)
 	}
 	return nil
 }
 
-func runNext(out io.Writer, root string, m discovery.Module) error {
+func runCurrent(out io.Writer, root string, m discovery.Module, verbose bool) error {
+	tag, err := git.LatestTag(root, m.Name)
+	if err != nil {
+		return err
+	}
+
+	if tag == "" {
+		return nil // Skip modules with no tags
+	}
+
+	if verbose && allModules {
+		fmt.Fprintf(out, "%s -> %s\n", m.Name, tag)
+	} else {
+		fmt.Fprintln(out, tag)
+	}
+	return nil
+}
+
+func runNext(out io.Writer, root string, m discovery.Module, verbose bool) error {
 	tag, err := git.LatestTag(root, m.Name)
 	if err != nil {
 		return err
@@ -202,10 +253,10 @@ func runNext(out io.Writer, root string, m discovery.Module) error {
 		return nil // No change
 	}
 
-	if m.Name == "." {
-		fmt.Fprintf(out, ". -> %s\n", next)
-	} else {
+	if verbose && allModules {
 		fmt.Fprintf(out, "%s -> %s\n", m.Name, next)
+	} else {
+		fmt.Fprintln(out, next)
 	}
 	return nil
 }

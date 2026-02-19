@@ -22,7 +22,7 @@ exec git commit -m feat:relpath
 # Run from x/sv pointing to ../slidesdeck
 cd x/sv
 exec sv next --path ../slidesdeck
-stdout '^x/slidesdeck -> x/slidesdeck/v1.1.0'
+stdout '^x/slidesdeck/v1.1.0'
 
 -- go_mod_sv --
 module github.com/qjcg/arcadia/x/sv

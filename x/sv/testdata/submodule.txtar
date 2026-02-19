@@ -24,17 +24,17 @@ exec git commit -m feat:addfeature
 # Run sv inside the submodule
 cd x/slidesdeck
 exec sv next
-stdout 'x/slidesdeck -> x/slidesdeck/v1.1.0'
+stdout 'x/slidesdeck/v1.1.0'
 
 # Run from root with path
 cd ../..
 exec sv next -p x/slidesdeck
-stdout '^x/slidesdeck -> x/slidesdeck/v1.1.0'
+stdout '^x/slidesdeck/v1.1.0'
 
 # Root module change
 exec git commit --allow-empty -m feat:root
 exec sv next
-stdout '^\. -> v1.1.0'
+stdout '^v1.1.0'
 
 -- root_go_mod --
 module github.com/qjcg/arcadia

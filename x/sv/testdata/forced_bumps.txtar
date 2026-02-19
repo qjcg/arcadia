@@ -7,15 +7,15 @@ exec git tag v1.0.0
 
 # Force major bump
 exec sv major
-stdout '^\. -> v2.0.0'
+stdout '^v2.0.0'
 
 # Force minor bump
 exec sv minor
-stdout '^\. -> v1.1.0'
+stdout '^v1.1.0'
 
 # Force patch bump
 exec sv patch
-stdout '^\. -> v1.0.1'
+stdout '^v1.0.1'
 
 # Force bump in submodule
 mkdir x
@@ -26,7 +26,7 @@ exec git commit -m mod
 exec git tag x/mod/v2.3.4
 
 exec sv minor -p x/mod
-stdout '^x/mod -> x/mod/v2.4.0'
+stdout '^x/mod/v2.4.0'
 
 -- mod_go_mod --
 module example.com/mod
