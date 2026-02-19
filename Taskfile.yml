@@ -4,11 +4,16 @@ version: '3'
 
 shopt: [globstar]
 
+env:
+  GOTOOLCHAIN: go1.26.0
+
 vars:
+  GO:
+    sh: 'which go'
   TAG_CURRENT:
-    sh: go tool svu current
+    sh: 'go tool svu current'
   TAG_NEXT:
-    sh: go tool svu next
+    sh: 'go tool svu next'
 
 tasks:
   default: [{task: githook:pre-commit}]
