@@ -2,26 +2,30 @@ version: '3'
 
 tasks:
   default:
-    deps:
-      - test
+    deps: [test]
 
   build:
     desc: Build the sv binary
     cmds:
-      - CGO_ENABLED=0 go build -ldflags '-s -w' -o sv ./cmd/sv
+      - CGO_ENABLED=0 go build -ldflags '-s -w' -o sv .
     sources:
-      - "**/*.go"
-      - "go.mod"
-      - "go.sum"
+      - '**/*.go'
+      - go.mod
+      - go.sum
     generates:
       - sv
 
   install:
     desc: Install the sv binary
-    deps: [build]
     cmds:
-      - go install ./cmd/sv
+      - CGO_ENABLED=0 go install -ldflags '-s -w' .
       - upx $GOBIN/sv
+    sources:
+      - '**/*.go'
+      - go.mod
+      - go.sum
+    generates:
+      - $GOBIN/sv
 
   test:
     desc: Run all tests
