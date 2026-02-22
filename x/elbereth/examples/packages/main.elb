@@ -1,6 +1,0 @@
-(package main)
-(import "github.com/qjcg/arcadia/x/elbereth/examples/packages/lib")
-
-(defn main []
-  (println "Square of 5 is:" (lib/Square 5))
-  (println "Cube of 5 is:" (lib/Cube 5)))

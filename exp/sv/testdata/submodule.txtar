@@ -1,0 +1,44 @@
+# Setup a git repo with a submodule
+exec git init
+exec git config user.email test@example.com
+exec git config user.name "Test User"
+
+# Create root module
+cp root_go_mod go.mod
+
+# Create submodule
+mkdir exp
+mkdir exp/slidesdeck
+cp sub_go_mod exp/slidesdeck/go.mod
+
+exec git add go.mod exp/slidesdeck/go.mod
+exec git commit -m initial
+exec git tag v1.0.0
+exec git tag exp/slidesdeck/v1.0.0
+
+# Add a feature in the submodule
+cp readme exp/slidesdeck/readme.md
+exec git add exp/slidesdeck/readme.md
+exec git commit -m feat:addfeature
+
+# Run sv inside the submodule
+cd exp/slidesdeck
+exec sv next
+stdout 'exp/slidesdeck/v1.1.0'
+
+# Run from root with path
+cd ../..
+exec sv next -p exp/slidesdeck
+stdout '^exp/slidesdeck/v1.1.0'
+
+# Root module change
+exec git commit --allow-empty -m feat:root
+exec sv next
+stdout '^v1.1.0'
+
+-- root_go_mod --
+module github.com/qjcg/arcadia
+-- sub_go_mod --
+module github.com/qjcg/arcadia/exp/slidesdeck
+-- readme --
+new feature

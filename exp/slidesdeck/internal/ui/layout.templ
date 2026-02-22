@@ -1,0 +1,155 @@
+package ui
+
+import (
+	"fmt"
+	"github.com/charmbracelet/arcadia/exp/slidesdeck/internal/parser"
+)
+
+templ Layout(deck *parser.Deck, initialTheme string, initialFontTheme string, css string, customCss string, js string) {
+	<!DOCTYPE html>
+	<html lang="en" data-theme={ initialTheme } data-font-theme={ initialFontTheme }>
+		<head>
+			<meta charset="UTF-8" />
+			<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+			<title>{ deck.Title }</title>
+			<!-- Google Fonts Loader -->
+			<link rel="preconnect" href="https://fonts.googleapis.com" />
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+			@templ.Raw("<style type=\"text/css\">\n" + css + "\n" + customCss + "\n</style>")
+		</head>
+		<body class="bg-base-100 text-base-content" x-data="slideshow">
+			<div class="h-screen w-screen overflow-hidden relative">
+				<div class="slides-container h-full w-full">
+					for i, slide := range deck.Slides {
+						<section
+							class="slide absolute inset-0 transition-opacity duration-300"
+							x-show={ fmt.Sprintf("currentSlide == %d", i) }
+							x-cloak
+						>
+							<div class="max-w-4xl mx-auto">
+								@templ.Raw(slide.Content)
+							</div>
+						</section>
+					}
+				</div>
+
+				@NavigationFooter()
+
+				// Help screen
+				<div
+					class="absolute inset-0 bg-base-100/60 backdrop-blur-xl flex items-center justify-center z-[100]"
+					x-show="showHelp"
+					x-transition:enter="transition ease-out duration-300"
+					x-transition:enter-start="opacity-0 scale-95"
+					@click.self="showHelp = false"
+					@keydown.escape.window="showHelp = false"
+					x-cloak
+				>
+					<div class="bg-base-100 rounded-[3rem] shadow-3xl max-w-2xl w-full overflow-hidden border border-white/5">
+						<div class="p-12">
+							<div class="flex items-center gap-6 mb-12">
+								<div class="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center text-primary-content">
+									<kbd class="kbd kbd-lg !bg-primary !text-primary-content !border-primary-content/30 !shadow-none font-black text-4xl">?</kbd>
+								</div>
+								<div>
+									<h2 class="text-5xl font-black tracking-tight">Slidesdeck Help</h2>
+									<p class="text-xl opacity-50 font-medium">Keyboard shortcuts & controls</p>
+								</div>
+							</div>
+
+							<div class="grid grid-cols-2 gap-x-12 gap-y-4">
+								<div class="flex items-center justify-between py-4 border-b border-base-200">
+									<span class="text-xl font-black opacity-80">Next Slide</span>
+									<div class="flex items-center gap-2 min-w-[80px] justify-end">
+										<kbd class="kbd kbd-md">N</kbd>
+										<span class="opacity-30">/</span>
+										<kbd class="kbd kbd-md">→</kbd>
+									</div>
+								</div>
+								<div class="flex items-center justify-between py-4 border-b border-base-200">
+									<span class="text-xl font-black opacity-80">Previous Slide</span>
+									<div class="flex items-center gap-2 min-w-[80px] justify-end">
+										<kbd class="kbd kbd-md">P</kbd>
+										<span class="opacity-30">/</span>
+										<kbd class="kbd kbd-md">←</kbd>
+									</div>
+								</div>
+								<div class="flex items-center justify-between py-4 border-b border-base-200">
+									<span class="text-xl font-black opacity-80">First/Last</span>
+									<div class="flex items-center gap-1 leading-none text-[10px] font-black opacity-40 min-w-[80px] justify-end">
+										<kbd class="kbd kbd-sm">⌥</kbd><kbd class="kbd kbd-sm">⇧</kbd><kbd class="kbd kbd-sm">,</kbd>
+										<span class="mx-2 opacity-30">/</span>
+										<kbd class="kbd kbd-sm">⌥</kbd><kbd class="kbd kbd-sm">⇧</kbd><kbd class="kbd kbd-sm">.</kbd>
+									</div>
+								</div>
+								<div class="flex items-center justify-between py-4 border-b border-base-200">
+									<span class="text-xl font-black opacity-80">Fullscreen</span>
+									<div class="flex justify-end min-w-[80px]">
+										<kbd class="kbd kbd-md">F</kbd>
+									</div>
+								</div>
+								<div class="flex items-center justify-between py-4 border-b border-base-200">
+									<span class="text-xl font-black opacity-80">Theme Palette</span>
+									<div class="flex justify-end min-w-[80px]">
+										<kbd class="kbd kbd-md">T</kbd>
+									</div>
+								</div>
+								<div class="flex items-center justify-between py-4 border-b border-base-200">
+									<span class="text-xl font-black opacity-80">Font Palette</span>
+									<div class="flex items-center gap-1 justify-end min-w-[80px]">
+										<kbd class="kbd kbd-md">⇧</kbd><kbd class="kbd kbd-md">T</kbd>
+									</div>
+								</div>
+								<div class="flex items-center justify-between py-4 border-b border-base-200">
+									<span class="text-xl font-black opacity-80">Search</span>
+									<div class="flex justify-end min-w-[80px]">
+										<kbd class="kbd kbd-md">/</kbd>
+									</div>
+								</div>
+								<div class="flex items-center justify-between py-4 border-b border-base-200">
+									<span class="text-xl font-black opacity-80">Line Numbers</span>
+									<div class="flex justify-end min-w-[80px]">
+										<kbd class="kbd kbd-md">N</kbd>
+									</div>
+								</div>
+								<div class="flex items-center justify-between py-4 border-b border-base-200">
+									<span class="text-xl font-black opacity-80">Pause Mode</span>
+									<div class="flex items-center gap-1 justify-end min-w-[80px]">
+										<kbd class="kbd kbd-md">⇧</kbd><kbd class="kbd kbd-md">P</kbd>
+									</div>
+								</div>
+								<div class="flex items-center justify-between py-4 border-b border-base-200">
+									<span class="text-xl font-black opacity-80">Close / Exit</span>
+									<div class="flex justify-end min-w-[80px]">
+										<kbd class="kbd kbd-md">ESC</kbd>
+									</div>
+								</div>
+							</div>
+
+							<div class="mt-12 text-center">
+								<button class="btn btn-primary btn-xl px-12 h-16 text-xl font-black rounded-2xl shadow-xl hover:scale-105 transition-all" @click="showHelp = false">GOT IT</button>
+							</div>
+						</div>
+						<div class="bg-base-200/50 p-4 text-center text-[10px] uppercase tracking-[0.2em] font-black opacity-30 border-t border-base-300">
+							Slidesdeck v1.0 • Built with Go & Alpine.js
+						</div>
+					</div>
+				</div>
+
+				// Theme Palette
+				@ThemePalette()
+
+				// Font Theme Palette
+				@FontThemePalette()
+
+				// Search Palette
+				@SearchPalette()
+
+				// Pause Mode
+				@PauseMode()
+			</div>
+
+			@templ.Raw("<script type=\"text/javascript\">\n" + js + "\n</script>")
+		</body>
+	</html>
+}

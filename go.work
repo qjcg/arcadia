@@ -5,10 +5,10 @@ use (
 	./cmd/horeb
 	./examples/bento
 	./examples/go
-	./x/elbereth
-	./x/fractalis
-	./x/jmacs
-	./x/skillo
-	./x/slidesdeck
-	./x/sv
+	./exp/elbereth
+	./exp/fractalis
+	./exp/jmacs
+	./exp/skillo
+	./exp/slidesdeck
+	./exp/sv
 )

@@ -14,6 +14,6 @@
 ## Layout
 
 - [examples](examples): Various examples.
-- [x](x): eXperimental commands. Unstable, may change at any time.
+- [exp](exp): Experimental commands. Unstable, may change at any time.
 
 <img src="./.assets/thomas-cole_1834_the-arcadian-or-pastoral-state.webp" alt="Thomas Cole, The Arcadian or Pastoral State" style="display:block;margin:0 auto;" width="900" />
