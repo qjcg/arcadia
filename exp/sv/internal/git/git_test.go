@@ -92,9 +92,8 @@ func TestCommitsSince(t *testing.T) {
 	runGit("commit", "-m", "fix: module fix")
 
 	// Test commits since tag for root
-	commits, err := CommitsSince(tmpDir, "initial commit", ".") // wait initial commit is message not tag
-	// wait setupGitRepo tags nothing, just commits.
-	// Let's use tags.
+	var commits []string
+	var err error
 	runGit("tag", "v1.0.0")
 	runGit("commit", "--allow-empty", "-m", "feat: after v1.0.0")
 
@@ -115,5 +114,30 @@ func TestCommitsSince(t *testing.T) {
 	expected = []string{"fix: module fix"}
 	if !reflect.DeepEqual(commits, expected) {
 		t.Errorf("expected %v, got %v", expected, commits)
+	}
+}
+
+func TestRoot(t *testing.T) {
+	tmpDir := setupGitRepo(t)
+
+	// Change to the temp directory and get root
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+
+	root, err := Root()
+	if err != nil {
+		t.Fatalf("Root() failed: %v", err)
+	}
+
+	// Root should be the temp directory
+	if root != tmpDir {
+		t.Errorf("Root() = %q, want %q", root, tmpDir)
 	}
 }

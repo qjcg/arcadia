@@ -85,3 +85,31 @@ func TestGetCurrentModule(t *testing.T) {
 		})
 	}
 }
+
+func TestFindModules_Empty(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// No go.mod files
+	modules, err := FindModules(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(modules) != 0 {
+		t.Errorf("expected 0 modules, got %d", len(modules))
+	}
+}
+
+func TestGetCurrentModule_NoModules(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// No go.mod files - should return root as default
+	m, err := GetCurrentModule(tmpDir, tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if m.Name != "." {
+		t.Errorf("GetCurrentModule() = %v, want .", m.Name)
+	}
+}

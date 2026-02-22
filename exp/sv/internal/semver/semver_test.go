@@ -110,3 +110,78 @@ func TestIncrement(t *testing.T) {
 		})
 	}
 }
+
+func TestCalculateNext_Errors(t *testing.T) {
+	tests := []struct {
+		name    string
+		current string
+		path    string
+		commits []string
+		wantErr bool
+	}{
+		{
+			name:    "invalid semver",
+			current: "not-a-version",
+			path:    ".",
+			commits: []string{"feat: feature"},
+			wantErr: true,
+		},
+		{
+			name:    "invalid semver with module path",
+			current: "x/mod/bad-version",
+			path:    "x/mod",
+			commits: []string{"fix: bug"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := CalculateNext(tt.current, tt.path, tt.commits)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CalculateNext() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestIncrement_Errors(t *testing.T) {
+	tests := []struct {
+		name    string
+		current string
+		path    string
+		bump    Bump
+		wantErr bool
+	}{
+		{
+			name:    "invalid semver",
+			current: "abc",
+			path:    ".",
+			bump:    BumpMinor,
+			wantErr: true,
+		},
+		{
+			name:    "invalid semver with module path",
+			current: "x/mod/v1.not",
+			path:    "x/mod",
+			bump:    BumpPatch,
+			wantErr: true,
+		},
+		{
+			name:    "BumpNone returns current",
+			current: "v1.0.0",
+			path:    ".",
+			bump:    BumpNone,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := Increment(tt.current, tt.path, tt.bump)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Increment() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
