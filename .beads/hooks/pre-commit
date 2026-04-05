@@ -13,12 +13,15 @@ call_lefthook()
   if test -n "$LEFTHOOK_BIN"
   then
     "$LEFTHOOK_BIN" "$@"
+  elif go tool lefthook -h >/dev/null 2>&1
+  then
+    go tool lefthook "$@"
   elif lefthook -h >/dev/null 2>&1
   then
     lefthook "$@"
-  elif /home/bolocera/.cache/go-build/96/9635d6e3c4b9f3f98ad3111945a403c0e133fac42787f24d360cf4627a5fb6ae-d/lefthook -h >/dev/null 2>&1
+  elif /home/bolocera/go/bin/lefthook -h >/dev/null 2>&1
   then
-    /home/bolocera/.cache/go-build/96/9635d6e3c4b9f3f98ad3111945a403c0e133fac42787f24d360cf4627a5fb6ae-d/lefthook "$@"
+    /home/bolocera/go/bin/lefthook "$@"
   else
     dir="$(git rev-parse --show-toplevel)"
     osArch=$(uname | tr '[:upper:]' '[:lower:]')
