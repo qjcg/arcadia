@@ -4,9 +4,6 @@ version: '3'
 
 shopt: [globstar]
 
-env:
-  GOTOOLCHAIN: go1.26.0
-
 vars:
   TAG_CURRENT:
     sh: 'go tool svu current'
@@ -28,7 +25,10 @@ tasks:
     cmd: go tool xurls **/*.md | grep -Ev '{{.EXCLUDE}}' | sort -u | go tool xurls -fix >/dev/null
     vars:
       EXCLUDE: localhost|twitter|9p.io|cluster.local
-  lint:golangci-lint: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.V_GOLANGCILINT}} run --fix
+  lint:golangci-lint:
+    cmd: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.V_GOLANGCILINT}} run --fix
+    env:
+      GOTOOLCHAIN: go1.26.1
 
   tag:
     desc: Add next semver git tag
@@ -48,7 +48,7 @@ tasks:
       - test:go-integration
       - test:go-tools
 
-  test:go-integration: go test work -tags integration -cover
+  test:go-integration: go tool gotestsum work -tags integration
 
   test:go-tools:
     desc: Test go tools to ensure none are broken due to dependency updates.
