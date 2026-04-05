@@ -12,7 +12,7 @@ Developers struggle with skill installs across agents. skillo solves this with `
 
 \"Transformative for agent workflows,\" raves early user.
 
-[Install now](https://github.com/bolocera/arcadia/tree/main/x/skillo).
+[Install now](https://github.com/bolocera/arcadia/tree/main/exp/skillo).
 
 ## FAQ
 
