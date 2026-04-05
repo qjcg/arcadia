@@ -16,9 +16,9 @@ call_lefthook()
   elif lefthook -h >/dev/null 2>&1
   then
     lefthook "$@"
-  elif /home/bolocera/go/bin/lefthook -h >/dev/null 2>&1
+  elif /home/bolocera/.cache/go-build/5c/5ce67548e7414b6f901eb0037275c28f6d733c9b943976f7831eefae3bad16cd-d/lefthook -h >/dev/null 2>&1
   then
-    /home/bolocera/go/bin/lefthook "$@"
+    /home/bolocera/.cache/go-build/5c/5ce67548e7414b6f901eb0037275c28f6d733c9b943976f7831eefae3bad16cd-d/lefthook "$@"
   else
     dir="$(git rev-parse --show-toplevel)"
     osArch=$(uname | tr '[:upper:]' '[:lower:]')
