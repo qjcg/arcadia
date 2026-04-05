@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+# Logs all ref creation events for debugging
+# Who creates branches: magit, humans, or tools?
+
+REF_NAME="$1"
+OLD_REV="$2"
+NEW_REV="$3"
+
+# Log to .git/REFLOG.log
+{
+	echo "[$(date '+%Y-%m-%d %H:%M:%S')] reference=${REF_NAME} old=${OLD_REV} new=${NEW_REV} pid=$$ ppid=$PPID"
+	echo "  cmdline: $(ps -p $PPID -o args= 2>/dev/null || echo 'unknown')"
+	echo "---"
+} >> .git/REFLOG.log
