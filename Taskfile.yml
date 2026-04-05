@@ -10,7 +10,7 @@ vars:
   TAG_NEXT:
     sh: 'go tool svu next'
 
-  V_GOLANGCILINT: v2.10.1
+  V_GOLANGCILINT: v2.11.4
 
 tasks:
   default: [{task: githook:pre-commit}]
