@@ -1,0 +1,33 @@
+version: '3'
+
+tasks:
+  default:
+    desc: Build and run temenos
+    cmds:
+      - go build -o bin/temenos ./cmd/temenos
+      - ./bin/temenos
+
+  dev:
+    desc: Run with hot reload
+    cmds:
+      - go tool air -c .air.toml
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./...
+
+  tidy:
+    desc: Tidy dependencies
+    cmds:
+      - go mod tidy
+
+  sqlc:
+    desc: Generate sqlc code
+    cmds:
+      - go run github.com/sqlc-dev/sqlc/cmd/sqlc generate
+
+  lint:
+    desc: Run linter
+    cmds:
+      - go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.10.1 run --fix

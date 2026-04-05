@@ -1,0 +1,14 @@
+# Binaries
+/temenos
+*.test
+
+# Database files
+*.db
+
+# Temporary files
+tmp/
+*.log
+
+# IDE
+.vscode/
+.idea/
