@@ -8,7 +8,7 @@ describe("URL Shortener", () => {
       method: "POST",
       body: JSON.stringify({ original_url: "https://bun.sh" })
     }));
-    
+
     expect(shortenRes.status).toBe(200);
     const { short_url } = await shortenRes.json();
     expect(short_url).toInclude("http://localhost:3001/");
