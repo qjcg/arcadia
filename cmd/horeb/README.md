@@ -10,6 +10,8 @@
 Horeb is a CLI tool for generating random sequences of characters from various
 [Unicode blocks](https://en.wikipedia.org/wiki/Unicode_block).
 
+For a good background overview, see [An Introduction to Writing Systems and Unicode](https://r12a.github.io/scripts/tutorial/part2).
+
 One source of inspiration for this tool is the [TempleOS](https://templeos.org)
 [oracle].
 
