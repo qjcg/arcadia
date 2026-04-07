@@ -6,9 +6,9 @@ shopt: [globstar]
 
 vars:
   TAG_CURRENT:
-    sh: 'go tool svu current'
+    sh: 'go tool sv current --all'
   TAG_NEXT:
-    sh: 'go tool svu next'
+    sh: 'go tool sv next --all'
 
   V_GOLANGCILINT: v2.11.4
 
@@ -33,9 +33,22 @@ tasks:
   tag:
     desc: Add next semver git tag
     cmds:
-      - git tag -a -m {{.TAG_NEXT}} {{.TAG_NEXT}}
+      - for: {var: TAG_NEXT, split: "\n"}
+        cmd: git tag -a -m {{.ITEM}} {{.ITEM}}
     status:
-      - test {{.TAG_NEXT}} = {{.TAG_CURRENT}}
+      - test -z "{{.TAG_NEXT}}"
+
+  tag:dryrun:
+    desc: Add next semver git tag (DRY RUN)
+    cmds:
+      - for: {var: TAG_NEXT, split: "\n"}
+        cmd: echo git tag -a -m {{.ITEM}} {{.ITEM}}
+    status:
+      - test -z "{{.TAG_NEXT}}"
+
+  tag:list-current:
+    desc: List current semver git tags
+    cmd: go tool sv current --all
 
   tag:push:
     desc: Push git tags

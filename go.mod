@@ -340,6 +340,7 @@ require (
 	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20260217160748-a481f6a22f94 // indirect
 	github.com/psanford/sqlite3vfs v0.0.0-20251127171934-4e34e03a991a // indirect
+	github.com/qjcg/arcadia/exp/sv v0.0.0-20260407014146-3c976e6bb271 // indirect
 	github.com/rakyll/hey v0.1.5 // indirect
 	github.com/redis/go-redis/extra/redisotel/v9 v9.5.3 // indirect
 	github.com/redis/go-redis/v9 v9.14.1 // indirect
@@ -499,6 +500,7 @@ tool (
 	github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker
 	github.com/evilmartians/lefthook/v2
 	github.com/goreleaser/chglog/cmd/chglog
+	github.com/qjcg/arcadia/exp/sv
 	github.com/rakyll/hey
 	github.com/rogerwelin/cassowary/cmd/cassowary
 	github.com/sqlc-dev/sqlc/cmd/sqlc
