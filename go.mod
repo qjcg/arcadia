@@ -169,7 +169,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.3.3 // indirect
 	github.com/esote/minmaxheap v1.0.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
-	github.com/evilmartians/lefthook/v2 v2.1.4 // indirect
+	github.com/evilmartians/lefthook/v2 v2.1.5 // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
 	github.com/extism/go-sdk v1.7.1 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
