@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 
 	"github.com/qjcg/arcadia/exp/sv/internal/discovery"
 	"github.com/qjcg/arcadia/exp/sv/internal/git"
@@ -22,10 +23,18 @@ func main() {
 	setupCLI(os.Stdout, os.Stderr).Execute()
 }
 
+func getVersion() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		return info.Main.Version
+	}
+	return ""
+}
+
 func setupCLI(out, err io.Writer) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:   "sv",
-		Short: "sv is a semantic versioning tool for monorepos",
+		Use:     "sv",
+		Short:   "sv is a semantic versioning tool for monorepos",
+		Version: getVersion(),
 	}
 	rootCmd.SetOut(out)
 	rootCmd.SetErr(err)
