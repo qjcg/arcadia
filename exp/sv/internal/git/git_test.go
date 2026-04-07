@@ -97,7 +97,7 @@ func TestCommitsSince(t *testing.T) {
 	runGit("tag", "v1.0.0")
 	runGit("commit", "--allow-empty", "-m", "feat: after v1.0.0")
 
-	commits, err = CommitsSince(tmpDir, "v1.0.0", ".")
+	commits, err = CommitsSince(tmpDir, "v1.0.0", ".", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func TestCommitsSince(t *testing.T) {
 	}
 
 	// Test commits since tag for module
-	commits, err = CommitsSince(tmpDir, "x/mod/v1.0.0", "x/mod")
+	commits, err = CommitsSince(tmpDir, "x/mod/v1.0.0", "x/mod", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

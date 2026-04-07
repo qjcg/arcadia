@@ -39,16 +39,17 @@ func setupCLI(out, err io.Writer) *cobra.Command {
 				return err
 			}
 
+			// Get all modules for filtering commits when processing root
+			allMods, err := discovery.FindModules(root)
+			if err != nil {
+				return err
+			}
+
 			var modules []discovery.Module
 			if allModules {
-				var err error
-				modules, err = discovery.FindModules(root)
-				if err != nil {
-					return err
-				}
+				modules = allMods
 			} else {
 				var m discovery.Module
-				var err error
 				if modulePath != "" {
 					absPath, err := filepath.Abs(modulePath)
 					if err != nil {
@@ -70,7 +71,7 @@ func setupCLI(out, err io.Writer) *cobra.Command {
 			}
 
 			for _, m := range modules {
-				if err := runNext(cmd.OutOrStdout(), root, m, verbose); err != nil {
+				if err := runNext(cmd.OutOrStdout(), root, m, allMods, verbose); err != nil {
 					fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
 				}
 			}
@@ -233,13 +234,23 @@ func runCurrent(out io.Writer, root string, m discovery.Module, verbose bool) er
 	return nil
 }
 
-func runNext(out io.Writer, root string, m discovery.Module, verbose bool) error {
+func runNext(out io.Writer, root string, m discovery.Module, allModulesList []discovery.Module, verbose bool) error {
 	tag, err := git.LatestTag(root, m.Name)
 	if err != nil {
 		return err
 	}
 
-	commits, err := git.CommitsSince(root, tag, m.Name)
+	// Build exclude paths: all modules except the current one
+	var excludePaths []string
+	if m.Name == "." {
+		for _, mod := range allModulesList {
+			if mod.Name != "." {
+				excludePaths = append(excludePaths, mod.Name)
+			}
+		}
+	}
+
+	commits, err := git.CommitsSince(root, tag, m.Name, excludePaths)
 	if err != nil {
 		return err
 	}

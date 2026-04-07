@@ -29,12 +29,17 @@ func LatestTag(root, prefix string) (string, error) {
 	return tags[0], nil
 }
 
-// CommitsSince returns commit messages since a tag, scoped to a path
-func CommitsSince(root, tag, path string) ([]string, error) {
+// CommitsSince returns commit messages since a tag, scoped to a path.
+// When excludePaths is provided and path is ".", commits that only touch
+// files in excluded paths are filtered out.
+func CommitsSince(root, tag, path string, excludePaths []string) ([]string, error) {
+	// Get commit messages (one per line)
 	args := []string{"log", "--format=%s"}
 	if tag != "" {
 		args = append(args, tag+"..HEAD")
 	}
+
+	// For non-root paths, use git's path filtering
 	if path != "." {
 		args = append(args, "--", path)
 	}
@@ -46,10 +51,53 @@ func CommitsSince(root, tag, path string) ([]string, error) {
 		return nil, err
 	}
 
-	commits := strings.Split(strings.TrimSpace(string(out)), "\n")
-	if len(commits) == 1 && commits[0] == "" {
+	trimmed := strings.TrimSpace(string(out))
+	if trimmed == "" {
 		return nil, nil
 	}
+
+	// Split by newlines to get individual commit messages
+	commits := strings.Split(trimmed, "\n")
+
+	// If path is "." and we have exclusions, filter by file
+	if path == "." && len(excludePaths) > 0 {
+		var filtered []string
+		for _, msg := range commits {
+			if msg == "" {
+				continue
+			}
+
+			// Get files for this commit using git show
+			fileCmd := exec.Command("git", "show", "--no-patch", "--format=%s", "--name-only", msg)
+			fileCmd.Dir = root
+			fileOut, _ := fileCmd.CombinedOutput()
+
+			lines := strings.Split(strings.TrimSpace(string(fileOut)), "\n")
+			// lines[0] = commit message, lines[1:] = files
+
+			include := true
+			for _, f := range lines[1:] {
+				if f == "" {
+					continue
+				}
+				for _, excl := range excludePaths {
+					if strings.HasPrefix(f, excl+"/") || f == excl {
+						include = false
+						break
+					}
+				}
+				if !include {
+					break
+				}
+			}
+
+			if include {
+				filtered = append(filtered, msg)
+			}
+		}
+		return filtered, nil
+	}
+
 	return commits, nil
 }
 
