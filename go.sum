@@ -1338,6 +1338,8 @@ github.com/psanford/sqlite3vfs v0.0.0-20251127171934-4e34e03a991a h1:r4YWl0uVObC
 github.com/psanford/sqlite3vfs v0.0.0-20251127171934-4e34e03a991a/go.mod h1:iW4cSew5PAb1sMZiTEkVJAIBNrepaB6jTYjeP47WtI0=
 github.com/qjcg/arcadia/exp/sv v0.0.0-20260407014146-3c976e6bb271 h1:j3okIHQNbiBfbWIqE2GaKuAHAcqiTpVIQTELnLhraXg=
 github.com/qjcg/arcadia/exp/sv v0.0.0-20260407014146-3c976e6bb271/go.mod h1:ze2eHQBgdoH3MRL4ZmNxI3Oj6p2Bi1jjuW3a5QYbRMs=
+github.com/qjcg/arcadia/exp/sv v0.1.0 h1:T1WZr6UFgiNCB/ImdL2/sXg/Kv/qWA0UZdPhVSICb0s=
+github.com/qjcg/arcadia/exp/sv v0.1.0/go.mod h1:ze2eHQBgdoH3MRL4ZmNxI3Oj6p2Bi1jjuW3a5QYbRMs=
 github.com/rakyll/hey v0.1.5 h1:oc3QhpT8ETXcr5xIE2xgWYNSNA/Z52XA20ku9hWCchY=
 github.com/rakyll/hey v0.1.5/go.mod h1:tLUK++7gal6z92HvVEaP4QfIhEb5cYywEJgrUqmqt7Y=
 github.com/redis/go-redis/extra/rediscmd/v9 v9.5.3 h1:1/BDligzCa40GTllkDnY3Y5DTHuKCONbB2JcRyIfl20=

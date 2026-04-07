@@ -33,8 +33,8 @@ func LatestTag(root, prefix string) (string, error) {
 // When excludePaths is provided and path is ".", commits that only touch
 // files in excluded paths are filtered out.
 func CommitsSince(root, tag, path string, excludePaths []string) ([]string, error) {
-	// Get commit messages (one per line)
-	args := []string{"log", "--format=%s"}
+	// Get commit hash and message (one per line: hash\nmessage)
+	args := []string{"log", "--format=%H%n%s"}
 	if tag != "" {
 		args = append(args, tag+"..HEAD")
 	}
@@ -56,48 +56,75 @@ func CommitsSince(root, tag, path string, excludePaths []string) ([]string, erro
 		return nil, nil
 	}
 
-	// Split by newlines to get individual commit messages
-	commits := strings.Split(trimmed, "\n")
+	// Split into commit entries (each is 2 lines: hash + message)
+	// Use "\n" to split, then group pairs
+	lines := strings.Split(trimmed, "\n")
+	var entries [][]string
+	for i := 0; i < len(lines)-1; i += 2 {
+		if i+1 < len(lines) {
+			entries = append(entries, []string{lines[i], lines[i+1]})
+		}
+	}
 
 	// If path is "." and we have exclusions, filter by file
 	if path == "." && len(excludePaths) > 0 {
 		var filtered []string
-		for _, msg := range commits {
+		for _, entry := range entries {
+			if len(entry) < 2 {
+				continue
+			}
+			hash := entry[0]
+			msg := entry[1]
 			if msg == "" {
 				continue
 			}
 
-			// Get files for this commit using git show
-			fileCmd := exec.Command("git", "show", "--no-patch", "--format=%s", "--name-only", msg)
+			// Get files for this commit using git show with hash
+			fileCmd := exec.Command("git", "show", "--format=%s", "--name-only", hash)
 			fileCmd.Dir = root
 			fileOut, _ := fileCmd.CombinedOutput()
 
-			lines := strings.Split(strings.TrimSpace(string(fileOut)), "\n")
-			// lines[0] = commit message, lines[1:] = files
+			fileLines := strings.Split(strings.TrimSpace(string(fileOut)), "\n")
+			// fileLines[0] = commit message, fileLines[1:] = files
 
-			include := true
-			for _, f := range lines[1:] {
+			hasNonExcluded := false
+			hasFiles := false
+			for _, f := range fileLines[1:] {
+				f = strings.TrimSpace(f)
 				if f == "" {
 					continue
 				}
+				hasFiles = true
+				isExcluded := false
 				for _, excl := range excludePaths {
 					if strings.HasPrefix(f, excl+"/") || f == excl {
-						include = false
+						isExcluded = true
 						break
 					}
 				}
-				if !include {
+				if !isExcluded {
+					hasNonExcluded = true
 					break
 				}
 			}
 
-			if include {
+			// Include commit if:
+			// - It has no files (e.g., empty commits via --allow-empty)
+			// - It has at least one non-excluded file
+			if !hasFiles || hasNonExcluded {
 				filtered = append(filtered, msg)
 			}
 		}
 		return filtered, nil
 	}
 
+	// No exclusions: just return the messages
+	var commits []string
+	for _, entry := range entries {
+		if len(entry) >= 2 {
+			commits = append(commits, entry[1])
+		}
+	}
 	return commits, nil
 }
 
