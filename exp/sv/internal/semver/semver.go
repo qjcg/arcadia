@@ -19,7 +19,11 @@ const (
 func CalculateNext(current, path string, commits []string) (string, error) {
 	vStr := current
 	if vStr == "" {
-		vStr = "v0.0.0"
+		vStr = "v0.1.0"
+		if path != "." {
+			return path + "/" + vStr, nil
+		}
+		return vStr, nil
 	}
 
 	// Strip module path if present
@@ -74,7 +78,11 @@ func CalculateNext(current, path string, commits []string) (string, error) {
 func Increment(current, path string, bump Bump) (string, error) {
 	vStr := current
 	if vStr == "" {
-		vStr = "v0.0.0"
+		vStr = "v0.1.0"
+		if path != "." {
+			return path + "/" + vStr, nil
+		}
+		return vStr, nil
 	}
 
 	// Strip module path if present
