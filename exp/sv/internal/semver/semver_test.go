@@ -66,6 +66,41 @@ func TestCalculateNext(t *testing.T) {
 			commits: []string{"feat: initial"},
 			want:    "v0.1.0",
 		},
+		{
+			name:    "pre-release patch bump",
+			current: "v1.0.0-alpha",
+			path:    ".",
+			commits: []string{"fix: bug"},
+			want:    "v1.0.0",
+		},
+		{
+			name:    "pre-release minor bump",
+			current: "v1.0.0-rc.1",
+			path:    ".",
+			commits: []string{"feat: feature"},
+			want:    "v1.1.0",
+		},
+		{
+			name:    "zero patch version",
+			current: "v0.0.1",
+			path:    ".",
+			commits: []string{"fix: bug"},
+			want:    "v0.0.2",
+		},
+		{
+			name:    "zero minor version bump",
+			current: "v0.1.0",
+			path:    ".",
+			commits: []string{"feat: feature"},
+			want:    "v0.2.0",
+		},
+		{
+			name:    "zero major version",
+			current: "v0.1.0",
+			path:    ".",
+			commits: []string{"feat!: breaking"},
+			want:    "v1.0.0",
+		},
 	}
 
 	for _, tt := range tests {
