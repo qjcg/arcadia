@@ -49,7 +49,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Printf("%s v%s\n", os.Args[0], Version)
+		fmt.Printf("%s v%s\n", os.Args[0], Version())
 		os.Exit(0)
 	}
 
