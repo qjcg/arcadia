@@ -73,26 +73,3 @@ pre-push:
     - name: integration-tests
       run: go test -tags integration work
       glob: *gofiles
-
-    - name: git-tag-semver
-      run: |
-        # Only tag from main branch
-        current_branch=$(git rev-parse --abbrev-ref HEAD)
-        if [ "$current_branch" != "main" ]; then
-          echo "Skipping semver tag (not on main branch)"
-          exit 0
-        fi
-
-        v_cur=$(go tool svu current)
-        v_next=$(go tool svu next)
-
-        # Make sure we have all upstream tags before proceeding.
-        git fetch
-
-        if test $v_cur != $v_next; then
-          echo "$v_cur -> $v_next (new version)"
-          git tag -am $v_next $v_next
-          LEFTHOOK=0 git push --tags
-        else
-          echo "$v_cur (no change)"
-        fi
