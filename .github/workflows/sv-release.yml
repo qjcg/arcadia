@@ -20,7 +20,7 @@ jobs:
         go-version-file: go.work
 
     - name: Install sv
-      run: CGO_ENABLED=0 go install -ldflags '-s -w' ./exp/sv/cmd/sv
+      run: CGO_ENABLED=0 go install -ldflags '-s -w' ./exp/sv
 
     - name: Compute version bumps
       id: bumps
