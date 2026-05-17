@@ -9,13 +9,13 @@ Compress or expand AI agent responses across 5 detail levels. Start at the level
 
 ## The 5 Levels
 
-| Level | Scope | Purpose |
-|-------|-------|---------|
-| **0** | 1 sentence (~10-20 words) | The decision/outcome only—no reasoning |
-| **1** | 1 paragraph (~40-60 words) | What + Why—essential context and rationale |
-| **2** | Structured outline (~150-250 words) | What + Why + How—key steps and considerations |
-| **3** | Full response (~500-800 words) | Complete reasoning—alternatives, trade-offs, dependencies |
-| **4** | Exhaustive detail | Full specification—production-ready depth |
+| Level | Scope                               | Purpose                                                   |
+|-------|-------------------------------------|-----------------------------------------------------------|
+| **0** | 1 sentence (~10-20 words)           | The decision/outcome only—no reasoning                    |
+| **1** | 1 paragraph (~40-60 words)          | What + Why—essential context and rationale                |
+| **2** | Structured outline (~150-250 words) | What + Why + How—key steps and considerations             |
+| **3** | Full response (~500-800 words)      | Complete reasoning—alternatives, trade-offs, dependencies |
+| **4** | Exhaustive detail                   | Full specification—production-ready depth                 |
 
 ## Navigation Patterns
 
@@ -96,12 +96,12 @@ Include:
 
 When the user wants to change levels:
 
-| Command | Action |
-|---------|--------|
-| "Summarize" / "TL;DR" | Compress to Level 0-1 |
-| "Expand" / "More detail" | Increase by 1-2 levels |
-| "Full detail" / "Comprehensive" | Jump to Level 4 |
-| "Outline only" | Target Level 2 |
+| Command                         | Action                 |
+|---------------------------------|------------------------|
+| "Summarize" / "TL;DR"           | Compress to Level 0-1  |
+| "Expand" / "More detail"        | Increase by 1-2 levels |
+| "Full detail" / "Comprehensive" | Jump to Level 4        |
+| "Outline only"                  | Target Level 2         |
 
 ## Level 0 Writing Tips
 
