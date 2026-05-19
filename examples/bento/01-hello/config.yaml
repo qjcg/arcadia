@@ -1,4 +1,0 @@
-input:
-  generate:
-    mapping: root = "Hello, Bento!"
-    count: 1
