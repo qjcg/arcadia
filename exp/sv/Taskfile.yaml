@@ -35,4 +35,4 @@ tasks:
   clean:
     desc: Clean build artifacts
     cmds:
-      - rm -f sv
+      - rm -rf bin/ sv
