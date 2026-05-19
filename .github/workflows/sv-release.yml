@@ -26,7 +26,7 @@ jobs:
       id: bumps
       run: |
         CHANGES=$(sv next --all)
-        TAGS=$(echo "$CHANGES" | grep -E '^([^/]+/)?v[0-9]+\.[0-9]+\.[0-9]+$')
+        TAGS=$(echo "$CHANGES" | grep -E '^(.*/)?v[0-9]+\.[0-9]+\.[0-9]+$')
         if [[ -n "$TAGS" ]]; then
           printf 'tags<<EOF\n%s\nEOF\n' "$TAGS" >> $GITHUB_OUTPUT
         fi

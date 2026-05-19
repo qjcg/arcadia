@@ -18,7 +18,7 @@ done
 # Install sv if missing
 if ! command -v sv >/dev/null 2>&1; then
   echo "Installing sv..."
-  CGO_ENABLED=0 go install -ldflags '-s -w' ./x/sv/cmd/sv
+  CGO_ENABLED=0 go install -ldflags '-s -w' ./exp/sv
 fi
 
 CHANGES=$(sv next --all)
@@ -30,7 +30,7 @@ fi
 echo "Computed version bumps (from 'sv next --all'):"
 echo "$CHANGES"
 
-TAGS=$(echo "$CHANGES" | awk '{print $3}' | grep -E 'v[0-9]+\.[0-9]+\.[0-9]+$' || true)
+TAGS=$(echo "$CHANGES" | grep -E '^(.*/)?v[0-9]+\.[0-9]+\.[0-9]+$' || true)
 if [[ -z "$TAGS" ]]; then
   echo "No valid semver tags extracted."
   [[ $DRY_RUN == true ]] || exit 0
