@@ -7,17 +7,30 @@ import (
 	"path/filepath"
 	"runtime/debug"
 
+	"github.com/GiGurra/boa/pkg/boa"
 	"github.com/qjcg/arcadia/exp/sv/internal/discovery"
 	"github.com/qjcg/arcadia/exp/sv/internal/git"
 	"github.com/qjcg/arcadia/exp/sv/internal/semver"
 	"github.com/spf13/cobra"
 )
 
-var (
-	modulePath string
-	allModules bool
-	verbose    bool
-)
+type NextParams struct {
+	All     bool   `descr:"Calculate next version for all modules"`
+	Path    string `descr:"Explicit module path" optional:"true"`
+	Verbose bool   `descr:"Show module names with tags (used with -a)"`
+}
+
+type CurrentParams struct {
+	All     bool   `descr:"Show current version for all modules"`
+	Path    string `descr:"Explicit module path" optional:"true"`
+	Verbose bool   `descr:"Show module names with tags (used with -a)"`
+}
+
+type BumpParams struct {
+	All     bool   `descr:"Bump all modules"`
+	Path    string `descr:"Explicit module path" optional:"true"`
+	Verbose bool   `descr:"Show module names with tags (used with -a)"`
+}
 
 func main() {
 	setupCLI(os.Stdout, os.Stderr).Execute()
@@ -39,174 +52,135 @@ func setupCLI(out, err io.Writer) *cobra.Command {
 	rootCmd.SetOut(out)
 	rootCmd.SetErr(err)
 
-	nextCmd := &cobra.Command{
-		Use:   "next",
-		Short: "Calculate the next version",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			root, err := git.Root()
-			if err != nil {
-				return err
-			}
+	rootCmd.AddCommand(nextCmd())
+	rootCmd.AddCommand(currentCmd())
+	rootCmd.AddCommand(createBumpCmd("major", semver.BumpMajor, "Force a major version bump"))
+	rootCmd.AddCommand(createBumpCmd("minor", semver.BumpMinor, "Force a minor version bump"))
+	rootCmd.AddCommand(createBumpCmd("patch", semver.BumpPatch, "Force a patch version bump"))
 
-			// Get all modules for filtering commits when processing root
-			allMods, err := discovery.FindModules(root)
-			if err != nil {
-				return err
-			}
-
-			var modules []discovery.Module
-			if allModules {
-				modules = allMods
-			} else {
-				var m discovery.Module
-				if modulePath != "" {
-					absPath, err := filepath.Abs(modulePath)
-					if err != nil {
-						return err
-					}
-					rel, err := filepath.Rel(root, absPath)
-					if err != nil {
-						return err
-					}
-					m = discovery.Module{Name: filepath.ToSlash(rel), Path: absPath}
-				} else {
-					cwd, _ := os.Getwd()
-					m, err = discovery.GetCurrentModule(root, cwd)
-					if err != nil {
-						return err
-					}
-				}
-				modules = []discovery.Module{m}
-			}
-
-			for _, m := range modules {
-				if err := runNext(cmd.OutOrStdout(), root, m, allMods, verbose); err != nil {
-					fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
-				}
-			}
-			return nil
-		},
-	}
-
-	currentCmd := &cobra.Command{
-		Use:   "current",
-		Short: "Show the current version",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			root, err := git.Root()
-			if err != nil {
-				return err
-			}
-
-			var modules []discovery.Module
-			if allModules {
-				var err error
-				modules, err = discovery.FindModules(root)
-				if err != nil {
-					return err
-				}
-			} else {
-				var m discovery.Module
-				var err error
-				if modulePath != "" {
-					absPath, err := filepath.Abs(modulePath)
-					if err != nil {
-						return err
-					}
-					rel, err := filepath.Rel(root, absPath)
-					if err != nil {
-						return err
-					}
-					m = discovery.Module{Name: filepath.ToSlash(rel), Path: absPath}
-				} else {
-					cwd, _ := os.Getwd()
-					m, err = discovery.GetCurrentModule(root, cwd)
-					if err != nil {
-						return err
-					}
-				}
-				modules = []discovery.Module{m}
-			}
-
-			for _, m := range modules {
-				if err := runCurrent(cmd.OutOrStdout(), root, m, verbose); err != nil {
-					fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
-				}
-			}
-			return nil
-		},
-	}
-
-	nextCmd.Flags().BoolVarP(&allModules, "all", "a", false, "Calculate next version for all modules")
-	nextCmd.Flags().StringVarP(&modulePath, "path", "p", "", "Explicit module path")
-	nextCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show module names with tags (used with -a)")
-
-	currentCmd.Flags().BoolVarP(&allModules, "all", "a", false, "Show current version for all modules")
-	currentCmd.Flags().StringVarP(&modulePath, "path", "p", "", "Explicit module path")
-	currentCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show module names with tags (used with -a)")
-
-	rootCmd.AddCommand(nextCmd, currentCmd,
-		createBumpCmd("major", semver.BumpMajor, "Force a major version bump"),
-		createBumpCmd("minor", semver.BumpMinor, "Force a minor version bump"),
-		createBumpCmd("patch", semver.BumpPatch, "Force a patch version bump"),
-	)
 	return rootCmd
 }
 
-func createBumpCmd(name string, bump semver.Bump, doc string) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   name,
-		Short: doc,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			root, err := git.Root()
-			if err != nil {
-				return err
-			}
-
-			var modules []discovery.Module
-			if allModules {
-				var err error
-				modules, err = discovery.FindModules(root)
-				if err != nil {
-					return err
-				}
-			} else {
-				var m discovery.Module
-				var err error
-				if modulePath != "" {
-					absPath, err := filepath.Abs(modulePath)
-					if err != nil {
-						return err
-					}
-					rel, err := filepath.Rel(root, absPath)
-					if err != nil {
-						return err
-					}
-					m = discovery.Module{Name: filepath.ToSlash(rel), Path: absPath}
-				} else {
-					cwd, _ := os.Getwd()
-					m, err = discovery.GetCurrentModule(root, cwd)
-					if err != nil {
-						return err
-					}
-				}
-				modules = []discovery.Module{m}
-			}
-
-			for _, m := range modules {
-				if err := runBump(cmd.OutOrStdout(), root, m, bump, verbose); err != nil {
-					fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
-				}
-			}
-			return nil
+func nextCmd() *cobra.Command {
+	return boa.CmdT[NextParams]{
+		Use:   "next",
+		Short: "Calculate the next version",
+		RunFuncE: func(p *NextParams, cmd *cobra.Command, _ []string) error {
+			return runNextCmd(p, cmd)
 		},
-	}
-	cmd.Flags().BoolVarP(&allModules, "all", "a", false, "Bump all modules")
-	cmd.Flags().StringVarP(&modulePath, "path", "p", "", "Explicit module path")
-	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show module names with tags (used with -a)")
-	return cmd
+	}.ToCmd().ToCobra()
 }
 
-func runBump(out io.Writer, root string, m discovery.Module, bump semver.Bump, verbose bool) error {
+func currentCmd() *cobra.Command {
+	return boa.CmdT[CurrentParams]{
+		Use:   "current",
+		Short: "Show the current version",
+		RunFuncE: func(p *CurrentParams, cmd *cobra.Command, _ []string) error {
+			return runCurrentCmd(p, cmd)
+		},
+	}.ToCmd().ToCobra()
+}
+
+func createBumpCmd(name string, bump semver.Bump, doc string) *cobra.Command {
+	return boa.CmdT[BumpParams]{
+		Use:   name,
+		Short: doc,
+		RunFuncE: func(p *BumpParams, cmd *cobra.Command, _ []string) error {
+			return runBumpCmd(p, bump, cmd)
+		},
+	}.ToCmd().ToCobra()
+}
+
+func getModules(root, modulePath string, allModules bool) ([]discovery.Module, error) {
+	if allModules {
+		return discovery.FindModules(root)
+	}
+
+	var m discovery.Module
+	var err error
+	if modulePath != "" {
+		absPath, err := filepath.Abs(modulePath)
+		if err != nil {
+			return nil, err
+		}
+		rel, err := filepath.Rel(root, absPath)
+		if err != nil {
+			return nil, err
+		}
+		m = discovery.Module{Name: filepath.ToSlash(rel), Path: absPath}
+	} else {
+		cwd, _ := os.Getwd()
+		m, err = discovery.GetCurrentModule(root, cwd)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return []discovery.Module{m}, nil
+}
+
+func runNextCmd(p *NextParams, cmd *cobra.Command) error {
+	root, err := git.Root()
+	if err != nil {
+		return err
+	}
+
+	allMods, err := discovery.FindModules(root)
+	if err != nil {
+		return err
+	}
+
+	modules, err := getModules(root, p.Path, p.All)
+	if err != nil {
+		return err
+	}
+
+	for _, m := range modules {
+		if err := runNext(cmd.OutOrStdout(), root, m, allMods, p.All, p.Verbose); err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
+		}
+	}
+	return nil
+}
+
+func runCurrentCmd(p *CurrentParams, cmd *cobra.Command) error {
+	root, err := git.Root()
+	if err != nil {
+		return err
+	}
+
+	modules, err := getModules(root, p.Path, p.All)
+	if err != nil {
+		return err
+	}
+
+	for _, m := range modules {
+		if err := runCurrent(cmd.OutOrStdout(), root, m, p.All, p.Verbose); err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
+		}
+	}
+	return nil
+}
+
+func runBumpCmd(p *BumpParams, bump semver.Bump, cmd *cobra.Command) error {
+	root, err := git.Root()
+	if err != nil {
+		return err
+	}
+
+	modules, err := getModules(root, p.Path, p.All)
+	if err != nil {
+		return err
+	}
+
+	for _, m := range modules {
+		if err := runBump(cmd.OutOrStdout(), root, m, bump, p.All, p.Verbose); err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
+		}
+	}
+	return nil
+}
+
+func runBump(out io.Writer, root string, m discovery.Module, bump semver.Bump, allModules, verbose bool) error {
 	tag, err := git.LatestTag(root, m.Name)
 	if err != nil {
 		return err
@@ -225,7 +199,7 @@ func runBump(out io.Writer, root string, m discovery.Module, bump semver.Bump, v
 	return nil
 }
 
-func runCurrent(out io.Writer, root string, m discovery.Module, verbose bool) error {
+func runCurrent(out io.Writer, root string, m discovery.Module, allModules, verbose bool) error {
 	tag, err := git.LatestTag(root, m.Name)
 	if err != nil {
 		return err
@@ -243,7 +217,7 @@ func runCurrent(out io.Writer, root string, m discovery.Module, verbose bool) er
 	return nil
 }
 
-func runNext(out io.Writer, root string, m discovery.Module, allModulesList []discovery.Module, verbose bool) error {
+func runNext(out io.Writer, root string, m discovery.Module, allModulesList []discovery.Module, allModules, verbose bool) error {
 	tag, err := git.LatestTag(root, m.Name)
 	if err != nil {
 		return err
