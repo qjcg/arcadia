@@ -18,7 +18,7 @@ done
 # Install sv if missing
 if ! command -v sv >/dev/null 2>&1; then
   echo "Installing sv..."
-  CGO_ENABLED=0 go install -ldflags '-s -w' github.com/qjcg/arcadia/exp/sv@v0.2.1
+  CGO_ENABLED=0 go install -ldflags '-s -w' github.com/qjcg/arcadia/exp/sv@v0.2.3
 fi
 
 CHANGES=$(sv next --all)
