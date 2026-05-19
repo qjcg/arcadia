@@ -26,10 +26,9 @@ jobs:
       id: bumps
       run: |
         CHANGES=$(sv next --all)
-        if [[ -n "$CHANGES" ]]; then
-          echo "tags<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGES" | awk '{print $3}' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+        TAGS=$(echo "$CHANGES" | grep -E '^([^/]+/)?v[0-9]+\.[0-9]+\.[0-9]+$')
+        if [[ -n "$TAGS" ]]; then
+          printf 'tags<<EOF\n%s\nEOF\n' "$TAGS" >> $GITHUB_OUTPUT
         fi
 
     - name: Tag and Release
