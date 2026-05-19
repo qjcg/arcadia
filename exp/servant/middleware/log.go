@@ -42,7 +42,8 @@ func Log(next http.Handler) http.Handler {
 			coloredMethod = red(r.Method)
 		}
 
-		log.Printf("%-s %-s %s\n",
+		log.Printf(
+			"%-s %-s %s\n",
 			coloredMethod,
 			r.URL,
 			remoteIP,

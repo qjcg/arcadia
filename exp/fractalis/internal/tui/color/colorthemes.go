@@ -139,7 +139,7 @@ func HueShiftColor(r, g, b int, hueShift float64) (int, int, int) {
 		s = delta / max
 
 		if rf == max {
-			h = 60.0 * (math.Mod((gf-bf)/delta, 6.0))
+			h = 60.0 * math.Mod((gf-bf)/delta, 6.0)
 		} else if gf == max {
 			h = 60.0 * (((bf - rf) / delta) + 2.0)
 		} else {

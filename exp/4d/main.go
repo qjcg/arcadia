@@ -20,7 +20,8 @@ Ctrl-C exits.`
 
 // fmtDuration returns a HH:MM:SS string representation of a duration.
 func fmtDuration(d time.Duration) string {
-	return fmt.Sprintf("\r%02d:%02d:%02d ",
+	return fmt.Sprintf(
+		"\r%02d:%02d:%02d ",
 		int(d.Hours())%60,
 		int(d.Minutes())%60,
 		int(d.Seconds())%60,

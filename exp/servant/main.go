@@ -43,7 +43,11 @@ func main() {
 				*tlsCert, *tlsKey,
 				middleware.Log(
 					http.FileServer(
-						http.Dir(dir)))))
+						http.Dir(dir),
+					),
+				),
+			),
+		)
 	} else {
 		log.Printf("Serving %s on http://%s:%s/\n", dir, *ip, *port)
 		log.Fatal(
@@ -51,6 +55,10 @@ func main() {
 				*ip+":"+*port,
 				middleware.Log(
 					http.FileServer(
-						http.Dir(dir)))))
+						http.Dir(dir),
+					),
+				),
+			),
+		)
 	}
 }

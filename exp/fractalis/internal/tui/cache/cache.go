@@ -33,7 +33,8 @@ func NewIterationCache(maxEntries int) *IterationCache {
 func (ic *IterationCache) cacheKey(config persistence.Config) string {
 	h := md5.New()
 	// Include all relevant fractal parameters and viewport settings
-	fmt.Fprintf(h, "%s:%.16f,%.16f,%.16f:%d:%d:%d:%d",
+	fmt.Fprintf(
+		h, "%s:%.16f,%.16f,%.16f:%d:%d:%d:%d",
 		config.FractalType,
 		config.CenterX, config.CenterY, config.Zoom,
 		config.MaxIter, config.Width, config.Height,

@@ -19,5 +19,6 @@ func Test_integrationScripttest(t *testing.T) {
 		[]string{
 			"PATH=/usr/bin",
 		},
-		"testdata/ping.txtar")
+		"testdata/ping.txtar",
+	)
 }

@@ -186,7 +186,8 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 // ConfigToFractalURL generates a fractal:// URL from a Config and runtime state
 func ConfigToFractalURL(config Config, autopilot, dynamicColor bool, transitionMode int) string {
 	// Build the base URL path
-	basePath := fmt.Sprintf("fractal://%s/%.10g/%.10g/%.10g/%d/",
+	basePath := fmt.Sprintf(
+		"fractal://%s/%.10g/%.10g/%.10g/%d/",
 		config.FractalType,
 		config.CenterX,
 		config.CenterY,

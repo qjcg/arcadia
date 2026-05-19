@@ -57,5 +57,6 @@ func Test_scripttest(t *testing.T) {
 		[]string{
 			"PATH=/usr/bin",
 		},
-		"testdata/*.txtar")
+		"testdata/*.txtar",
+	)
 }
