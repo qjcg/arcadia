@@ -1,0 +1,30 @@
+version: '3'
+
+vars:
+  BUILD_FLAGS: -ldflags '-s -w'
+
+tasks:
+  default:
+    deps:
+
+  build:
+    desc: Build diplomat binary
+    cmds:
+      - CGO_ENABLED=0 go build {{.BUILD_FLAGS}} -o bin/diplomat .
+      - upx bin/diplomat
+
+  install:
+    desc: Build and install to $GOPATH/bin
+    deps: [build]
+    cmds:
+      - cp bin/diplomat $GOPATH/bin/
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -rf bin/ diplomas/
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test -v ./...
