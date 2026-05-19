@@ -57,7 +57,7 @@ func TestCalculateNext(t *testing.T) {
 			current: "v1.0.0",
 			path:    ".",
 			commits: []string{"chore: docs", "style: lint"},
-			want:    "v1.0.0",
+			want:    "v1.0.1",
 		},
 		{
 			name:    "initial version",

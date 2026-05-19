@@ -38,6 +38,7 @@ func CalculateNext(current, path string, commits []string) (string, error) {
 	}
 
 	bump := BumpNone
+	hasCommits := len(commits) > 0
 	for _, commit := range commits {
 		commit = strings.ToLower(commit)
 		if strings.Contains(commit, "breaking change:") || strings.Contains(commit, "!") && strings.Contains(commit, ":") {
@@ -53,6 +54,11 @@ func CalculateNext(current, path string, commits []string) (string, error) {
 				bump = BumpPatch
 			}
 		}
+	}
+
+	// If there are commits but no semver-relevant type, default to patch bump
+	if hasCommits && bump == BumpNone {
+		bump = BumpPatch
 	}
 
 	var nextV semver.Version
