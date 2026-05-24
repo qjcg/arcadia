@@ -72,10 +72,12 @@ tasks:
   test:
     deps:
       - test:go-integration
+      - test:build
       - test:go-tools
 
   test:go-unit: go tool gotestsum work
   test:go-integration: go tool gotestsum work -tags integration
+  test:build: go build -o /dev/null work
 
   test:go-tools:
     desc: Test go tools to ensure none are broken due to dependency updates.
