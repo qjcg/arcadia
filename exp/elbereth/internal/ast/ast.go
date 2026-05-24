@@ -1,8 +1,9 @@
 package ast
 
-import "strings"
-
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Position represents a location in source code
 type Position struct {
