@@ -21,6 +21,11 @@ tasks:
 
   clean: rm -rf bin
 
+  lint:
+    deps:
+      - lint:golangci-lint
+      - lint:govulncheck
+
   lint:check-links:
     cmd: go tool xurls **/*.md | grep -Ev '{{.EXCLUDE}}' | sort -u | go tool xurls -fix >/dev/null
     vars:
@@ -65,6 +70,7 @@ tasks:
       - test:go-integration
       - test:go-tools
 
+  test:go-unit: go tool gotestsum work
   test:go-integration: go tool gotestsum work -tags integration
 
   test:go-tools:
