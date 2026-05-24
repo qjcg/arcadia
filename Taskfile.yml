@@ -11,15 +11,34 @@ vars:
     sh: 'go tool sv next --all'
 
   V_GOLANGCILINT: v2.12.2
+  V_TRIVY: v0.70.0
 
 tasks:
-  default: [{task: githook:pre-commit}]
+  default:
+    deps:
+      - githook:pre-commit
 
   crush: go run github.com/charmbracelet/crush@latest
+
   githook:pre-commit: go tool lefthook run pre-commit --all-files
   githook:pre-push: go tool lefthook run pre-push --all-files
 
-  clean: rm -rf bin
+
+  build:
+    desc: Build all binaries in the workspace.
+    cmds:
+      - go build -o bin/ work
+
+  build:docker:
+    desc: Build docker image.
+    cmds:
+      - echo TODO
+
+  clean: rm -rf bin/
+
+
+  ######################################################################
+  # lint
 
   lint:
     deps:
@@ -27,7 +46,15 @@ tasks:
       - lint:govulncheck
       - lint:gofumpt
       - lint:cuefmt
+      - lint:go:fix
+      - lint:go:vet
 
+  lint:full:
+    deps:
+      - lint
+      - lint:trivy
+
+  # FIXME: Intermittant failures, can be flaky.
   lint:check-links:
     cmd: go tool xurls **/*.md | grep -Ev '{{.EXCLUDE}}' | sort -u | go tool xurls -fix >/dev/null
     vars:
@@ -44,32 +71,25 @@ tasks:
   lint:goimports: go tool goimports -l .
   lint:editorconfig: go tool editorconfig-checker .  # FIXME: OOM fail!
   lint:cuefmt: go tool cue fmt --files --check .
+  lint:go:fix: go fix -diff work
+  lint:go:vet: go vet work
 
-  tag:
-    desc: Add next semver git tag
+  lint:trivy:
+    desc: Run trivy secret scan.
     cmds:
-      - for: {var: TAG_NEXT, split: "\n"}
-        cmd: git tag -a -m {{.ITEM}} {{.ITEM}}
-    status:
-      - test -z "{{.TAG_NEXT}}"
+      - GOEXPERIMENT=jsonv2 go run github.com/aquasecurity/trivy/cmd/trivy@{{.V_TRIVY}} fs --exit-code 1 --scanners secret .
 
-  tag:dryrun:
-    desc: Add next semver git tag (DRY RUN)
+  lint:fix:
+    desc: Fix linter errors that can be fixed automatically.
     cmds:
-      - for: {var: TAG_NEXT, split: "\n"}
-        cmd: echo git tag -a -m {{.ITEM}} {{.ITEM}}
-    status:
-      - test -z "{{.TAG_NEXT}}"
+      - go vet -fix work
+      - go fix work
+      - go tool goimports -w .
+      - go tool gofumpt -w .
 
-  tag:list-current:
-    desc: List current semver git tags
-    cmd: go tool sv current --all
 
-  tag:push:
-    desc: Push git tags
-    deps: [tag]
-    cmds:
-      - git push --tags
+  ######################################################################
+  # test
 
   test:
     deps:
@@ -89,3 +109,51 @@ tasks:
     desc: Build all go tool binaries to ensure no builds fail (e.g. due to dependency bumps).
     aliases: [test:tools]
     cmd: go build -o /dev/null tool
+
+
+  ######################################################################
+  # tag
+
+  tag:next-and-push:
+    desc: Add next semver git tag(s) and push.
+    cmds:
+      - task: tag:next
+      - task: tag:push
+
+  tag:next:
+    desc: Add next semver git tag.
+    cmds:
+      - for: {var: TAG_NEXT, split: "\n"}
+        cmd: git tag -a -m {{.ITEM}} {{.ITEM}}
+    status:
+      - test -z "{{.TAG_NEXT}}"
+
+  tag:next:dryrun:
+    desc: Add next semver git tag (DRY RUN).
+    cmds:
+      - for: {var: TAG_NEXT, split: "\n"}
+        cmd: echo git tag -a -m {{.ITEM}} {{.ITEM}}
+    status:
+      - test -z "{{.TAG_NEXT}}"
+
+  tag:list-current:
+    desc: List current semver git tags.
+    cmd: go tool sv current --all
+
+  tag:list-next:
+    desc: List next semver git tags.
+    cmd: go tool sv next --all
+
+  tag:push:
+    desc: Push git tags.
+    deps: [tag]
+    cmds:
+      - git push --tags
+
+  ######################################################################
+  # release
+
+  release:
+    desc: GitHub release.
+    cmds:
+      -
