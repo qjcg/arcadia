@@ -1,6 +1,6 @@
 module github.com/qjcg/arcadia/cmd/horeb
 
-go 1.26.0
+go 1.26.3
 
 require (
 	github.com/rogpeppe/go-internal v1.14.1
@@ -9,7 +9,7 @@ require (
 )
 
 require (
-	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
-	golang.org/x/tools v0.41.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 )
