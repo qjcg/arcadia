@@ -32,6 +32,8 @@ tasks:
       GOTOOLCHAIN:
         sh: awk '/^go/ {printf("go%s", $2)}' go.mod
 
+  lint:govulncheck: go tool govulncheck work
+
   tag:
     desc: Add next semver git tag
     cmds:
