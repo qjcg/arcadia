@@ -10,7 +10,7 @@ vars:
   TAG_NEXT:
     sh: 'go tool sv next --all'
 
-  V_GOLANGCILINT: v2.11.4
+  V_GOLANGCILINT: v2.12.2
 
 tasks:
   default: [{task: githook:pre-commit}]
@@ -25,10 +25,12 @@ tasks:
     cmd: go tool xurls **/*.md | grep -Ev '{{.EXCLUDE}}' | sort -u | go tool xurls -fix >/dev/null
     vars:
       EXCLUDE: localhost|twitter|9p.io|cluster.local
+
   lint:golangci-lint:
-    cmd: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.V_GOLANGCILINT}} run --fix
+    cmd: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.V_GOLANGCILINT}} run
     env:
-      GOTOOLCHAIN: go1.26.1
+      GOTOOLCHAIN:
+        sh: awk '/^go/ {printf("go%s", $2)}' go.mod
 
   tag:
     desc: Add next semver git tag
