@@ -138,8 +138,8 @@ func newRootCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("go list modules: %v\n%s", err, listOut)
 			}
-			lines := strings.Split(strings.TrimSpace(string(listOut)), "\n")
-			for _, line := range lines {
+			lines := strings.SplitSeq(strings.TrimSpace(string(listOut)), "\n")
+			for line := range lines {
 				if line == "" {
 					continue
 				}

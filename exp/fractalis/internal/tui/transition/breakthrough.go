@@ -130,10 +130,10 @@ func (b *Breakthrough) generateCrackPatternAndParticles() {
 
 	// Create main crack rays from center
 	numRays := 3 + b.RNG.Intn(3)
-	for ray := 0; ray < numRays; ray++ {
+	for ray := range numRays {
 		angle := (float64(ray) / float64(numRays)) * 2 * math.Pi
 		// Trace crack ray outward
-		for dist := 0; dist < 15; dist++ {
+		for dist := range 15 {
 			x := centerX + math.Cos(angle)*float64(dist)/15
 			y := centerY + math.Sin(angle)*float64(dist)/15
 			// Add perpendicular branches
@@ -152,7 +152,7 @@ func (b *Breakthrough) generateCrackPatternAndParticles() {
 	}
 
 	// Create glass shards as particles from crack regions
-	for i := 0; i < 30; i++ {
+	for range 30 {
 		x := b.RNG.Float64()
 		y := b.RNG.Float64()
 

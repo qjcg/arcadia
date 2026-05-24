@@ -50,7 +50,7 @@ func TestFadeTransition(t *testing.T) {
 	}
 
 	// Test completion
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		completed, _ = fade.Update()
 	}
 

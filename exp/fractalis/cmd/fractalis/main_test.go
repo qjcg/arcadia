@@ -3,6 +3,8 @@ package main
 import (
 	"math"
 	"os"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/fractal"
@@ -430,7 +432,7 @@ func TestGetEffectiveSearchDelta(t *testing.T) {
 
 func TestGenerateBookmarkName(t *testing.T) {
 	// Test that it generates names
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		name := persistence.GenerateBookmarkName()
 
 		// Should not be empty
@@ -452,7 +454,7 @@ func TestGenerateBookmarkName(t *testing.T) {
 
 	// Test that it generates different names (probabilistic test)
 	names := make(map[string]bool)
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		name := persistence.GenerateBookmarkName()
 		names[name] = true
 	}
@@ -655,29 +657,17 @@ func TestApplyRandom(t *testing.T) {
 	}
 
 	// Apply random multiple times
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		m.applyRandom()
 
 		// Should set a valid fractal type
-		validType := false
-		for _, ft := range allFractalTypes {
-			if m.config.FractalType == ft {
-				validType = true
-				break
-			}
-		}
+		validType := slices.Contains(allFractalTypes, m.config.FractalType)
 		if !validType {
 			t.Errorf("applyRandom() set invalid fractal type: %s", m.config.FractalType)
 		}
 
 		// Should set a valid color scheme
-		validColor := false
-		for _, cs := range color.AllColorSchemes {
-			if m.config.ColorScheme == cs {
-				validColor = true
-				break
-			}
-		}
+		validColor := slices.Contains(color.AllColorSchemes, m.config.ColorScheme)
 		if !validColor {
 			t.Errorf("applyRandom() set invalid color scheme: %s", m.config.ColorScheme)
 		}
@@ -1090,15 +1080,15 @@ func splitString(s string, sep rune) []string {
 }
 
 func toLower(s string) string {
-	result := ""
+	var result strings.Builder
 	for _, ch := range s {
 		if ch >= 'A' && ch <= 'Z' {
-			result += string(ch + 32)
+			result.WriteString(string(ch + 32))
 		} else {
-			result += string(ch)
+			result.WriteString(string(ch))
 		}
 	}
-	return result
+	return result.String()
 }
 
 func containsSubstring(s, substr string) bool {

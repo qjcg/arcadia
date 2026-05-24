@@ -1,5 +1,7 @@
 package ast
 
+import "strings"
+
 import "fmt"
 
 // Position represents a location in source code
@@ -422,16 +424,17 @@ type ImportSpec struct {
 
 func (n *Import) Pos() Position { return n.Loc }
 func (n *Import) String() string {
-	res := "(import"
+	var res strings.Builder
+	res.WriteString("(import")
 	for _, spec := range n.Specs {
 		if spec.Alias != "" {
-			res += fmt.Sprintf(" [%s %q]", spec.Alias, spec.Path)
+			res.WriteString(fmt.Sprintf(" [%s %q]", spec.Alias, spec.Path))
 		} else {
-			res += fmt.Sprintf(" %q", spec.Path)
+			res.WriteString(fmt.Sprintf(" %q", spec.Path))
 		}
 	}
-	res += ")"
-	return res
+	res.WriteString(")")
+	return res.String()
 }
 
 // ============================================================================

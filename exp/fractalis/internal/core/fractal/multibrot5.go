@@ -3,7 +3,7 @@ package fractal
 func Multibrot5(cr, ci float64, maxIter int) int {
 	zr, zi := 0.0, 0.0
 
-	for i := 0; i < maxIter; i++ {
+	for i := range maxIter {
 		zr2 := zr * zr
 		zi2 := zi * zi
 

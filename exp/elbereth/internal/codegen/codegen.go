@@ -1184,14 +1184,14 @@ func (g *Generator) genDo(doExpr *ast.DoExpr, prefix string) {
 
 func (g *Generator) genLet(letExpr *ast.LetExpr) {
 	for _, binding := range letExpr.Bindings {
-		prefix := ""
+		var prefix strings.Builder
 		for i, name := range binding.Names {
 			if i > 0 {
-				prefix += ", "
+				prefix.WriteString(", ")
 			}
-			prefix += sanitizeIdent(name)
+			prefix.WriteString(sanitizeIdent(name))
 		}
-		g.genExprWithPrefix(binding.Init, prefix+" := ")
+		g.genExprWithPrefix(binding.Init, prefix.String()+" := ")
 		g.writeLine("")
 	}
 	for _, expr := range letExpr.Body {

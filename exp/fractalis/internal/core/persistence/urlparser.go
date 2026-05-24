@@ -39,9 +39,9 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 
 	// Split path and query
 	var pathStr, queryStr string
-	if idx := strings.IndexByte(rest, '?'); idx >= 0 {
-		pathStr = rest[:idx]
-		queryStr = rest[idx+1:]
+	if before, after, ok := strings.Cut(rest, "?"); ok {
+		pathStr = before
+		queryStr = after
 	} else {
 		pathStr = rest
 		queryStr = ""

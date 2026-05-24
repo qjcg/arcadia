@@ -124,9 +124,7 @@ func (r *Renderer) calculateIterationsParallel() [][]int {
 
 	// Start worker goroutines
 	for worker := 0; worker < r.numWorkers; worker++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for row := range rowChan {
 				for col := range r.config.Width {
 					cr, ci := MapToComplex(col, row, r.config.Width, r.config.Height,
@@ -134,7 +132,7 @@ func (r *Renderer) calculateIterationsParallel() [][]int {
 					grid[row][col] = int(r.calculateFractal(cr, ci, r.config))
 				}
 			}
-		}()
+		})
 	}
 
 	// Send rows to workers

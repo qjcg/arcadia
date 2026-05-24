@@ -349,12 +349,10 @@ func (m model) calculateAdaptiveMaxIter() int {
 	// At zoom=1000000: baseIter + 120
 	if m.config.Zoom > 1.0 {
 		logZoom := math.Log10(m.config.Zoom)
-		adaptiveIter := baseIter + int(logZoom*animation.IterationScaleFactor)
-
-		// Cap at reasonable maximum to avoid performance issues
-		if adaptiveIter > animation.MaxIterationCap {
-			adaptiveIter = animation.MaxIterationCap
-		}
+		adaptiveIter := min(
+			// Cap at reasonable maximum to avoid performance issues
+			baseIter+int(logZoom*animation.IterationScaleFactor), animation.MaxIterationCap,
+		)
 		return adaptiveIter
 	}
 
@@ -1673,7 +1671,7 @@ func main() {
                                v
 `
 		logoStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("81"))
-		for _, line := range strings.Split(logo, "\n") {
+		for line := range strings.SplitSeq(logo, "\n") {
 			fmt.Fprintln(os.Stderr, logoStyle.Render(line))
 		}
 		fmt.Fprintln(os.Stderr, lipgloss.NewStyle().Foreground(lipgloss.Color("39")).Italic(true).Render("      ~ deep iterative crystalline exploration ~\n"))

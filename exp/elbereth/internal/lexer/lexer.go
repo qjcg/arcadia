@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"fmt"
+	"strings"
 	"unicode"
 )
 
@@ -224,13 +225,6 @@ func (l *Lexer) lexHashLang() Token {
 	return Token{Type: TokenHashLang, Value: "#lang", Line: line, Column: col}
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func (l *Lexer) lexString() Token {
 	startLine, startCol := l.line, l.column
 	l.advance() // skip opening quote
@@ -312,13 +306,13 @@ func (l *Lexer) lexKeyword() Token {
 	startLine, startCol := l.line, l.column
 	l.advance() // skip :
 
-	var name string
+	var name strings.Builder
 	for l.pos < len(l.input) && isSymbolChar(l.input[l.pos]) {
-		name += string(l.input[l.pos])
+		name.WriteString(string(l.input[l.pos]))
 		l.advance()
 	}
 
-	if name == "" {
+	if name.String() == "" {
 		return Token{
 			Type:   TokenError,
 			Value:  "empty keyword",
@@ -329,7 +323,7 @@ func (l *Lexer) lexKeyword() Token {
 
 	return Token{
 		Type:   TokenKeyword,
-		Value:  name,
+		Value:  name.String(),
 		Line:   startLine,
 		Column: startCol,
 	}

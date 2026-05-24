@@ -267,7 +267,7 @@ func (g *Game) drawFractal(screen *ebiten.Image) {
 	unitToSize := 3.5 / (float64(g.width) * zoom)
 	aspect := float64(g.height) / float64(g.width)
 
-	uniforms := map[string]interface{}{
+	uniforms := map[string]any{
 		"Time":         float32(time.Since(g.startTime).Seconds()),
 		"Resolution":   [2]float32{float32(g.width), float32(g.height)},
 		"CamPos":       [3]float32{float32(g.camX), float32(g.camY), float32(g.camZ)},

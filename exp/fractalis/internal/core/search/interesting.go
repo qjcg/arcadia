@@ -72,7 +72,7 @@ func RandomizeConfig(cfg *persistence.Config, ic *InterestCalculator) string {
 	const maxAttempts = 5
 	var resultMsg string
 
-	for attempt := 0; attempt < maxAttempts; attempt++ {
+	for range maxAttempts {
 		// Random fractal type
 		fractalType := AllFractalTypes[rng.Intn(len(AllFractalTypes))]
 		cfg.FractalType = fractalType
@@ -87,10 +87,7 @@ func RandomizeConfig(cfg *persistence.Config, ic *InterestCalculator) string {
 		const iterationScaleFactor = 20.0
 		baseIter := defaultBaseIterations + rng.Intn(100)
 		zoomBonus := int(math.Log10(zoom) * iterationScaleFactor)
-		cfg.MaxIter = baseIter + zoomBonus
-		if cfg.MaxIter > 300 {
-			cfg.MaxIter = 300
-		}
+		cfg.MaxIter = min(baseIter+zoomBonus, 300)
 
 		// Random position based on fractal type
 		if fractalType == persistence.FractalJulia {

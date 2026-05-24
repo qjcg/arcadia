@@ -87,10 +87,7 @@ func (g *Game) updateAutopilot() {
 		if logZoom10 < 0 {
 			logZoom10 = 0
 		}
-		g.iterations = baseIter + int(logZoom10*20.0)
-		if g.iterations > 1000 {
-			g.iterations = 1000
-		}
+		g.iterations = min(baseIter+int(logZoom10*20.0), 1000)
 
 		// 3. Target management
 		cfg := g.getPersistenceConfig()

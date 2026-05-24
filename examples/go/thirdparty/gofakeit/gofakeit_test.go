@@ -3,6 +3,7 @@ package gofakeit
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/brianvoe/gofakeit/v7"
 )
@@ -81,15 +82,15 @@ func ExampleAddFuncLookup_withParams() {
 				return nil, err
 			}
 
-			var dominos string
+			var dominos strings.Builder
 			start := 0x1f030
 			end := 0x1f09f
 			for i := 0; i < int(count); i++ {
 				v := gofakeit.Number(start, end) // Uses random seed from init().
-				dominos += string(rune(v))
+				dominos.WriteString(string(rune(v)))
 			}
 
-			return dominos, nil
+			return dominos.String(), nil
 		},
 	})
 
