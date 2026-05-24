@@ -40,7 +40,7 @@ tasks:
 
   lint:govulncheck: go tool govulncheck work
   lint:gofumpt: go tool gofumpt -l .
-  lint:gofumpt: go tool goimports -l .
+  lint:goimports: go tool goimports -l .
   lint:editorconfig: go tool editorconfig-checker .  # FIXME: OOM fail!
 
   tag:
