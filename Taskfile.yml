@@ -26,6 +26,7 @@ tasks:
       - lint:golangci-lint
       - lint:govulncheck
       - lint:gofumpt
+      - lint:cuefmt
 
   lint:check-links:
     cmd: go tool xurls **/*.md | grep -Ev '{{.EXCLUDE}}' | sort -u | go tool xurls -fix >/dev/null
@@ -42,6 +43,7 @@ tasks:
   lint:gofumpt: go tool gofumpt -l .
   lint:goimports: go tool goimports -l .
   lint:editorconfig: go tool editorconfig-checker .  # FIXME: OOM fail!
+  lint:cuefmt: go tool cue fmt --files --check .
 
   tag:
     desc: Add next semver git tag
