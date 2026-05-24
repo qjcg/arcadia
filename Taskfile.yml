@@ -71,14 +71,19 @@ tasks:
 
   test:
     deps:
-      - test:go-integration
-      - test:build
-      - test:go-tools
+      - test:go:integration
+      - test:go:build-all-binaries
+      - test:go:build-all-tools
 
-  test:go-unit: go tool gotestsum work
-  test:go-integration: go tool gotestsum work -tags integration
-  test:build: go build -o /dev/null work
+  test:go:unit: go tool gotestsum work
+  test:go:integration: go tool gotestsum work -tags integration
 
-  test:go-tools:
-    desc: Test go tools to ensure none are broken due to dependency updates.
+  test:go:build-all-binaries:
+    desc: Build all go binaries in the workspace to ensure no builds fail (e.g. due to dependency bumps).
+    aliases: [test:bin]
+    cmd: go build -o /dev/null work
+
+  test:go:build-all-tools:
+    desc: Build all go tool binaries to ensure no builds fail (e.g. due to dependency bumps).
+    aliases: [test:tools]
     cmd: go build -o /dev/null tool
