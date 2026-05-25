@@ -1,0 +1,26 @@
+version: '3'
+
+tasks:
+  default:
+    deps:
+      - build
+
+  build:
+    desc: Build the fc binary
+    cmds:
+      - go build -o fc .
+
+  install:
+    desc: Build and install fc to $GOPATH/bin
+    cmds:
+      - go install .
+
+  test:
+    desc: Run unit tests
+    cmds:
+      - go test -v ./...
+
+  clean:
+    desc: Remove built binary
+    cmds:
+      - rm -f fc
