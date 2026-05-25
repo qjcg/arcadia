@@ -7,7 +7,8 @@ import (
 	"strings"
 
 	"github.com/GiGurra/boa/pkg/boa"
-	"github.com/qjcg/arcadia/exp/fc/internal"
+	"github.com/qjcg/arcadia/exp/fc/internal/rates"
+	"github.com/qjcg/arcadia/exp/fc/internal/rules"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +34,7 @@ Examples:
 }
 
 func runRates(cmd *cobra.Command, jurisdiction string, filterYear int) error {
-	rateDB, err := internal.NewRateDB()
+	rateDB, err := rates.NewRateDB()
 	if err != nil {
 		return fmt.Errorf("failed to load rates database: %w", err)
 	}
@@ -58,17 +59,17 @@ func runRates(cmd *cobra.Command, jurisdiction string, filterYear int) error {
 	showRQ := jurisdiction == "both" || jurisdiction == "rq"
 
 	if showCRA {
-		printJurisdictionRates(w, "CRA (Canada Revenue Agency)", rateDB, internal.CRA, filterYear)
+		printJurisdictionRates(w, "CRA (Canada Revenue Agency)", rateDB, rules.CRA, filterYear)
 	}
 
 	if showRQ {
-		printJurisdictionRates(w, "RQ (Revenu Québec)", rateDB, internal.RQ, filterYear)
+		printJurisdictionRates(w, "RQ (Revenu Québec)", rateDB, rules.RQ, filterYear)
 	}
 
 	return nil
 }
 
-func printJurisdictionRates(w io.Writer, name string, rateDB *internal.RateDB, j internal.Jurisdiction, filterYear int) {
+func printJurisdictionRates(w io.Writer, name string, rateDB *rates.RateDB, j rules.Jurisdiction, filterYear int) {
 	fmt.Fprintln(w, "")
 	fmt.Fprintf(w, "  ── %s\n", name)
 	fmt.Fprintln(w, "")

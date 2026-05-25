@@ -1,4 +1,4 @@
-package internal
+package fetcher
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/qjcg/arcadia/exp/fc/internal/rules"
 )
 
 // Fetcher handles fetching interest rates from official sources
@@ -31,11 +33,11 @@ type FetchedRate struct {
 }
 
 // FetchRates fetches rates from the specified source for a given year range
-func (f *Fetcher) FetchRates(source Jurisdiction, startYear, endYear int) ([]FetchedRate, error) {
+func (f *Fetcher) FetchRates(source rules.Jurisdiction, startYear, endYear int) ([]FetchedRate, error) {
 	switch source {
-	case CRA:
+	case rules.CRA:
 		return f.fetchCRARates(startYear, endYear)
-	case RQ:
+	case rules.RQ:
 		return f.fetchRQRates(startYear, endYear)
 	default:
 		return nil, fmt.Errorf("unsupported source: %s", source)
@@ -276,8 +278,8 @@ func filterRatesByYear(rates []FetchedRate, startYear, endYear int) []FetchedRat
 }
 
 // FetchRateRange fetches rates for a specific range string (e.g., "2015-2025")
-func (f *Fetcher) FetchRateRange(source Jurisdiction, rangeStr string) ([]FetchedRate, error) {
-	rng, err := ParseRange(rangeStr)
+func (f *Fetcher) FetchRateRange(source rules.Jurisdiction, rangeStr string) ([]FetchedRate, error) {
+	rng, err := rules.ParseRange(rangeStr)
 	if err != nil {
 		return nil, err
 	}
@@ -299,11 +301,11 @@ func (f *Fetcher) ValidateRates(rates []FetchedRate) error {
 }
 
 // BuildUpdateURL constructs a URL for manual rate lookup
-func (f *Fetcher) BuildUpdateURL(source Jurisdiction) string {
+func (f *Fetcher) BuildUpdateURL(source rules.Jurisdiction) string {
 	switch source {
-	case CRA:
+	case rules.CRA:
 		return "https://www.canada.ca/en/revenue-agency/services/tax/prescribed-interest-rates.html"
-	case RQ:
+	case rules.RQ:
 		base, _ := url.Parse("https://www.revenuquebec.ca/en/one-mission-concrete-actions/ensuring-tax-compliance/penalties-and-interest/interest-rates-on-debts/")
 		return base.String()
 	default:

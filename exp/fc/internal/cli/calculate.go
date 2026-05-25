@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/GiGurra/boa/pkg/boa"
-	"github.com/qjcg/arcadia/exp/fc/internal"
+	"github.com/qjcg/arcadia/exp/fc/internal/calculator"
 	"github.com/shopspring/decimal"
 	"github.com/spf13/cobra"
 )
@@ -66,12 +66,12 @@ func runPic(p *PicParams, cmd *cobra.Command) error {
 		return fmt.Errorf("invalid actual-payment-date format: %w", err)
 	}
 
-	calc, err := internal.NewCalculator()
+	calc, err := calculator.NewCalculator()
 	if err != nil {
 		return fmt.Errorf("failed to initialize calculator: %w", err)
 	}
 
-	result, err := calc.Calculate(internal.CalculationInput{
+	result, err := calc.Calculate(calculator.CalculationInput{
 		Year:                p.Year,
 		Earned:              earned,
 		BaseDueCRA:          baseDueCRA,
@@ -96,13 +96,13 @@ func runPic(p *PicParams, cmd *cobra.Command) error {
 	}
 }
 
-func outputJSON(cmd *cobra.Command, result *internal.CalculationResult) error {
+func outputJSON(cmd *cobra.Command, result *calculator.CalculationResult) error {
 	enc := json.NewEncoder(cmd.OutOrStdout())
 	enc.SetIndent("", "  ")
 	return enc.Encode(result)
 }
 
-func outputText(cmd *cobra.Command, result *internal.CalculationResult, calc *internal.Calculator) error {
+func outputText(cmd *cobra.Command, result *calculator.CalculationResult, calc *calculator.Calculator) error {
 	rateDB := calc.GetRateDB()
 	meta := rateDB.GetMeta()
 

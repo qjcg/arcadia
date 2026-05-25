@@ -1,9 +1,10 @@
-package internal
+package rq
 
 import (
 	"fmt"
 	"time"
 
+	"github.com/qjcg/arcadia/exp/fc/internal/money"
 	"github.com/shopspring/decimal"
 )
 
@@ -17,7 +18,7 @@ func NewRQRules() *RQRules {
 
 // CalculateLateFilingPenalty calculates the late filing penalty for RQ
 // Revenu Québec charges a penalty similar to CRA but with Quebec-specific rules
-func (r *RQRules) CalculateLateFilingPenalty(taxAmount Money, dueDate, filingDate time.Time, hadBalanceLastYear bool) Money {
+func (r *RQRules) CalculateLateFilingPenalty(taxAmount money.Money, dueDate, filingDate time.Time, hadBalanceLastYear bool) money.Money {
 	if !hadBalanceLastYear {
 		return decimal.Zero
 	}
@@ -46,7 +47,7 @@ func (r *RQRules) MonthsLate(dueDate, filingDate time.Time) int {
 
 // CalculateInterest calculates daily compounded interest on amount owed
 // Revenu Québec compounds interest daily at the prescribed rate
-func (r *RQRules) CalculateInterest(amount Money, startDate, endDate time.Time, dailyRate float64) Money {
+func (r *RQRules) CalculateInterest(amount money.Money, startDate, endDate time.Time, dailyRate float64) money.Money {
 	if amount.LessThanOrEqual(decimal.Zero) || endDate.Before(startDate) {
 		return decimal.Zero
 	}

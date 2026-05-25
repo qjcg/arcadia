@@ -1,4 +1,4 @@
-package internal
+package money
 
 import (
 	"github.com/shopspring/decimal"

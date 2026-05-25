@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/GiGurra/boa/pkg/boa"
-	"github.com/qjcg/arcadia/exp/fc/internal"
+	"github.com/qjcg/arcadia/exp/fc/internal/fetcher"
 	"github.com/qjcg/arcadia/exp/fc/internal/rates"
+	"github.com/qjcg/arcadia/exp/fc/internal/rules"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -40,36 +41,36 @@ Examples:
 }
 
 func runUpdate(p *UpdateParams, cmd *cobra.Command) error {
-	rng, err := internal.ParseRange(p.Range)
+	rng, err := rules.ParseRange(p.Range)
 	if err != nil {
 		return err
 	}
 
-	source := internal.Jurisdiction(p.Source)
-	if source != internal.CRA && source != internal.RQ && p.Source != "both" {
+	source := rules.Jurisdiction(p.Source)
+	if source != rules.CRA && source != rules.RQ && p.Source != "both" {
 		return fmt.Errorf("invalid source: %s (must be 'cra', 'rq', or 'both')", p.Source)
 	}
 
-	fetcher := internal.NewFetcher()
+	f := fetcher.NewFetcher()
 
-	var fetchedRates []internal.FetchedRate
+	var fetchedRates []fetcher.FetchedRate
 
 	if p.Source == "both" {
-		craRates, err := fetcher.FetchRates(internal.CRA, rng.StartYear, rng.EndYear)
+		craRates, err := f.FetchRates(rules.CRA, rng.StartYear, rng.EndYear)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to fetch CRA rates: %v\n", err)
 		} else {
 			fetchedRates = append(fetchedRates, craRates...)
 		}
 
-		rqRates, err := fetcher.FetchRates(internal.RQ, rng.StartYear, rng.EndYear)
+		rqRates, err := f.FetchRates(rules.RQ, rng.StartYear, rng.EndYear)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to fetch RQ rates: %v\n", err)
 		} else {
 			fetchedRates = append(fetchedRates, rqRates...)
 		}
 	} else {
-		fetchedRates, err = fetcher.FetchRates(source, rng.StartYear, rng.EndYear)
+		fetchedRates, err = f.FetchRates(source, rng.StartYear, rng.EndYear)
 		if err != nil {
 			return fmt.Errorf("failed to fetch rates: %w", err)
 		}
@@ -80,7 +81,7 @@ func runUpdate(p *UpdateParams, cmd *cobra.Command) error {
 	}
 
 	// Validate fetched rates
-	if err := fetcher.ValidateRates(fetchedRates); err != nil {
+	if err := f.ValidateRates(fetchedRates); err != nil {
 		fmt.Fprintf(cmd.ErrOrStderr(), "Warning: %v\n", err)
 		fmt.Fprintf(cmd.ErrOrStderr(), "Attempting to continue with fetched data...\n")
 	}
@@ -115,7 +116,7 @@ func runUpdate(p *UpdateParams, cmd *cobra.Command) error {
 	return nil
 }
 
-func outputDryRun(cmd *cobra.Command, fetchedRates []internal.FetchedRate) error {
+func outputDryRun(cmd *cobra.Command, fetchedRates []fetcher.FetchedRate) error {
 	w := cmd.OutOrStdout()
 	fmt.Fprintln(w, "═══════════════════════════════════════════════════════════════")
 	fmt.Fprintln(w, "                    DRY RUN - NO CHANGES MADE")
@@ -138,7 +139,7 @@ func outputDryRun(cmd *cobra.Command, fetchedRates []internal.FetchedRate) error
 	return nil
 }
 
-func updateRatesInDB(db *rates.RatesDB, newRates []internal.FetchedRate) *rates.RatesDB {
+func updateRatesInDB(db *rates.RatesDB, newRates []fetcher.FetchedRate) *rates.RatesDB {
 	for _, r := range newRates {
 		switch r.Source {
 		case "CRA":

@@ -1,28 +1,20 @@
-package internal
+package rates
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/qjcg/arcadia/exp/fc/internal/rates"
-)
-
-// Jurisdiction represents CRA or Revenu Québec
-type Jurisdiction string
-
-const (
-	CRA Jurisdiction = "cra"
-	RQ  Jurisdiction = "rq"
+	"github.com/qjcg/arcadia/exp/fc/internal/rules"
 )
 
 // RateDB wraps the parsed rates database
 type RateDB struct {
-	db *rates.RatesDB
+	db *RatesDB
 }
 
 // NewRateDB parses and returns a new RateDB from embedded YAML
 func NewRateDB() (*RateDB, error) {
-	db, err := rates.Load(rates.EmbeddedRates)
+	db, err := Load(EmbeddedRates)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse rates database: %w", err)
 	}
@@ -31,7 +23,7 @@ func NewRateDB() (*RateDB, error) {
 
 // LoadRateDB loads rates from custom YAML bytes (for update command)
 func LoadRateDB(data []byte) (*RateDB, error) {
-	db, err := rates.Load(data)
+	db, err := Load(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse rates database: %w", err)
 	}
@@ -39,7 +31,7 @@ func LoadRateDB(data []byte) (*RateDB, error) {
 }
 
 // GetPrescribedRate returns the prescribed interest rate for a jurisdiction and quarter
-func (r *RateDB) GetPrescribedRate(j Jurisdiction, quarter string) (float64, error) {
+func (r *RateDB) GetPrescribedRate(j rules.Jurisdiction, quarter string) (float64, error) {
 	ratesSlice := r.getRates(j).PrescribedRate
 	for _, qr := range ratesSlice {
 		if qr.Quarter == quarter {
@@ -54,7 +46,7 @@ func (r *RateDB) GetPrescribedRate(j Jurisdiction, quarter string) (float64, err
 }
 
 // GetLateFilingPenaltyRate returns the late filing penalty rate for a jurisdiction and year
-func (r *RateDB) GetLateFilingPenaltyRate(j Jurisdiction, year int) (float64, error) {
+func (r *RateDB) GetLateFilingPenaltyRate(j rules.Jurisdiction, year int) (float64, error) {
 	ratesSlice := r.getRates(j).LateFilingPenalty
 	for _, yr := range ratesSlice {
 		if yr.Year == year {
@@ -65,16 +57,16 @@ func (r *RateDB) GetLateFilingPenaltyRate(j Jurisdiction, year int) (float64, er
 }
 
 // GetPrescribedRateForDate returns the prescribed rate for a jurisdiction on a given date
-func (r *RateDB) GetPrescribedRateForDate(j Jurisdiction, t time.Time) (float64, error) {
-	quarter := rates.GetQuarterForDate(t)
+func (r *RateDB) GetPrescribedRateForDate(j rules.Jurisdiction, t time.Time) (float64, error) {
+	quarter := GetQuarterForDate(t)
 	return r.GetPrescribedRate(j, quarter)
 }
 
-func (r *RateDB) getRates(j Jurisdiction) *rates.JurisdictionRates {
+func (r *RateDB) getRates(j rules.Jurisdiction) *JurisdictionRates {
 	switch j {
-	case CRA:
+	case rules.CRA:
 		return &r.db.CRA
-	case RQ:
+	case rules.RQ:
 		return &r.db.RQ
 	default:
 		return nil
@@ -82,7 +74,7 @@ func (r *RateDB) getRates(j Jurisdiction) *rates.JurisdictionRates {
 }
 
 // GetAllQuarters returns all quarters in the database for a jurisdiction
-func (r *RateDB) GetAllQuarters(j Jurisdiction) []string {
+func (r *RateDB) GetAllQuarters(j rules.Jurisdiction) []string {
 	ratesSlice := r.getRates(j).PrescribedRate
 	quarters := make([]string, len(ratesSlice))
 	for i, qr := range ratesSlice {
@@ -92,25 +84,6 @@ func (r *RateDB) GetAllQuarters(j Jurisdiction) []string {
 }
 
 // GetMeta returns the rates metadata
-func (r *RateDB) GetMeta() rates.RatesMeta {
+func (r *RateDB) GetMeta() RatesMeta {
 	return r.db.Meta
-}
-
-// Range represents a time range for updates
-type Range struct {
-	StartYear int
-	EndYear   int
-}
-
-// ParseRange parses "YYYY-YYYY" format
-func ParseRange(s string) (*Range, error) {
-	var start, end int
-	_, err := fmt.Sscanf(s, "%d-%d", &start, &end)
-	if err != nil {
-		return nil, fmt.Errorf("invalid range format %q (expected YYYY-YYYY): %w", s, err)
-	}
-	if start > end {
-		return nil, fmt.Errorf("start year %d is after end year %d", start, end)
-	}
-	return &Range{StartYear: start, EndYear: end}, nil
 }

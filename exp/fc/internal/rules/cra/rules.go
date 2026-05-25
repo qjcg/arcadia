@@ -1,9 +1,10 @@
-package internal
+package cra
 
 import (
 	"fmt"
 	"time"
 
+	"github.com/qjcg/arcadia/exp/fc/internal/money"
 	"github.com/shopspring/decimal"
 )
 
@@ -18,7 +19,7 @@ func NewCRARules() *CRARules {
 // CalculateLateFilingPenalty calculates the late filing penalty
 // CRA charges 5% of the balance owing, plus an additional 1% per month of late filing
 // up to a maximum of 12 months (12%) if the taxpayer had a balance owing in the previous year
-func (c *CRARules) CalculateLateFilingPenalty(taxAmount Money, dueDate, filingDate time.Time, hadBalanceLastYear bool) Money {
+func (c *CRARules) CalculateLateFilingPenalty(taxAmount money.Money, dueDate, filingDate time.Time, hadBalanceLastYear bool) money.Money {
 	fivePercent := decimal.NewFromFloat(0.05)
 	onePercent := decimal.NewFromFloat(0.01)
 
@@ -55,7 +56,7 @@ func (c *CRARules) MonthsLate(dueDate, filingDate time.Time) int {
 
 // CalculateInterest calculates daily compounded interest on amount owed
 // CRA compounds interest daily at the prescribed rate
-func (c *CRARules) CalculateInterest(amount Money, startDate, endDate time.Time, dailyRate float64) Money {
+func (c *CRARules) CalculateInterest(amount money.Money, startDate, endDate time.Time, dailyRate float64) money.Money {
 	if amount.LessThanOrEqual(decimal.Zero) || endDate.Before(startDate) {
 		return decimal.Zero
 	}

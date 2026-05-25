@@ -1,25 +1,30 @@
-package internal
+package calculator
 
 import (
 	"fmt"
 	"time"
 
+	"github.com/qjcg/arcadia/exp/fc/internal/money"
+	"github.com/qjcg/arcadia/exp/fc/internal/rates"
+	"github.com/qjcg/arcadia/exp/fc/internal/rules"
+	"github.com/qjcg/arcadia/exp/fc/internal/rules/cra"
+	"github.com/qjcg/arcadia/exp/fc/internal/rules/rq"
 	"github.com/shopspring/decimal"
 )
 
 // Calculator handles penalty and interest calculations
 type Calculator struct {
-	rateDB *RateDB
-	cra    *CRARules
-	rq     *RQRules
+	rateDB  *rates.RateDB
+	craRule rules.Interface
+	rqRule  rules.Interface
 }
 
 // CalculationInput contains all inputs for a calculation
 type CalculationInput struct {
 	Year                int       `json:"year"`
-	Earned              Money     `json:"earned"`
-	BaseDueCRA          Money     `json:"base_due_cra"`
-	BaseDueRQ           Money     `json:"base_due_rqc"`
+	Earned              money.Money     `json:"earned"`
+	BaseDueCRA          money.Money     `json:"base_due_cra"`
+	BaseDueRQ           money.Money     `json:"base_due_rqc"`
 	ExpectedFilingDate  time.Time `json:"expected_filing_date"`
 	ExpectedPaymentDate time.Time `json:"expected_payment_date"`
 	ActualFilingDate    time.Time `json:"actual_filing_date"`
@@ -30,16 +35,16 @@ type CalculationInput struct {
 // CalculationResult contains the breakdown of penalties and interest
 type CalculationResult struct {
 	Year                int       `json:"year"`
-	Earned              Money     `json:"earned"`
-	BaseDueCRA          Money     `json:"base_due_cra"`
-	BaseDueRQ           Money     `json:"base_due_rqc"`
-	PenaltiesCRA        Money     `json:"penalties_cra"`
-	InterestCRA         Money     `json:"interest_cra"`
-	PenaltiesRQ         Money     `json:"penalties_rqc"`
-	InterestRQ          Money     `json:"interest_rqc"`
-	TotalDueCRA         Money     `json:"total_due_cra"`
-	TotalDueRQ          Money     `json:"total_due_rqc"`
-	TotalDue            Money     `json:"total_due"`
+	Earned              money.Money     `json:"earned"`
+	BaseDueCRA          money.Money     `json:"base_due_cra"`
+	BaseDueRQ           money.Money     `json:"base_due_rqc"`
+	PenaltiesCRA        money.Money     `json:"penalties_cra"`
+	InterestCRA         money.Money     `json:"interest_cra"`
+	PenaltiesRQ         money.Money     `json:"penalties_rqc"`
+	InterestRQ          money.Money     `json:"interest_rqc"`
+	TotalDueCRA         money.Money     `json:"total_due_cra"`
+	TotalDueRQ          money.Money     `json:"total_due_rqc"`
+	TotalDue            money.Money     `json:"total_due"`
 	ExpectedFilingDate  time.Time `json:"expected_filing_date"`
 	ExpectedPaymentDate time.Time `json:"expected_payment_date"`
 	ActualFilingDate    time.Time `json:"actual_filing_date"`
@@ -48,23 +53,23 @@ type CalculationResult struct {
 
 // NewCalculator creates a new calculator with the embedded rates database
 func NewCalculator() (*Calculator, error) {
-	rateDB, err := NewRateDB()
+	rateDB, err := rates.NewRateDB()
 	if err != nil {
 		return nil, err
 	}
 	return &Calculator{
-		rateDB: rateDB,
-		cra:    NewCRARules(),
-		rq:     NewRQRules(),
+		rateDB:  rateDB,
+		craRule: cra.NewCRARules(),
+		rqRule:  rq.NewRQRules(),
 	}, nil
 }
 
 // NewCalculatorWithDB creates a calculator with a custom rates database
-func NewCalculatorWithDB(rateDB *RateDB) *Calculator {
+func NewCalculatorWithDB(rateDB *rates.RateDB) *Calculator {
 	return &Calculator{
-		rateDB: rateDB,
-		cra:    NewCRARules(),
-		rq:     NewRQRules(),
+		rateDB:  rateDB,
+		craRule: cra.NewCRARules(),
+		rqRule:  rq.NewRQRules(),
 	}
 }
 
@@ -87,15 +92,15 @@ func (c *Calculator) Calculate(inp CalculationInput) (*CalculationResult, error)
 
 	// Calculate CRA penalties and interest
 	if inp.BaseDueCRA.GreaterThan(decimal.Zero) {
-		result.PenaltiesCRA = c.calculatePenalty(inp.BaseDueCRA, inp.ExpectedFilingDate, inp.ActualFilingDate, inp.HadBalanceLastYear, CRA)
-		result.InterestCRA = c.calculateInterest(inp.BaseDueCRA.Add(result.PenaltiesCRA), inp.ExpectedPaymentDate, inp.ActualPaymentDate, CRA)
+		result.PenaltiesCRA = c.craRule.CalculateLateFilingPenalty(inp.BaseDueCRA, inp.ExpectedFilingDate, inp.ActualFilingDate, inp.HadBalanceLastYear)
+		result.InterestCRA = c.calculateInterest(inp.BaseDueCRA.Add(result.PenaltiesCRA), inp.ExpectedPaymentDate, inp.ActualPaymentDate, c.craRule, rules.CRA)
 		result.TotalDueCRA = inp.BaseDueCRA.Add(result.PenaltiesCRA).Add(result.InterestCRA)
 	}
 
 	// Calculate RQ penalties and interest
 	if inp.BaseDueRQ.GreaterThan(decimal.Zero) {
-		result.PenaltiesRQ = c.calculatePenalty(inp.BaseDueRQ, inp.ExpectedFilingDate, inp.ActualFilingDate, inp.HadBalanceLastYear, RQ)
-		result.InterestRQ = c.calculateInterest(inp.BaseDueRQ.Add(result.PenaltiesRQ), inp.ExpectedPaymentDate, inp.ActualPaymentDate, RQ)
+		result.PenaltiesRQ = c.rqRule.CalculateLateFilingPenalty(inp.BaseDueRQ, inp.ExpectedFilingDate, inp.ActualFilingDate, inp.HadBalanceLastYear)
+		result.InterestRQ = c.calculateInterest(inp.BaseDueRQ.Add(result.PenaltiesRQ), inp.ExpectedPaymentDate, inp.ActualPaymentDate, c.rqRule, rules.RQ)
 		result.TotalDueRQ = inp.BaseDueRQ.Add(result.PenaltiesRQ).Add(result.InterestRQ)
 	}
 
@@ -115,18 +120,7 @@ func (c *Calculator) validateInput(inp CalculationInput) error {
 	return nil
 }
 
-func (c *Calculator) calculatePenalty(taxAmount Money, expectedDate, actualDate time.Time, hadBalanceLastYear bool, j Jurisdiction) Money {
-	switch j {
-	case CRA:
-		return c.cra.CalculateLateFilingPenalty(taxAmount, expectedDate, actualDate, hadBalanceLastYear)
-	case RQ:
-		return c.rq.CalculateLateFilingPenalty(taxAmount, expectedDate, actualDate, hadBalanceLastYear)
-	default:
-		return decimal.Zero
-	}
-}
-
-func (c *Calculator) calculateInterest(taxAmount Money, expectedDate, actualDate time.Time, j Jurisdiction) Money {
+func (c *Calculator) calculateInterest(taxAmount money.Money, expectedDate, actualDate time.Time, rule rules.Interface, j rules.Jurisdiction) money.Money {
 	if actualDate.Before(expectedDate) {
 		return decimal.Zero
 	}
@@ -136,17 +130,10 @@ func (c *Calculator) calculateInterest(taxAmount Money, expectedDate, actualDate
 		return decimal.Zero
 	}
 
-	switch j {
-	case CRA:
-		return c.cra.CalculateInterest(taxAmount, expectedDate, actualDate, rate)
-	case RQ:
-		return c.rq.CalculateInterest(taxAmount, expectedDate, actualDate, rate)
-	default:
-		return decimal.Zero
-	}
+	return rule.CalculateInterest(taxAmount, expectedDate, actualDate, rate)
 }
 
 // GetRateDB returns the underlying rate database
-func (c *Calculator) GetRateDB() *RateDB {
+func (c *Calculator) GetRateDB() *rates.RateDB {
 	return c.rateDB
 }
