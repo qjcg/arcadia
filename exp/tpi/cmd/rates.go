@@ -1,0 +1,121 @@
+package cmd
+
+import (
+	"fmt"
+	"io"
+	"sort"
+	"strings"
+
+	"github.com/qjcg/arcadia/exp/tpi/internal"
+	"github.com/spf13/cobra"
+)
+
+func ratesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "rates",
+		Short: "Display current interest rates",
+		Long: `Display the embedded interest rates database for CRA and/or Revenu Québec.
+
+Examples:
+  tpi rates
+  tpi rates --jurisdiction cra
+  tpi rates --year 2024 --jurisdiction rq`,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			jurisdiction, _ := cmd.Flags().GetString("jurisdiction")
+			year, _ := cmd.Flags().GetInt("year")
+
+			return runRates(cmd, jurisdiction, year)
+		},
+	}
+
+	cmd.Flags().String("jurisdiction", "both", "Show rates for 'cra', 'rq', or 'both'")
+	cmd.Flags().Int("year", 0, "Show rates for a specific year")
+
+	return cmd
+}
+
+func runRates(cmd *cobra.Command, jurisdiction string, filterYear int) error {
+	rateDB, err := internal.NewRateDB()
+	if err != nil {
+		return fmt.Errorf("failed to load rates database: %w", err)
+	}
+
+	meta := rateDB.GetMeta()
+	w := cmd.OutOrStdout()
+
+	fmt.Fprintln(w, "═══════════════════════════════════════════════════════════════")
+	fmt.Fprintln(w, "                 INTEREST RATES DATABASE")
+	fmt.Fprintln(w, "═══════════════════════════════════════════════════════════════")
+	fmt.Fprintf(w, "  Version:    %d\n", meta.Version)
+	fmt.Fprintf(w, "  Updated:    %s\n", meta.Updated)
+	fmt.Fprintln(w, "  Sources:")
+	for _, line := range strings.Split(meta.Source, "\n") {
+		if line != "" {
+			fmt.Fprintf(w, "    - %s\n", line)
+		}
+	}
+	fmt.Fprintln(w, "═══════════════════════════════════════════════════════════════")
+
+	showCRA := jurisdiction == "both" || jurisdiction == "cra"
+	showRQ := jurisdiction == "both" || jurisdiction == "rq"
+
+	if showCRA {
+		printJurisdictionRates(w, "CRA (Canada Revenue Agency)", rateDB, internal.CRA, filterYear)
+	}
+
+	if showRQ {
+		printJurisdictionRates(w, "RQ (Revenu Québec)", rateDB, internal.RQ, filterYear)
+	}
+
+	return nil
+}
+
+func printJurisdictionRates(w io.Writer, name string, rateDB *internal.RateDB, j internal.Jurisdiction, filterYear int) {
+	fmt.Fprintln(w, "")
+	fmt.Fprintf(w, "  ── %s\n", name)
+	fmt.Fprintln(w, "")
+
+	quarters := rateDB.GetAllQuarters(j)
+
+	if filterYear > 0 {
+		var filtered []string
+		for _, q := range quarters {
+			var year int
+			fmt.Sscanf(q, "%d", &year)
+			if year == filterYear {
+				filtered = append(filtered, q)
+			}
+		}
+		quarters = filtered
+	}
+
+	if len(quarters) == 0 {
+		fmt.Fprintf(w, "    No rates available for the specified criteria.\n")
+		return
+	}
+
+	// Group by year
+	byYear := make(map[int][]string)
+	for _, q := range quarters {
+		var year int
+		fmt.Sscanf(q, "%d", &year)
+		byYear[year] = append(byYear[year], q)
+	}
+
+	// Sort years
+	var years []int
+	for year := range byYear {
+		years = append(years, year)
+	}
+	sort.Ints(years)
+
+	for _, year := range years {
+		fmt.Fprintf(w, "    %d:\n", year)
+		// Sort quarters within year
+		sort.Strings(byYear[year])
+		for _, q := range byYear[year] {
+			rate, _ := rateDB.GetPrescribedRate(j, q)
+			fmt.Fprintf(w, "      %s  %.2f%%\n", q, rate)
+		}
+	}
+}

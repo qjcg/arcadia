@@ -1,0 +1,26 @@
+version: '3'
+
+tasks:
+  default:
+    deps:
+      - build
+
+  build:
+    desc: Build the tpi binary
+    cmds:
+      - go build -o tpi .
+
+  install:
+    desc: Build and install tpi to $GOPATH/bin
+    cmds:
+      - go install .
+
+  test:
+    desc: Run unit tests
+    cmds:
+      - go test -v ./...
+
+  clean:
+    desc: Remove built binary
+    cmds:
+      - rm -f tpi

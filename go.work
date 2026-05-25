@@ -11,4 +11,5 @@ use (
 	./exp/skillo
 	./exp/slidesdeck
 	./exp/sv
+	./exp/tpi
 )
