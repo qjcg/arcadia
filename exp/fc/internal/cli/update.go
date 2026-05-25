@@ -30,9 +30,9 @@ The update command fetches prescribed interest rates for a specified year
 range and either displays them (--dry-run) or updates the rates.yaml file.
 
 Examples:
-  fc tax pic update --range 2020-2025 --source cra
-  fc tax pic update --range 2020-2025 --source both --output rates.yaml
-  fc tax pic update --range 2024-2024 --source cra --dry-run`,
+  fc tax penalties-and-interest update --range 2020-2025 --source cra
+  fc tax pi update --range 2020-2025 --source both --output rates.yaml
+  fc tax penalties-and-interest update --range 2024-2024 --source cra --dry-run`,
 		RunFuncE: func(p *UpdateParams, cmd *cobra.Command, _ []string) error {
 			return runUpdate(p, cmd)
 		},

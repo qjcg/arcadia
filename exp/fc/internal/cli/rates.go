@@ -23,9 +23,9 @@ func ratesCmd() *cobra.Command {
 		Long: `Display the embedded interest rates database for CRA and/or Revenu Québec.
 
 Examples:
-  fc tax pic rates
-  fc tax pic rates --jurisdiction cra
-  fc tax pic rates --year 2024 --jurisdiction rq`,
+  fc tax penalties-and-interest rates
+  fc tax pi rates --jurisdiction cra
+  fc tax penalties-and-interest rates --year 2024 --jurisdiction rq`,
 		RunFuncE: func(p *RatesParams, cmd *cobra.Command, _ []string) error {
 			return runRates(cmd, p.Jurisdiction, p.Year)
 		},

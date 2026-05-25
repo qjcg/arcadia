@@ -26,14 +26,15 @@ type PicParams struct {
 
 func picCmd() *cobra.Command {
 	return boa.CmdT[PicParams]{
-		Use:   "pic",
+		Use:     "penalties-and-interest",
+		Aliases: []string{"pi"},
 		Short: "Calculate tax penalties and interest",
 		Long: `Calculate penalties and interest on income tax for CRA and Revenu Québec
 based on the prescribed interest rates.
 
 Examples:
-  fc tax pic --year 2024 --base-due-cra 5000 --expected-filing-date 2024-04-30 --actual-filing-date 2024-06-15 --expected-payment-date 2024-04-30 --actual-payment-date 2024-06-15
-  fc tax pic --year 2024 --base-due-cra 5000 --base-due-rq 3000 --expected-payment-date 2024-04-30 --actual-payment-date 2024-07-01 --output json`,
+  fc tax penalties-and-interest --year 2024 --base-due-cra 5000 --expected-filing-date 2024-04-30 --actual-filing-date 2024-06-15 --expected-payment-date 2024-04-30 --actual-payment-date 2024-06-15
+  fc tax pi --year 2024 --base-due-cra 5000 --base-due-rq 3000 --expected-payment-date 2024-04-30 --actual-payment-date 2024-07-01 --output json`,
 		RunFuncE: func(p *PicParams, cmd *cobra.Command, _ []string) error {
 			return runPic(p, cmd)
 		},
