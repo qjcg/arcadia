@@ -28,7 +28,7 @@ func piCmd() *cobra.Command {
 	return boa.CmdT[PIParams]{
 		Use:     "penalties-and-interest",
 		Aliases: []string{"pi"},
-		Short: "Calculate tax penalties and interest",
+		Short:   "Calculate tax penalties and interest",
 		Long: `Calculate penalties and interest on income tax for CRA and Revenu Québec
 based on the prescribed interest rates.
 

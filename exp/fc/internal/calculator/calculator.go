@@ -21,34 +21,34 @@ type Calculator struct {
 
 // CalculationInput contains all inputs for a calculation
 type CalculationInput struct {
-	Year                int       `json:"year"`
-	Earned              money.Money     `json:"earned"`
-	BaseDueCRA          money.Money     `json:"base_due_cra"`
-	BaseDueRQ           money.Money     `json:"base_due_rqc"`
-	ExpectedFilingDate  time.Time `json:"expected_filing_date"`
-	ExpectedPaymentDate time.Time `json:"expected_payment_date"`
-	ActualFilingDate    time.Time `json:"actual_filing_date"`
-	ActualPaymentDate   time.Time `json:"actual_payment_date"`
-	HadBalanceLastYear  bool      `json:"had_balance_last_year"`
+	Year                int         `json:"year"`
+	Earned              money.Money `json:"earned"`
+	BaseDueCRA          money.Money `json:"base_due_cra"`
+	BaseDueRQ           money.Money `json:"base_due_rqc"`
+	ExpectedFilingDate  time.Time   `json:"expected_filing_date"`
+	ExpectedPaymentDate time.Time   `json:"expected_payment_date"`
+	ActualFilingDate    time.Time   `json:"actual_filing_date"`
+	ActualPaymentDate   time.Time   `json:"actual_payment_date"`
+	HadBalanceLastYear  bool        `json:"had_balance_last_year"`
 }
 
 // CalculationResult contains the breakdown of penalties and interest
 type CalculationResult struct {
-	Year                int       `json:"year"`
-	Earned              money.Money     `json:"earned"`
-	BaseDueCRA          money.Money     `json:"base_due_cra"`
-	BaseDueRQ           money.Money     `json:"base_due_rqc"`
-	PenaltiesCRA        money.Money     `json:"penalties_cra"`
-	InterestCRA         money.Money     `json:"interest_cra"`
-	PenaltiesRQ         money.Money     `json:"penalties_rqc"`
-	InterestRQ          money.Money     `json:"interest_rqc"`
-	TotalDueCRA         money.Money     `json:"total_due_cra"`
-	TotalDueRQ          money.Money     `json:"total_due_rqc"`
-	TotalDue            money.Money     `json:"total_due"`
-	ExpectedFilingDate  time.Time `json:"expected_filing_date"`
-	ExpectedPaymentDate time.Time `json:"expected_payment_date"`
-	ActualFilingDate    time.Time `json:"actual_filing_date"`
-	ActualPaymentDate   time.Time `json:"actual_payment_date"`
+	Year                int         `json:"year"`
+	Earned              money.Money `json:"earned"`
+	BaseDueCRA          money.Money `json:"base_due_cra"`
+	BaseDueRQ           money.Money `json:"base_due_rqc"`
+	PenaltiesCRA        money.Money `json:"penalties_cra"`
+	InterestCRA         money.Money `json:"interest_cra"`
+	PenaltiesRQ         money.Money `json:"penalties_rqc"`
+	InterestRQ          money.Money `json:"interest_rqc"`
+	TotalDueCRA         money.Money `json:"total_due_cra"`
+	TotalDueRQ          money.Money `json:"total_due_rqc"`
+	TotalDue            money.Money `json:"total_due"`
+	ExpectedFilingDate  time.Time   `json:"expected_filing_date"`
+	ExpectedPaymentDate time.Time   `json:"expected_payment_date"`
+	ActualFilingDate    time.Time   `json:"actual_filing_date"`
+	ActualPaymentDate   time.Time   `json:"actual_payment_date"`
 }
 
 // NewCalculator creates a new calculator with the embedded rates database
