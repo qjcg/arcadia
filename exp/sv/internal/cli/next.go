@@ -12,9 +12,8 @@ import (
 )
 
 type nextParams struct {
-	All     bool     `descr:"Calculate next version for all modules"`
-	Path    []string `descr:"Explicit module path(s)" optional:"true"`
-	Verbose bool     `descr:"Show module names with tags (used with -a)"`
+	All  bool     `descr:"Calculate next version for all modules"`
+	Path []string `descr:"Explicit module path(s)" optional:"true"`
 }
 
 func createNextCmd() *cobra.Command {
@@ -44,14 +43,14 @@ func runNextCmd(p *nextParams, cmd *cobra.Command) error {
 	}
 
 	for _, m := range modules {
-		if err := runNext(cmd.OutOrStdout(), root, m, allMods, p.All, p.Verbose); err != nil {
+		if err := runNext(cmd.OutOrStdout(), root, m, allMods); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
 		}
 	}
 	return nil
 }
 
-func runNext(out io.Writer, root string, m discovery.Module, allModulesList []discovery.Module, allModules, verbose bool) error {
+func runNext(out io.Writer, root string, m discovery.Module, allModulesList []discovery.Module) error {
 	tag, err := git.LatestTag(root, m.Name)
 	if err != nil {
 		return err
@@ -81,10 +80,6 @@ func runNext(out io.Writer, root string, m discovery.Module, allModulesList []di
 		return nil // No change
 	}
 
-	if verbose && allModules {
-		fmt.Fprintf(out, "%s -> %s\n", m.Name, next)
-	} else {
-		fmt.Fprintln(out, next)
-	}
+	fmt.Fprintln(out, next)
 	return nil
 }

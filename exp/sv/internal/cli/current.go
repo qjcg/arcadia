@@ -11,9 +11,8 @@ import (
 )
 
 type currentParams struct {
-	All     bool     `descr:"Show current version for all modules"`
-	Path    []string `descr:"Explicit module path(s)" optional:"true"`
-	Verbose bool     `descr:"Show module names with tags (used with -a)"`
+	All  bool     `descr:"Show current version for all modules"`
+	Path []string `descr:"Explicit module path(s)" optional:"true"`
 }
 
 func createCurrentCmd() *cobra.Command {
@@ -38,14 +37,14 @@ func runCurrentCmd(p *currentParams, cmd *cobra.Command) error {
 	}
 
 	for _, m := range modules {
-		if err := runCurrent(cmd.OutOrStdout(), root, m, p.All, p.Verbose); err != nil {
+		if err := runCurrent(cmd.OutOrStdout(), root, m); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
 		}
 	}
 	return nil
 }
 
-func runCurrent(out io.Writer, root string, m discovery.Module, allModules, verbose bool) error {
+func runCurrent(out io.Writer, root string, m discovery.Module) error {
 	tag, err := git.LatestTag(root, m.Name)
 	if err != nil {
 		return err
@@ -55,10 +54,6 @@ func runCurrent(out io.Writer, root string, m discovery.Module, allModules, verb
 		return nil // Skip modules with no tags
 	}
 
-	if verbose && allModules {
-		fmt.Fprintf(out, "%s -> %s\n", m.Name, tag)
-	} else {
-		fmt.Fprintln(out, tag)
-	}
+	fmt.Fprintln(out, tag)
 	return nil
 }

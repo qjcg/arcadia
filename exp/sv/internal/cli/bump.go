@@ -12,9 +12,8 @@ import (
 )
 
 type bumpParams struct {
-	All     bool     `descr:"Bump all modules"`
-	Path    []string `descr:"Explicit module path(s)" optional:"true"`
-	Verbose bool     `descr:"Show module names with tags (used with -a)"`
+	All  bool     `descr:"Bump all modules"`
+	Path []string `descr:"Explicit module path(s)" optional:"true"`
 }
 
 func createBumpCmd(name string, bump semver.Bump, doc string) *cobra.Command {
@@ -39,14 +38,14 @@ func runBumpCmd(p *bumpParams, bump semver.Bump, cmd *cobra.Command) error {
 	}
 
 	for _, m := range modules {
-		if err := runBump(cmd.OutOrStdout(), root, m, bump, p.All, p.Verbose); err != nil {
+		if err := runBump(cmd.OutOrStdout(), root, m, bump); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
 		}
 	}
 	return nil
 }
 
-func runBump(out io.Writer, root string, m discovery.Module, bump semver.Bump, allModules, verbose bool) error {
+func runBump(out io.Writer, root string, m discovery.Module, bump semver.Bump) error {
 	tag, err := git.LatestTag(root, m.Name)
 	if err != nil {
 		return err
@@ -57,10 +56,6 @@ func runBump(out io.Writer, root string, m discovery.Module, bump semver.Bump, a
 		return err
 	}
 
-	if verbose && allModules {
-		fmt.Fprintf(out, "%s -> %s\n", m.Name, next)
-	} else {
-		fmt.Fprintln(out, next)
-	}
+	fmt.Fprintln(out, next)
 	return nil
 }
