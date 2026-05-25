@@ -10,7 +10,7 @@ func TaxCmd() *cobra.Command {
 		Short: "Tax-related calculations",
 	}
 
-	cmd.AddCommand(PicCmd())
+	cmd.AddCommand(PICmd())
 
 	return cmd
 }

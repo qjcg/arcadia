@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type PicParams struct {
+type PIParams struct {
 	Year                int    `descr:"Tax year (e.g., 2024)"`
 	Earned              string `descr:"Income earned during the year" optional:"true"`
 	BaseDueCRA          string `descr:"Base tax amount owed to CRA" default:"0"`
@@ -24,8 +24,8 @@ type PicParams struct {
 	Output              string `descr:"Output format: 'text' or 'json'" default:"text"`
 }
 
-func picCmd() *cobra.Command {
-	return boa.CmdT[PicParams]{
+func piCmd() *cobra.Command {
+	return boa.CmdT[PIParams]{
 		Use:     "penalties-and-interest",
 		Aliases: []string{"pi"},
 		Short: "Calculate tax penalties and interest",
@@ -35,13 +35,13 @@ based on the prescribed interest rates.
 Examples:
   fc tax penalties-and-interest --year 2024 --base-due-cra 5000 --expected-filing-date 2024-04-30 --actual-filing-date 2024-06-15 --expected-payment-date 2024-04-30 --actual-payment-date 2024-06-15
   fc tax pi --year 2024 --base-due-cra 5000 --base-due-rq 3000 --expected-payment-date 2024-04-30 --actual-payment-date 2024-07-01 --output json`,
-		RunFuncE: func(p *PicParams, cmd *cobra.Command, _ []string) error {
-			return runPic(p, cmd)
+		RunFuncE: func(p *PIParams, cmd *cobra.Command, _ []string) error {
+			return runPI(p, cmd)
 		},
 	}.ToCmd().ToCobra()
 }
 
-func runPic(p *PicParams, cmd *cobra.Command) error {
+func runPI(p *PIParams, cmd *cobra.Command) error {
 	earned, _ := decimal.NewFromString(p.Earned)
 	baseDueCRA, _ := decimal.NewFromString(p.BaseDueCRA)
 	baseDueRQ, _ := decimal.NewFromString(p.BaseDueRQ)

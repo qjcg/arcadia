@@ -4,8 +4,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func PicCmd() *cobra.Command {
-	cmd := picCmd()
+func PICmd() *cobra.Command {
+	cmd := piCmd()
 	cmd.AddCommand(ratesCmd())
 	cmd.AddCommand(updateCmd())
 	return cmd
