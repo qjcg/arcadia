@@ -47,7 +47,7 @@ func runRates(cmd *cobra.Command, jurisdiction string, filterYear int) error {
 	fmt.Fprintf(w, "  Version:    %d\n", meta.Version)
 	fmt.Fprintf(w, "  Updated:    %s\n", meta.Updated)
 	fmt.Fprintln(w, "  Sources:")
-	for _, line := range strings.Split(meta.Source, "\n") {
+	for line := range strings.SplitSeq(meta.Source, "\n") {
 		if line != "" {
 			fmt.Fprintf(w, "    - %s\n", line)
 		}

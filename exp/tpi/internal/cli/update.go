@@ -7,7 +7,7 @@ import (
 
 	"github.com/GiGurra/boa/pkg/boa"
 	"github.com/qjcg/arcadia/exp/tpi/internal"
-	"github.com/qjcg/arcadia/exp/tpi/rates"
+	"github.com/qjcg/arcadia/exp/tpi/internal/rates"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )

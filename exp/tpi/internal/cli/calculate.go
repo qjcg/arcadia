@@ -12,16 +12,16 @@ import (
 )
 
 type CalculateParams struct {
-	Year                  int    `descr:"Tax year (e.g., 2024)"`
-	Earned                string `descr:"Income earned during the year" optional:"true"`
-	BaseDueCRA            string `descr:"Base tax amount owed to CRA" default:"0"`
-	BaseDueRQ             string `descr:"Base tax amount owed to Revenu Québec" default:"0"`
-	ExpectedFilingDate    string `descr:"Expected filing date (YYYY-MM-DD)"`
-	ExpectedPaymentDate  string `descr:"Expected payment date (YYYY-MM-DD)"`
-	ActualFilingDate      string `descr:"Actual filing date (YYYY-MM-DD)"`
-	ActualPaymentDate     string `descr:"Actual payment date (YYYY-MM-DD)"`
-	HadBalance            bool   `descr:"Had a balance owing in the previous tax year" optional:"true"`
-	Output                string `descr:"Output format: 'text' or 'json'" default:"text"`
+	Year                int    `descr:"Tax year (e.g., 2024)"`
+	Earned              string `descr:"Income earned during the year" optional:"true"`
+	BaseDueCRA          string `descr:"Base tax amount owed to CRA" default:"0"`
+	BaseDueRQ           string `descr:"Base tax amount owed to Revenu Québec" default:"0"`
+	ExpectedFilingDate  string `descr:"Expected filing date (YYYY-MM-DD)"`
+	ExpectedPaymentDate string `descr:"Expected payment date (YYYY-MM-DD)"`
+	ActualFilingDate    string `descr:"Actual filing date (YYYY-MM-DD)"`
+	ActualPaymentDate   string `descr:"Actual payment date (YYYY-MM-DD)"`
+	HadBalance          bool   `descr:"Had a balance owing in the previous tax year" optional:"true"`
+	Output              string `descr:"Output format: 'text' or 'json'" default:"text"`
 }
 
 func CalculateCmd() *cobra.Command {

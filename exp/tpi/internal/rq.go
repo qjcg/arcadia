@@ -27,13 +27,7 @@ func (r *RQRules) CalculateLateFilingPenalty(taxAmount Money, dueDate, filingDat
 
 	basePenalty := taxAmount.Mul(fivePercent)
 
-	monthsLate := r.MonthsLate(dueDate, filingDate)
-	if monthsLate > 12 {
-		monthsLate = 12
-	}
-	if monthsLate < 0 {
-		monthsLate = 0
-	}
+	monthsLate := max(min(r.MonthsLate(dueDate, filingDate), 12), 0)
 
 	additionalPenalty := taxAmount.Mul(onePercent).Mul(decimal.NewFromInt(int64(monthsLate)))
 	return basePenalty.Add(additionalPenalty)

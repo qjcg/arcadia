@@ -137,7 +137,7 @@ func (f *Fetcher) parseCRADateContext(dateLine, rateLine string) string {
 	lower := strings.ToLower(dateLine)
 
 	year := 0
-	for _, token := range strings.Fields(lower) {
+	for token := range strings.FieldsSeq(lower) {
 		if len(token) == 4 {
 			for _, c := range token {
 				if c < '0' || c > '9' {
@@ -231,7 +231,7 @@ func (f *Fetcher) parseRQDateContext(dateLine, rateLine string) string {
 	lower := strings.ToLower(dateLine)
 
 	year := 0
-	for _, token := range strings.Fields(lower) {
+	for token := range strings.FieldsSeq(lower) {
 		if len(token) == 4 {
 			for _, c := range token {
 				if c < '0' || c > '9' {

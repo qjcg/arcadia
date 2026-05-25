@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/qjcg/arcadia/exp/tpi/rates"
+	"github.com/qjcg/arcadia/exp/tpi/internal/rates"
 )
 
 // Jurisdiction represents CRA or Revenu Québec

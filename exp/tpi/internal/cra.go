@@ -24,13 +24,7 @@ func (c *CRARules) CalculateLateFilingPenalty(taxAmount Money, dueDate, filingDa
 
 	basePenalty := taxAmount.Mul(fivePercent)
 
-	monthsLate := c.MonthsLate(dueDate, filingDate)
-	if monthsLate > 12 {
-		monthsLate = 12
-	}
-	if monthsLate < 0 {
-		monthsLate = 0
-	}
+	monthsLate := max(min(c.MonthsLate(dueDate, filingDate), 12), 0)
 
 	additionalPenalty := taxAmount.Mul(onePercent).Mul(decimal.NewFromInt(int64(monthsLate)))
 	return basePenalty.Add(additionalPenalty)
