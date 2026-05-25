@@ -3,6 +3,8 @@ package internal
 import (
 	"fmt"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 // RQRules implements Revenu Québec-specific penalty and interest calculations
@@ -15,17 +17,26 @@ func NewRQRules() *RQRules {
 
 // CalculateLateFilingPenalty calculates the late filing penalty for RQ
 // Revenu Québec charges a penalty similar to CRA but with Quebec-specific rules
-func (r *RQRules) CalculateLateFilingPenalty(taxAmount float64, dueDate, filingDate time.Time, hadBalanceLastYear bool) float64 {
+func (r *RQRules) CalculateLateFilingPenalty(taxAmount Money, dueDate, filingDate time.Time, hadBalanceLastYear bool) Money {
 	if !hadBalanceLastYear {
-		return 0
+		return decimal.Zero
 	}
 
-	basePenalty := 0.05 * taxAmount
+	fivePercent := decimal.NewFromFloat(0.05)
+	onePercent := decimal.NewFromFloat(0.01)
 
-	monthsLate := max(min(r.MonthsLate(dueDate, filingDate), 12), 0)
+	basePenalty := taxAmount.Mul(fivePercent)
 
-	additionalPenalty := 0.01 * float64(monthsLate) * taxAmount
-	return basePenalty + additionalPenalty
+	monthsLate := r.MonthsLate(dueDate, filingDate)
+	if monthsLate > 12 {
+		monthsLate = 12
+	}
+	if monthsLate < 0 {
+		monthsLate = 0
+	}
+
+	additionalPenalty := taxAmount.Mul(onePercent).Mul(decimal.NewFromInt(int64(monthsLate)))
+	return basePenalty.Add(additionalPenalty)
 }
 
 // MonthsLate calculates the number of months late (rounded down)
@@ -41,25 +52,30 @@ func (r *RQRules) MonthsLate(dueDate, filingDate time.Time) int {
 
 // CalculateInterest calculates daily compounded interest on amount owed
 // Revenu Québec compounds interest daily at the prescribed rate
-func (r *RQRules) CalculateInterest(amount float64, startDate, endDate time.Time, dailyRate float64) float64 {
-	if amount <= 0 || endDate.Before(startDate) {
-		return 0
+func (r *RQRules) CalculateInterest(amount Money, startDate, endDate time.Time, dailyRate float64) Money {
+	if amount.LessThanOrEqual(decimal.Zero) || endDate.Before(startDate) {
+		return decimal.Zero
 	}
 
 	days := int(endDate.Sub(startDate).Hours()/24) + 1
 	if days < 0 {
-		return 0
+		return decimal.Zero
 	}
 
 	// Daily rate = annual rate / 365 (or 366 for leap years)
 	// Interest is compounded daily: principal * ((1 + rate/365)^days - 1)
-	rate := dailyRate / 100
-	factor := 1.0
+	rate := decimal.NewFromFloat(dailyRate / 100)
+	one := decimal.NewFromInt(1)
+	dailyDivisor := decimal.NewFromInt(365)
+
+	// Calculate (1 + rate/365)^days using decimal arithmetic
+	factor := one
+	dailyRateDecimal := rate.Div(dailyDivisor)
 	for range days {
-		factor *= 1.0 + rate/365.0
+		factor = factor.Mul(one.Add(dailyRateDecimal))
 	}
 
-	interest := amount * (factor - 1.0)
+	interest := amount.Mul(factor.Sub(one))
 	return interest
 }
 

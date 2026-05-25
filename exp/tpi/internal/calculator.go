@@ -3,6 +3,8 @@ package internal
 import (
 	"fmt"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 // Calculator handles penalty and interest calculations
@@ -14,25 +16,34 @@ type Calculator struct {
 
 // CalculationInput contains all inputs for a calculation
 type CalculationInput struct {
-	TaxAmount          float64
-	DueDate            time.Time
-	PaymentDate        time.Time
-	Jurisdiction       Jurisdiction
-	HadBalanceLastYear bool
+	Year                int          `json:"year"`
+	Earned              Money        `json:"earned"`
+	BaseDueCRA          Money        `json:"base_due_cra"`
+	BaseDueRQ           Money        `json:"base_due_rqc"`
+	ExpectedFilingDate  time.Time    `json:"expected_filing_date"`
+	ExpectedPaymentDate time.Time    `json:"expected_payment_date"`
+	ActualFilingDate    time.Time    `json:"actual_filing_date"`
+	ActualPaymentDate   time.Time    `json:"actual_payment_date"`
+	HadBalanceLastYear  bool        `json:"had_balance_last_year"`
 }
 
 // CalculationResult contains the breakdown of penalties and interest
 type CalculationResult struct {
-	TaxAmount         float64   `json:"tax_amount"`
-	DueDate           time.Time `json:"due_date"`
-	PaymentDate       time.Time `json:"payment_date"`
-	Jurisdiction      string    `json:"jurisdiction"`
-	LateFilingPenalty float64   `json:"late_filing_penalty"`
-	Interest          float64   `json:"interest"`
-	TotalAmount       float64   `json:"total_amount"`
-	DaysOwed          int       `json:"days_owed"`
-	EffectiveRate     float64   `json:"effective_rate"`
-	LateFilingMonths  int       `json:"late_filing_months"`
+	Year                 int          `json:"year"`
+	Earned               Money        `json:"earned"`
+	BaseDueCRA           Money        `json:"base_due_cra"`
+	BaseDueRQ            Money        `json:"base_due_rqc"`
+	PenaltiesCRA         Money        `json:"penalties_cra"`
+	InterestCRA          Money        `json:"interest_cra"`
+	PenaltiesRQ          Money        `json:"penalties_rqc"`
+	InterestRQ          Money        `json:"interest_rqc"`
+	TotalDueCRA          Money        `json:"total_due_cra"`
+	TotalDueRQ           Money        `json:"total_due_rqc"`
+	TotalDue             Money        `json:"total_due"`
+	ExpectedFilingDate   time.Time    `json:"expected_filing_date"`
+	ExpectedPaymentDate  time.Time    `json:"expected_payment_date"`
+	ActualFilingDate    time.Time    `json:"actual_filing_date"`
+	ActualPaymentDate   time.Time    `json:"actual_payment_date"`
 }
 
 // NewCalculator creates a new calculator with the embedded rates database
@@ -64,95 +75,74 @@ func (c *Calculator) Calculate(inp CalculationInput) (*CalculationResult, error)
 	}
 
 	result := &CalculationResult{
-		TaxAmount:    inp.TaxAmount,
-		DueDate:      inp.DueDate,
-		PaymentDate:  inp.PaymentDate,
-		Jurisdiction: string(inp.Jurisdiction),
-		DaysOwed:     c.daysOwed(inp.DueDate, inp.PaymentDate),
+		Year:                inp.Year,
+		Earned:              inp.Earned,
+		BaseDueCRA:          inp.BaseDueCRA,
+		BaseDueRQ:           inp.BaseDueRQ,
+		ExpectedFilingDate:  inp.ExpectedFilingDate,
+		ExpectedPaymentDate: inp.ExpectedPaymentDate,
+		ActualFilingDate:    inp.ActualFilingDate,
+		ActualPaymentDate:   inp.ActualPaymentDate,
 	}
 
-	// Calculate late filing penalty if had balance last year
-	if inp.HadBalanceLastYear {
-		result.LateFilingPenalty = c.calculatePenalty(inp)
-		result.LateFilingMonths = min(max(c.getMonthsLate(inp), 0), 12)
+	// Calculate CRA penalties and interest
+	if inp.BaseDueCRA.GreaterThan(decimal.Zero) {
+		result.PenaltiesCRA = c.calculatePenalty(inp.BaseDueCRA, inp.ExpectedFilingDate, inp.ActualFilingDate, inp.HadBalanceLastYear, CRA)
+		result.InterestCRA = c.calculateInterest(inp.BaseDueCRA.Add(result.PenaltiesCRA), inp.ExpectedPaymentDate, inp.ActualPaymentDate, CRA)
+		result.TotalDueCRA = inp.BaseDueCRA.Add(result.PenaltiesCRA).Add(result.InterestCRA)
 	}
 
-	// Calculate interest
-	result.Interest = c.calculateInterest(inp)
-
-	// Calculate total
-	result.TotalAmount = inp.TaxAmount + result.LateFilingPenalty + result.Interest
-
-	// Calculate effective rate for display
-	if result.DaysOwed > 0 && result.TaxAmount > 0 {
-		result.EffectiveRate = (result.Interest / result.TaxAmount) / float64(result.DaysOwed) * 365 * 100
+	// Calculate RQ penalties and interest
+	if inp.BaseDueRQ.GreaterThan(decimal.Zero) {
+		result.PenaltiesRQ = c.calculatePenalty(inp.BaseDueRQ, inp.ExpectedFilingDate, inp.ActualFilingDate, inp.HadBalanceLastYear, RQ)
+		result.InterestRQ = c.calculateInterest(inp.BaseDueRQ.Add(result.PenaltiesRQ), inp.ExpectedPaymentDate, inp.ActualPaymentDate, RQ)
+		result.TotalDueRQ = inp.BaseDueRQ.Add(result.PenaltiesRQ).Add(result.InterestRQ)
 	}
+
+	// Calculate combined total
+	result.TotalDue = result.TotalDueCRA.Add(result.TotalDueRQ)
 
 	return result, nil
 }
 
 func (c *Calculator) validateInput(inp CalculationInput) error {
-	if inp.TaxAmount < 0 {
-		return fmt.Errorf("tax amount cannot be negative")
+	if inp.BaseDueCRA.LessThan(decimal.Zero) {
+		return fmt.Errorf("base due CRA cannot be negative")
 	}
-	if inp.PaymentDate.Before(inp.DueDate) {
-		return fmt.Errorf("payment date cannot be before due date")
-	}
-	if inp.Jurisdiction != CRA && inp.Jurisdiction != RQ {
-		return fmt.Errorf("invalid jurisdiction: %s (must be 'cra' or 'rq')", inp.Jurisdiction)
+	if inp.BaseDueRQ.LessThan(decimal.Zero) {
+		return fmt.Errorf("base due RQ cannot be negative")
 	}
 	return nil
 }
 
-func (c *Calculator) daysOwed(dueDate, paymentDate time.Time) int {
-	days := paymentDate.Sub(dueDate).Hours() / 24
-	if days < 0 {
-		return 0
-	}
-	return int(days)
-}
-
-func (c *Calculator) getMonthsLate(inp CalculationInput) int {
-	switch inp.Jurisdiction {
+func (c *Calculator) calculatePenalty(taxAmount Money, expectedDate, actualDate time.Time, hadBalanceLastYear bool, j Jurisdiction) Money {
+	switch j {
 	case CRA:
-		return inp.PaymentDate.Year() - inp.DueDate.Year()*12 + int(inp.PaymentDate.Month()) - int(inp.DueDate.Month())
+		return c.cra.CalculateLateFilingPenalty(taxAmount, expectedDate, actualDate, hadBalanceLastYear)
 	case RQ:
-		return inp.PaymentDate.Year() - inp.DueDate.Year()*12 + int(inp.PaymentDate.Month()) - int(inp.DueDate.Month())
+		return c.rq.CalculateLateFilingPenalty(taxAmount, expectedDate, actualDate, hadBalanceLastYear)
 	default:
-		return 0
+		return decimal.Zero
 	}
 }
 
-func (c *Calculator) calculatePenalty(inp CalculationInput) float64 {
-	switch inp.Jurisdiction {
-	case CRA:
-		return c.cra.CalculateLateFilingPenalty(inp.TaxAmount, inp.DueDate, inp.PaymentDate, inp.HadBalanceLastYear)
-	case RQ:
-		return c.rq.CalculateLateFilingPenalty(inp.TaxAmount, inp.DueDate, inp.PaymentDate, inp.HadBalanceLastYear)
-	default:
-		return 0
-	}
-}
-
-func (c *Calculator) calculateInterest(inp CalculationInput) float64 {
-	if inp.PaymentDate.Before(inp.DueDate) {
-		return 0
+func (c *Calculator) calculateInterest(taxAmount Money, expectedDate, actualDate time.Time, j Jurisdiction) Money {
+	if actualDate.Before(expectedDate) {
+		return decimal.Zero
 	}
 
-	// Get prescribed rate for the payment date
-	rate, err := c.rateDB.GetPrescribedRateForDate(inp.Jurisdiction, inp.PaymentDate)
+	rate, err := c.rateDB.GetPrescribedRateForDate(j, actualDate)
 	if err != nil {
-		// If we can't get the rate, return 0 rather than failing
-		return 0
+		return decimal.Zero
 	}
 
-	switch inp.Jurisdiction {
+	switch j {
 	case CRA:
-		return c.cra.CalculateInterest(inp.TaxAmount, inp.DueDate, inp.PaymentDate, rate)
+		return c.cra.CalculateInterest(taxAmount, expectedDate, actualDate, rate)
 	case RQ:
-		return c.rq.CalculateInterest(inp.TaxAmount, inp.DueDate, inp.PaymentDate, rate)
+		return c.rq.CalculateInterest(taxAmount, expectedDate, actualDate, rate)
 	default:
-		return 0
+		return decimal.Zero
 	}
 }
 

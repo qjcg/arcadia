@@ -46,6 +46,10 @@ func (r *RateDB) GetPrescribedRate(j Jurisdiction, quarter string) (float64, err
 			return qr.Rate, nil
 		}
 	}
+	// Fallback: use the most recent rate if available
+	if len(ratesSlice) > 0 {
+		return ratesSlice[len(ratesSlice)-1].Rate, nil
+	}
 	return 0, fmt.Errorf("no prescribed rate found for %s in quarter %s", j, quarter)
 }
 

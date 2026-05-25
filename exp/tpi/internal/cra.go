@@ -3,6 +3,8 @@ package internal
 import (
 	"fmt"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 // CRARules implements CRA-specific penalty and interest calculations
@@ -16,20 +18,27 @@ func NewCRARules() *CRARules {
 // CalculateLateFilingPenalty calculates the late filing penalty
 // CRA charges 5% of the balance owing, plus an additional 1% per month of late filing
 // up to a maximum of 12 months (12%) if the taxpayer had a balance owing in the previous year
-func (c *CRARules) CalculateLateFilingPenalty(taxAmount float64, dueDate, filingDate time.Time, hadBalanceLastYear bool) float64 {
-	if !hadBalanceLastYear {
-		return 0
+func (c *CRARules) CalculateLateFilingPenalty(taxAmount Money, dueDate, filingDate time.Time, hadBalanceLastYear bool) Money {
+	fivePercent := decimal.NewFromFloat(0.05)
+	onePercent := decimal.NewFromFloat(0.01)
+
+	basePenalty := taxAmount.Mul(fivePercent)
+
+	monthsLate := c.MonthsLate(dueDate, filingDate)
+	if monthsLate > 12 {
+		monthsLate = 12
+	}
+	if monthsLate < 0 {
+		monthsLate = 0
 	}
 
-	basePenalty := 0.05 * taxAmount
-
-	monthsLate := max(min(c.MonthsLate(dueDate, filingDate), 12), 0)
-
-	additionalPenalty := 0.01 * float64(monthsLate) * taxAmount
-	return basePenalty + additionalPenalty
+	additionalPenalty := taxAmount.Mul(onePercent).Mul(decimal.NewFromInt(int64(monthsLate)))
+	return basePenalty.Add(additionalPenalty)
 }
 
-// MonthsLate calculates the number of months late (rounded down)
+// MonthsLate calculates the number of complete months late
+// A month is considered "complete" when the filing date passes the same day
+// in the following month. For example, April 30 to June 30 = 2 complete months.
 func (c *CRARules) MonthsLate(dueDate, filingDate time.Time) int {
 	if filingDate.Before(dueDate) || filingDate.Equal(dueDate) {
 		return 0
@@ -37,30 +46,45 @@ func (c *CRARules) MonthsLate(dueDate, filingDate time.Time) int {
 
 	years := filingDate.Year() - dueDate.Year()
 	months := int(filingDate.Month()) - int(dueDate.Month())
-	return years*12 + months
+	completeMonths := years*12 + months
+
+	// If filing day is before due day, that month isn't complete yet
+	if filingDate.Day() < dueDate.Day() {
+		completeMonths--
+	}
+
+	if completeMonths < 0 {
+		return 0
+	}
+	return completeMonths
 }
 
 // CalculateInterest calculates daily compounded interest on amount owed
 // CRA compounds interest daily at the prescribed rate
-func (c *CRARules) CalculateInterest(amount float64, startDate, endDate time.Time, dailyRate float64) float64 {
-	if amount <= 0 || endDate.Before(startDate) {
-		return 0
+func (c *CRARules) CalculateInterest(amount Money, startDate, endDate time.Time, dailyRate float64) Money {
+	if amount.LessThanOrEqual(decimal.Zero) || endDate.Before(startDate) {
+		return decimal.Zero
 	}
 
 	days := int(endDate.Sub(startDate).Hours()/24) + 1
 	if days < 0 {
-		return 0
+		return decimal.Zero
 	}
 
 	// Daily rate = annual rate / 365 (or 366 for leap years)
 	// Interest is compounded daily: principal * ((1 + rate/365)^days - 1)
-	rate := dailyRate / 100
-	factor := 1.0
+	rate := decimal.NewFromFloat(dailyRate / 100)
+	one := decimal.NewFromInt(1)
+	dailyDivisor := decimal.NewFromInt(365)
+
+	// Calculate (1 + rate/365)^days using decimal arithmetic
+	factor := decimal.NewFromInt(1)
+	dailyRateDecimal := rate.Div(dailyDivisor)
 	for range days {
-		factor *= 1.0 + rate/365.0
+		factor = factor.Mul(decimal.NewFromInt(1).Add(dailyRateDecimal))
 	}
 
-	interest := amount * (factor - 1.0)
+	interest := amount.Mul(factor.Sub(one))
 	return interest
 }
 
