@@ -96,10 +96,45 @@ func runPI(p *PIParams, cmd *cobra.Command) error {
 	}
 }
 
+type piJSONResult struct {
+	Year                int    `json:"year"`
+	Earned              string `json:"earned"`
+	BaseDueCRA          string `json:"base_due_cra"`
+	BaseDueRQ           string `json:"base_due_rqc"`
+	PenaltiesCRA        string `json:"penalties_cra"`
+	InterestCRA         string `json:"interest_cra"`
+	PenaltiesRQ         string `json:"penalties_rqc"`
+	InterestRQ          string `json:"interest_rqc"`
+	TotalDueCRA         string `json:"total_due_cra"`
+	TotalDueRQ          string `json:"total_due_rqc"`
+	TotalDue            string `json:"total_due"`
+	ExpectedFilingDate  string `json:"expected_filing_date"`
+	ExpectedPaymentDate string `json:"expected_payment_date"`
+	ActualFilingDate    string `json:"actual_filing_date"`
+	ActualPaymentDate   string `json:"actual_payment_date"`
+}
+
 func outputJSON(cmd *cobra.Command, result *calculator.CalculationResult) error {
+	j := piJSONResult{
+		Year:                result.Year,
+		Earned:              result.Earned.Round(2).StringFixed(2),
+		BaseDueCRA:          result.BaseDueCRA.Round(2).StringFixed(2),
+		BaseDueRQ:           result.BaseDueRQ.Round(2).StringFixed(2),
+		PenaltiesCRA:        result.PenaltiesCRA.Round(2).StringFixed(2),
+		InterestCRA:         result.InterestCRA.Round(2).StringFixed(2),
+		PenaltiesRQ:         result.PenaltiesRQ.Round(2).StringFixed(2),
+		InterestRQ:          result.InterestRQ.Round(2).StringFixed(2),
+		TotalDueCRA:         result.TotalDueCRA.Round(2).StringFixed(2),
+		TotalDueRQ:          result.TotalDueRQ.Round(2).StringFixed(2),
+		TotalDue:            result.TotalDue.Round(2).StringFixed(2),
+		ExpectedFilingDate:  result.ExpectedFilingDate.Format("2006-01-02"),
+		ExpectedPaymentDate: result.ExpectedPaymentDate.Format("2006-01-02"),
+		ActualFilingDate:    result.ActualFilingDate.Format("2006-01-02"),
+		ActualPaymentDate:   result.ActualPaymentDate.Format("2006-01-02"),
+	}
 	enc := json.NewEncoder(cmd.OutOrStdout())
 	enc.SetIndent("", "  ")
-	return enc.Encode(result)
+	return enc.Encode(j)
 }
 
 func outputText(cmd *cobra.Command, result *calculator.CalculationResult, calc *calculator.Calculator) error {

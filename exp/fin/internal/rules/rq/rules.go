@@ -17,9 +17,14 @@ func NewRQRules() *RQRules {
 }
 
 // CalculateLateFilingPenalty calculates the late filing penalty for RQ
-// Revenu Québec charges a penalty similar to CRA but with Quebec-specific rules
+// Revenu Québec charges a penalty similar to CRA but only applies if the
+// taxpayer had a balance owing in the previous year and filed after the due date.
 func (r *RQRules) CalculateLateFilingPenalty(taxAmount money.Money, dueDate, filingDate time.Time, hadBalanceLastYear bool) money.Money {
 	if !hadBalanceLastYear {
+		return decimal.Zero
+	}
+
+	if !filingDate.After(dueDate) {
 		return decimal.Zero
 	}
 
@@ -52,8 +57,8 @@ func (r *RQRules) CalculateInterest(amount money.Money, startDate, endDate time.
 		return decimal.Zero
 	}
 
-	days := int(endDate.Sub(startDate).Hours()/24) + 1
-	if days < 0 {
+	days := int(endDate.Sub(startDate).Hours() / 24)
+	if days <= 0 {
 		return decimal.Zero
 	}
 

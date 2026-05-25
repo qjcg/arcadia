@@ -31,12 +31,12 @@ func TestCRARulesCalculateLateFilingPenalty(t *testing.T) {
 			expectedPenalty: money.NewMoney(300), // 5% + 1% = 6% of 5000; penalty always applies
 		},
 		{
-			name:            "on time (still pays base 5% penalty if had balance)",
+			name:            "on time (no penalty)",
 			taxAmount:       money.NewMoney(5000),
 			dueDate:         time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
 			filingDate:      time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
 			hadBalance:      true,
-			expectedPenalty: money.NewMoney(250), // 5% base penalty always applies if hadBalanceLastYear
+			expectedPenalty: money.NewMoney(0), // filed on time, no penalty
 		},
 		{
 			name:            "1 month late",
@@ -339,7 +339,7 @@ func TestCalculatorCalculate(t *testing.T) {
 				HadBalanceLastYear:  true,
 			},
 			expectErr: false,
-			minTotal:  money.NewMoney(5250), // 5000 + 250 (5% base penalty), no interest
+			minTotal:  money.NewMoney(5000), // filed and paid on time, no penalty, no interest
 		},
 		{
 			name: "negative amount",
@@ -366,7 +366,7 @@ func TestCalculatorCalculate(t *testing.T) {
 				HadBalanceLastYear:  true,
 			},
 			expectErr: false,
-			minTotal:  money.NewMoney(5250), // 5000 + 250 (5% base penalty), no interest (early)
+			minTotal:  money.NewMoney(5000), // filed and paid early, no penalty, no interest
 		},
 	}
 

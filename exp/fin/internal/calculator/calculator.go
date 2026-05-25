@@ -81,9 +81,9 @@ func (c *Calculator) Calculate(inp CalculationInput) (*CalculationResult, error)
 
 	result := &CalculationResult{
 		Year:                inp.Year,
-		Earned:              inp.Earned,
-		BaseDueCRA:          inp.BaseDueCRA,
-		BaseDueRQ:           inp.BaseDueRQ,
+		Earned:              inp.Earned.Round(2),
+		BaseDueCRA:          inp.BaseDueCRA.Round(2),
+		BaseDueRQ:           inp.BaseDueRQ.Round(2),
 		ExpectedFilingDate:  inp.ExpectedFilingDate,
 		ExpectedPaymentDate: inp.ExpectedPaymentDate,
 		ActualFilingDate:    inp.ActualFilingDate,
@@ -92,20 +92,20 @@ func (c *Calculator) Calculate(inp CalculationInput) (*CalculationResult, error)
 
 	// Calculate CRA penalties and interest
 	if inp.BaseDueCRA.GreaterThan(decimal.Zero) {
-		result.PenaltiesCRA = c.craRule.CalculateLateFilingPenalty(inp.BaseDueCRA, inp.ExpectedFilingDate, inp.ActualFilingDate, inp.HadBalanceLastYear)
-		result.InterestCRA = c.calculateInterest(inp.BaseDueCRA.Add(result.PenaltiesCRA), inp.ExpectedPaymentDate, inp.ActualPaymentDate, c.craRule, rules.CRA)
-		result.TotalDueCRA = inp.BaseDueCRA.Add(result.PenaltiesCRA).Add(result.InterestCRA)
+		result.PenaltiesCRA = c.craRule.CalculateLateFilingPenalty(inp.BaseDueCRA, inp.ExpectedFilingDate, inp.ActualFilingDate, inp.HadBalanceLastYear).Round(2)
+		result.InterestCRA = c.calculateInterest(inp.BaseDueCRA.Add(result.PenaltiesCRA), inp.ExpectedPaymentDate, inp.ActualPaymentDate, c.craRule, rules.CRA).Round(2)
+		result.TotalDueCRA = inp.BaseDueCRA.Add(result.PenaltiesCRA).Add(result.InterestCRA).Round(2)
 	}
 
 	// Calculate RQ penalties and interest
 	if inp.BaseDueRQ.GreaterThan(decimal.Zero) {
-		result.PenaltiesRQ = c.rqRule.CalculateLateFilingPenalty(inp.BaseDueRQ, inp.ExpectedFilingDate, inp.ActualFilingDate, inp.HadBalanceLastYear)
-		result.InterestRQ = c.calculateInterest(inp.BaseDueRQ.Add(result.PenaltiesRQ), inp.ExpectedPaymentDate, inp.ActualPaymentDate, c.rqRule, rules.RQ)
-		result.TotalDueRQ = inp.BaseDueRQ.Add(result.PenaltiesRQ).Add(result.InterestRQ)
+		result.PenaltiesRQ = c.rqRule.CalculateLateFilingPenalty(inp.BaseDueRQ, inp.ExpectedFilingDate, inp.ActualFilingDate, inp.HadBalanceLastYear).Round(2)
+		result.InterestRQ = c.calculateInterest(inp.BaseDueRQ.Add(result.PenaltiesRQ), inp.ExpectedPaymentDate, inp.ActualPaymentDate, c.rqRule, rules.RQ).Round(2)
+		result.TotalDueRQ = inp.BaseDueRQ.Add(result.PenaltiesRQ).Add(result.InterestRQ).Round(2)
 	}
 
 	// Calculate combined total
-	result.TotalDue = result.TotalDueCRA.Add(result.TotalDueRQ)
+	result.TotalDue = result.TotalDueCRA.Add(result.TotalDueRQ).Round(2)
 
 	return result, nil
 }
@@ -121,7 +121,7 @@ func (c *Calculator) validateInput(inp CalculationInput) error {
 }
 
 func (c *Calculator) calculateInterest(taxAmount money.Money, expectedDate, actualDate time.Time, rule rules.Interface, j rules.Jurisdiction) money.Money {
-	if actualDate.Before(expectedDate) {
+	if !actualDate.After(expectedDate) {
 		return decimal.Zero
 	}
 

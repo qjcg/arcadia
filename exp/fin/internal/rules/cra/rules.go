@@ -17,9 +17,13 @@ func NewCRARules() *CRARules {
 }
 
 // CalculateLateFilingPenalty calculates the late filing penalty
-// CRA charges 5% of the balance owing, plus an additional 1% per month of late filing
-// up to a maximum of 12 months (12%) if the taxpayer had a balance owing in the previous year
+// CRA charges 5% of the balance owing, plus an additional 1% per complete month of late filing
+// up to a maximum of 12 months. No penalty if the return is filed on or before the due date.
 func (c *CRARules) CalculateLateFilingPenalty(taxAmount money.Money, dueDate, filingDate time.Time, hadBalanceLastYear bool) money.Money {
+	if !filingDate.After(dueDate) {
+		return decimal.Zero
+	}
+
 	fivePercent := decimal.NewFromFloat(0.05)
 	onePercent := decimal.NewFromFloat(0.01)
 
@@ -55,14 +59,15 @@ func (c *CRARules) MonthsLate(dueDate, filingDate time.Time) int {
 }
 
 // CalculateInterest calculates daily compounded interest on amount owed
-// CRA compounds interest daily at the prescribed rate
+// CRA compounds interest daily at the prescribed rate.
+// Interest runs from the day after the due date to the day of payment.
 func (c *CRARules) CalculateInterest(amount money.Money, startDate, endDate time.Time, dailyRate float64) money.Money {
 	if amount.LessThanOrEqual(decimal.Zero) || endDate.Before(startDate) {
 		return decimal.Zero
 	}
 
-	days := int(endDate.Sub(startDate).Hours()/24) + 1
-	if days < 0 {
+	days := int(endDate.Sub(startDate).Hours() / 24)
+	if days <= 0 {
 		return decimal.Zero
 	}
 
