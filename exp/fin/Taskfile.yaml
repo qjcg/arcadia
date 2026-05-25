@@ -6,14 +6,15 @@ tasks:
       - build
 
   build:
-    desc: Build the fc binary
+    desc: Build the fin binary
     cmds:
-      - go build -o fc .
+      - go build -o fin .
 
   install:
-    desc: Build and install fc to $GOPATH/bin
+    desc: Build and install fin to $GOPATH/bin
     cmds:
-      - go install .
+      - CGO_ENABLED=0 go install -ldflags '-s -w' .
+      - upx $GOPATH/bin/fin || echo Install upx for smaller binaries.
 
   test:
     desc: Run unit tests
@@ -23,4 +24,4 @@ tasks:
   clean:
     desc: Remove built binary
     cmds:
-      - rm -f fc
+      - rm -f fin

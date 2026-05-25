@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/qjcg/arcadia/exp/fc/internal/rules"
+	"github.com/qjcg/arcadia/exp/fin/internal/rules"
 )
 
 // Fetcher handles fetching interest rates from official sources

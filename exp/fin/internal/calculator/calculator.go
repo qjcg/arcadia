@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/qjcg/arcadia/exp/fc/internal/money"
-	"github.com/qjcg/arcadia/exp/fc/internal/rates"
-	"github.com/qjcg/arcadia/exp/fc/internal/rules"
-	"github.com/qjcg/arcadia/exp/fc/internal/rules/cra"
-	"github.com/qjcg/arcadia/exp/fc/internal/rules/rq"
+	"github.com/qjcg/arcadia/exp/fin/internal/money"
+	"github.com/qjcg/arcadia/exp/fin/internal/rates"
+	"github.com/qjcg/arcadia/exp/fin/internal/rules"
+	"github.com/qjcg/arcadia/exp/fin/internal/rules/cra"
+	"github.com/qjcg/arcadia/exp/fin/internal/rules/rq"
 	"github.com/shopspring/decimal"
 )
 

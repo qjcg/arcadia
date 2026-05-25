@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/qjcg/arcadia/exp/fc/internal/rules"
+	"github.com/qjcg/arcadia/exp/fin/internal/rules"
 )
 
 // RateDB wraps the parsed rates database

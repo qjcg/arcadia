@@ -6,7 +6,7 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/qjcg/arcadia/exp/fc/internal/cli"
+	"github.com/qjcg/arcadia/exp/fin/internal/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -26,8 +26,8 @@ func getVersion() string {
 
 func setupCLI(out, err io.Writer) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:     "fc",
-		Short:   "fc is a financial calculator",
+		Use:     "fin",
+		Short:   "fin is a financial calculator",
 		Version: getVersion(),
 	}
 	rootCmd.SetOut(out)

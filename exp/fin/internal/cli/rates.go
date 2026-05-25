@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/GiGurra/boa/pkg/boa"
-	"github.com/qjcg/arcadia/exp/fc/internal/rates"
-	"github.com/qjcg/arcadia/exp/fc/internal/rules"
+	"github.com/qjcg/arcadia/exp/fin/internal/rates"
+	"github.com/qjcg/arcadia/exp/fin/internal/rules"
 	"github.com/spf13/cobra"
 )
 
@@ -24,9 +24,9 @@ func ratesCmd() *cobra.Command {
 		Long: `Display the embedded interest rates database for CRA and/or Revenu Québec.
 
 Examples:
-  fc tax penalties-and-interest rates
-  fc tax pi rates --jurisdiction cra
-  fc tax penalties-and-interest rates --year 2024 --jurisdiction rq`,
+  fin tax penalties-and-interest rates
+  fin tax pi rates --jurisdiction cra
+  fin tax penalties-and-interest rates --year 2024 --jurisdiction rq`,
 		RunFuncE: func(p *RatesParams, cmd *cobra.Command, _ []string) error {
 			return runRates(cmd, p.Jurisdiction, p.Year)
 		},

@@ -1,4 +1,4 @@
-module github.com/qjcg/arcadia/exp/fc
+module github.com/qjcg/arcadia/exp/fin
 
 go 1.25
 

@@ -1,28 +1,28 @@
 # Test the penalties-and-interest subcommand - missing required flags
-fc tax penalties-and-interest --help
+fin tax penalties-and-interest --help
 stdout 'Flags:'
 stdout '\(required\)'
 
 # Running without required flags should fail
-! fc tax penalties-and-interest
+! fin tax penalties-and-interest
 stderr 'missing required'
 
 # Test with the pi alias
-fc tax pi --help
+fin tax pi --help
 stdout 'Flags:'
 
 # Example: April 30 filing, June 1 filing (1 month late), July 1 payment
 # $1000 base, 2 months late on payment
-fc tax penalties-and-interest --year 2024 --base-due-cra 1000 --expected-filing-date 2024-04-30 --actual-filing-date 2024-06-01 --expected-payment-date 2024-04-30 --actual-payment-date 2024-07-01
+fin tax penalties-and-interest --year 2024 --base-due-cra 1000 --expected-filing-date 2024-04-30 --actual-filing-date 2024-06-01 --expected-payment-date 2024-04-30 --actual-payment-date 2024-07-01
 stdout 'TOTAL AMOUNT OWED'
 
 # Example: Self-employed June 15 deadline, on-time filing, Oct 1 payment
 # $1000 base, 3+ months late on payment
-fc tax penalties-and-interest --year 2024 --base-due-cra 1000 --expected-filing-date 2024-06-15 --actual-filing-date 2024-06-15 --expected-payment-date 2024-06-15 --actual-payment-date 2024-10-01
+fin tax penalties-and-interest --year 2024 --base-due-cra 1000 --expected-filing-date 2024-06-15 --actual-filing-date 2024-06-15 --expected-payment-date 2024-06-15 --actual-payment-date 2024-10-01
 stdout 'TOTAL AMOUNT OWED'
 
 # Example: JSON output
-fc tax penalties-and-interest --year 2024 --base-due-cra 5000 --expected-filing-date 2024-04-30 --actual-filing-date 2024-04-30 --expected-payment-date 2024-04-30 --actual-payment-date 2024-04-30 --output json
+fin tax penalties-and-interest --year 2024 --base-due-cra 5000 --expected-filing-date 2024-04-30 --actual-filing-date 2024-04-30 --expected-payment-date 2024-04-30 --actual-payment-date 2024-04-30 --output json
 stdout '"year":'
 stdout '"base_due_cra":'
 stdout '"penalties_cra":'

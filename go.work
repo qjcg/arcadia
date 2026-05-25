@@ -11,5 +11,5 @@ use (
 	./exp/skillo
 	./exp/slidesdeck
 	./exp/sv
-	./exp/fc
+	./exp/fin
 )

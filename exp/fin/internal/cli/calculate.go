@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/GiGurra/boa/pkg/boa"
-	"github.com/qjcg/arcadia/exp/fc/internal/calculator"
+	"github.com/qjcg/arcadia/exp/fin/internal/calculator"
 	"github.com/shopspring/decimal"
 	"github.com/spf13/cobra"
 )
@@ -33,8 +33,8 @@ func piCmd() *cobra.Command {
 based on the prescribed interest rates.
 
 Examples:
-  fc tax penalties-and-interest --year 2024 --base-due-cra 5000 --expected-filing-date 2024-04-30 --actual-filing-date 2024-06-15 --expected-payment-date 2024-04-30 --actual-payment-date 2024-06-15
-  fc tax pi --year 2024 --base-due-cra 5000 --base-due-rq 3000 --expected-payment-date 2024-04-30 --actual-payment-date 2024-07-01 --output json`,
+  fin tax penalties-and-interest --year 2024 --base-due-cra 5000 --expected-filing-date 2024-04-30 --actual-filing-date 2024-06-15 --expected-payment-date 2024-04-30 --actual-payment-date 2024-06-15
+  fin tax pi --year 2024 --base-due-cra 5000 --base-due-rq 3000 --expected-payment-date 2024-04-30 --actual-payment-date 2024-07-01 --output json`,
 		RunFuncE: func(p *PIParams, cmd *cobra.Command, _ []string) error {
 			return runPI(p, cmd)
 		},

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/qjcg/arcadia/exp/fc/internal/money"
+	"github.com/qjcg/arcadia/exp/fin/internal/money"
 )
 
 // Jurisdiction represents CRA or Revenu Québec

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/GiGurra/boa/pkg/boa"
-	"github.com/qjcg/arcadia/exp/fc/internal/fetcher"
-	"github.com/qjcg/arcadia/exp/fc/internal/rates"
-	"github.com/qjcg/arcadia/exp/fc/internal/rules"
+	"github.com/qjcg/arcadia/exp/fin/internal/fetcher"
+	"github.com/qjcg/arcadia/exp/fin/internal/rates"
+	"github.com/qjcg/arcadia/exp/fin/internal/rules"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -31,9 +31,9 @@ The update command fetches prescribed interest rates for a specified year
 range and either displays them (--dry-run) or updates the rates.yaml file.
 
 Examples:
-  fc tax penalties-and-interest update --range 2020-2025 --source cra
-  fc tax pi update --range 2020-2025 --source both --output rates.yaml
-  fc tax penalties-and-interest update --range 2024-2024 --source cra --dry-run`,
+  fin tax penalties-and-interest update --range 2020-2025 --source cra
+  fin tax pi update --range 2020-2025 --source both --output rates.yaml
+  fin tax penalties-and-interest update --range 2024-2024 --source cra --dry-run`,
 		RunFuncE: func(p *UpdateParams, cmd *cobra.Command, _ []string) error {
 			return runUpdate(p, cmd)
 		},
