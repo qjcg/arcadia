@@ -30,7 +30,7 @@ type JurisdictionRates struct {
 
 // RatesDB is the root structure of the rates YAML
 type RatesDB struct {
-	Meta RatesMeta          `yaml:"meta"`
+	Meta RatesMeta         `yaml:"meta"`
 	CRA  JurisdictionRates `yaml:"cra"`
 	RQ   JurisdictionRates `yaml:"rq"`
 }

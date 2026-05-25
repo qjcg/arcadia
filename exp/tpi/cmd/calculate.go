@@ -5,12 +5,22 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/GiGurra/boa/pkg/boa"
 	"github.com/qjcg/arcadia/exp/tpi/internal"
 	"github.com/spf13/cobra"
 )
 
-func calculateCmd() *cobra.Command {
-	cmd := &cobra.Command{
+type CalculateParams struct {
+	Amount       float64 `descr:"Tax amount owed"`
+	DueDate      string  `descr:"Payment due date (YYYY-MM-DD)"`
+	PaymentDate  string  `descr:"Actual payment date (YYYY-MM-DD)"`
+	Jurisdiction string  `descr:"Tax authority: 'cra' or 'rq'"`
+	Output       string  `descr:"Output format: 'text' or 'json'" default:"text"`
+	HadBalance   bool    `descr:"Had a balance owing in the previous tax year"`
+}
+
+func CalculateCmd() *cobra.Command {
+	return boa.CmdT[CalculateParams]{
 		Use:   "calculate",
 		Short: "Calculate tax penalties and interest",
 		Long: `Calculate penalties and interest on income tax for the Canada Revenue Agency (CRA)
@@ -19,69 +29,52 @@ or Revenu Québec based on the prescribed interest rates.
 Examples:
   tpi calculate --amount 5000 --due-date 2024-04-30 --payment-date 2024-06-15 --jurisdiction cra
   tpi calculate --amount 10000 --due-date 2024-03-31 --payment-date 2024-07-01 --jurisdiction rq --output json`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			amount, _ := cmd.Flags().GetFloat64("amount")
-			dueDateStr, _ := cmd.Flags().GetString("due-date")
-			paymentDateStr, _ := cmd.Flags().GetString("payment-date")
-			jurisdiction, _ := cmd.Flags().GetString("jurisdiction")
-			outputFormat, _ := cmd.Flags().GetString("output")
-			hadBalance, _ := cmd.Flags().GetBool("had-balance")
-
-			dueDate, err := time.Parse("2006-01-02", dueDateStr)
-			if err != nil {
-				return fmt.Errorf("invalid due-date format: %w", err)
-			}
-
-			paymentDate, err := time.Parse("2006-01-02", paymentDateStr)
-			if err != nil {
-				return fmt.Errorf("invalid payment-date format: %w", err)
-			}
-
-			jur := internal.Jurisdiction(jurisdiction)
-			if jur != internal.CRA && jur != internal.RQ {
-				return fmt.Errorf("invalid jurisdiction: %s (must be 'cra' or 'rq')", jurisdiction)
-			}
-
-			calc, err := internal.NewCalculator()
-			if err != nil {
-				return fmt.Errorf("failed to initialize calculator: %w", err)
-			}
-
-			result, err := calc.Calculate(internal.CalculationInput{
-				TaxAmount:           amount,
-				DueDate:            dueDate,
-				PaymentDate:        paymentDate,
-				Jurisdiction:       jur,
-				HadBalanceLastYear: hadBalance,
-			})
-			if err != nil {
-				return fmt.Errorf("calculation failed: %w", err)
-			}
-
-			switch outputFormat {
-			case "json":
-				return outputJSON(cmd, result)
-			case "text":
-				return outputText(cmd, result, calc)
-			default:
-				return fmt.Errorf("invalid output format: %s (must be 'text' or 'json')", outputFormat)
-			}
+		RunFuncE: func(p *CalculateParams, cmd *cobra.Command, _ []string) error {
+			return runCalculate(p, cmd)
 		},
+	}.ToCmd().ToCobra()
+}
+
+func runCalculate(p *CalculateParams, cmd *cobra.Command) error {
+	dueDate, err := time.Parse("2006-01-02", p.DueDate)
+	if err != nil {
+		return fmt.Errorf("invalid due-date format: %w", err)
 	}
 
-	cmd.Flags().Float64("amount", 0, "Tax amount owed")
-	cmd.Flags().String("due-date", "", "Payment due date (YYYY-MM-DD)")
-	cmd.Flags().String("payment-date", "", "Actual payment date (YYYY-MM-DD)")
-	cmd.Flags().String("jurisdiction", "", "Tax authority: 'cra' or 'rq'")
-	cmd.Flags().String("output", "text", "Output format: 'text' or 'json'")
-	cmd.Flags().Bool("had-balance", false, "Had a balance owing in the previous tax year")
+	paymentDate, err := time.Parse("2006-01-02", p.PaymentDate)
+	if err != nil {
+		return fmt.Errorf("invalid payment-date format: %w", err)
+	}
 
-	cmd.MarkFlagRequired("amount")
-	cmd.MarkFlagRequired("due-date")
-	cmd.MarkFlagRequired("payment-date")
-	cmd.MarkFlagRequired("jurisdiction")
+	jur := internal.Jurisdiction(p.Jurisdiction)
+	if jur != internal.CRA && jur != internal.RQ {
+		return fmt.Errorf("invalid jurisdiction: %s (must be 'cra' or 'rq')", p.Jurisdiction)
+	}
 
-	return cmd
+	calc, err := internal.NewCalculator()
+	if err != nil {
+		return fmt.Errorf("failed to initialize calculator: %w", err)
+	}
+
+	result, err := calc.Calculate(internal.CalculationInput{
+		TaxAmount:          p.Amount,
+		DueDate:            dueDate,
+		PaymentDate:        paymentDate,
+		Jurisdiction:       jur,
+		HadBalanceLastYear: p.HadBalance,
+	})
+	if err != nil {
+		return fmt.Errorf("calculation failed: %w", err)
+	}
+
+	switch p.Output {
+	case "json":
+		return outputJSON(cmd, result)
+	case "text":
+		return outputText(cmd, result, calc)
+	default:
+		return fmt.Errorf("invalid output format: %s (must be 'text' or 'json')", p.Output)
+	}
 }
 
 func outputJSON(cmd *cobra.Command, result *internal.CalculationResult) error {

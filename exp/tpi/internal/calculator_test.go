@@ -9,43 +9,43 @@ func TestCRARulesCalculateLateFilingPenalty(t *testing.T) {
 	cra := NewCRARules()
 
 	tests := []struct {
-		name          string
-		taxAmount     float64
-		dueDate       time.Time
-		filingDate    time.Time
-		hadBalance    bool
+		name            string
+		taxAmount       float64
+		dueDate         time.Time
+		filingDate      time.Time
+		hadBalance      bool
 		expectedPenalty float64
 	}{
 		{
-			name:           "no balance last year",
-			taxAmount:      5000,
-			dueDate:        time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
-			filingDate:     time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC),
-			hadBalance:     false,
+			name:            "no balance last year",
+			taxAmount:       5000,
+			dueDate:         time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
+			filingDate:      time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC),
+			hadBalance:      false,
 			expectedPenalty: 0,
 		},
 		{
-			name:           "on time (still pays base 5% penalty if had balance)",
-			taxAmount:      5000,
-			dueDate:        time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
-			filingDate:     time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
-			hadBalance:     true,
+			name:            "on time (still pays base 5% penalty if had balance)",
+			taxAmount:       5000,
+			dueDate:         time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
+			filingDate:      time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
+			hadBalance:      true,
 			expectedPenalty: 250, // 5% base penalty always applies if hadBalanceLastYear
 		},
 		{
-			name:           "1 month late",
-			taxAmount:      5000,
-			dueDate:        time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
-			filingDate:     time.Date(2024, 5, 30, 0, 0, 0, 0, time.UTC),
-			hadBalance:     true,
+			name:            "1 month late",
+			taxAmount:       5000,
+			dueDate:         time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
+			filingDate:      time.Date(2024, 5, 30, 0, 0, 0, 0, time.UTC),
+			hadBalance:      true,
 			expectedPenalty: 300, // 5% + 1% = 6% of 5000
 		},
 		{
-			name:           "12 months late",
-			taxAmount:      5000,
-			dueDate:        time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
-			filingDate:     time.Date(2025, 4, 30, 0, 0, 0, 0, time.UTC),
-			hadBalance:     true,
+			name:            "12 months late",
+			taxAmount:       5000,
+			dueDate:         time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
+			filingDate:      time.Date(2025, 4, 30, 0, 0, 0, 0, time.UTC),
+			hadBalance:      true,
 			expectedPenalty: 850, // 5% + 12% = 17% of 5000
 		},
 	}
@@ -136,32 +136,32 @@ func TestRateDBGetPrescribedRate(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
+		name         string
 		jurisdiction Jurisdiction
-		quarter    string
-		expected   float64
-		expectErr  bool
+		quarter      string
+		expected     float64
+		expectErr    bool
 	}{
 		{
-			name:       "CRA 2024-Q1",
+			name:         "CRA 2024-Q1",
 			jurisdiction: CRA,
-			quarter:    "2024-Q1",
-			expected:   4.0,
-			expectErr:  false,
+			quarter:      "2024-Q1",
+			expected:     4.0,
+			expectErr:    false,
 		},
 		{
-			name:       "RQ 2024-Q1",
+			name:         "RQ 2024-Q1",
 			jurisdiction: RQ,
-			quarter:    "2024-Q1",
-			expected:   4.0,
-			expectErr:  false,
+			quarter:      "2024-Q1",
+			expected:     4.0,
+			expectErr:    false,
 		},
 		{
-			name:       "invalid quarter",
+			name:         "invalid quarter",
 			jurisdiction: CRA,
-			quarter:    "invalid",
-			expected:   0,
-			expectErr:  true,
+			quarter:      "invalid",
+			expected:     0,
+			expectErr:    true,
 		},
 	}
 
@@ -192,34 +192,34 @@ func TestRateDBGetPrescribedRateForDate(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
+		name         string
 		jurisdiction Jurisdiction
-		date        time.Time
-		expected    float64
+		date         time.Time
+		expected     float64
 	}{
 		{
-			name:        "CRA January 2024",
+			name:         "CRA January 2024",
 			jurisdiction: CRA,
-			date:        time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC),
-			expected:    4.0,
+			date:         time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC),
+			expected:     4.0,
 		},
 		{
-			name:        "CRA April 2024",
+			name:         "CRA April 2024",
 			jurisdiction: CRA,
-			date:        time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC),
-			expected:    4.0,
+			date:         time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC),
+			expected:     4.0,
 		},
 		{
-			name:        "RQ March 2024",
+			name:         "RQ March 2024",
 			jurisdiction: RQ,
-			date:        time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC),
-			expected:    4.0,
+			date:         time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC),
+			expected:     4.0,
 		},
 		{
-			name:        "RQ June 2024",
+			name:         "RQ June 2024",
 			jurisdiction: RQ,
-			date:        time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC),
-			expected:    4.0,
+			date:         time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC),
+			expected:     4.0,
 		},
 	}
 
@@ -239,11 +239,11 @@ func TestRateDBGetPrescribedRateForDate(t *testing.T) {
 
 func TestParseRange(t *testing.T) {
 	tests := []struct {
-		name       string
-		input      string
-		startYear  int
-		endYear    int
-		expectErr  bool
+		name      string
+		input     string
+		startYear int
+		endYear   int
+		expectErr bool
 	}{
 		{
 			name:      "valid range",
@@ -302,42 +302,42 @@ func TestCalculatorCalculate(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		input        CalculationInput
-		expectErr    bool
-		minTotal     float64
+		name      string
+		input     CalculationInput
+		expectErr bool
+		minTotal  float64
 	}{
 		{
 			name: "basic calculation CRA",
 			input: CalculationInput{
-				TaxAmount:        5000,
-				DueDate:          time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
-				PaymentDate:      time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC),
-				Jurisdiction:     CRA,
+				TaxAmount:          5000,
+				DueDate:            time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
+				PaymentDate:        time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC),
+				Jurisdiction:       CRA,
 				HadBalanceLastYear: true,
 			},
 			expectErr: false,
-			minTotal:   5375, // 5000 + 350 (5% + 1%) + interest
+			minTotal:  5375, // 5000 + 350 (5% + 1%) + interest
 		},
 		{
 			name: "on time payment CRA",
 			input: CalculationInput{
-				TaxAmount:           5000,
-				DueDate:             time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
-				PaymentDate:         time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
-				Jurisdiction:        CRA,
-				HadBalanceLastYear:  true,
+				TaxAmount:          5000,
+				DueDate:            time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
+				PaymentDate:        time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
+				Jurisdiction:       CRA,
+				HadBalanceLastYear: true,
 			},
 			expectErr: false,
-			minTotal:   5250, // 5000 + 250 (5% base penalty), no interest
+			minTotal:  5250, // 5000 + 250 (5% base penalty), no interest
 		},
 		{
 			name: "negative amount",
 			input: CalculationInput{
-				TaxAmount:        -100,
-				DueDate:          time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
-				PaymentDate:      time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC),
-				Jurisdiction:     CRA,
+				TaxAmount:          -100,
+				DueDate:            time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
+				PaymentDate:        time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC),
+				Jurisdiction:       CRA,
 				HadBalanceLastYear: true,
 			},
 			expectErr: true,
@@ -345,10 +345,10 @@ func TestCalculatorCalculate(t *testing.T) {
 		{
 			name: "payment before due",
 			input: CalculationInput{
-				TaxAmount:        5000,
-				DueDate:          time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC),
-				PaymentDate:      time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
-				Jurisdiction:     CRA,
+				TaxAmount:          5000,
+				DueDate:            time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC),
+				PaymentDate:        time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC),
+				Jurisdiction:       CRA,
 				HadBalanceLastYear: true,
 			},
 			expectErr: true,

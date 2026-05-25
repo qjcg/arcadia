@@ -6,12 +6,18 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/GiGurra/boa/pkg/boa"
 	"github.com/qjcg/arcadia/exp/tpi/internal"
 	"github.com/spf13/cobra"
 )
 
+type RatesParams struct {
+	Jurisdiction string `descr:"Show rates for 'cra', 'rq', or 'both'" default:"both"`
+	Year         int    `descr:"Show rates for a specific year" optional:"true"`
+}
+
 func ratesCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return boa.CmdT[RatesParams]{
 		Use:   "rates",
 		Short: "Display current interest rates",
 		Long: `Display the embedded interest rates database for CRA and/or Revenu Québec.
@@ -20,18 +26,10 @@ Examples:
   tpi rates
   tpi rates --jurisdiction cra
   tpi rates --year 2024 --jurisdiction rq`,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			jurisdiction, _ := cmd.Flags().GetString("jurisdiction")
-			year, _ := cmd.Flags().GetInt("year")
-
-			return runRates(cmd, jurisdiction, year)
+		RunFuncE: func(p *RatesParams, cmd *cobra.Command, _ []string) error {
+			return runRates(cmd, p.Jurisdiction, p.Year)
 		},
-	}
-
-	cmd.Flags().String("jurisdiction", "both", "Show rates for 'cra', 'rq', or 'both'")
-	cmd.Flags().Int("year", 0, "Show rates for a specific year")
-
-	return cmd
+	}.ToCmd().ToCobra()
 }
 
 func runRates(cmd *cobra.Command, jurisdiction string, filterYear int) error {

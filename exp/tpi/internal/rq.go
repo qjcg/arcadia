@@ -22,13 +22,7 @@ func (r *RQRules) CalculateLateFilingPenalty(taxAmount float64, dueDate, filingD
 
 	basePenalty := 0.05 * taxAmount
 
-	monthsLate := r.MonthsLate(dueDate, filingDate)
-	if monthsLate > 12 {
-		monthsLate = 12
-	}
-	if monthsLate < 0 {
-		monthsLate = 0
-	}
+	monthsLate := max(min(r.MonthsLate(dueDate, filingDate), 12), 0)
 
 	additionalPenalty := 0.01 * float64(monthsLate) * taxAmount
 	return basePenalty + additionalPenalty
@@ -61,7 +55,7 @@ func (r *RQRules) CalculateInterest(amount float64, startDate, endDate time.Time
 	// Interest is compounded daily: principal * ((1 + rate/365)^days - 1)
 	rate := dailyRate / 100
 	factor := 1.0
-	for i := 0; i < days; i++ {
+	for range days {
 		factor *= 1.0 + rate/365.0
 	}
 

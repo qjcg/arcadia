@@ -14,25 +14,25 @@ type Calculator struct {
 
 // CalculationInput contains all inputs for a calculation
 type CalculationInput struct {
-	TaxAmount        float64
-	DueDate          time.Time
-	PaymentDate     time.Time
-	Jurisdiction    Jurisdiction
+	TaxAmount          float64
+	DueDate            time.Time
+	PaymentDate        time.Time
+	Jurisdiction       Jurisdiction
 	HadBalanceLastYear bool
 }
 
 // CalculationResult contains the breakdown of penalties and interest
 type CalculationResult struct {
-	TaxAmount           float64   `json:"tax_amount"`
-	DueDate            time.Time `json:"due_date"`
-	PaymentDate        time.Time `json:"payment_date"`
-	Jurisdiction       string    `json:"jurisdiction"`
-	LateFilingPenalty  float64   `json:"late_filing_penalty"`
-	Interest           float64   `json:"interest"`
-	TotalAmount        float64   `json:"total_amount"`
-	DaysOwed           int       `json:"days_owed"`
-	EffectiveRate      float64   `json:"effective_rate"`
-	LateFilingMonths   int       `json:"late_filing_months"`
+	TaxAmount         float64   `json:"tax_amount"`
+	DueDate           time.Time `json:"due_date"`
+	PaymentDate       time.Time `json:"payment_date"`
+	Jurisdiction      string    `json:"jurisdiction"`
+	LateFilingPenalty float64   `json:"late_filing_penalty"`
+	Interest          float64   `json:"interest"`
+	TotalAmount       float64   `json:"total_amount"`
+	DaysOwed          int       `json:"days_owed"`
+	EffectiveRate     float64   `json:"effective_rate"`
+	LateFilingMonths  int       `json:"late_filing_months"`
 }
 
 // NewCalculator creates a new calculator with the embedded rates database
@@ -64,23 +64,17 @@ func (c *Calculator) Calculate(inp CalculationInput) (*CalculationResult, error)
 	}
 
 	result := &CalculationResult{
-		TaxAmount:     inp.TaxAmount,
-		DueDate:       inp.DueDate,
-		PaymentDate:   inp.PaymentDate,
-		Jurisdiction:  string(inp.Jurisdiction),
-		DaysOwed:      c.daysOwed(inp.DueDate, inp.PaymentDate),
+		TaxAmount:    inp.TaxAmount,
+		DueDate:      inp.DueDate,
+		PaymentDate:  inp.PaymentDate,
+		Jurisdiction: string(inp.Jurisdiction),
+		DaysOwed:     c.daysOwed(inp.DueDate, inp.PaymentDate),
 	}
 
 	// Calculate late filing penalty if had balance last year
 	if inp.HadBalanceLastYear {
 		result.LateFilingPenalty = c.calculatePenalty(inp)
-		result.LateFilingMonths = c.getMonthsLate(inp)
-		if result.LateFilingMonths < 0 {
-			result.LateFilingMonths = 0
-		}
-		if result.LateFilingMonths > 12 {
-			result.LateFilingMonths = 12
-		}
+		result.LateFilingMonths = min(max(c.getMonthsLate(inp), 0), 12)
 	}
 
 	// Calculate interest

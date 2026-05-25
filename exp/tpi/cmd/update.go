@@ -5,23 +5,22 @@ import (
 	"os"
 	"time"
 
+	"github.com/GiGurra/boa/pkg/boa"
 	"github.com/qjcg/arcadia/exp/tpi/internal"
 	"github.com/qjcg/arcadia/exp/tpi/rates"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
-type updateParams struct {
-	Range   string `descr:"Year range (e.g., 2015-2025)"`
-	Source  string `descr:"Source: 'cra', 'rq', or 'both'"`
-	Output  string `descr:"Output file path" optional:"true"`
-	DryRun  bool   `descr:"Show what would be updated without making changes" optional:"true"`
+type UpdateParams struct {
+	Range  string `descr:"Year range (e.g., 2015-2025)"`
+	Source string `descr:"Source: 'cra', 'rq', or 'both'"`
+	Output string `descr:"Output file path" optional:"true"`
+	DryRun bool   `descr:"Show what would be updated without making changes" optional:"true"`
 }
 
 func updateCmd() *cobra.Command {
-	p := &updateParams{}
-
-	cmd := &cobra.Command{
+	return boa.CmdT[UpdateParams]{
 		Use:   "update",
 		Short: "Update the interest rates database",
 		Long: `Fetch and update the interest rates database from official CRA and
@@ -34,23 +33,13 @@ Examples:
   tpi update --range 2020-2025 --source cra
   tpi update --range 2020-2025 --source both --output rates.yaml
   tpi update --range 2024-2024 --source cra --dry-run`,
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		RunFuncE: func(p *UpdateParams, cmd *cobra.Command, _ []string) error {
 			return runUpdate(p, cmd)
 		},
-	}
-
-	cmd.Flags().String("range", "", "Year range (e.g., 2015-2025)")
-	cmd.Flags().String("source", "", "Source: 'cra', 'rq', or 'both'")
-	cmd.Flags().String("output", "", "Output file path (default: rates/rates.yaml)")
-	cmd.Flags().Bool("dry-run", false, "Show what would be updated without making changes")
-
-	cmd.MarkFlagRequired("range")
-	cmd.MarkFlagRequired("source")
-
-	return cmd
+	}.ToCmd().ToCobra()
 }
 
-func runUpdate(p *updateParams, cmd *cobra.Command) error {
+func runUpdate(p *UpdateParams, cmd *cobra.Command) error {
 	rng, err := internal.ParseRange(p.Range)
 	if err != nil {
 		return err
@@ -118,7 +107,7 @@ func runUpdate(p *updateParams, cmd *cobra.Command) error {
 	}
 
 	// Write updated rates
-	if err := os.WriteFile(outputPath, output, 0644); err != nil {
+	if err := os.WriteFile(outputPath, output, 0o644); err != nil {
 		return fmt.Errorf("failed to write updated rates: %w", err)
 	}
 

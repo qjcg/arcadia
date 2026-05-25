@@ -1,14 +1,41 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"os"
+	"runtime/debug"
 
 	"github.com/qjcg/arcadia/exp/tpi/cmd"
+	"github.com/spf13/cobra"
 )
 
 func main() {
-	rootCmd := cmd.RootCmd()
-	if err := rootCmd.Execute(); err != nil {
+	if err := setupCLI(os.Stdout, os.Stderr).Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func getVersion() string {
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
+		return info.Main.Version
+	}
+	return "dev"
+}
+
+func setupCLI(out, err io.Writer) *cobra.Command {
+	rootCmd := &cobra.Command{
+		Use:     "tpi",
+		Short:   "tpi calculates tax penalties and interest for CRA and Revenu Québec",
+		Version: getVersion(),
+	}
+	rootCmd.SetOut(out)
+	rootCmd.SetErr(err)
+
+	rootCmd.AddCommand(cmd.CalculateCmd())
+	rootCmd.AddCommand(cmd.UpdateCmd())
+	rootCmd.AddCommand(cmd.RatesCmd())
+
+	return rootCmd
 }
