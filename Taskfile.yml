@@ -27,7 +27,7 @@ tasks:
   build:
     desc: Build all binaries in the workspace.
     cmds:
-      - go build -o bin/ work
+      - go build -ldflags '-s -w' -o bin/ work
 
   build:docker:
     desc: Build docker image.
@@ -150,10 +150,11 @@ tasks:
     cmds:
       - git push --tags
 
+
   ######################################################################
   # release
 
   release:
     desc: GitHub release.
     cmds:
-      -
+      - go tool gh release --help
