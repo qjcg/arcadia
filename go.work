@@ -6,10 +6,10 @@ use (
 	./examples/go
 	./exp/diplomat
 	./exp/elbereth
+	./exp/fin
 	./exp/fractalis
 	./exp/jmacs
 	./exp/skillo
 	./exp/slidesdeck
 	./exp/sv
-	./exp/fin
 )
