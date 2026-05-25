@@ -11,9 +11,9 @@ import (
 )
 
 type currentParams struct {
-	All     bool   `descr:"Show current version for all modules"`
-	Path    string `descr:"Explicit module path" optional:"true"`
-	Verbose bool   `descr:"Show module names with tags (used with -a)"`
+	All     bool     `descr:"Show current version for all modules"`
+	Path    []string `descr:"Explicit module path(s)" optional:"true"`
+	Verbose bool     `descr:"Show module names with tags (used with -a)"`
 }
 
 func createCurrentCmd() *cobra.Command {

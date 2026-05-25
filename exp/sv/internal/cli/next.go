@@ -12,9 +12,9 @@ import (
 )
 
 type nextParams struct {
-	All     bool   `descr:"Calculate next version for all modules"`
-	Path    string `descr:"Explicit module path" optional:"true"`
-	Verbose bool   `descr:"Show module names with tags (used with -a)"`
+	All     bool     `descr:"Calculate next version for all modules"`
+	Path    []string `descr:"Explicit module path(s)" optional:"true"`
+	Verbose bool     `descr:"Show module names with tags (used with -a)"`
 }
 
 func createNextCmd() *cobra.Command {
