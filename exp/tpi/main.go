@@ -6,7 +6,7 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/qjcg/arcadia/exp/tpi/cmd"
+	"github.com/qjcg/arcadia/exp/tpi/internal/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -33,9 +33,9 @@ func setupCLI(out, err io.Writer) *cobra.Command {
 	rootCmd.SetOut(out)
 	rootCmd.SetErr(err)
 
-	rootCmd.AddCommand(cmd.CalculateCmd())
-	rootCmd.AddCommand(cmd.UpdateCmd())
-	rootCmd.AddCommand(cmd.RatesCmd())
+	rootCmd.AddCommand(cli.CalculateCmd())
+	rootCmd.AddCommand(cli.UpdateCmd())
+	rootCmd.AddCommand(cli.RatesCmd())
 
 	return rootCmd
 }
