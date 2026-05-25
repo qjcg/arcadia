@@ -4,11 +4,12 @@ import "testing"
 
 func TestCalculateNext(t *testing.T) {
 	tests := []struct {
-		name    string
-		current string
-		path    string
-		commits []string
-		want    string
+		name         string
+		current      string
+		path         string
+		commits      []string
+		defaultPatch bool
+		want         string
 	}{
 		{
 			name:    "root patch",
@@ -53,11 +54,12 @@ func TestCalculateNext(t *testing.T) {
 			want:    "v1.1.0",
 		},
 		{
-			name:    "no relevant commits",
-			current: "v1.0.0",
-			path:    ".",
-			commits: []string{"chore: docs", "style: lint"},
-			want:    "v1.0.1",
+			name:         "no relevant commits with default patch",
+			current:      "v1.0.0",
+			path:         ".",
+			commits:      []string{"chore: docs", "style: lint"},
+			defaultPatch: true,
+			want:         "v1.0.1",
 		},
 		{
 			name:    "initial version",
@@ -105,7 +107,7 @@ func TestCalculateNext(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := CalculateNext(tt.current, tt.path, tt.commits)
+			got, err := CalculateNext(tt.current, tt.path, tt.commits, tt.defaultPatch)
 			if err != nil {
 				t.Errorf("CalculateNext() error = %v", err)
 				return
@@ -172,7 +174,7 @@ func TestCalculateNext_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := CalculateNext(tt.current, tt.path, tt.commits)
+			_, err := CalculateNext(tt.current, tt.path, tt.commits, false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CalculateNext() error = %v, wantErr %v", err, tt.wantErr)
 			}

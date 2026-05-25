@@ -15,8 +15,9 @@ const (
 	BumpMajor
 )
 
-// CalculateNext calculates the next version based on commits
-func CalculateNext(current, path string, commits []string) (string, error) {
+// CalculateNext calculates the next version based on commits.
+// defaultPatch controls whether non-feat/fix commits bump the patch version.
+func CalculateNext(current, path string, commits []string, defaultPatch bool) (string, error) {
 	vStr := current
 	if vStr == "" {
 		vStr = "v0.1.0"
@@ -56,8 +57,8 @@ func CalculateNext(current, path string, commits []string) (string, error) {
 		}
 	}
 
-	// If there are commits but no semver-relevant type, default to patch bump
-	if hasCommits && bump == BumpNone {
+	// If there are commits but no semver-relevant type, optionally default to patch bump
+	if hasCommits && bump == BumpNone && defaultPatch {
 		bump = BumpPatch
 	}
 

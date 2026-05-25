@@ -12,8 +12,9 @@ import (
 )
 
 type nextParams struct {
-	All  bool     `descr:"Calculate next version for all modules"`
-	Path []string `descr:"Explicit module path(s)" optional:"true"`
+	All          bool     `descr:"Calculate next version for all modules"`
+	Path         []string `descr:"Explicit module path(s)" optional:"true"`
+	DefaultPatch bool     `descr:"Default to patch bump for non-feat/fix commits" short:"d"`
 }
 
 func createNextCmd() *cobra.Command {
@@ -43,14 +44,14 @@ func runNextCmd(p *nextParams, cmd *cobra.Command) error {
 	}
 
 	for _, m := range modules {
-		if err := runNext(cmd.OutOrStdout(), root, m, allMods); err != nil {
+		if err := runNext(cmd.OutOrStdout(), root, m, allMods, p.DefaultPatch); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
 		}
 	}
 	return nil
 }
 
-func runNext(out io.Writer, root string, m discovery.Module, allModulesList []discovery.Module) error {
+func runNext(out io.Writer, root string, m discovery.Module, allModulesList []discovery.Module, defaultPatch bool) error {
 	tag, err := git.LatestTag(root, m.Name)
 	if err != nil {
 		return err
@@ -71,7 +72,7 @@ func runNext(out io.Writer, root string, m discovery.Module, allModulesList []di
 		return err
 	}
 
-	next, err := semver.CalculateNext(tag, m.Name, commits)
+	next, err := semver.CalculateNext(tag, m.Name, commits, defaultPatch)
 	if err != nil {
 		return err
 	}
