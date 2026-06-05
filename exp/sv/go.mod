@@ -1,11 +1,11 @@
 module github.com/qjcg/arcadia/exp/sv
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/GiGurra/boa v1.0.27
 	github.com/Masterminds/semver/v3 v3.5.0
-	github.com/rogpeppe/go-internal v1.14.1
+	github.com/rogpeppe/go-internal v1.15.0
 	github.com/spf13/cobra v1.10.2
 )
 

@@ -1,10 +1,10 @@
 module github.com/qjcg/arcadia/exp/elbereth
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/chzyer/readline v1.5.1
-	github.com/rogpeppe/go-internal v1.14.1
+	github.com/rogpeppe/go-internal v1.15.0
 )
 
 require (
