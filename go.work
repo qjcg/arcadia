@@ -1,4 +1,4 @@
-go 1.26.3
+go 1.26.4
 
 use (
 	.
@@ -9,6 +9,7 @@ use (
 	./exp/fin
 	./exp/fractalis
 	./exp/jmacs
+	./exp/pangrams
 	./exp/skillo
 	./exp/slidesdeck
 	./exp/sv
