@@ -9,6 +9,11 @@ tasks:
     cmds:
       - typst compile spec-example.typ
 
+  letter:
+    desc: Compile example letter to PDF
+    cmds:
+      - typst compile letter-example.typ
+
   diploma:
     desc: Compile diploma to PDF
     cmds:
