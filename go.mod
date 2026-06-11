@@ -491,3 +491,5 @@ tool (
 	mvdan.cc/gofumpt
 	mvdan.cc/xurls/v2/cmd/xurls
 )
+
+retract v1.0.0
