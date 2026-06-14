@@ -3,56 +3,35 @@ version: '3'
 tasks:
   default:
     deps:
-      - spec
-      - letter
-      - diploma
+      - build
 
-  spec:
-    desc: Compile example spec to PDF
+  build:
+    desc: Build PDF files.
     sources:
-      - spec-example.typ
+      - '*-example.typ'
+      - diploma-batch.typ
     generates:
-      - spec-example.pdf
+      - '*.pdf'
     cmds:
-      - typst compile spec-example.typ
-
-  letter:
-    desc: Compile example letter to PDF
-    sources:
-      - letter-example.typ
-    generates:
-      - letter-example.pdf
-    cmds:
-      - typst compile letter-example.typ
-
-  diploma:
-    desc: Compile diploma to PDF
-    sources:
-      - diploma-example.typ
-    generates:
-      -  diploma-example.pdf
-    cmds:
-      - typst compile diploma-example.typ
-
-  diploma:batch:
-    desc: Compile a batch of diplomas
-    cmds:
-      - typst compile diploma-batch.typ
+      - for: sources
+        cmd: typst compile {{.ITEM}}
 
   diploma:input:
-    desc: Compile a batch of diplomas
+    desc: Create diplomas based on CLI input values.
+    sources:
+      - diploma.typ
+      - diploma-input.typ
+    generates:
+      - diploma-input_*.pdf
     cmds:
-      - >
-        typst compile diploma-input.typ diploma-input_fooman.pdf
-        --input student=FooMan
-        --input course='Plan9 for Dummies'
-        --input instructor='Rob Pike'
-        --input dates='Feb 16-18, 2026'
-      - >
-        typst compile diploma-input.typ diploma-input_barman.pdf
-        --input student=BarMan
-        --input course='Plan9 for Dummies'
-        --input instructor='Rob Pike'
-        --input dates='Feb 16-18, 2026'
+      - for: [fooman, barman, bazman]
+        cmd: >
+          typst compile diploma-input.typ diploma-input_{{.ITEM}}.pdf
+          --input student={{.ITEM}}
+          --input course='Plan9 for Dummies'
+          --input instructor='Rob Pike'
+          --input dates='Feb 16-18, 2026'
 
-  clean: rm -f *.pdf
+  clean:
+    desc: Remove PDF files.
+    cmd: rm -f *.pdf
