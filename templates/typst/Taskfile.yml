@@ -2,20 +2,35 @@ version: '3'
 
 tasks:
   default:
-    deps: [spec]
+    deps:
+      - spec
+      - letter
+      - diploma
 
   spec:
     desc: Compile example spec to PDF
+    sources:
+      - spec-example.typ
+    generates:
+      - spec-example.pdf
     cmds:
       - typst compile spec-example.typ
 
   letter:
     desc: Compile example letter to PDF
+    sources:
+      - letter-example.typ
+    generates:
+      - letter-example.pdf
     cmds:
       - typst compile letter-example.typ
 
   diploma:
     desc: Compile diploma to PDF
+    sources:
+      - diploma-example.typ
+    generates:
+      -  diploma-example.pdf
     cmds:
       - typst compile diploma-example.typ
 
