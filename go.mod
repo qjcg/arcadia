@@ -492,4 +492,7 @@ tool (
 	mvdan.cc/xurls/v2/cmd/xurls
 )
 
-retract v1.0.0
+retract (
+	v1.0.1
+	v1.0.0
+)
