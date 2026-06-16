@@ -52,9 +52,13 @@ func runNextCmd(p *nextParams, cmd *cobra.Command) error {
 }
 
 func runNext(out io.Writer, root string, m discovery.Module, allModulesList []discovery.Module, defaultPatch bool) error {
-	tag, err := git.LatestTag(root, m.Name)
+	tag, warning, err := latestNonRetractedTag(root, m.Name)
 	if err != nil {
 		return err
+	}
+
+	if warning != "" {
+		fmt.Fprintln(out, warning)
 	}
 
 	// Build exclude paths: all modules except the current one

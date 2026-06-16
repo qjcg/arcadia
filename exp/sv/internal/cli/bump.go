@@ -46,9 +46,13 @@ func runBumpCmd(p *bumpParams, bump semver.Bump, cmd *cobra.Command) error {
 }
 
 func runBump(out io.Writer, root string, m discovery.Module, bump semver.Bump) error {
-	tag, err := git.LatestTag(root, m.Name)
+	tag, warning, err := latestNonRetractedTag(root, m.Name)
 	if err != nil {
 		return err
+	}
+
+	if warning != "" {
+		fmt.Fprintln(out, warning)
 	}
 
 	next, err := semver.Increment(tag, m.Name, bump)

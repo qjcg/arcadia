@@ -5,8 +5,40 @@ import (
 	"strings"
 )
 
-// LatestTag returns the latest tag for a given module prefix
-func LatestTag(root, prefix string) (string, error) {
+// ReadGoModAtTag reads the go.mod content from a specific tag in the repo.
+func ReadGoModAtTag(root, tag, modulePath string) (string, error) {
+	path := "go.mod"
+	if modulePath != "." {
+		path = modulePath + "/go.mod"
+	}
+
+	cmd := exec.Command("git", "show", tag+":"+path)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
+// ReadGoMod reads the go.mod content from the working tree.
+func ReadGoMod(root, modulePath string) (string, error) {
+	path := "go.mod"
+	if modulePath != "." {
+		path = modulePath + "/go.mod"
+	}
+
+	cmd := exec.Command("git", "show", "HEAD:"+path)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
+// Tags returns all tags matching the given prefix, sorted by version descending.
+func Tags(root, prefix string) ([]string, error) {
 	var pattern string
 	if prefix == "." {
 		pattern = "v*"
@@ -18,14 +50,27 @@ func LatestTag(root, prefix string) (string, error) {
 	cmd.Dir = root
 	out, err := cmd.CombinedOutput()
 	if err != nil {
+		return nil, err
+	}
+
+	trimmed := strings.TrimSpace(string(out))
+	if trimmed == "" {
+		return nil, nil
+	}
+
+	tags := strings.Split(trimmed, "\n")
+	return tags, nil
+}
+
+// LatestTag returns the latest tag for a given module prefix.
+func LatestTag(root, prefix string) (string, error) {
+	tags, err := Tags(root, prefix)
+	if err != nil {
 		return "", err
 	}
-
-	tags := strings.Split(strings.TrimSpace(string(out)), "\n")
-	if len(tags) == 0 || tags[0] == "" {
-		return "", nil // No tags found
+	if len(tags) == 0 {
+		return "", nil
 	}
-
 	return tags[0], nil
 }
 

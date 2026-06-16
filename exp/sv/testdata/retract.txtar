@@ -1,0 +1,116 @@
+# Test that sv handles retracted go module versions.
+# Scenario: v1.1.0 was published accidentally; v1.2.0 retracts it.
+# sv should skip retracted versions when determining current and next.
+
+exec git init
+exec git config user.email test@example.com
+exec git config user.name "Test User"
+
+# Initial module at v1.0.0
+cp go_mod_100 go.mod
+exec git add go.mod
+exec git commit -m initial
+exec git tag v1.0.0
+
+# Second version v1.1.0 (the one that will be retracted)
+cp go_mod_110 go.mod
+exec git add go.mod
+exec git commit -m feat2
+exec git tag v1.1.0
+
+# Retract v1.1.0 in go.mod and publish v1.2.0
+cp go_mod_120 go.mod
+exec git add go.mod
+exec git commit -m feat3
+exec git tag v1.2.0
+
+# Add a new commit on top to test sv next
+exec git commit --allow-empty -m fix1
+exec git commit --allow-empty -m feat4
+
+# sv current should show v1.2.0 (latest non-retracted), NOT v1.1.0
+exec sv current
+stdout '^v1.2.0$'
+
+# sv next should calculate from v1.2.0, giving v1.3.0 (feat bump)
+exec sv next
+stdout '^v1.3.0$'
+
+# sv bump commands should use the latest non-retracted tag
+exec sv patch
+stdout '^v1.2.1$'
+
+exec sv minor
+stdout '^v1.3.0$'
+
+exec sv major
+stdout '^v2.0.0$'
+
+# Test retraction with submodules
+mkdir x
+mkdir x/mod
+cp sub_go_mod_100 x/mod/go.mod
+exec git add x/mod/go.mod
+exec git commit -m submod
+exec git tag x/mod/v1.0.0
+
+# Add another submodule version (will be retracted later)
+cp sub_go_mod_110 x/mod/go.mod
+exec git add x/mod/go.mod
+exec git commit -m submod2
+exec git tag x/mod/v1.1.0
+
+# Retract v1.0.0 and publish v1.2.0
+cp sub_go_mod_120 x/mod/go.mod
+exec git add x/mod/go.mod
+exec git commit -m submod3
+exec git tag x/mod/v1.2.0
+
+# Add commits on top for sv next
+cp readme x/mod/readme.md
+exec git add x/mod/readme.md
+exec git commit -m feat5
+exec git commit --allow-empty -m feat6
+
+# sv current for x/mod should show v1.2.0 (latest non-retracted)
+exec sv current -p x/mod
+stdout '^x/mod/v1.2.0$'
+
+# sv next for x/mod should calculate from v1.2.0
+exec sv next -p x/mod
+stdout '^x/mod/v1.3.0$'
+
+-- go_mod_100 --
+module example.com/m
+go 1.21
+// v1.0.0
+
+-- go_mod_110 --
+module example.com/m
+go 1.21
+// v1.1.0
+
+-- go_mod_120 --
+module example.com/m
+go 1.21
+
+retract v1.1.0
+
+-- sub_go_mod_100 --
+module example.com/m/x/mod
+go 1.21
+// v1.0.0
+
+-- sub_go_mod_110 --
+module example.com/m/x/mod
+go 1.21
+// v1.1.0
+
+-- sub_go_mod_120 --
+module example.com/m/x/mod
+go 1.21
+
+retract v1.0.0
+
+-- readme --
+submodule readme

@@ -45,7 +45,7 @@ func runCurrentCmd(p *currentParams, cmd *cobra.Command) error {
 }
 
 func runCurrent(out io.Writer, root string, m discovery.Module) error {
-	tag, err := git.LatestTag(root, m.Name)
+	tag, warning, err := latestNonRetractedTag(root, m.Name)
 	if err != nil {
 		return err
 	}
@@ -54,6 +54,9 @@ func runCurrent(out io.Writer, root string, m discovery.Module) error {
 		return nil // Skip modules with no tags
 	}
 
+	if warning != "" {
+		fmt.Fprintln(out, warning)
+	}
 	fmt.Fprintln(out, tag)
 	return nil
 }
