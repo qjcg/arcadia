@@ -1,0 +1,29 @@
+VERSION 0.8
+
+ARG --global v_typst = v0.15.0
+
+
+base-img:
+	FROM alpine:3
+	RUN apk add --no-cache bash curl
+        LET url_typst = https://github.com/typst/typst/releases/download/$v_typst/typst-x86_64-unknown-linux-musl.tar.xz
+	WORKDIR /work
+	RUN curl -L $url_typst | tar x -J -C /usr/local/bin --strip-components 1 -f - typst-x86_64-unknown-linux-musl/typst
+
+build:
+        FROM +base-img
+        COPY *.typ .
+
+        # Compile examples.
+        FOR file IN $(ls *-example.typ)
+            RUN typst compile $file
+        END
+        SAVE ARTIFACT ./*.pdf AS LOCAL ./pdfs/
+
+dev:
+        FROM +base-img
+        RUN --interactive /bin/bash --login
+
+dev-build:
+        FROM +build
+        RUN --interactive /bin/bash --login
