@@ -20,7 +20,7 @@ jobs:
         go-version-file: go.work
 
     - name: Install sv
-      run: CGO_ENABLED=0 go install -ldflags '-s -w' github.com/qjcg/arcadia/exp/sv@v0.5.0
+      run: CGO_ENABLED=0 go install -ldflags '-s -w' github.com/qjcg/arcadia/exp/sv@v0.6.0
 
     - name: Compute version bumps
       id: bumps
