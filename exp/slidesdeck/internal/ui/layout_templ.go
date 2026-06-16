@@ -10,7 +10,7 @@ import (
 
 	"github.com/a-h/templ"
 	templruntime "github.com/a-h/templ/runtime"
-	"github.com/charmbracelet/arcadia/exp/slidesdeck/internal/parser"
+	"github.com/qjcg/arcadia/exp/slidesdeck/internal/parser"
 )
 
 func Layout(deck *parser.Deck, initialTheme string, initialFontTheme string, css string, customCss string, js string) templ.Component {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/charmbracelet/arcadia/exp/slidesdeck/internal/cli"
+	"github.com/qjcg/arcadia/exp/slidesdeck/internal/cli"
 )
 
 func main() {

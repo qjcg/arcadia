@@ -50,7 +50,7 @@ seconds. The fact that it's just one HTML file means I never have to
 worry about missing assets or broken styles ever again."
 
 Users can install Slidesdeck today via Go: `go install
-github.com/charmbracelet/arcadia/cmd/slidesdeck@latest`. To create
+github.com/qjcg/arcadia/exp/slidesdeck@latest`. To create
 your first deck, simply run `slidesdeck my-notes.md`. For more
 information and documentation, visit our official repository.
 

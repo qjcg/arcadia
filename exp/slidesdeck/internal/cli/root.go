@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/charmbracelet/arcadia/exp/slidesdeck/assets"
-	"github.com/charmbracelet/arcadia/exp/slidesdeck/internal/parser"
-	"github.com/charmbracelet/arcadia/exp/slidesdeck/internal/ui"
+	"github.com/qjcg/arcadia/exp/slidesdeck/assets"
+	"github.com/qjcg/arcadia/exp/slidesdeck/internal/parser"
+	"github.com/qjcg/arcadia/exp/slidesdeck/internal/ui"
 	"github.com/spf13/cobra"
 )
 

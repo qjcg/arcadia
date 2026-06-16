@@ -19,7 +19,7 @@ Slidesdeck is a single-purpose CLI tool that transforms your Markdown or Emacs O
 ## Installation
 
 ```bash
-go install github.com/charmbracelet/arcadia/exp/slidesdeck@latest
+go install github.com/qjcg/arcadia/exp/slidesdeck@latest
 ```
 
 ## Quickstart

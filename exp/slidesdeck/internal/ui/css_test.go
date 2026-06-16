@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/arcadia/exp/slidesdeck/internal/parser"
+	"github.com/qjcg/arcadia/exp/slidesdeck/internal/parser"
 )
 
 func TestLayoutCustomCSSInjection(t *testing.T) {

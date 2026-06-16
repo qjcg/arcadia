@@ -1,4 +1,4 @@
-module github.com/charmbracelet/arcadia/exp/slidesdeck
+module github.com/qjcg/arcadia/exp/slidesdeck
 
 go 1.26.4
 

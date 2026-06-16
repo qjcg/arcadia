@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/a-h/templ"
-	"github.com/charmbracelet/arcadia/exp/slidesdeck/internal/parser"
+	"github.com/qjcg/arcadia/exp/slidesdeck/internal/parser"
 )
 
 func TestSearchPaletteStructure(t *testing.T) {
