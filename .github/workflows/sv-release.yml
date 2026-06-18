@@ -20,7 +20,7 @@ jobs:
         go-version-file: go.work
 
     - name: Install sv
-      run: CGO_ENABLED=0 go install -ldflags '-s -w' github.com/qjcg/arcadia/exp/sv@v0.6.0
+      run: CGO_ENABLED=0 go install -ldflags '-s -w' github.com/qjcg/arcadia/exp/sv@v0.7.0
 
     - name: Compute version bumps
       id: bumps
@@ -40,10 +40,7 @@ jobs:
         git config user.name github-actions
         git config user.email github-actions@github.com
 
-        while read tag; do
-          git tag "$tag"
-        done <<< "${{ steps.bumps.outputs.tags }}"
-
+        sv next --all --tag
         git push origin --tags
 
         while read tag; do
