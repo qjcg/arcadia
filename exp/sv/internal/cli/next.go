@@ -29,6 +29,7 @@ type nextParams struct {
 	DefaultPatch bool     `descr:"Default to patch bump for non-feat/fix commits" short:"d"`
 	Tag          bool     `descr:"Create annotated git tag for the new version"`
 	TagFormat    string   `descr:"Go template for the tag message (default: the new version string)" short:"f" optional:"true"`
+	DryRun       bool     `descr:"Print git commands that would be executed without running them"`
 }
 
 func createNextCmd() *cobra.Command {
@@ -58,14 +59,14 @@ func runNextCmd(p *nextParams, cmd *cobra.Command) error {
 	}
 
 	for _, m := range modules {
-		if err := runNext(cmd.OutOrStdout(), cmd.ErrOrStderr(), root, m, allMods, p.DefaultPatch, p.Tag, p.TagFormat); err != nil {
+		if err := runNext(cmd.OutOrStdout(), cmd.ErrOrStderr(), root, m, allMods, p.DefaultPatch, p.Tag, p.TagFormat, p.DryRun); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
 		}
 	}
 	return nil
 }
 
-func runNext(out, errOut io.Writer, root string, m discovery.Module, allModulesList []discovery.Module, defaultPatch, createTag bool, tagFormat string) error {
+func runNext(out, errOut io.Writer, root string, m discovery.Module, allModulesList []discovery.Module, defaultPatch, createTag bool, tagFormat string, dryRun bool) error {
 	tag, warning, err := latestNonRetractedTag(root, m.Name)
 	if err != nil {
 		return err
@@ -102,7 +103,7 @@ func runNext(out, errOut io.Writer, root string, m discovery.Module, allModulesL
 	fmt.Fprintln(out, next)
 
 	if createTag {
-		if err := createAnnotatedTag(root, m.Name, next, tagFormat); err != nil {
+		if err := createAnnotatedTag(root, m.Name, next, tagFormat, dryRun); err != nil {
 			fmt.Fprintf(errOut, "Warning: failed to create tag for %s: %v\n", next, err)
 		}
 	}
@@ -113,7 +114,8 @@ func runNext(out, errOut io.Writer, root string, m discovery.Module, allModulesL
 // createAnnotatedTag creates an annotated git tag for the given version.
 // If tagFormat is empty, the message defaults to the version string.
 // Otherwise, tagFormat is interpreted as a Go template with tagData available.
-func createAnnotatedTag(root, moduleName, version, tagFormat string) error {
+// If dryRun is true, the git command is printed to stdout instead of executed.
+func createAnnotatedTag(root, moduleName, version, tagFormat string, dryRun bool) error {
 	// Parse version components (strip module prefix if present)
 	versionPart := version
 	if moduleName != "." && strings.HasPrefix(version, moduleName+"/") {
@@ -158,6 +160,11 @@ func createAnnotatedTag(root, moduleName, version, tagFormat string) error {
 			return fmt.Errorf("failed to execute --tag-format template: %w", err)
 		}
 		message = buf.String()
+	}
+
+	if dryRun {
+		fmt.Printf("git tag -a %s -m %s\n", version, message)
+		return nil
 	}
 
 	return git.TagAnnotated(root, version, message)
