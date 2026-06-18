@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -171,6 +172,17 @@ func CommitsSince(root, tag, path string, excludePaths []string) ([]string, erro
 		}
 	}
 	return commits, nil
+}
+
+// TagAnnotated creates an annotated git tag with the given name and message.
+func TagAnnotated(root, tagName, message string) error {
+	cmd := exec.Command("git", "tag", "-a", tagName, "-m", message)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to create annotated tag %s: %w\n%s", tagName, err, string(out))
+	}
+	return nil
 }
 
 // Root returns the absolute path to the git root

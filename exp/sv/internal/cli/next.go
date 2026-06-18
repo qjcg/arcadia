@@ -1,8 +1,11 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"strings"
+	"text/template"
 
 	"github.com/GiGurra/boa/pkg/boa"
 	"github.com/qjcg/arcadia/exp/sv/internal/discovery"
@@ -11,10 +14,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type tagData struct {
+	Version string // Full version string, e.g. "v1.2.3" or "x/mod/v1.2.3"
+	Module  string // Module path, e.g. "." or "x/mod"
+	Major   string // Major version number
+	Minor   string // Minor version number
+	Patch   string // Patch version number
+	Prefix  string // Module path prefix with trailing slash if any, e.g. "" or "x/mod/"
+}
+
 type nextParams struct {
 	All          bool     `descr:"Calculate next version for all modules"`
 	Path         []string `descr:"Explicit module path(s)" optional:"true"`
 	DefaultPatch bool     `descr:"Default to patch bump for non-feat/fix commits" short:"d"`
+	Tag          bool     `descr:"Create annotated git tag for the new version"`
+	TagFormat    string   `descr:"Go template for the tag message (default: the new version string)" short:"f" optional:"true"`
 }
 
 func createNextCmd() *cobra.Command {
@@ -44,14 +58,14 @@ func runNextCmd(p *nextParams, cmd *cobra.Command) error {
 	}
 
 	for _, m := range modules {
-		if err := runNext(cmd.OutOrStdout(), cmd.ErrOrStderr(), root, m, allMods, p.DefaultPatch); err != nil {
+		if err := runNext(cmd.OutOrStdout(), cmd.ErrOrStderr(), root, m, allMods, p.DefaultPatch, p.Tag, p.TagFormat); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
 		}
 	}
 	return nil
 }
 
-func runNext(out, errOut io.Writer, root string, m discovery.Module, allModulesList []discovery.Module, defaultPatch bool) error {
+func runNext(out, errOut io.Writer, root string, m discovery.Module, allModulesList []discovery.Module, defaultPatch, createTag bool, tagFormat string) error {
 	tag, warning, err := latestNonRetractedTag(root, m.Name)
 	if err != nil {
 		return err
@@ -86,5 +100,65 @@ func runNext(out, errOut io.Writer, root string, m discovery.Module, allModulesL
 	}
 
 	fmt.Fprintln(out, next)
+
+	if createTag {
+		if err := createAnnotatedTag(root, m.Name, next, tagFormat); err != nil {
+			fmt.Fprintf(errOut, "Warning: failed to create tag for %s: %v\n", next, err)
+		}
+	}
+
 	return nil
+}
+
+// createAnnotatedTag creates an annotated git tag for the given version.
+// If tagFormat is empty, the message defaults to the version string.
+// Otherwise, tagFormat is interpreted as a Go template with tagData available.
+func createAnnotatedTag(root, moduleName, version, tagFormat string) error {
+	// Parse version components (strip module prefix if present)
+	versionPart := version
+	if moduleName != "." && strings.HasPrefix(version, moduleName+"/") {
+		versionPart = strings.TrimPrefix(version, moduleName+"/")
+	}
+	// Strip the leading "v"
+	ver := strings.TrimPrefix(versionPart, "v")
+	parts := strings.SplitN(ver, ".", 3)
+	major, minor, patch := "", "", ""
+	if len(parts) > 0 {
+		major = parts[0]
+	}
+	if len(parts) > 1 {
+		minor = parts[1]
+	}
+	if len(parts) > 2 {
+		patch = parts[2]
+	}
+
+	prefix := ""
+	if moduleName != "." {
+		prefix = moduleName + "/"
+	}
+
+	data := tagData{
+		Version: version,
+		Module:  moduleName,
+		Major:   major,
+		Minor:   minor,
+		Patch:   patch,
+		Prefix:  prefix,
+	}
+
+	message := versionPart // default: just the semver, not the full tag path
+	if tagFormat != "" {
+		tmpl, err := template.New("tagmsg").Parse(tagFormat)
+		if err != nil {
+			return fmt.Errorf("invalid --tag-format template: %w", err)
+		}
+		var buf bytes.Buffer
+		if err := tmpl.Execute(&buf, data); err != nil {
+			return fmt.Errorf("failed to execute --tag-format template: %w", err)
+		}
+		message = buf.String()
+	}
+
+	return git.TagAnnotated(root, version, message)
 }
