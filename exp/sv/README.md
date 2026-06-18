@@ -33,6 +33,24 @@ sv current
 sv next
 ```
 
+### Calculate and tag
+```bash
+# Print next version and create an annotated git tag
+sv next --tag
+
+# Custom tag message via Go template
+sv next --tag --tag-format 'release {{ .Version }}'
+
+# Available template fields: {{ .Version }}, {{ .Module }},
+# {{ .Major }}, {{ .Minor }}, {{ .Patch }}, {{ .Prefix }}
+```
+
+### Dry-run tagging
+```bash
+# Print the git command that would be executed
+sv next --tag --dry-run
+```
+
 ### Recursive discovery
 ```bash
 # From the repository root
@@ -50,15 +68,21 @@ Full documentation is available in the [docs](./docs) directory:
 ## Automation
 
 ### GitHub Actions
-To automate tagging on merge to `main`, use `sv next --all` and loop through the output:
+Automate tagging on merge to `main` with `sv next --all --tag`:
 
 ```yaml
 - name: Auto Tag Modules
   run: |
-    sv next --all | while read -r line; do
-      tag=$(echo "$line" | awk '{print $3}')
-      git tag "$tag"
-    done
+    sv next --all --tag
+    git push --tags
+```
+
+For custom tag messages:
+
+```yaml
+- name: Auto Tag Modules
+  run: |
+    sv next --all --tag --tag-format 'release {{ .Version }}'
     git push --tags
 ```
 
