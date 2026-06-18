@@ -37,14 +37,14 @@ func runCurrentCmd(p *currentParams, cmd *cobra.Command) error {
 	}
 
 	for _, m := range modules {
-		if err := runCurrent(cmd.OutOrStdout(), root, m); err != nil {
+		if err := runCurrent(cmd.OutOrStdout(), cmd.ErrOrStderr(), root, m); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
 		}
 	}
 	return nil
 }
 
-func runCurrent(out io.Writer, root string, m discovery.Module) error {
+func runCurrent(out, errOut io.Writer, root string, m discovery.Module) error {
 	tag, warning, err := latestNonRetractedTag(root, m.Name)
 	if err != nil {
 		return err
@@ -54,8 +54,8 @@ func runCurrent(out io.Writer, root string, m discovery.Module) error {
 		return nil // Skip modules with no tags
 	}
 
-	if warning != "" {
-		fmt.Fprintln(out, warning)
+	if warning != "" && verboseFlag {
+		fmt.Fprintln(errOut, warning)
 	}
 	fmt.Fprintln(out, tag)
 	return nil

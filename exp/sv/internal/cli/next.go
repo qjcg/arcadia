@@ -44,21 +44,21 @@ func runNextCmd(p *nextParams, cmd *cobra.Command) error {
 	}
 
 	for _, m := range modules {
-		if err := runNext(cmd.OutOrStdout(), root, m, allMods, p.DefaultPatch); err != nil {
+		if err := runNext(cmd.OutOrStdout(), cmd.ErrOrStderr(), root, m, allMods, p.DefaultPatch); err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
 		}
 	}
 	return nil
 }
 
-func runNext(out io.Writer, root string, m discovery.Module, allModulesList []discovery.Module, defaultPatch bool) error {
+func runNext(out, errOut io.Writer, root string, m discovery.Module, allModulesList []discovery.Module, defaultPatch bool) error {
 	tag, warning, err := latestNonRetractedTag(root, m.Name)
 	if err != nil {
 		return err
 	}
 
-	if warning != "" {
-		fmt.Fprintln(out, warning)
+	if warning != "" && verboseFlag {
+		fmt.Fprintln(errOut, warning)
 	}
 
 	// Build exclude paths: all modules except the current one

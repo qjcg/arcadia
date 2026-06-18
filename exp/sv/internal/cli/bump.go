@@ -51,7 +51,7 @@ func runBump(out io.Writer, root string, m discovery.Module, bump semver.Bump) e
 		return err
 	}
 
-	if warning != "" {
+	if warning != "" && verboseFlag {
 		fmt.Fprintln(out, warning)
 	}
 
