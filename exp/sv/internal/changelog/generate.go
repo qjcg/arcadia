@@ -311,38 +311,46 @@ func WriteEntryDir(dir string, cl *Changelog) error {
 	return nil
 }
 
-// LoadOverviewFiles reads overview files from the directory and returns
+// LoadOverviewFiles reads overview files from the directory tree and returns
 // a map of version -> overview text. Only returns versions that have
-// non-empty overview files.
+// non-empty overview files. Searches recursively to support module-prefixed
+// versions (e.g. "x/mod/v1.0.0" stored under dir/x/mod/).
 func LoadOverviewFiles(dir string) (map[string]string, error) {
-	entries, err := os.ReadDir(dir)
+	overviews := make(map[string]string)
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		name := info.Name()
+		// Match *_overview.md but not just _overview.md
+		if len(name) > 12 && name[len(name)-12:] == "_overview.md" {
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return nil
+			}
+			trimmed := strings.TrimSpace(string(content))
+			if trimmed != "" {
+				// Reconstruct version from relative path
+				rel, err := filepath.Rel(dir, path)
+				if err != nil {
+					return nil
+				}
+				rel = filepath.ToSlash(rel)
+				version := rel[:len(rel)-12] // strip _overview.md
+				overviews[version] = trimmed
+			}
+		}
+		return nil
+	})
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
 		return nil, err
 	}
-
-	overviews := make(map[string]string)
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		name := e.Name()
-		// Match *_overview.md but not just _overview.md
-		if len(name) > 12 && name[len(name)-12:] == "_overview.md" {
-			content, err := os.ReadFile(filepath.Join(dir, name))
-			if err != nil {
-				continue
-			}
-			trimmed := strings.TrimSpace(string(content))
-			if trimmed != "" {
-				version := name[:len(name)-12] // strip _overview.md
-				overviews[version] = trimmed
-			}
-		}
-	}
-
 	return overviews, nil
 }
 
