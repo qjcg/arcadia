@@ -310,7 +310,8 @@ type CommitInfo struct {
 
 // CommitsBetweenDetail returns commits between two tags (exclusive of fromTag, inclusive of toTag).
 // If fromTag is empty, returns commits up to toTag. Returns structured commit info.
-func CommitsBetweenDetail(root, fromTag, toTag, path string) ([]CommitInfo, error) {
+// When path is "." and excludePaths is provided, commits that only touch excluded paths are filtered out.
+func CommitsBetweenDetail(root, fromTag, toTag, path string, excludePaths []string) ([]CommitInfo, error) {
 	var rangeArg string
 	if fromTag == "" {
 		rangeArg = toTag
@@ -352,11 +353,50 @@ func CommitsBetweenDetail(root, fromTag, toTag, path string) ([]CommitInfo, erro
 			Message: strings.TrimSpace(lines[i+2]),
 		})
 	}
+
+	// When path is "." and we have exclusions, filter out commits that only touch excluded paths
+	if path == "." && len(excludePaths) > 0 {
+		var filtered []CommitInfo
+		for _, c := range commits {
+			fileCmd := exec.Command("git", "show", "--format=%s", "--name-only", c.Hash)
+			fileCmd.Dir = root
+			fileOut, _ := fileCmd.CombinedOutput()
+			fileLines := strings.Split(strings.TrimSpace(string(fileOut)), "\n")
+
+			hasNonExcluded := false
+			hasFiles := false
+			for _, f := range fileLines[1:] {
+				f = strings.TrimSpace(f)
+				if f == "" {
+					continue
+				}
+				hasFiles = true
+				isExcluded := false
+				for _, excl := range excludePaths {
+					if strings.HasPrefix(f, excl+"/") || f == excl {
+						isExcluded = true
+						break
+					}
+				}
+				if !isExcluded {
+					hasNonExcluded = true
+					break
+				}
+			}
+
+			if !hasFiles || hasNonExcluded {
+				filtered = append(filtered, c)
+			}
+		}
+		return filtered, nil
+	}
+
 	return commits, nil
 }
 
 // CommitsSinceDateDetail returns structured commit info since a given date.
-func CommitsSinceDateDetail(root, since, path string) ([]CommitInfo, error) {
+// When path is "." and excludePaths is provided, commits that only touch excluded paths are filtered out.
+func CommitsSinceDateDetail(root, since, path string, excludePaths []string) ([]CommitInfo, error) {
 	args := []string{"log", "--format=%H%n%h%n%s", "--since=" + since}
 	if path != "." {
 		paths, hErr := HistoricalPaths(root, path)
@@ -389,6 +429,44 @@ func CommitsSinceDateDetail(root, since, path string) ([]CommitInfo, error) {
 			Message: strings.TrimSpace(lines[i+2]),
 		})
 	}
+
+	// When path is "." and we have exclusions, filter out commits that only touch excluded paths
+	if path == "." && len(excludePaths) > 0 {
+		var filtered []CommitInfo
+		for _, c := range commits {
+			fileCmd := exec.Command("git", "show", "--format=%s", "--name-only", c.Hash)
+			fileCmd.Dir = root
+			fileOut, _ := fileCmd.CombinedOutput()
+			fileLines := strings.Split(strings.TrimSpace(string(fileOut)), "\n")
+
+			hasNonExcluded := false
+			hasFiles := false
+			for _, f := range fileLines[1:] {
+				f = strings.TrimSpace(f)
+				if f == "" {
+					continue
+				}
+				hasFiles = true
+				isExcluded := false
+				for _, excl := range excludePaths {
+					if strings.HasPrefix(f, excl+"/") || f == excl {
+						isExcluded = true
+						break
+					}
+				}
+				if !isExcluded {
+					hasNonExcluded = true
+					break
+				}
+			}
+
+			if !hasFiles || hasNonExcluded {
+				filtered = append(filtered, c)
+			}
+		}
+		return filtered, nil
+	}
+
 	return commits, nil
 }
 

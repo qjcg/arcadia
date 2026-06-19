@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/qjcg/arcadia/exp/sv/internal/discovery"
 	"github.com/qjcg/arcadia/exp/sv/internal/git"
 )
 
@@ -80,7 +81,7 @@ func generateDateMode(root, modulePath, fromDate, toDate string) (*Changelog, er
 	// No tags fall in the date range
 	if toDate == "" {
 		// No explicit end boundary: show unreleased commits since fromDate
-		commits, err := git.CommitsSinceDateDetail(root, fromDate, modulePath)
+		commits, err := git.CommitsSinceDateDetail(root, fromDate, modulePath, submoduleExclusions(root, modulePath))
 		if err != nil {
 			return nil, fmt.Errorf("getting commits: %w", err)
 		}
@@ -154,6 +155,7 @@ func GenerateFromGit(root, modulePath, fromVersion, toVersion string) (*Changelo
 // ascTags is the full ascending tag list; startIdx and endIdx define the range.
 func generateFromTags(root, modulePath string, ascTags []string, startIdx, endIdx int, addUnreleased bool) (*Changelog, error) {
 	tags := ascTags[startIdx : endIdx+1]
+	excludePaths := submoduleExclusions(root, modulePath)
 
 	var entries []Entry
 	for i, tag := range tags {
@@ -163,9 +165,9 @@ func generateFromTags(root, modulePath string, ascTags []string, startIdx, endId
 		// Determine previous tag for commit range using the full ascending tag list
 		prevIdx := startIdx + i - 1
 		if prevIdx >= 0 {
-			commits, err = git.CommitsBetweenDetail(root, ascTags[prevIdx], tag, modulePath)
+			commits, err = git.CommitsBetweenDetail(root, ascTags[prevIdx], tag, modulePath, excludePaths)
 		} else {
-			commits, err = git.CommitsBetweenDetail(root, "", tag, modulePath)
+			commits, err = git.CommitsBetweenDetail(root, "", tag, modulePath, excludePaths)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("getting commits for %s: %w", tag, err)
@@ -187,7 +189,7 @@ func generateFromTags(root, modulePath string, ascTags []string, startIdx, endId
 	// Add unreleased (commits from newest tag in range to HEAD)
 	if addUnreleased {
 		latestTag := ascTags[endIdx]
-		unreleasedCommits, err := git.CommitsBetweenDetail(root, latestTag, "", modulePath)
+		unreleasedCommits, err := git.CommitsBetweenDetail(root, latestTag, "", modulePath, excludePaths)
 		if err == nil && len(unreleasedCommits) > 0 {
 			entry := buildEntry(unreleasedVersion(modulePath), "", unreleasedCommits)
 			entries = append(entries, entry)
@@ -207,6 +209,25 @@ func generateFromTags(root, modulePath string, ascTags []string, startIdx, endId
 	})
 
 	return &Changelog{Entries: entries}, nil
+}
+
+// submoduleExclusions returns paths of submodules to exclude when generating
+// changelog for the root module, so submodule commits don't leak into the root.
+func submoduleExclusions(root, modulePath string) []string {
+	if modulePath != "." && modulePath != "" {
+		return nil
+	}
+	modules, err := discovery.FindModules(root)
+	if err != nil {
+		return nil
+	}
+	var exclusions []string
+	for _, m := range modules {
+		if m.Name != "." {
+			exclusions = append(exclusions, m.Name)
+		}
+	}
+	return exclusions
 }
 
 // unreleasedVersion returns the version string for unreleased entries.
