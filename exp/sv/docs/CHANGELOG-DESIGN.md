@@ -2,9 +2,17 @@
 
 ## 1. Motivation
 
-`sv` already calculates next versions from conventional commits and manages path-based tags for monorepo modules. Adding a `sv changelog` command closes the loop: a team can run `sv next` to see what version is coming, then `sv changelog` to generate a human-readable release notes document — without leaving the CLI or reaching for a separate tool.
+`sv` already calculates next versions from conventional commits and
+manages path-based tags for monorepo modules. Adding a `sv changelog`
+command closes the loop: a team can run `sv next` to see what version
+is coming, then `sv changelog` to generate a human-readable release
+notes document — without leaving the CLI or reaching for a separate
+tool.
 
-Output follows [keepachangelog.com v1.1.0](https://keepachangelog.com/en/1.1.0/): reverse chronological releases, categorised entries under Added / Changed / Deprecated / Removed / Fixed / Security.
+Output follows [keepachangelog.com
+v1.1.0](https://keepachangelog.com/en/1.1.0/): reverse chronological
+releases, categorised entries under Added / Changed / Deprecated /
+Removed / Fixed / Security.
 
 ---
 

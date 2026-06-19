@@ -174,6 +174,148 @@ func CommitsSince(root, tag, path string, excludePaths []string) ([]string, erro
 	return commits, nil
 }
 
+// TagDate returns the date of a tag's commit in YYYY-MM-DD format.
+func TagDate(root, tag string) (string, error) {
+	cmd := exec.Command("git", "log", "-1", "--format=%aI", tag)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	// Extract just the date portion from ISO timestamp
+	date := strings.TrimSpace(string(out))
+	if len(date) >= 10 {
+		date = date[:10]
+	}
+	return date, nil
+}
+
+// CommitsSinceDate returns commit messages since a given date (inclusive).
+// The date should be in a format git understands (e.g., "2024-01-15" or "2 weeks ago").
+func CommitsSinceDate(root, since, path string) ([]string, error) {
+	args := []string{"log", "--format=%s", "--since=" + since}
+	if path != "." {
+		args = append(args, "--", path)
+	}
+	cmd := exec.Command("git", args...)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+	trimmed := strings.TrimSpace(string(out))
+	if trimmed == "" {
+		return nil, nil
+	}
+	return strings.Split(trimmed, "\n"), nil
+}
+
+// CommitsBetween returns commit messages between two tags (exclusive of fromTag, inclusive of toTag).
+// If fromTag is empty, returns commits up to toTag.
+func CommitsBetween(root, fromTag, toTag, path string) ([]string, error) {
+	var rangeArg string
+	if fromTag == "" {
+		rangeArg = toTag
+	} else {
+		rangeArg = fromTag + ".." + toTag
+	}
+
+	args := []string{"log", "--format=%s", rangeArg}
+	if path != "." {
+		args = append(args, "--", path)
+	}
+
+	cmd := exec.Command("git", args...)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	trimmed := strings.TrimSpace(string(out))
+	if trimmed == "" {
+		return nil, nil
+	}
+	return strings.Split(trimmed, "\n"), nil
+}
+
+// CommitInfo holds a parsed git commit result.
+type CommitInfo struct {
+	Hash    string // full commit hash
+	Short   string // short hash (7 characters)
+	Message string // commit message subject line
+}
+
+// CommitsBetweenDetail returns commits between two tags (exclusive of fromTag, inclusive of toTag).
+// If fromTag is empty, returns commits up to toTag. Returns structured commit info.
+func CommitsBetweenDetail(root, fromTag, toTag, path string) ([]CommitInfo, error) {
+	var rangeArg string
+	if fromTag == "" {
+		rangeArg = toTag
+	} else {
+		rangeArg = fromTag + ".." + toTag
+	}
+
+	// --format=%H for full hash, %h for short hash, %s for subject
+	args := []string{"log", "--format=%H%n%h%n%s", rangeArg}
+	if path != "." {
+		args = append(args, "--", path)
+	}
+
+	cmd := exec.Command("git", args...)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	trimmed := strings.TrimSpace(string(out))
+	if trimmed == "" {
+		return nil, nil
+	}
+
+	lines := strings.Split(trimmed, "\n")
+	var commits []CommitInfo
+	for i := 0; i+2 < len(lines); i += 3 {
+		commits = append(commits, CommitInfo{
+			Hash:    strings.TrimSpace(lines[i]),
+			Short:   strings.TrimSpace(lines[i+1]),
+			Message: strings.TrimSpace(lines[i+2]),
+		})
+	}
+	return commits, nil
+}
+
+// CommitsSinceDateDetail returns structured commit info since a given date.
+func CommitsSinceDateDetail(root, since, path string) ([]CommitInfo, error) {
+	args := []string{"log", "--format=%H%n%h%n%s", "--since=" + since}
+	if path != "." {
+		args = append(args, "--", path)
+	}
+	cmd := exec.Command("git", args...)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+
+	trimmed := strings.TrimSpace(string(out))
+	if trimmed == "" {
+		return nil, nil
+	}
+
+	lines := strings.Split(trimmed, "\n")
+	var commits []CommitInfo
+	for i := 0; i+2 < len(lines); i += 3 {
+		commits = append(commits, CommitInfo{
+			Hash:    strings.TrimSpace(lines[i]),
+			Short:   strings.TrimSpace(lines[i+1]),
+			Message: strings.TrimSpace(lines[i+2]),
+		})
+	}
+	return commits, nil
+}
+
 // TagAnnotated creates an annotated git tag with the given name and message.
 func TagAnnotated(root, tagName, message string) error {
 	cmd := exec.Command("git", "tag", "-a", tagName, "-m", message)

@@ -36,6 +36,7 @@ func setupCLI(out, err io.Writer) *cobra.Command {
 	rootCmd.AddCommand(createBumpCmd("major", semver.BumpMajor, "Force a major version bump"))
 	rootCmd.AddCommand(createBumpCmd("minor", semver.BumpMinor, "Force a minor version bump"))
 	rootCmd.AddCommand(createBumpCmd("patch", semver.BumpPatch, "Force a patch version bump"))
+	rootCmd.AddCommand(createChangelogCmd())
 
 	return rootCmd
 }
