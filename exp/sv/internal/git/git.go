@@ -113,7 +113,7 @@ func HistoricalPaths(root, modulePath string) ([]string, error) {
 
 		// Parse to find rename: R<similarity>\t<source>\t<dest>
 		var source string
-		for _, line := range strings.Split(string(showOut), "\n") {
+		for line := range strings.SplitSeq(string(showOut), "\n") {
 			line = strings.TrimSpace(line)
 			if strings.HasPrefix(line, "R") {
 				parts := strings.SplitN(line, "\t", 3)
