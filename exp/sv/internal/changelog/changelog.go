@@ -98,8 +98,8 @@ func extractType(msg string) string {
 // cleanMessage removes the conventional commit type prefix and any BREAKING CHANGE footers.
 func cleanMessage(msg string) string {
 	// Strip BREAKING CHANGE prefix or footer
-	if strings.HasPrefix(msg, "BREAKING CHANGE:") {
-		msg = strings.TrimSpace(strings.TrimPrefix(msg, "BREAKING CHANGE:"))
+	if after, ok := strings.CutPrefix(msg, "BREAKING CHANGE:"); ok {
+		msg = strings.TrimSpace(after)
 		return msg
 	}
 	if idx := strings.Index(msg, "BREAKING CHANGE:"); idx > 0 {
