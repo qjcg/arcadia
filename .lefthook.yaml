@@ -7,13 +7,11 @@ _gofiles: &gofiles
 commit-msg:
   parallel: true
   jobs:
-    - name: header-length
-      run: |
-        len=$(gawk 'NR == 1 {print length}' {1})
-        test $len -lt 80
+    - name: header-is-within-max-length
+      run: go tool sv validate-cc -m 80 -f {1}
 
     - name: header-is-conventional-commit
-      run: echo TODO header-is-conventional-commit
+      run: go tool sv validate-cc -f {1}
 
 
 pre-commit:
