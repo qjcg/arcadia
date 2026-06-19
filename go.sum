@@ -827,12 +827,8 @@ github.com/protocolbuffers/txtpbfmt v0.0.0-20260420112717-c39628bde8b5 h1:Mckui8
 github.com/protocolbuffers/txtpbfmt v0.0.0-20260420112717-c39628bde8b5/go.mod h1:JSbkp0BviKovYYt9XunS95M3mLPibE9bGg+Y95DsEEY=
 github.com/psanford/sqlite3vfs v0.0.0-20260519004904-f9180fa2acc9 h1:9bBMbcwroL46feESdJWjRX0GV+k8o/P9gAg9UX6Vz7U=
 github.com/psanford/sqlite3vfs v0.0.0-20260519004904-f9180fa2acc9/go.mod h1:iW4cSew5PAb1sMZiTEkVJAIBNrepaB6jTYjeP47WtI0=
-github.com/qjcg/arcadia/exp/sv v0.8.3 h1:XqC72yeySaoJIm+PxqHq8mswl6OQxpKgnZuR0iiUKuQ=
-github.com/qjcg/arcadia/exp/sv v0.8.3/go.mod h1:9URQjj80RZz4nOnvKaCFsVuhPTwKKeC+QGbfvdH5oyI=
-github.com/qjcg/arcadia/exp/sv v0.8.5 h1:wOgKHWPC19P4GW0sCjXzudo2R9K8bgA1bDGKlIBYD20=
-github.com/qjcg/arcadia/exp/sv v0.8.5/go.mod h1:9URQjj80RZz4nOnvKaCFsVuhPTwKKeC+QGbfvdH5oyI=
-github.com/qjcg/arcadia/exp/sv v0.8.6 h1:vUO8pkDpZ6YmKrbw0l/SPw5XNZkck6WAxZM7PqTs8Qc=
-github.com/qjcg/arcadia/exp/sv v0.8.6/go.mod h1:9URQjj80RZz4nOnvKaCFsVuhPTwKKeC+QGbfvdH5oyI=
+github.com/qjcg/arcadia/exp/sv v0.9.0 h1:3lsfmQGuGE5VxaC63a7x+hSjIM0Vvc4Ez8qd+vsBpp8=
+github.com/qjcg/arcadia/exp/sv v0.9.0/go.mod h1:9URQjj80RZz4nOnvKaCFsVuhPTwKKeC+QGbfvdH5oyI=
 github.com/rakyll/hey v0.1.5 h1:oc3QhpT8ETXcr5xIE2xgWYNSNA/Z52XA20ku9hWCchY=
 github.com/rakyll/hey v0.1.5/go.mod h1:tLUK++7gal6z92HvVEaP4QfIhEb5cYywEJgrUqmqt7Y=
 github.com/redis/go-redis/extra/rediscmd/v9 v9.5.3 h1:1/BDligzCa40GTllkDnY3Y5DTHuKCONbB2JcRyIfl20=
