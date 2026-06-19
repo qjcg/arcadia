@@ -19,14 +19,18 @@ jobs:
       with:
         go-version-file: go.work
 
-    - name: Install sv
-      run: CGO_ENABLED=0 go install -ldflags '-s -w' github.com/qjcg/arcadia/exp/sv@v0.8.2
+    - name: Cache sv tool
+      env:
+        GOWORK: "off"
+      run: go tool sv help
 
     - name: Compute version bumps
       id: bumps
+      env:
+        GOWORK: "off"
       run: |
         set -o pipefail
-        CHANGES=$(sv next --all)
+        CHANGES=$(go tool sv next --all)
         TAGS=$(echo "$CHANGES" | grep -E '^(.*/)?v[0-9]+\.[0-9]+\.[0-9]+$' || true)
         if [[ -n "$TAGS" ]]; then
           printf 'tags<<EOF\n%s\nEOF\n' "$TAGS" >> $GITHUB_OUTPUT
@@ -35,12 +39,13 @@ jobs:
     - name: Tag and Release
       if: steps.bumps.outputs.tags != ''
       env:
+        GOWORK: "off"
         GH_TOKEN: ${{ github.token }}
       run: |
         git config user.name github-actions
         git config user.email github-actions@github.com
 
-        sv next --all --tag
+        go tool sv next --all --tag
         git push origin --tags
 
         while read tag; do
