@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -75,6 +76,46 @@ func LatestTag(root, prefix string) (string, error) {
 	return tags[0], nil
 }
 
+// HistoricalPaths returns all paths (current and historical) that a module has
+// been located at, by following file rename history. Returns the current
+// modulePath only if no renaming is detected or an error occurs.
+func HistoricalPaths(root, modulePath string) ([]string, error) {
+	if modulePath == "." {
+		return []string{"."}, nil
+	}
+
+	goModPath := modulePath + "/go.mod"
+	cmd := exec.Command("git", "log", "--follow", "--name-only", "--format=", "--", goModPath)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return []string{modulePath}, nil
+	}
+
+	trimmed := strings.TrimSpace(string(out))
+	if trimmed == "" {
+		return []string{modulePath}, nil
+	}
+
+	pathSet := map[string]bool{modulePath: true}
+	for _, line := range strings.Split(trimmed, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		dir := filepath.Dir(line)
+		if dir != "." && dir != "" {
+			pathSet[dir] = true
+		}
+	}
+
+	result := make([]string, 0, len(pathSet))
+	for p := range pathSet {
+		result = append(result, p)
+	}
+	return result, nil
+}
+
 // CommitsSince returns commit messages since a tag, scoped to a path.
 // When excludePaths is provided and path is ".", commits that only touch
 // files in excluded paths are filtered out.
@@ -85,9 +126,16 @@ func CommitsSince(root, tag, path string, excludePaths []string) ([]string, erro
 		args = append(args, tag+"..HEAD")
 	}
 
-	// For non-root paths, use git's path filtering
+	// For non-root paths, use git's path filtering with rename history
 	if path != "." {
-		args = append(args, "--", path)
+		paths, err := HistoricalPaths(root, path)
+		if err == nil {
+			for _, p := range paths {
+				args = append(args, "--", p)
+			}
+		} else {
+			args = append(args, "--", path)
+		}
 	}
 
 	cmd := exec.Command("git", args...)
@@ -195,7 +243,14 @@ func TagDate(root, tag string) (string, error) {
 func CommitsSinceDate(root, since, path string) ([]string, error) {
 	args := []string{"log", "--format=%s", "--since=" + since}
 	if path != "." {
-		args = append(args, "--", path)
+		paths, err := HistoricalPaths(root, path)
+		if err == nil {
+			for _, p := range paths {
+				args = append(args, "--", p)
+			}
+		} else {
+			args = append(args, "--", path)
+		}
 	}
 	cmd := exec.Command("git", args...)
 	cmd.Dir = root
@@ -222,7 +277,14 @@ func CommitsBetween(root, fromTag, toTag, path string) ([]string, error) {
 
 	args := []string{"log", "--format=%s", rangeArg}
 	if path != "." {
-		args = append(args, "--", path)
+		paths, hErr := HistoricalPaths(root, path)
+		if hErr == nil {
+			for _, p := range paths {
+				args = append(args, "--", p)
+			}
+		} else {
+			args = append(args, "--", path)
+		}
 	}
 
 	cmd := exec.Command("git", args...)
@@ -259,7 +321,14 @@ func CommitsBetweenDetail(root, fromTag, toTag, path string) ([]CommitInfo, erro
 	// --format=%H for full hash, %h for short hash, %s for subject
 	args := []string{"log", "--format=%H%n%h%n%s", rangeArg}
 	if path != "." {
-		args = append(args, "--", path)
+		paths, hErr := HistoricalPaths(root, path)
+		if hErr == nil {
+			for _, p := range paths {
+				args = append(args, "--", p)
+			}
+		} else {
+			args = append(args, "--", path)
+		}
 	}
 
 	cmd := exec.Command("git", args...)
@@ -290,7 +359,14 @@ func CommitsBetweenDetail(root, fromTag, toTag, path string) ([]CommitInfo, erro
 func CommitsSinceDateDetail(root, since, path string) ([]CommitInfo, error) {
 	args := []string{"log", "--format=%H%n%h%n%s", "--since=" + since}
 	if path != "." {
-		args = append(args, "--", path)
+		paths, hErr := HistoricalPaths(root, path)
+		if hErr == nil {
+			for _, p := range paths {
+				args = append(args, "--", p)
+			}
+		} else {
+			args = append(args, "--", path)
+		}
 	}
 	cmd := exec.Command("git", args...)
 	cmd.Dir = root

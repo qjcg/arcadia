@@ -87,7 +87,7 @@ func generateDateMode(root, modulePath, fromDate, toDate string) (*Changelog, er
 		if len(commits) == 0 {
 			return &Changelog{}, nil
 		}
-		entry := buildEntry("unreleased", "", commits)
+		entry := buildEntry(unreleasedVersion(modulePath), "", commits)
 		return &Changelog{Entries: []Entry{entry}}, nil
 	}
 	return &Changelog{}, nil
@@ -189,23 +189,33 @@ func generateFromTags(root, modulePath string, ascTags []string, startIdx, endId
 		latestTag := ascTags[endIdx]
 		unreleasedCommits, err := git.CommitsBetweenDetail(root, latestTag, "", modulePath)
 		if err == nil && len(unreleasedCommits) > 0 {
-			entry := buildEntry("unreleased", "", unreleasedCommits)
+			entry := buildEntry(unreleasedVersion(modulePath), "", unreleasedCommits)
 			entries = append(entries, entry)
 		}
 	}
 
 	// Sort entries: newest first for output
+	unrelVer := unreleasedVersion(modulePath)
 	sort.Slice(entries, func(i, j int) bool {
-		if entries[i].Version == "unreleased" {
+		if entries[i].Version == unrelVer {
 			return true
 		}
-		if entries[j].Version == "unreleased" {
+		if entries[j].Version == unrelVer {
 			return false
 		}
 		return entries[i].Version > entries[j].Version
 	})
 
 	return &Changelog{Entries: entries}, nil
+}
+
+// unreleasedVersion returns the version string for unreleased entries.
+// For root modules it's "unreleased"; for sub-modules it includes the module path.
+func unreleasedVersion(modulePath string) string {
+	if modulePath == "." || modulePath == "" {
+		return "unreleased"
+	}
+	return modulePath + "/unreleased"
 }
 
 // parseSince parses a --from value that represents a date, duration, or year.
