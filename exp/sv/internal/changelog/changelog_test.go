@@ -408,6 +408,127 @@ func TestLoadOverviewFiles_NoDir(t *testing.T) {
 	}
 }
 
+func TestFormatMultiModuleChangelog(t *testing.T) {
+	modules := map[string]*Changelog{
+		"pkg/foo": {
+			Entries: []Entry{
+				{
+					Version: "v1.0.0",
+					Date:    "2024-01-15",
+					Items: map[Category][]Item{
+						Added: {{Hash: "abc1234", Message: "New feature in foo"}},
+					},
+				},
+			},
+		},
+		"pkg/bar": {
+			Entries: []Entry{
+				{
+					Version: "v0.5.0",
+					Date:    "2023-11-01",
+					Items: map[Category][]Item{
+						Fixed: {{Hash: "def5678", Message: "Bug fix in bar"}},
+					},
+				},
+			},
+		},
+	}
+
+	output := FormatMultiModuleChangelog(modules)
+
+	// Single H1 header
+	if !contains(output, "# Changelog") {
+		t.Error("missing main header")
+	}
+	if !contains(output, "Keep a Changelog") {
+		t.Error("missing keepachangelog reference")
+	}
+
+	// Module sections are H2
+	if !contains(output, "## Module: pkg/foo") {
+		t.Error("missing pkg/foo module header")
+	}
+	if !contains(output, "## Module: pkg/bar") {
+		t.Error("missing pkg/bar module header")
+	}
+
+	// Version headers within modules are H3 (demoted one level)
+	if !contains(output, "### [v1.0.0] - 2024-01-15") {
+		t.Error("missing demoted v1.0.0 header")
+	}
+	if !contains(output, "### [v0.5.0] - 2023-11-01") {
+		t.Error("missing demoted v0.5.0 header")
+	}
+
+	// Category sections within modules are H4
+	if !contains(output, "#### Added") {
+		t.Error("missing demoted Added section")
+	}
+	if !contains(output, "#### Fixed") {
+		t.Error("missing demoted Fixed section")
+	}
+
+	// Module entries listed in alphabetical order (bar < foo)
+	fooIdx := indexOf(output, "pkg/foo")
+	barIdx := indexOf(output, "pkg/bar")
+	if barIdx > fooIdx {
+		t.Error("modules should be in alphabetical order: bar before foo")
+	}
+}
+
+func TestFormatMultiModuleChangelog_SingleModule(t *testing.T) {
+	modules := map[string]*Changelog{
+		"pkg/baz": {
+			Entries: []Entry{
+				{
+					Version: "v2.0.0",
+					Date:    "2024-06-01",
+					Items: map[Category][]Item{
+						Changed: {{Hash: "ghi9012", Message: "Major refactor"}},
+					},
+				},
+			},
+		},
+	}
+
+	output := FormatMultiModuleChangelog(modules)
+
+	// Should still use module wrapper even with one module
+	if !contains(output, "## Module: pkg/baz") {
+		t.Error("missing module header")
+	}
+	if !contains(output, "### [v2.0.0] - 2024-06-01") {
+		t.Error("missing demoted version header")
+	}
+	if !contains(output, "#### Changed") {
+		t.Error("missing demoted Changed section")
+	}
+}
+
+func TestFormatMultiModuleChangelog_EmptyModules(t *testing.T) {
+	modules := map[string]*Changelog{
+		"pkg/empty":  {Entries: []Entry{}},
+		"pkg/active": {Entries: []Entry{{Version: "v1.0.0", Date: "2024-01-01", Items: map[Category][]Item{Added: {{Hash: "aaa", Message: "Something"}}}}}},
+	}
+
+	output := FormatMultiModuleChangelog(modules)
+
+	// Empty module should be skipped
+	if contains(output, "Module: pkg/empty") {
+		t.Error("empty module should be omitted")
+	}
+	if !contains(output, "## Module: pkg/active") {
+		t.Error("non-empty module should appear")
+	}
+}
+
+func TestFormatMultiModuleChangelog_Empty(t *testing.T) {
+	output := FormatMultiModuleChangelog(map[string]*Changelog{})
+	if !contains(output, "# Changelog") {
+		t.Error("empty multi-module should still have header")
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && indexOf(s, substr) >= 0
 }

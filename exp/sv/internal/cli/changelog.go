@@ -42,6 +42,9 @@ func runChangelogCmd(p *changelogParams, cmd *cobra.Command) error {
 		return err
 	}
 
+	// Accumulate per-module changelogs for combined output
+	moduleChangelogs := make(map[string]*changelog.Changelog)
+
 	for _, m := range modules {
 		cl, err := changelog.Generate(root, m.Name, p.From, p.To)
 		if err != nil {
@@ -61,15 +64,25 @@ func runChangelogCmd(p *changelogParams, cmd *cobra.Command) error {
 			}
 		}
 
-		if p.Dir == "" {
-			output := changelog.FormatChangelog(cl)
-			fmt.Fprint(cmd.OutOrStdout(), output)
-		}
-
 		if p.Dir != "" {
 			if err := changelog.WriteEntryDir(p.Dir, cl); err != nil {
 				fmt.Fprintf(cmd.ErrOrStderr(), "Error writing entries for module %s: %v\n", m.Name, err)
 			}
+		} else {
+			moduleChangelogs[m.Name] = cl
+		}
+	}
+
+	// Output combined changelog
+	if p.Dir == "" && len(moduleChangelogs) > 0 {
+		if len(moduleChangelogs) == 1 {
+			for _, cl := range moduleChangelogs {
+				output := changelog.FormatChangelog(cl)
+				fmt.Fprint(cmd.OutOrStdout(), output)
+			}
+		} else {
+			output := changelog.FormatMultiModuleChangelog(moduleChangelogs)
+			fmt.Fprint(cmd.OutOrStdout(), output)
 		}
 	}
 
