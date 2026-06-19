@@ -111,45 +111,6 @@ tasks:
     cmd: go build -o /dev/null tool
 
 
-  ######################################################################
-  # tag
-
-  tag:next-and-push:
-    desc: Add next semver git tag(s) and push.
-    cmds:
-      - task: tag:next
-      - task: tag:push
-
-  tag:next:
-    desc: Add next semver git tag.
-    cmds:
-      - for: {var: TAG_NEXT, split: "\n"}
-        cmd: git tag -a -m {{.ITEM}} {{.ITEM}}
-    status:
-      - test -z "{{.TAG_NEXT}}"
-
-  tag:next:dryrun:
-    desc: Add next semver git tag (DRY RUN).
-    cmds:
-      - for: {var: TAG_NEXT, split: "\n"}
-        cmd: echo git tag -a -m {{.ITEM}} {{.ITEM}}
-    status:
-      - test -z "{{.TAG_NEXT}}"
-
-  tag:list-current:
-    desc: List current semver git tags.
-    cmd: go tool sv current --all
-
-  tag:list-next:
-    desc: List next semver git tags.
-    cmd: go tool sv next --all
-
-  tag:push:
-    desc: Push git tags.
-    deps: [tag]
-    cmds:
-      - git push --tags
-
 
   ######################################################################
   # release
