@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	mastersemver "github.com/Masterminds/semver/v3"
 	"github.com/qjcg/arcadia/exp/sv/internal/discovery"
 	"github.com/qjcg/arcadia/exp/sv/internal/git"
 	"github.com/qjcg/arcadia/exp/sv/internal/semver"
@@ -206,7 +207,7 @@ func generateFromTags(root, modulePath string, ascTags []string, startIdx, endId
 		}
 	}
 
-	// Sort entries: newest first for output
+	// Sort entries: newest first for output using semver comparison
 	unrelVer := unreleasedVersion(modulePath)
 	sort.Slice(entries, func(i, j int) bool {
 		if entries[i].Version == unrelVer {
@@ -215,6 +216,19 @@ func generateFromTags(root, modulePath string, ascTags []string, startIdx, endId
 		if entries[j].Version == unrelVer {
 			return false
 		}
+		// Strip module path prefix for proper semver parsing
+		a := entries[i].Version
+		b := entries[j].Version
+		if modulePath != "." {
+			a = strings.TrimPrefix(a, modulePath+"/")
+			b = strings.TrimPrefix(b, modulePath+"/")
+		}
+		vi, errI := mastersemver.NewVersion(a)
+		vj, errJ := mastersemver.NewVersion(b)
+		if errI == nil && errJ == nil {
+			return vi.GreaterThan(vj)
+		}
+		// Fall back to string comparison if parsing fails
 		return entries[i].Version > entries[j].Version
 	})
 
