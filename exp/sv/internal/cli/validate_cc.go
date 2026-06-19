@@ -53,12 +53,9 @@ func runValidateCCCmd(p *validateCCParams, cmd *cobra.Command) error {
 		errs := validateConventionalCommit(msg, p.MaxLength)
 		if len(errs) > 0 {
 			hasErrors = true
-			fmt.Fprintln(cmd.OutOrStdout(), "INVALID")
 			for _, e := range errs {
 				fmt.Fprintf(cmd.ErrOrStderr(), "  - %s\n", e)
 			}
-		} else {
-			fmt.Fprintln(cmd.OutOrStdout(), "VALID")
 		}
 	}
 
