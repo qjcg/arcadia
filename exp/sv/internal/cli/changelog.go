@@ -61,8 +61,10 @@ func runChangelogCmd(p *changelogParams, cmd *cobra.Command) error {
 			}
 		}
 
-		output := changelog.FormatChangelog(cl)
-		fmt.Fprint(cmd.OutOrStdout(), output)
+		if p.Dir == "" {
+			output := changelog.FormatChangelog(cl)
+			fmt.Fprint(cmd.OutOrStdout(), output)
+		}
 
 		if p.Dir != "" {
 			if err := changelog.WriteEntryDir(p.Dir, cl); err != nil {

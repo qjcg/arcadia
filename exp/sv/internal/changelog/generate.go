@@ -270,8 +270,26 @@ func WriteEntryDir(dir string, cl *Changelog) error {
 		return fmt.Errorf("creating directory %s: %w", dir, err)
 	}
 
+	// Remove stale entry files (from previous runs) while preserving overview files
+	entries, err := os.ReadDir(dir)
+	if err == nil {
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+			name := e.Name()
+			// Remove .md files that are not overview files
+			if strings.HasSuffix(name, ".md") && !strings.HasSuffix(name, "_overview.md") {
+				os.Remove(filepath.Join(dir, name))
+			}
+		}
+	}
+
 	for _, entry := range cl.Entries {
 		versionFile := filepath.Join(dir, entry.Version+".md")
+		if err := os.MkdirAll(filepath.Dir(versionFile), 0o755); err != nil {
+			return fmt.Errorf("creating directory for %s: %w", versionFile, err)
+		}
 		content := FormatEntry(entry)
 		if err := os.WriteFile(versionFile, []byte(content), 0o644); err != nil {
 			return fmt.Errorf("writing %s: %w", versionFile, err)
@@ -279,6 +297,9 @@ func WriteEntryDir(dir string, cl *Changelog) error {
 
 		// Write or preserve overview file
 		overviewFile := filepath.Join(dir, entry.Version+"_overview.md")
+		if err := os.MkdirAll(filepath.Dir(overviewFile), 0o755); err != nil {
+			return fmt.Errorf("creating directory for %s: %w", overviewFile, err)
+		}
 		if _, err := os.Stat(overviewFile); os.IsNotExist(err) {
 			// Create empty overview file so users know they can edit it
 			if err := os.WriteFile(overviewFile, []byte{}, 0o644); err != nil {
