@@ -76,44 +76,68 @@ func LatestTag(root, prefix string) (string, error) {
 	return tags[0], nil
 }
 
-// HistoricalPaths returns all paths (current and historical) that a module has
-// been located at, by following file rename history. Returns the current
-// modulePath only if no renaming is detected or an error occurs.
+// HistoricalPaths returns all paths (current and historical) that a module's
+// go.mod has been located at, by following the rename chain. Unlike
+// git-log --follow, this avoids false positives from batch renames where
+// multiple similar go.mod files confuse git's rename detection.
+// Returns the current modulePath only if no renaming is detected or an error occurs.
 func HistoricalPaths(root, modulePath string) ([]string, error) {
 	if modulePath == "." {
 		return []string{"."}, nil
 	}
 
-	goModPath := modulePath + "/go.mod"
-	cmd := exec.Command("git", "log", "--follow", "--name-only", "--format=", "--", goModPath)
-	cmd.Dir = root
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return []string{modulePath}, nil
-	}
+	paths := []string{modulePath}
+	current := modulePath + "/go.mod"
 
-	trimmed := strings.TrimSpace(string(out))
-	if trimmed == "" {
-		return []string{modulePath}, nil
-	}
-
-	pathSet := map[string]bool{modulePath: true}
-	for _, line := range strings.Split(trimmed, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
+	// Walk backward through the rename chain
+	for {
+		cmd := exec.Command("git", "log", "--all", "--diff-filter=R", "--format=%H", "-1", "--", current)
+		cmd.Dir = root
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return paths, nil
 		}
-		dir := filepath.Dir(line)
-		if dir != "." && dir != "" {
-			pathSet[dir] = true
+
+		commit := strings.TrimSpace(string(out))
+		if commit == "" {
+			break
 		}
+
+		// Get the rename details for this commit
+		showCmd := exec.Command("git", "show", "--format=", "--name-status", commit)
+		showCmd.Dir = root
+		showOut, showErr := showCmd.CombinedOutput()
+		if showErr != nil {
+			break
+		}
+
+		// Parse to find rename: R<similarity>\t<source>\t<dest>
+		var source string
+		for _, line := range strings.Split(string(showOut), "\n") {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "R") {
+				parts := strings.SplitN(line, "\t", 3)
+				if len(parts) == 3 && parts[2] == current {
+					source = parts[1]
+					break
+				}
+			}
+		}
+
+		if source == "" {
+			break
+		}
+
+		sourceDir := filepath.Dir(source)
+		if sourceDir == "." || sourceDir == "" {
+			break
+		}
+
+		paths = append(paths, sourceDir)
+		current = source
 	}
 
-	result := make([]string, 0, len(pathSet))
-	for p := range pathSet {
-		result = append(result, p)
-	}
-	return result, nil
+	return paths, nil
 }
 
 // CommitsSince returns commit messages since a tag, scoped to a path.
