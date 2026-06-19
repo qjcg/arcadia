@@ -1,9 +1,11 @@
 package main
 
 import (
+	"os"
+
 	"github.com/qjcg/arcadia/exp/sv/internal/cli"
 )
 
 func main() {
-	cli.Execute()
+	os.Exit(cli.Execute())
 }

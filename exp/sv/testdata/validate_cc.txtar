@@ -1,0 +1,59 @@
+# Validate valid conventional commit via stdin
+stdin valid_msg.txt
+exec sv validate-cc
+stdout '^VALID$'
+
+# Validate invalid commit via stdin
+stdin invalid_msg.txt
+! exec sv validate-cc
+stdout '^INVALID$'
+stderr 'does not follow conventional commit format'
+
+# Validate empty commit via stdin
+stdin empty_msg.txt
+! exec sv validate-cc
+stdout '^INVALID$'
+stderr 'commit message is empty'
+
+# Validate with scope and breaking change
+stdin scope_breaking.txt
+exec sv validate-cc
+stdout '^VALID$'
+
+# Validate with max-length flag (passing)
+stdin short_msg.txt
+exec sv validate-cc -m 80
+stdout '^VALID$'
+
+# Validate with max-length flag (failing)
+stdin long_msg.txt
+! exec sv validate-cc -m 20
+stdout '^INVALID$'
+stderr 'exceeds max length'
+
+# Validate valid commit via --file
+exec sv validate-cc -f valid_msg.txt
+stdout '^VALID$'
+
+# Validate invalid commit via --file
+! exec sv validate-cc -f invalid_msg.txt
+stdout '^INVALID$'
+stderr 'does not follow conventional commit format'
+
+# Multiple files
+! exec sv validate-cc -f valid_msg.txt -f invalid_msg.txt
+stdout '^VALID$'
+stdout '^INVALID$'
+
+-- valid_msg.txt --
+feat: add user authentication
+-- invalid_msg.txt --
+bad commit message
+-- empty_msg.txt --
+
+-- scope_breaking.txt --
+feat(api)!: add new endpoint
+-- short_msg.txt --
+fix: resolve issue with long processing
+-- long_msg.txt --
+feat: this subject is way too long for the limit
