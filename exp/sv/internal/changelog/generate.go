@@ -11,6 +11,7 @@ import (
 
 	"github.com/qjcg/arcadia/exp/sv/internal/discovery"
 	"github.com/qjcg/arcadia/exp/sv/internal/git"
+	"github.com/qjcg/arcadia/exp/sv/internal/semver"
 )
 
 // Generate generates a Changelog for the given module.
@@ -157,15 +158,24 @@ func generateFromTags(root, modulePath string, ascTags []string, startIdx, endId
 	tags := ascTags[startIdx : endIdx+1]
 	excludePaths := submoduleExclusions(root, modulePath)
 
+	// Filter out retracted versions so they don't generate entries or skew
+	// the unreleased range. Retracted tags (like v1.0.0, v1.0.1, v1.0.2) are
+	// often created at historically earlier commits than higher semver tags,
+	// causing version-sorted tag lists to produce incorrect commit ranges.
+	tags = filterNonRetracted(tags, root, modulePath)
+	if len(tags) == 0 {
+		return &Changelog{}, nil
+	}
+
 	var entries []Entry
 	for i, tag := range tags {
 		var commits []git.CommitInfo
 		var err error
 
-		// Determine previous tag for commit range using the full ascending tag list
-		prevIdx := startIdx + i - 1
-		if prevIdx >= 0 {
-			commits, err = git.CommitsBetweenDetail(root, ascTags[prevIdx], tag, modulePath, excludePaths)
+		// Determine previous tag for commit range using adjacent entries in the
+		// filtered list, which is already sorted by version.
+		if i > 0 {
+			commits, err = git.CommitsBetweenDetail(root, tags[i-1], tag, modulePath, excludePaths)
 		} else {
 			commits, err = git.CommitsBetweenDetail(root, "", tag, modulePath, excludePaths)
 		}
@@ -186,9 +196,9 @@ func generateFromTags(root, modulePath string, ascTags []string, startIdx, endId
 		entries = append(entries, entry)
 	}
 
-	// Add unreleased (commits from newest tag in range to HEAD)
+	// Add unreleased (commits from newest non-retracted tag in range to HEAD)
 	if addUnreleased {
-		latestTag := ascTags[endIdx]
+		latestTag := tags[len(tags)-1]
 		unreleasedCommits, err := git.CommitsBetweenDetail(root, latestTag, "", modulePath, excludePaths)
 		if err == nil && len(unreleasedCommits) > 0 {
 			entry := buildEntry(unreleasedVersion(modulePath), "", unreleasedCommits)
@@ -209,6 +219,33 @@ func generateFromTags(root, modulePath string, ascTags []string, startIdx, endId
 	})
 
 	return &Changelog{Entries: entries}, nil
+}
+
+// filterNonRetracted removes retracted versions from the tag list and returns
+// the filtered slice. Retracted tags don't represent real releases and should
+// not appear in the changelog.
+func filterNonRetracted(tags []string, root, modulePath string) []string {
+	goMod, err := git.ReadGoMod(root, modulePath)
+	if err != nil {
+		return tags
+	}
+	retractions := semver.ParseRetractions(goMod)
+	if len(retractions) == 0 {
+		return tags
+	}
+
+	filtered := make([]string, 0, len(tags))
+	for _, t := range tags {
+		// Extract version part: strip module path prefix
+		versionPart := t
+		if modulePath != "." && strings.HasPrefix(t, modulePath+"/") {
+			versionPart = strings.TrimPrefix(t, modulePath+"/")
+		}
+		if !semver.IsVersionRetracted(versionPart, retractions) {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered
 }
 
 // submoduleExclusions returns paths of submodules to exclude when generating
