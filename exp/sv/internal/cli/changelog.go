@@ -12,9 +12,8 @@ import (
 type changelogParams struct {
 	All       bool     `descr:"Generate changelog for all modules"`
 	Path      []string `descr:"Explicit module path(s)" optional:"true"`
-	From      string   `descr:"Start version (inclusive)" optional:"true"`
+	From      string   `descr:"Start version (inclusive), or a date (year like 2025, duration like 8w, or ISO date like 2024-01-15)" optional:"true"`
 	To        string   `descr:"End version (inclusive)" optional:"true"`
-	Since     string   `descr:"Changelog since a date (year like 2025, duration like 8w, or ISO date)" optional:"true"`
 	Dir       string   `descr:"Directory to write individual changelog entry files" short:"d" optional:"true"`
 	URLPrefix string   `descr:"URL prefix for linking commit hashes in changelog items" short:"u" optional:"true"`
 }
@@ -43,35 +42,8 @@ func runChangelogCmd(p *changelogParams, cmd *cobra.Command) error {
 		return err
 	}
 
-	// If --since is specified, use date-based generation
-	if p.Since != "" {
-		sinceDate, err := changelog.ParseSince(p.Since)
-		if err != nil {
-			return err
-		}
-
-		for _, m := range modules {
-			cl, err := changelog.GenerateSinceDate(root, m.Name, sinceDate)
-			if err != nil {
-				fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
-				continue
-			}
-
-			output := changelog.FormatChangelog(cl)
-			fmt.Fprint(cmd.OutOrStdout(), output)
-
-			if p.Dir != "" {
-				if err := changelog.WriteEntryDir(p.Dir, cl); err != nil {
-					fmt.Fprintf(cmd.ErrOrStderr(), "Error writing entries for module %s: %v\n", m.Name, err)
-				}
-			}
-		}
-		return nil
-	}
-
-	// Use tag-based generation
 	for _, m := range modules {
-		cl, err := changelog.GenerateFromGit(root, m.Name, p.From, p.To)
+		cl, err := changelog.Generate(root, m.Name, p.From, p.To)
 		if err != nil {
 			fmt.Fprintf(cmd.ErrOrStderr(), "Error for module %s: %v\n", m.Name, err)
 			continue

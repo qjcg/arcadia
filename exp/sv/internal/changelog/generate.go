@@ -12,6 +12,94 @@ import (
 	"github.com/qjcg/arcadia/exp/sv/internal/git"
 )
 
+// Generate generates a Changelog for the given module.
+// If from or to looks like a date (year, duration, or ISO date), it uses
+// date-based tag generation (filtering tags by their date). Otherwise it
+// treats from/to as version tags.
+func Generate(root, modulePath, from, to string) (*Changelog, error) {
+	fromDate, fromErr := parseSinceCheck(from)
+	toDate, toErr := parseSinceCheck(to)
+
+	if fromErr == nil || toErr == nil {
+		return generateDateMode(root, modulePath, fromDate, toDate)
+	}
+	return generateVersionMode(root, modulePath, from, to)
+}
+
+func generateDateMode(root, modulePath, fromDate, toDate string) (*Changelog, error) {
+	if fromDate == "" && toDate == "" {
+		// Both are empty — no date filtering, same as version mode with no bounds
+		return generateVersionMode(root, modulePath, "", "")
+	}
+
+	allTags, err := git.Tags(root, modulePath)
+	if err != nil {
+		return nil, fmt.Errorf("listing tags: %w", err)
+	}
+
+	// Build ascending tag list
+	ascTags := make([]string, len(allTags))
+	for i, t := range allTags {
+		ascTags[len(ascTags)-1-i] = t
+	}
+
+	// Filter tags by date range
+	startIdx := 0
+	if fromDate != "" {
+		startIdx = len(ascTags) // default: past end (no match)
+		for i, t := range ascTags {
+			tagDate, err := git.TagDate(root, t)
+			if err == nil && tagDate >= fromDate {
+				startIdx = i
+				break
+			}
+		}
+	}
+
+	endIdx := len(ascTags) - 1
+	if toDate != "" {
+		endIdx = -1 // default: before start (no match)
+		for i, t := range ascTags {
+			tagDate, err := git.TagDate(root, t)
+			if err != nil {
+				continue
+			}
+			if tagDate > toDate {
+				break // past the date range in ascending order
+			}
+			if i >= startIdx {
+				endIdx = i
+			}
+		}
+	}
+
+	if startIdx <= endIdx {
+		return generateFromTags(root, modulePath, ascTags, startIdx, endIdx, toDate == "")
+	}
+
+	// No tags fall in the date range
+	if toDate == "" {
+		// No explicit end boundary: show unreleased commits since fromDate
+		commits, err := git.CommitsSinceDateDetail(root, fromDate, modulePath)
+		if err != nil {
+			return nil, fmt.Errorf("getting commits: %w", err)
+		}
+		if len(commits) == 0 {
+			return &Changelog{}, nil
+		}
+		entry := buildEntry("unreleased", "", commits)
+		return &Changelog{Entries: []Entry{entry}}, nil
+	}
+	return &Changelog{}, nil
+}
+
+func generateVersionMode(root, modulePath, fromVersion, toVersion string) (*Changelog, error) {
+	if fromVersion != "" || toVersion != "" {
+		return GenerateFromGit(root, modulePath, fromVersion, toVersion)
+	}
+	return GenerateFromGit(root, modulePath, "", "")
+}
+
 // GenerateFromGit generates a Changelog from git history for the given module.
 // If fromVersion is empty, starts from the first tag. If toVersion is empty,
 // includes all tags up to the latest.
@@ -58,6 +146,13 @@ func GenerateFromGit(root, modulePath, fromVersion, toVersion string) (*Changelo
 			return nil, fmt.Errorf("version %s not found in tags", toVersion)
 		}
 	}
+
+	return generateFromTags(root, modulePath, ascTags, startIdx, endIdx, toVersion == "")
+}
+
+// generateFromTags builds changelog entries from a filtered range of tags.
+// ascTags is the full ascending tag list; startIdx and endIdx define the range.
+func generateFromTags(root, modulePath string, ascTags []string, startIdx, endIdx int, addUnreleased bool) (*Changelog, error) {
 	tags := ascTags[startIdx : endIdx+1]
 
 	var entries []Entry
@@ -89,9 +184,9 @@ func GenerateFromGit(root, modulePath, fromVersion, toVersion string) (*Changelo
 		entries = append(entries, entry)
 	}
 
-	// Add unreleased (commits from latest tag to HEAD)
-	if toVersion == "" {
-		latestTag := allTags[0] // newest tag
+	// Add unreleased (commits from newest tag in range to HEAD)
+	if addUnreleased {
+		latestTag := ascTags[endIdx]
 		unreleasedCommits, err := git.CommitsBetweenDetail(root, latestTag, "", modulePath)
 		if err == nil && len(unreleasedCommits) > 0 {
 			entry := buildEntry("unreleased", "", unreleasedCommits)
@@ -113,32 +208,14 @@ func GenerateFromGit(root, modulePath, fromVersion, toVersion string) (*Changelo
 	return &Changelog{Entries: entries}, nil
 }
 
-// GenerateSinceDate generates a Changelog from git history since a given date.
-func GenerateSinceDate(root, modulePath, since string) (*Changelog, error) {
-	commits, err := git.CommitsSinceDateDetail(root, since, modulePath)
-	if err != nil {
-		return nil, fmt.Errorf("getting commits since %s: %w", since, err)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("getting commits since %s: %w", since, err)
-	}
-
-	if len(commits) == 0 {
-		return &Changelog{}, nil
-	}
-
-	entry := buildEntry("unreleased", "", commits)
-	return &Changelog{Entries: []Entry{entry}}, nil
-}
-
-// ParseSince parses the --since flag value.
+// parseSince parses a --from value that represents a date, duration, or year.
 // Supports:
 //   - "2025" (year, starting Jan 1)
 //   - "8w" (weeks ago)
 //   - "3m" (months ago)
 //   - "1y" (years ago)
 //   - ISO date string like "2024-01-15"
-func ParseSince(s string) (string, error) {
+func parseSince(s string) (string, error) {
 	// Try ISO date first
 	if _, err := time.Parse("2006-01-02", s); err == nil {
 		return s, nil
@@ -173,6 +250,15 @@ func ParseSince(s string) (string, error) {
 	}
 
 	return "", fmt.Errorf("invalid --since value: %q (use a year like 2025, duration like 8w, or date like 2024-01-15)", s)
+}
+
+// parseSinceCheck is like parseSince but treats an empty string as "not a date"
+// rather than an error, so empty from/to never trigger date-mode.
+func parseSinceCheck(s string) (string, error) {
+	if s == "" {
+		return "", fmt.Errorf("empty string")
+	}
+	return parseSince(s)
 }
 
 // WriteEntryDir writes changelog entry files to the specified directory.

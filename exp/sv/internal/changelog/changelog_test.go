@@ -266,7 +266,7 @@ func TestParseSince(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result, err := ParseSince(tt.input)
+			result, err := parseSince(tt.input)
 			if tt.want == "" {
 				if err == nil {
 					t.Errorf("expected error, got %q", result)
@@ -284,7 +284,7 @@ func TestParseSince(t *testing.T) {
 	}
 
 	t.Run("8w", func(t *testing.T) {
-		result, err := ParseSince("8w")
+		result, err := parseSince("8w")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
