@@ -15,18 +15,18 @@ modular, composable layers, then stays silent for the other 20%.
 
 The framework is built around 10 principles:
 
-| # | Principle | What it means |
-|---|-----------|---------------|
-| 1 | **Developer happiness** | The scaffold compiles on first try. Tests pass with no setup. Hot reload works out of the box. Every interaction leaves you satisfied, not frustrated. |
-| 2 | **Surfaceless** | No `init()` magic. No hidden goroutines. Every `Register`, `Start`, and `Stop` is explicit and traceable. |
-| 3 | **Peel away** | Start with Pavona providing everything, then replace any component with your own. The framework cedes control gracefully. |
-| 4 | **Compile-time > runtime** | If `go build` can catch it, it should. Generic `Register[T]`, sqlc queries, typed config structs. Zero panic-from-reflection paths. |
-| 5 | **Locality** | Related code lives together. The scaffold suggests a layout but never enforces a folder religion. You can move a handler next to its tests without fighting import cycles. |
-| 6 | **Testable by default** | Every Pavona component produces a clean interface and a test helper that works without network, filesystem, or global state. |
-| 7 | **5-minute onboarding** | `pavona new app` produces a project a new team member can understand in 5 minutes. The scaffold *is* the documentation. |
-| 8 | **No lock-in exit** | Drop `pavona` from `go.mod` and the project still compiles. Templates produce standard Go files you own. |
-| 9 | **Symmetry** | Every `pavona add` has a corresponding `pavona remove`. What the scaffold creates it can also delete cleanly. |
-| 10 | **Boring is beautiful** | `net/http`, `slog`, `database/sql`, `text/template`. Not fashionable abstractions. Pavona reads like the stdlib. |
+| #  | Principle                  | What it means                                                                                                                                                              |
+|----|----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1  | **Developer happiness**    | The scaffold compiles on first try. Tests pass with no setup. Hot reload works out of the box. Every interaction leaves you satisfied, not frustrated.                     |
+| 2  | **Surfaceless**            | No `init()` magic. No hidden goroutines. Every `Register`, `Start`, and `Stop` is explicit and traceable.                                                                  |
+| 3  | **Peel away**              | Start with Pavona providing everything, then replace any component with your own. The framework cedes control gracefully.                                                  |
+| 4  | **Compile-time > runtime** | If `go build` can catch it, it should. Generic `Register[T]`, sqlc queries, typed config structs. Zero panic-from-reflection paths.                                        |
+| 5  | **Locality**               | Related code lives together. The scaffold suggests a layout but never enforces a folder religion. You can move a handler next to its tests without fighting import cycles. |
+| 6  | **Testable by default**    | Every Pavona component produces a clean interface and a test helper that works without network, filesystem, or global state.                                               |
+| 7  | **5-minute onboarding**    | `pavona new app` produces a project a new team member can understand in 5 minutes. The scaffold *is* the documentation.                                                    |
+| 8  | **No lock-in exit**        | Drop `pavona` from `go.mod` and the project still compiles. Templates produce standard Go files you own.                                                                   |
+| 9  | **Symmetry**               | Every `pavona add` has a corresponding `pavona remove`. What the scaffold creates it can also delete cleanly.                                                              |
+| 10 | **Boring is beautiful**    | `net/http`, `slog`, `database/sql`, `text/template`. Not fashionable abstractions. Pavona reads like the stdlib.                                                           |
 
 ## Core Architecture
 
@@ -38,6 +38,7 @@ pavona/
 ├── conf/          # Config loading (YAML/TOML/JSON/env, layered)
 ├── log/           # Structured logging (slog-based, level-filtered)
 ├── serve/         # HTTP server (net/http, middleware stack, graceful shutdown)
+├── site/          # Static site builder (Markdown → HTML, Tailwind pipeline, dev server)
 ├── cli/           # CLI framework (cobra-like, top-level subcommands)
 ├── tui/           # TUI framework (bubbletea-based, composable components)
 ├── pool/          # Worker pool / background job runner
@@ -68,7 +69,7 @@ app.Stop()    // graceful shutdown in dependency order
 register start/stop hooks, health checks, and depend on each
 other. Pavona resolves the DAG and starts/stops in order.
 
-## Four Project Types
+## Five Project Types
 
 ### 1. CLI Tool
 
@@ -99,7 +100,24 @@ Generates: minimal Go module with `pavona/test` helpers, CI setup, and
 example-driven docs. The library uses zero Pavona runtime dependencies
 in production — only the dev toolchain.
 
-### 3. TUI App
+### 3. Static Site
+
+```
+pavona new site blog
+```
+
+Generates: Markdown-based static site with Tailwind/daisyui styling, a
+dev server with hot reload via `pavona serve`, and a `pavona build`
+command that outputs to `dist/`. Content lives in `content/` as
+Markdown with frontmatter. Uses `pavona/site` for the build pipeline
+(goldmark for Markdown, Tailwind CLI for CSS, file watching for dev).
+
+```
+pavona serve       # dev server with live reload
+pavona build       # produces dist/ with static HTML/CSS/JS
+```
+
+### 4. TUI App
 
 ```
 pavona new tui chatmonitor
@@ -110,7 +128,7 @@ Generates: bubbletea-based terminal app with component structure
 help overlay, and `Taskfile.yaml`. Uses `pavona/tui` for the component
 model, layout primitives, and keybinding management.
 
-### 4. Full-Stack Web App
+### 5. Full-Stack Web App
 
 ```
 pavona new app acmecorp
