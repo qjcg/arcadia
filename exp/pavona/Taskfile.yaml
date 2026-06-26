@@ -24,9 +24,13 @@ tasks:
   install:
     desc: Install pavona to GOBIN
     deps: [build]
+    sources:
+      - '{{.BIN}}'
+    generates:
+      - '{{.INSTALLED_BIN}}'
     cmds:
-      - cp {{.BIN}} $GOPATH/bin
-      - upx $GOPATH/bin/
+      - cp {{.BIN}} {{.INSTALLED_BIN}}
+      - upx {{.INSTALLED_BIN}} || echo Install upx for smaller binaries.
 
   test:
     desc: Run all tests (godog BDD scenarios)

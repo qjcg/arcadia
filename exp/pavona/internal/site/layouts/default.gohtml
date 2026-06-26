@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} &mdash; Pavona</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+    .prose h1 { font-size: 2.25rem; font-weight: 700; margin-bottom: 1rem; color: #1a1a2e; }
+    .prose h2 { font-size: 1.5rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.75rem; color: #1a1a2e; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.375rem; }
+    .prose h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #1a1a2e; }
+    .prose p { margin-bottom: 1rem; line-height: 1.75; color: #374151; }
+    .prose a { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
+    .prose a:hover { color: #1d4ed8; }
+    .prose ul, .prose ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+    .prose li { margin-bottom: 0.25rem; line-height: 1.75; color: #374151; }
+    .prose code { background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.875rem; color: #dc2626; }
+    .prose pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; font-size: 0.875rem; line-height: 1.5; }
+    .prose pre code { background: transparent; color: inherit; padding: 0; border-radius: 0; font-size: inherit; }
+    .prose blockquote { border-left: 4px solid #2563eb; padding-left: 1rem; margin-bottom: 1rem; color: #6b7280; font-style: italic; }
+    .prose img { max-width: 100%; border-radius: 0.5rem; margin: 1.5rem 0; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+    .prose hr { border: 0; border-top: 1px solid #e5e7eb; margin: 2rem 0; }
+    .prose table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+    .prose th { background: #f9fafb; font-weight: 600; text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; }
+    .prose td { padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; }
+    .outline-2, .outline-3, .outline-4 { margin-bottom: 1rem; }
+    .outline-text-2, .outline-text-3, .outline-text-4 { margin-left: 0.5rem; }
+    .title { font-size: 2.25rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.5rem; }
+    nav a { transition: color 0.15s ease; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-white to-blue-50 min-h-screen">
+  <header class="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <a href="/" class="text-lg font-bold text-slate-900 hover:text-blue-600 transition-colors">
+          &#127754; {{.Title}}
+        </a>
+        <nav class="flex gap-1">
+          {{range .Pages}}
+          <a href="/{{.URL}}" class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">{{.Title}}</a>
+          {{end}}
+        </nav>
+      </div>
+    </div>
+  </header>
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <article class="prose max-w-none">
+      {{.Content}}
+    </article>
+  </main>
+  <footer class="border-t border-slate-200 bg-white/50 mt-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-sm text-slate-500">
+      Built with &hearts; using <a href="https://github.com/bolocera/pavona" class="text-blue-600 hover:text-blue-800 underline">Pavona</a>
+    </div>
+  </footer>
+</body>
+</html>
