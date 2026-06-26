@@ -157,6 +157,33 @@ func (g *Game) handlePlayingKey(key string) (tea.Model, tea.Cmd) {
 	case "n":
 		dx = 1
 		dy = 1
+
+	// Shift+direction: run until blocked (nethack-style)
+	case "shift+up", "shift+k":
+		g.runDirection(0, -1)
+		return g, nil
+	case "shift+down", "shift+j":
+		g.runDirection(0, 1)
+		return g, nil
+	case "shift+left", "shift+h":
+		g.runDirection(-1, 0)
+		return g, nil
+	case "shift+right", "shift+l":
+		g.runDirection(1, 0)
+		return g, nil
+	case "shift+y":
+		g.runDirection(-1, -1)
+		return g, nil
+	case "shift+u":
+		g.runDirection(1, -1)
+		return g, nil
+	case "shift+b":
+		g.runDirection(-1, 1)
+		return g, nil
+	case "shift+n":
+		g.runDirection(1, 1)
+		return g, nil
+
 	case ".":
 		action = true
 		g.addMessage("Un tour passe...")
@@ -244,6 +271,72 @@ func (g *Game) tryMove(dx, dy int) {
 	}
 	if m.Tiles[ny][nx] == TileStairsUp {
 		g.addMessage("Un escalier monte vers la surface. Appuyez sur < pour monter.")
+	}
+}
+
+// runDirection moves the player in a direction until blocked by a wall, water, or enemy.
+// Each step counts as a full turn — monsters move and FOV recalculates after each step.
+func (g *Game) runDirection(dx, dy int) {
+	m := g.CurrentMap()
+	for {
+		nx, ny := g.player.X+dx, g.player.Y+dy
+
+		// Stop at map edge
+		if nx < 0 || nx >= m.W || ny < 0 || ny >= m.H {
+			return
+		}
+
+		// Stop at blocking tiles (walls, water)
+		if m.Tiles[ny][nx].IsBlocking() {
+			if m.Tiles[ny][nx] == TileDoor {
+				g.addMessage("Cette porte est verrouillée.")
+			}
+			return
+		}
+
+		// Stop and attack if a monster blocks the way
+		hitEnemy := false
+		for _, e := range m.Monsters {
+			if e.Alive && e.X == nx && e.Y == ny {
+				g.meleeAttack(e)
+				hitEnemy = true
+				break
+			}
+		}
+		if hitEnemy {
+			g.turns++
+			g.monsterTurn()
+			computeFOV(m, g.player.X, g.player.Y)
+			return
+		}
+
+		// Move player
+		g.player.X = nx
+		g.player.Y = ny
+
+		// Announce items on ground
+		for _, item := range m.Items {
+			if item.OnGround && item.X == nx && item.Y == ny {
+				g.addMessage("Vous voyez " + item.NameFr + " (" + item.Desc + ")")
+			}
+		}
+
+		// Announce stairs
+		if m.Tiles[ny][nx] == TileStairsDown {
+			g.addMessage("Un escalier descend dans les profondeurs. Appuyez sur > pour descendre.")
+		}
+		if m.Tiles[ny][nx] == TileStairsUp {
+			g.addMessage("Un escalier monte vers la surface. Appuyez sur < pour monter.")
+		}
+
+		// Complete turn (monsters move, FOV recalculated)
+		g.turns++
+		g.monsterTurn()
+		computeFOV(m, g.player.X, g.player.Y)
+
+		if g.state == StateDead {
+			return
+		}
 	}
 }
 
