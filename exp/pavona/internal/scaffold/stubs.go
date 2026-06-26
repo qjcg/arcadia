@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
+
+	"github.com/gosimple/slug"
 )
 
 //go:embed templates/lib/go.mod.tmpl
@@ -100,10 +103,12 @@ func scaffoldPages(opts Options) error {
 		ext = ".org"
 	}
 
+	order := 0
 	for _, raw := range parts {
 		expanded := ExpandBraces(raw)
 		for _, page := range expanded {
-			content := pageContent(page, opts.Format)
+			content := pageContent(page, order, opts.Format)
+			order++
 			path := "content/" + page + ext
 			fullPath := filepath.Join(opts.Dir, path)
 			dir := filepath.Dir(fullPath)
@@ -119,12 +124,12 @@ func scaffoldPages(opts Options) error {
 }
 
 // pageContent returns the body content for a scaffolded page.
-func pageContent(page, format string) string {
+func pageContent(page string, order int, format string) string {
 	title := pageTitle(page)
 	if format == "org" {
-		return "#+TITLE: " + title + "\n#+OPTIONS: toc:nil\n\n* " + title + "\n\nThis is the " + page + " page.\n"
+		return "#+TITLE: " + title + "\n#+ORDER: " + strconv.Itoa(order) + "\n#+OPTIONS: toc:nil\n\n* " + title + "\n\nThis is the " + page + " page.\n"
 	}
-	return "# " + title + "\n\nThis is the " + page + " page.\n"
+	return "---\ntitle: " + title + "\norder: " + strconv.Itoa(order) + "\n---\n\n# " + title + "\n\nThis is the " + page + " page.\n"
 }
 
 // pageTitle derives a display title from a page path.
@@ -209,7 +214,8 @@ func (g AgentGenerator) Generate(opts Options) error {
 func writeTemplates(opts Options, files map[string]string) error {
 	funcMap := template.FuncMap{
 		"sanitize": func(s string) string {
-			return strings.ReplaceAll(s, "-", "_")
+			// slug.Make produces hyphens; Go package names need underscores.
+			return strings.ReplaceAll(slug.Make(s), "-", "_")
 		},
 	}
 

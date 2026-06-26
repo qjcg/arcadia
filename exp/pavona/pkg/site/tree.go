@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/gosimple/slug"
 )
 
 // TreeNode represents a page or section in the navigation tree.
@@ -23,6 +25,23 @@ type PageData struct {
 	Children []PageData
 	Draft    bool
 	Order    int
+}
+
+// titleFromDirName converts a directory name to a display title.
+// "services" → "Services", "my-section" → "My section"
+func titleFromDirName(name string) string {
+	if len(name) == 0 {
+		return "Untitled"
+	}
+	// Replace hyphens/underscores with spaces, then title case the first letter
+	result := strings.ReplaceAll(name, "-", " ")
+	result = strings.ReplaceAll(result, "_", " ")
+	// Upper case first letter (handle multi-byte safely with simple ASCII approach)
+	b := []byte(result)
+	if len(b) > 0 && b[0] >= 'a' && b[0] <= 'z' {
+		b[0] = b[0] - 'a' + 'A'
+	}
+	return string(b)
 }
 
 // WalkContentDir recursively walks contentDir and returns a tree of PageData.
@@ -75,10 +94,16 @@ func walkDir(dir string, root string) ([]PageData, error) {
 		if fm != nil {
 			draft = fm.Draft
 			order = fm.Order
+		} else {
+			order = DetectOrderFromContent(content)
 		}
 		rel, _ := filepath.Rel(root, path)
 		baseName := strings.TrimSuffix(rel, ext)
-		url := baseName + ".html"
+		parts := strings.Split(baseName, string(filepath.Separator))
+		for i, p := range parts {
+			parts[i] = slug.Make(p)
+		}
+		url := strings.Join(parts, "/") + ".html"
 		pages = append(pages, PageData{
 			Title:   title,
 			Content: body,
@@ -99,16 +124,31 @@ func walkDir(dir string, root string) ([]PageData, error) {
 			return nil, err
 		}
 		if len(children) > 0 {
-			var sectionTitle string
-			if children[0].Title != "" {
-				sectionTitle = children[0].Title
-			}
-			firstURL := children[0].URL
+			// Use the directory name as the section title when no index
+			// page provides one via frontmatter or heading.
+			sectionTitle := titleFromDirName(entry.Name())
+			firstURL := ""
 			for _, c := range children {
-				if c.URL != "" {
-					firstURL = c.URL
-					break
+				if c.URL == "" || strings.HasSuffix(c.URL, "/index.html") || strings.HasSuffix(c.URL, "/index.md") || strings.HasSuffix(c.URL, "/index.org") {
+					if c.Title != "" {
+						sectionTitle = c.Title
+					}
+					if c.URL != "" && firstURL == "" {
+						firstURL = c.URL
+					}
 				}
+			}
+			// Fall back to first content-bearing child for URL
+			if firstURL == "" {
+				for _, c := range children {
+					if c.URL != "" && len(c.HTML) > 0 {
+						firstURL = c.URL
+						break
+					}
+				}
+			}
+			if firstURL == "" {
+				firstURL = children[0].URL
 			}
 			pages = append(pages, PageData{
 				Title:    sectionTitle,
@@ -144,17 +184,40 @@ func BuildPageTree(root string) ([]PageData, *TreeNode, error) {
 		if p.Draft {
 			continue
 		}
-		// Compute section URL from first child's path
+		// Compute section URL from index page first, then content-bearing child
 		var sectionURL string
 		for _, c := range p.Children {
-			if c.URL != "" {
-				firstURL := c.URL
-				if idx := strings.LastIndex(firstURL, "/"); idx >= 0 {
-					sectionURL = firstURL[:idx] + "/"
+			if c.URL != "" && (strings.HasSuffix(c.URL, "/index.html") || strings.HasSuffix(c.URL, "/index.md") || strings.HasSuffix(c.URL, "/index.org")) {
+				if idx := strings.LastIndex(c.URL, "/"); idx >= 0 {
+					sectionURL = c.URL[:idx] + "/"
 				} else {
-					sectionURL = firstURL + "/"
+					sectionURL = c.URL + "/"
 				}
 				break
+			}
+		}
+		if sectionURL == "" {
+			for _, c := range p.Children {
+				if c.URL != "" && len(c.HTML) > 0 {
+					if idx := strings.LastIndex(c.URL, "/"); idx >= 0 {
+						sectionURL = c.URL[:idx] + "/"
+					} else {
+						sectionURL = c.URL + "/"
+					}
+					break
+				}
+			}
+		}
+		if sectionURL == "" {
+			for _, c := range p.Children {
+				if c.URL != "" {
+					if idx := strings.LastIndex(c.URL, "/"); idx >= 0 {
+						sectionURL = c.URL[:idx] + "/"
+					} else {
+						sectionURL = c.URL + "/"
+					}
+					break
+				}
 			}
 		}
 		flattenPage(p, sectionURL, &flat, navRoot)
@@ -192,7 +255,13 @@ func flattenPage(p PageData, prefixURL string, flat *[]PageData, navNode *TreeNo
 				}
 			}
 			sectionNode = &TreeNode{Title: p.Title, URL: sectionURL}
-			navNode.Children = append(navNode.Children, *sectionNode)
+			// Reserve a slot — the fully built node will be written back
+			// after children are populated (avoids copying an empty Children slice).
+			nChildren := len(navNode.Children)
+			navNode.Children = append(navNode.Children, TreeNode{})
+			defer func() {
+				navNode.Children[nChildren] = *sectionNode
+			}()
 		} else if sectionURL != "" {
 			sectionNode = &navNode.Children[len(navNode.Children)-1]
 			sectionNode.URL = sectionURL

@@ -1,6 +1,7 @@
 package site
 
 import (
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -52,4 +53,21 @@ func DetectTitleFromContent(content []byte) string {
 		}
 	}
 	return "Untitled"
+}
+
+// DetectOrderFromContent extracts an order value from org-mode #+ORDER: properties.
+// Returns 0 if no order property is found.
+func DetectOrderFromContent(content []byte) int {
+	lines := strings.SplitSeq(string(content), "\n")
+	for line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if after, ok := strings.CutPrefix(trimmed, "#+ORDER:"); ok {
+			n, err := strconv.Atoi(strings.TrimSpace(after))
+			if err != nil {
+				return 0
+			}
+			return n
+		}
+	}
+	return 0
 }
