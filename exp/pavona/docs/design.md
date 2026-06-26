@@ -117,10 +117,51 @@ with goldmark for Markdown or go-org for org-mode, Tailwind CLI for CSS,
 and file watching for dev. Includes a `features/` directory with godog
 suite for testing generated output.
 
+Content follows a **filesystem-as-URL** convention — every file maps
+directly to a URL path:
+
+```
+content/
+├── index.md              →  /              (home page)
+├── about.md              →  /about.html    (flat page)
+└── services/                                (section)
+    ├── index.md          →  /services/      (section landing)
+    ├── consulting.md     →  /services/consulting.html
+    └── support.md        →  /services/support.html
+```
+
+Sections (directories with an `index.md`) produce clean `/section/` URLs
+with no `.html` suffix. Flat files produce `/path.html`. The file tree
+*is* the sitemap — no config file needed.
+
+Markdown files support optional YAML frontmatter:
+
+```yaml
+---
+title: Consulting Services
+order: 2
+---
+```
+
+The `order` field controls page position in navigation. Files without
+frontmatter fall back to detecting the title from the first `# heading`
+(markdown) or `#+TITLE` keyword (org-mode). The `draft: true` flag
+excludes a page from the build but keeps it available in the dev server.
+
+The navigation tree is passed to the theme as a nested structure:
+
+```go
+type TreeNode struct {
+    Title    string
+    URL      string
+    Children []TreeNode
+}
+```
+
 Every site includes a `theme/` directory with a `templ` template that
 wraps rendered content in a full HTML page. The default theme provides
-a clean, responsive layout with navigation, syntax-highlighted code
-blocks, and mobile-friendly typography.
+a clean, responsive layout with section-aware navigation, syntax-highlighted
+code blocks, and mobile-friendly typography.
 
 ```
 pavona new site blog                          # default theme
