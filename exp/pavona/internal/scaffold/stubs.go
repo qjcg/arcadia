@@ -56,6 +56,12 @@ var siteBuildGoTmpl string
 //go:embed templates/site/go.mod.tmpl
 var siteGoModTmpl string
 
+//go:embed templates/site/package.json.tmpl
+var sitePackageJsonTmpl string
+
+//go:embed templates/site/static/style.css.tmpl
+var siteStyleCssTmpl string
+
 //go:embed templates/site/features/.gitkeep
 var siteFeaturesGitkeep string
 
@@ -75,7 +81,9 @@ func (g SiteGenerator) Generate(opts Options) error {
 		contentName:           contentTmpl,
 		"build.go":            siteBuildGoTmpl,
 		"go.mod":              siteGoModTmpl,
+		"package.json":        sitePackageJsonTmpl,
 		"features/.gitkeep":   siteFeaturesGitkeep,
+		"static/style.css":    siteStyleCssTmpl,
 		"theme/default.templ": siteThemeDefaultTmpl,
 	}
 
