@@ -1,12 +1,21 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/GiGurra/boa/pkg/boa"
 	"github.com/spf13/cobra"
 )
 
-func NewAddCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "add <type> <name>",
+type AddParams struct {
+	Type string `positional:"true" descr:"Component type (handler, feature, tool, page, stream, job, migration)"`
+	Name string `positional:"true" descr:"Component name"`
+}
+
+func AddCmd() boa.CmdT[AddParams] {
+	return boa.CmdT[AddParams]{
+		Use:   "add",
 		Short: "Add a component to the project",
 		Long: `Add a component to the current project.
 
@@ -18,12 +27,10 @@ Types:
   stream    Add a JetStream stream definition (NATS projects)
   job       Add a background worker
   migration Add a database migration`,
-		Args: cobra.ExactArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunFunc: func(p *AddParams, cmd *cobra.Command, args []string) {
 			// TODO: implement add logic per type
-			return nil
+			fmt.Fprintf(os.Stderr, "add %s %s: not yet implemented\n", p.Type, p.Name)
+			os.Exit(1)
 		},
 	}
-
-	return cmd
 }

@@ -1,12 +1,21 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/GiGurra/boa/pkg/boa"
 	"github.com/spf13/cobra"
 )
 
-func NewRemoveCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "remove <type> <name>",
+type RemoveParams struct {
+	Type string `positional:"true" descr:"Component type (handler, feature, tool, page, stream, job, migration)"`
+	Name string `positional:"true" descr:"Component name"`
+}
+
+func RemoveCmd() boa.CmdT[RemoveParams] {
+	return boa.CmdT[RemoveParams]{
+		Use:   "remove",
 		Short: "Remove a component from the project",
 		Long: `Remove a previously added component.
 
@@ -18,12 +27,10 @@ Types:
   stream    Remove a JetStream stream definition
   job       Remove a background worker
   migration Remove a database migration`,
-		Args: cobra.ExactArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunFunc: func(p *RemoveParams, cmd *cobra.Command, args []string) {
 			// TODO: implement remove logic per type
-			return nil
+			fmt.Fprintf(os.Stderr, "remove %s %s: not yet implemented\n", p.Type, p.Name)
+			os.Exit(1)
 		},
 	}
-
-	return cmd
 }
