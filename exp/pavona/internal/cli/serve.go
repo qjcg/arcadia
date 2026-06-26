@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/GiGurra/boa/pkg/boa"
+	"github.com/fsnotify/fsnotify"
 	"github.com/qjcg/arcadia/exp/pavona/pkg/site"
 	"github.com/spf13/cobra"
 )
@@ -31,6 +34,9 @@ func ServeCmd() boa.CmdT[ServeParams] {
 				os.Exit(1)
 			}
 
+			// Start file watcher for live rebuilds
+			go watchContent(contentDir, outputDir)
+
 			fs := http.FileServer(http.Dir(outputDir))
 			mux := http.NewServeMux()
 			mux.Handle("/", fs)
@@ -42,5 +48,60 @@ func ServeCmd() boa.CmdT[ServeParams] {
 				os.Exit(1)
 			}
 		},
+	}
+}
+
+func watchContent(contentDir, outputDir string) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		slog.Warn("file watching unavailable", "error", err)
+		return
+	}
+	defer watcher.Close()
+
+	// Watch the content directory and all subdirectories
+	if err := filepath.Walk(contentDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || !info.IsDir() {
+			return err
+		}
+		return watcher.Add(path)
+	}); err != nil {
+		slog.Warn("failed to watch content directory", "error", err)
+		return
+	}
+
+	extensions := map[string]bool{".md": true, ".org": true}
+	var debounce *time.Timer
+
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+			if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove) == 0 {
+				continue
+			}
+			if !extensions[strings.ToLower(filepath.Ext(event.Name))] {
+				continue
+			}
+			// Debounce: reset timer on each event, rebuild 200ms after last one
+			if debounce != nil {
+				debounce.Stop()
+			}
+			debounce = time.AfterFunc(200*time.Millisecond, func() {
+				slog.Info("content changed, rebuilding...", "file", event.Name)
+				if err := site.Build(contentDir, outputDir); err != nil {
+					slog.Error("rebuild failed", "error", err)
+				} else {
+					slog.Info("rebuild complete")
+				}
+			})
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			slog.Warn("file watcher error", "error", err)
+		}
 	}
 }

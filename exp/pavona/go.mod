@@ -11,6 +11,7 @@ require (
 require (
 	github.com/cucumber/gherkin/go/v26 v26.2.0 // indirect
 	github.com/cucumber/messages/go/v21 v21.0.1 // indirect
+	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/gofrs/uuid v4.3.1+incompatible // indirect
 	github.com/gosimple/slug v1.15.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
@@ -22,5 +23,6 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/yuin/goldmark v1.8.2 // indirect
 	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
