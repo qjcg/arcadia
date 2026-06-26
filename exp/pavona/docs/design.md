@@ -6,12 +6,27 @@ Named after leaf coral of the *Pavona* genus: layered, branching, and symbiotic.
 
 ## Philosophy
 
-**"A framework that gets out of your way the moment you know what you're doing."**
+**"Pavona gets out of your way — and stays out."**
 
 CLI tools, libraries, TUIs, and web apps share 80% of the same DNA —
 config loading, dependency wiring, logging, testing infrastructure,
 command routing, middleware patterns. Pavona provides that 80% as
 modular, composable layers, then stays silent for the other 20%.
+
+The framework is built around 10 principles:
+
+| # | Principle | What it means |
+|---|-----------|---------------|
+| 1 | **Developer happiness** | The scaffold compiles on first try. Tests pass with no setup. Hot reload works out of the box. Every interaction leaves you satisfied, not frustrated. |
+| 2 | **Surfaceless** | No `init()` magic. No hidden goroutines. Every `Register`, `Start`, and `Stop` is explicit and traceable. |
+| 3 | **Peel away** | Start with Pavona providing everything, then replace any component with your own. The framework cedes control gracefully. |
+| 4 | **Compile-time > runtime** | If `go build` can catch it, it should. Generic `Register[T]`, sqlc queries, typed config structs. Zero panic-from-reflection paths. |
+| 5 | **Locality** | Related code lives together. The scaffold suggests a layout but never enforces a folder religion. You can move a handler next to its tests without fighting import cycles. |
+| 6 | **Testable by default** | Every Pavona component produces a clean interface and a test helper that works without network, filesystem, or global state. |
+| 7 | **5-minute onboarding** | `pavona new app` produces a project a new team member can understand in 5 minutes. The scaffold *is* the documentation. |
+| 8 | **No lock-in exit** | Drop `pavona` from `go.mod` and the project still compiles. Templates produce standard Go files you own. |
+| 9 | **Symmetry** | Every `pavona add` has a corresponding `pavona remove`. What the scaffold creates it can also delete cleanly. |
+| 10 | **Boring is beautiful** | `net/http`, `slog`, `database/sql`, `text/template`. Not fashionable abstractions. Pavona reads like the stdlib. |
 
 ## Core Architecture
 
