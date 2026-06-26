@@ -398,6 +398,78 @@ func TestLoadOverviewFiles(t *testing.T) {
 	}
 }
 
+func TestWriteChangelogFile(t *testing.T) {
+	dir := t.TempDir()
+
+	cl := &Changelog{
+		Entries: []Entry{
+			{
+				Version: "v1.0.0",
+				Date:    "2024-01-15",
+				Items: map[Category][]Item{
+					Added: {{Hash: "abc1234", Message: "New CLI tool"}},
+					Fixed: {{Hash: "def5678", Message: "Crash on startup"}},
+				},
+			},
+			{
+				Version: "v0.1.0",
+				Date:    "2023-12-01",
+				Items: map[Category][]Item{
+					Added: {{Hash: "ghi9012", Message: "Basic functionality"}},
+				},
+			},
+		},
+	}
+
+	if err := WriteChangelogFile(dir, cl); err != nil {
+		t.Fatalf("WriteChangelogFile failed: %v", err)
+	}
+
+	path := filepath.Join(dir, "CHANGELOG.md")
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("CHANGELOG.md not found: %v", err)
+	}
+
+	output := string(content)
+	if !contains(output, "# Changelog") {
+		t.Error("missing main header")
+	}
+	if !contains(output, "## [v1.0.0] - 2024-01-15") {
+		t.Error("missing v1.0.0 header")
+	}
+	if !contains(output, "### Added") {
+		t.Error("missing Added section")
+	}
+	if !contains(output, "- abc1234 - New CLI tool") {
+		t.Error("missing formatted item")
+	}
+	if !contains(output, "## [v0.1.0] - 2023-12-01") {
+		t.Error("missing v0.1.0 header")
+	}
+}
+
+func TestWriteChangelogFile_EmptyEntries(t *testing.T) {
+	dir := t.TempDir()
+
+	cl := &Changelog{}
+
+	if err := WriteChangelogFile(dir, cl); err != nil {
+		t.Fatalf("WriteChangelogFile failed: %v", err)
+	}
+
+	path := filepath.Join(dir, "CHANGELOG.md")
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("CHANGELOG.md not found: %v", err)
+	}
+
+	output := string(content)
+	if !contains(output, "# Changelog") {
+		t.Error("missing main header with empty entries")
+	}
+}
+
 func TestLoadOverviewFiles_NoDir(t *testing.T) {
 	overviews, err := LoadOverviewFiles("/nonexistent/path")
 	if err != nil {

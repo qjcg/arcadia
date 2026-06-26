@@ -393,6 +393,14 @@ func WriteEntryDir(dir string, cl *Changelog) error {
 	return nil
 }
 
+// WriteChangelogFile writes a CHANGELOG.md file into the given module directory
+// with the full changelog in keepachangelog format.
+func WriteChangelogFile(moduleDir string, cl *Changelog) error {
+	path := filepath.Join(moduleDir, "CHANGELOG.md")
+	content := FormatChangelog(cl)
+	return os.WriteFile(path, []byte(content), 0o644)
+}
+
 // LoadOverviewFiles reads overview files from the directory tree and returns
 // a map of version -> overview text. Only returns versions that have
 // non-empty overview files. Searches recursively to support module-prefixed

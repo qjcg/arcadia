@@ -1,0 +1,31 @@
+# Test sv changelog --all --write creates CHANGELOG.md per module
+exec git init -q
+exec git config user.email test@example.com
+exec git config user.name "Test User"
+
+# Root module
+cp root_go_mod go.mod
+exec git add go.mod
+exec git commit --allow-empty -m init
+exec git tag v1.0.0
+exec git commit --allow-empty -m wip
+exec git tag v1.0.1
+
+# Submodule
+mkdir -p x/mod
+cp sub_go_mod x/mod/go.mod
+exec git add x/mod/go.mod
+exec git commit --allow-empty -m mod
+exec git tag x/mod/v0.1.1
+
+# --all --write creates CHANGELOG.md for each module and suppresses stdout
+exec sv changelog --all --write
+exists CHANGELOG.md
+exists x/mod/CHANGELOG.md
+! stdout .
+
+-- root_go_mod --
+module example.com/root
+
+-- sub_go_mod --
+module example.com/mod

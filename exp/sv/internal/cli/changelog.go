@@ -16,6 +16,7 @@ type changelogParams struct {
 	To        string   `descr:"End version (inclusive)" optional:"true"`
 	Dir       string   `descr:"Directory to write individual changelog entry files" short:"d" optional:"true"`
 	URLPrefix string   `descr:"URL prefix for linking commit hashes in changelog items" short:"u" optional:"true"`
+	Write     bool     `descr:"Write CHANGELOG.md into each module directory" short:"w"`
 }
 
 func createChangelogCmd() *cobra.Command {
@@ -68,7 +69,16 @@ func runChangelogCmd(p *changelogParams, cmd *cobra.Command) error {
 			if err := changelog.WriteEntryDir(p.Dir, cl); err != nil {
 				fmt.Fprintf(cmd.ErrOrStderr(), "Error writing entries for module %s: %v\n", m.Name, err)
 			}
-		} else {
+		}
+
+		// Write CHANGELOG.md into the module's directory if --write is set
+		if p.Write {
+			if len(cl.Entries) > 0 {
+				if err := changelog.WriteChangelogFile(m.Path, cl); err != nil {
+					fmt.Fprintf(cmd.ErrOrStderr(), "Error writing CHANGELOG.md for module %s: %v\n", m.Name, err)
+				}
+			}
+		} else if p.Dir == "" {
 			moduleChangelogs[m.Name] = cl
 		}
 	}
