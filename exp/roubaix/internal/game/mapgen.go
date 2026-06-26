@@ -2,6 +2,7 @@ package game
 
 import (
 	"math/rand"
+	"slices"
 )
 
 // Level info for each of the 3 floors.
@@ -81,13 +82,7 @@ func (m *GameMap) generateRooms(info LevelInfo) {
 		y := 1 + rand.Intn(m.H-h-2)
 		r := Room{X: x, Y: y, W: w, H: h}
 
-		overlap := false
-		for _, other := range m.Rooms {
-			if r.Overlaps(other) {
-				overlap = true
-				break
-			}
-		}
+		overlap := slices.ContainsFunc(m.Rooms, r.Overlaps)
 		if overlap {
 			continue
 		}
@@ -201,7 +196,7 @@ func (m *GameMap) carveVCorridor(y1, y2, x int, tile Tile) {
 
 func (m *GameMap) decorateSurface() {
 	// Add patches of water (canal) and grass
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		x := 10 + rand.Intn(m.W-20)
 		y := 3 + rand.Intn(m.H-6)
 		if m.Tiles[y][x] == TileWall {

@@ -249,10 +249,7 @@ func (g *Game) tryMove(dx, dy int) {
 
 // meleeAttack attacks an entity.
 func (g *Game) meleeAttack(e *Entity) {
-	damage := g.player.Attack - e.Defense
-	if damage < 1 {
-		damage = 1
-	}
+	damage := max(g.player.Attack-e.Defense, 1)
 	e.HP -= damage
 	g.addMessage("Vous frappez " + e.NameFr + " pour " + itoa(damage) + " dégâts!")
 
@@ -281,10 +278,7 @@ func (g *Game) monsterTurn() {
 
 		if abs(dx) <= 1 && abs(dy) <= 1 {
 			// Adjacent: attack player
-			damage := e.Attack - g.player.Defense
-			if damage < 1 {
-				damage = 1
-			}
+			damage := max(e.Attack-g.player.Defense, 1)
 			g.player.HP -= damage
 			g.addMessage(e.NameFr + " vous attaque pour " + itoa(damage) + " dégâts!")
 			if g.player.HP <= 0 {

@@ -61,8 +61,8 @@ func (g *Game) render() string {
 	mapH := g.CurrentMap().H
 
 	// Draw map
-	for y := 0; y < mapH; y++ {
-		for x := 0; x < mapW; x++ {
+	for y := range mapH {
+		for x := range mapW {
 			b.WriteString(g.renderTile(x, y))
 		}
 		b.WriteByte('\n')
@@ -147,10 +147,7 @@ func (g *Game) renderTile(x, y int) string {
 }
 
 func (g *Game) renderStatusBar() string {
-	hp := g.player.HP
-	if hp < 0 {
-		hp = 0
-	}
+	hp := max(g.player.HP, 0)
 	maxHP := g.player.MaxHP
 	hpPct := float64(hp) / float64(maxHP)
 	barW := 16
