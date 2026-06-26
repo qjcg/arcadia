@@ -110,7 +110,7 @@ Feature: Static site builder — site package
     Then "dist/index.html" contains "<!DOCTYPE html>"
     And "dist/index.html" contains "<html"
     And "dist/index.html" contains "<head>"
-    And "dist/index.html" contains "<body>"
+    And "dist/index.html" contains "<body"
 
   Scenario: Default theme has responsive navigation
     Given "content/index.md" with frontmatter and body
