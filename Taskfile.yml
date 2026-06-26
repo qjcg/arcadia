@@ -5,13 +5,8 @@ version: '3'
 shopt: [globstar]
 
 vars:
-  TAG_CURRENT:
-    sh: 'go tool sv current --all'
-  TAG_NEXT:
-    sh: 'go tool sv next --all'
-
   V_GOLANGCILINT: v2.12.2
-  V_TRIVY: v0.70.0
+  V_TRIVY: v0.71.2
 
 tasks:
   default:
@@ -48,6 +43,7 @@ tasks:
       - lint:cuefmt
       - lint:go:fix
       - lint:go:vet
+      #- lint:editorconfig
 
   lint:full:
     deps:
@@ -117,12 +113,24 @@ tasks:
   update:
     desc: Update dependencies.
     cmds:
-      - go get -u tool
-      - go get -u work
+      - task: update:tool
+      - task: update:work
+      - go mod tidy
+      - go work sync
+      - task: test
+      - task: lint
+
+  update:tool: go get -u tool
+  update:work: go get -u work
 
 
   ######################################################################
   # release
+
+  changelogs:
+    docs: Create changelogs for all go modules.
+    cmds:
+      - go tool sv changelog --all --write
 
   release:
     desc: GitHub release.
