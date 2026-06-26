@@ -23,13 +23,13 @@ func ParseFrontmatter(content []byte) (*Frontmatter, []byte) {
 
 	// Find the closing ---
 	rest := s[4:] // skip opening ---\n
-	idx := strings.Index(rest, "\n---\n")
-	if idx < 0 {
+	before, after, ok := strings.Cut(rest, "\n---\n")
+	if !ok {
 		return nil, content
 	}
 
-	yamlBlock := rest[:idx]
-	body := rest[idx+5:] // skip \n---\n
+	yamlBlock := before
+	body := after // skip \n---\n
 
 	var fm Frontmatter
 	if err := yaml.Unmarshal([]byte(yamlBlock), &fm); err != nil {
@@ -41,14 +41,14 @@ func ParseFrontmatter(content []byte) (*Frontmatter, []byte) {
 
 // DetectTitleFromContent extracts a title from content (first # heading or #+TITLE).
 func DetectTitleFromContent(content []byte) string {
-	lines := strings.Split(string(content), "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(string(content), "\n")
+	for line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "# ") {
-			return strings.TrimPrefix(trimmed, "# ")
+		if after, ok := strings.CutPrefix(trimmed, "# "); ok {
+			return after
 		}
-		if strings.HasPrefix(trimmed, "#+TITLE:") {
-			return strings.TrimSpace(strings.TrimPrefix(trimmed, "#+TITLE:"))
+		if after, ok := strings.CutPrefix(trimmed, "#+TITLE:"); ok {
+			return strings.TrimSpace(after)
 		}
 	}
 	return "Untitled"
