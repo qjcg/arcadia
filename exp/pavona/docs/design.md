@@ -45,7 +45,7 @@ pavona/
 ├── pool/          # Worker pool / background job runner
 ├── db/            # Database abstractions (migrations, queries, transactions)
 │   └── migrate/   # Migration runner (embedded, up/down/status)
-├── test/          # Test helpers, golden file utils, DB fixtures, clock mocking
+├── test/          # Test helpers, golden file utils, DB fixtures, clock mocking, godog BDD steps
 └── gen/           # Code generation & template engine (templates + overrides)
 ```
 
@@ -96,9 +96,9 @@ app := pavona.New(pavona.WithCLI(cmd))
 pavona new lib go-csvstream
 ```
 
-Generates: minimal Go module with `pavona/test` helpers, CI setup, and
-example-driven docs. The library uses zero Pavona runtime dependencies
-in production — only the dev toolchain.
+Generates: minimal Go module with `pavona/test` helpers, godog BDD
+scaffold, CI setup, and example-driven docs. The library uses zero
+Pavona runtime dependencies in production — only the dev toolchain.
 
 ### 3. Static Site
 
@@ -138,7 +138,8 @@ pavona new app acmecorp
 
 Generates: HTTP server, static file serving, templ rendering (via
 a-h/templ), HTMX + Alpine.js wiring, SQLite (with sqlc), CSS pipeline
-(Tailwind via daisyui), Dockerfile, and `Taskfile.yaml`.
+(Tailwind via daisyui), `features/` directory with godog suite, Dockerfile,
+and `Taskfile.yaml`.
 
 ### 6. Agent
 
@@ -149,6 +150,8 @@ pavona new agent triagebot
 Generates: a Go service that speaks the NATS Agent Protocol — registering
 as a NATS micro service named `agents` with `prompt`, `status`, and `hb`
 (heartbeat) endpoints. Uses `pavona/agent` for the protocol implementation.
+Includes a `features/` directory with godog feature files for BDD testing
+of prompt/response flows.
 
 ```go
 import "github.com/pavona/pavona/agent"
@@ -188,6 +191,7 @@ agent/
 ├── nats/
 │   ├── conn.go          # connection lifecycle (inherited from NATS template)
 │   └── server.go        # embedded server in dev, remote in production
+├── features/            # gherkin feature files + godog suite
 ├── Taskfile.yaml
 ├── go.mod
 └── config.yaml
@@ -283,8 +287,8 @@ files to any project type that has the required hooks.
 | **DB**         | Pavona provides migration runner and connection lifecycle. Actual queries use **sqlc**.              | Type-safe SQL beats any ORM.                                                 |
 | **Middleware** | Standard `net/http` middleware. Pavona provides `recover`, `request-id`, `access-log`, `rate-limit`. | No custom handler signature. Compatible with everything.                     |
 | **TUI**        | `tui` package wraps bubbletea with layout primitives, keybinding registry, and screen primitives.    | Start a full-screen TUI in 10 lines. Components are reusable modules.        |
-| **Testing**    | `test` package gives you: temp DB, golden file comparison, request recording, clock mocking.         | The stuff you rewrite for every project.                                     |
-| **Build**      | Single `go build`, no codegen step at runtime.                                                       | Fast iteration, simple debugging.                                            |
+| **Testing**    | `test` package gives you: godog BDD suite with gherkin features, temp DB, golden file comparison, request recording, clock mocking. | The stuff you rewrite for every project.                                     |
+| **Build**      | Single `go build`, no codegen step at runtime.                                                                                    | Fast iteration, simple debugging.                                            |
 | **Scaffold**   | Codegen produces files once — you own them after.                                                    | No framework lock-in. You can delete `pavona` from go.mod and still compile. |
 | **Agent**      | `agent` package implements the NATS Agent Protocol as a NATS micro service with prompt/status/hb.    | Agents are discoverable, addressable, and composable without a central registry. |
 
@@ -303,6 +307,7 @@ pavona build                                # single binary: ./bin/dashboard
 
 pavona new agent triagebot                  # generates: main.go, agent/, nats/
 pavona add tool escalate                    # adds CLI subcommand that prompts the agent
+pavona add feature prompt_response          # adds gherkin feature + godog step definitions
 ```
 
 The same binary can serve HTTP, expose CLI commands, launch a TUI, build a
