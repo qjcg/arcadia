@@ -8,7 +8,7 @@ Named after leaf coral of the *Pavona* genus: layered, branching, and symbiotic.
 
 **"Pavona gets out of your way — and stays out."**
 
-CLI tools, libraries, TUIs, and web apps share 80% of the same DNA —
+CLI tools, libraries, static sites, TUIs, web apps, and agents share 80% of the same DNA —
 config loading, dependency wiring, logging, testing infrastructure,
 command routing, middleware patterns. Pavona provides that 80% as
 modular, composable layers, then stays silent for the other 20%.
@@ -34,20 +34,19 @@ The framework is built around 10 principles:
 pavona/
 ├── cmd/           # Pavona CLI — scaffolding, dev server, codegen
 ├── app/           # Runtime kernel — bootstrap, lifecycle, shutdown
-├── wire/          # Dependency injection & module registration
 ├── conf/          # Config loading (YAML/TOML/JSON/env, layered)
 ├── log/           # Structured logging (slog-based, level-filtered)
+├── wire/          # Module registration & dependency graph declaration
 ├── serve/         # HTTP server (net/http, middleware stack, graceful shutdown)
-├── site/          # Static site builder (Markdown → HTML, Tailwind pipeline, dev server)
 ├── agent/         # NATS Agent Protocol host: prompt/status/hb endpoints
+├── site/          # Static site builder (Markdown/org-mode → HTML, Tailwind pipeline, dev server)
 ├── cli/           # CLI framework (cobra-like, top-level subcommands)
 ├── tui/           # TUI framework (bubbletea-based, composable components)
 ├── pool/          # Worker pool / background job runner
-├── test/          # Test helpers, golden file utils, DB fixtures
-├── type/          # Shared types & validation (by convention, not inheritance)
 ├── db/            # Database abstractions (migrations, queries, transactions)
 │   └── migrate/   # Migration runner (embedded, up/down/status)
-└── gen/           # Code generation framework (templates + overrides)
+├── test/          # Test helpers, golden file utils, DB fixtures, clock mocking
+└── gen/           # Code generation & template engine (templates + overrides)
 ```
 
 ### The Kernel (`app`)
@@ -195,15 +194,6 @@ agent/
 ```
 
 Every agent is automatically discoverable via `nats req '$SRV.INFO.agents'`.
-The same agent binary can run as a CLI (one-shot prompt via stdin), a TUI
-(interactive session), or a daemon (long-lived NATS micro service) — the
-project type determines the entry point, the protocol stays the same.
-
-```
-pavona new agent triagebot             # daemon (default)
-pavona new agent triagebot --as tool   # CLI that prompts the agent
-pavona new agent triagebot --as tui    # interactive TUI session
-```
 
 ## Templates
 
@@ -216,7 +206,6 @@ project type — adding config, dependencies, wiring code, and examples.
 pavona new app dashboard --template nats
 pavona new tui chatmonitor --template nats
 pavona new tool eventsink --template nats
-pavona new agent triagebot --template nats  # NATS already built-in, no-op
 ```
 
 ### NATS Template
@@ -297,32 +286,27 @@ files to any project type that has the required hooks.
 | **Testing**    | `test` package gives you: temp DB, golden file comparison, request recording, clock mocking.         | The stuff you rewrite for every project.                                     |
 | **Build**      | Single `go build`, no codegen step at runtime.                                                       | Fast iteration, simple debugging.                                            |
 | **Scaffold**   | Codegen produces files once — you own them after.                                                    | No framework lock-in. You can delete `pavona` from go.mod and still compile. |
-
-## What Makes It Beautiful
-
-1. **No init() registration.** Pavona uses explicit `pavona.Register[T]()` calls in your `main.go` or module `init.go`. Static analysis can trace every registered type.
-
-2. **Graceful shutdown is a first-class citizen.** Every module declares its shutdown dependencies. Pavona drains connections, finishes in-flight work, then exits. No global state cleanup needed.
-
-3. **The "peel away" principle.** Start with `pavona new app` — you get everything. As you grow, you replace Pavona components one by one with your own. The framework doesn't fight you; it cedes control gracefully.
-
-4. **The scaffold is the docs.** Every generated project includes a `docs/` directory with architecture decisions, a `README.md` that explains the layout, and inline comments on the generated files. You learn the patterns by reading the output, not a manual.
-
-5. **Zero dependency in library mode.** If you `pavona new lib`, your `go.mod` only needs the standard library. Pavona's test helpers are a dev dependency via `_test.go` imports.
+| **Agent**      | `agent` package implements the NATS Agent Protocol as a NATS micro service with prompt/status/hb.    | Agents are discoverable, addressable, and composable without a central registry. |
 
 ## Growth Path
 
 ```
-pavona new app blog                     # generates: main.go, handlers/, db/, static/
-cd blog && pavona add handler auth/login # adds handler + route + middleware
-pavona add job cleanup                  # adds background worker
-pavona add migration add_users_table    # generates migration SQL + sqlc query
-pavona add cli admin:ban                # adds CLI subcommand to the same binary
-pavona serve                            # runs dev server with hot reload (air)
-pavona build                            # produces single binary: ./bin/blog
+pavona new site blog                        # generates: content/, static/, Tailwind config
+cd blog && pavona add page about            # adds content/about.md
+pavona build                                # produces dist/
+
+pavona new app dashboard --template nats    # generates: main.go, handlers/, nats/
+cd dashboard && pavona add handler auth     # adds handler + route + middleware
+pavona add migration add_sessions           # generates migration SQL + sqlc query
+pavona serve                                # dev server with hot reload
+pavona build                                # single binary: ./bin/dashboard
+
+pavona new agent triagebot                  # generates: main.go, agent/, nats/
+pavona add tool escalate                    # adds CLI subcommand that prompts the agent
 ```
 
-The same binary serves HTTP, exposes CLI commands, launches a TUI, *or* speaks the NATS Agent Protocol — all sharing the same domain code.
+The same binary can serve HTTP, expose CLI commands, launch a TUI, build a
+static site, *or* speak the NATS Agent Protocol — all sharing the same domain code.
 
 ## Summary
 
