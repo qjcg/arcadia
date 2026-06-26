@@ -29,7 +29,6 @@
     .outline-2, .outline-3, .outline-4 { margin-bottom: 1rem; }
     .outline-text-2, .outline-text-3, .outline-text-4 { margin-left: 0.5rem; }
     .title { font-size: 2.25rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.5rem; }
-    nav a { transition: color 0.15s ease; }
   </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-white to-blue-50 min-h-screen">
@@ -40,8 +39,17 @@
           &#127754; {{.Title}}
         </a>
         <nav class="flex gap-1">
-          {{range .Pages}}
-          <a href="/{{.URL}}" class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">{{.Title}}</a>
+          {{range .Nav.Children}}
+          <div class="relative group">
+            <a href="/{{.URL}}" class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block">{{.Title}}</a>
+            {{if .Children}}
+            <ul class="absolute hidden group-hover:block top-full left-0 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[10rem] z-20">
+              {{range .Children}}
+              <li><a href="/{{.URL}}" class="block px-3 py-1.5 text-sm text-slate-600 hover:text-blue-600 hover:bg-blue-50">{{.Title}}</a></li>
+              {{end}}
+            </ul>
+            {{end}}
+          </div>
           {{end}}
         </nav>
       </div>
