@@ -104,14 +104,16 @@ in production — only the dev toolchain.
 ### 3. Static Site
 
 ```
-pavona new site blog
+pavona new site blog                            # markdown (default)
+pavona new site blog --format org               # org-mode
 ```
 
-Generates: Markdown-based static site with Tailwind/daisyui styling, a
-dev server with hot reload via `pavona serve`, and a `pavona build`
-command that outputs to `dist/`. Content lives in `content/` as
-Markdown with frontmatter. Uses `pavona/site` for the build pipeline
-(goldmark for Markdown, Tailwind CLI for CSS, file watching for dev).
+Generates: a static site with Tailwind/daisyui styling, a dev server
+with hot reload via `pavona serve`, and a `pavona build` command that
+outputs to `dist/`. Content lives in `content/` as Markdown (with
+frontmatter) or `.org` files. Uses `pavona/site` for the build pipeline
+with goldmark for Markdown or go-org for org-mode, Tailwind CLI for CSS,
+and file watching for dev.
 
 ```
 pavona serve       # dev server with live reload
