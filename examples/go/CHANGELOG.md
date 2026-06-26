@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [examples/go/unreleased]
 
 ### Changed
+- 63db3549 - Update changelogs
 - 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
 
 ## [examples/go/v0.1.5] - 2026-05-24

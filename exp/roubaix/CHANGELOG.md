@@ -5,13 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [exp/pangrams/unreleased]
-
-### Changed
-- 63db3549 - Update changelogs
-- 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
-
-## [exp/pangrams/v0.1.0] - 2026-06-04
+## [exp/roubaix/v0.1.0] - 2026-06-26
 
 ### Added
-- 0cbc50e5 - Add new Go module exp/pangrams with pangram printer
+- 4da59a85 - add roguelike game set in a French industrial town
