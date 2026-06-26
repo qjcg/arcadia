@@ -1,0 +1,12 @@
+version: "3"
+
+tasks:
+  build:
+    desc: Build the binary
+    cmds:
+      - go build -o bin/{{.Name}} .
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./...

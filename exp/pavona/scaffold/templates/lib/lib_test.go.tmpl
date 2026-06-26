@@ -1,0 +1,9 @@
+package {{.Name}}
+
+import "testing"
+
+func TestHello(t *testing.T) {
+	if Hello() != "Hello from {{.Name}}" {
+		t.Fatal("unexpected greeting")
+	}
+}

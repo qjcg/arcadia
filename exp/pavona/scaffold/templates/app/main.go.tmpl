@@ -1,0 +1,22 @@
+package main
+
+import (
+	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+)
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "<h1>{{.Name}}</h1><p>Built with Pavona.</p>")
+	})
+
+	addr := ":8080"
+	slog.Info("server starting", "addr", addr)
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		slog.Error("server failed", "error", err)
+		os.Exit(1)
+	}
+}

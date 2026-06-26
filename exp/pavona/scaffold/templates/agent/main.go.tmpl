@@ -1,0 +1,46 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/micro"
+)
+
+func main() {
+	nc, err := nats.Connect(nats.DefaultURL)
+	if err != nil {
+		slog.Error("connecting to NATS", "error", err)
+		os.Exit(1)
+	}
+	defer nc.Close()
+
+	svc, err := micro.AddService(nc, micro.Config{
+		Name:        "agents",
+		Version:     "0.1.0",
+		Description: "{{.Name}} — NATS Agent Protocol",
+		Endpoint: &micro.EndpointConfig{
+			Subject: "agents.prompt.{{.Name}}",
+			Handler: micro.HandlerFunc(func(req micro.Request) {
+				req.Respond([]byte(fmt.Sprintf("response from {{.Name}}: %s", string(req.Data()))))
+			}),
+		},
+	})
+	if err != nil {
+		slog.Error("registering service", "error", err)
+		os.Exit(1)
+	}
+	defer svc.Stop()
+
+	slog.Info("agent started", "name", "{{.Name}}")
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+	<-ctx.Done()
+	slog.Info("agent stopping")
+}

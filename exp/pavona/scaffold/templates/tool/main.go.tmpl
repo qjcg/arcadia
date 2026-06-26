@@ -1,0 +1,22 @@
+package main
+
+import (
+	"os"
+
+	"github.com/spf13/cobra"
+)
+
+func main() {
+	cmd := &cobra.Command{
+		Use:   "{{.Name}}",
+		Short: "A CLI tool built with Pavona",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.Help()
+			return nil
+		},
+	}
+
+	if err := cmd.Execute(); err != nil {
+		os.Exit(1)
+	}
+}
