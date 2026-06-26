@@ -4,6 +4,7 @@ vars:
   BIN_DIR: bin
   BIN_NAME: pavona
   BIN: '{{.BIN_DIR}}/{{.BIN_NAME}}'
+  INSTALLED_BIN: $GOPATH/bin/{{.BIN_NAME}}
 
 tasks:
   default:
@@ -24,7 +25,8 @@ tasks:
     desc: Install pavona to GOBIN
     deps: [build]
     cmds:
-      - cp {{.BIN_DIR}}/{{.BIN_NAME
+      - cp {{.BIN}} $GOPATH/bin
+      - upx $GOPATH/bin/
 
   test:
     desc: Run all tests (godog BDD scenarios)
