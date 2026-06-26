@@ -97,7 +97,7 @@ func (g *Game) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 	switch g.state {
 	case StatePlaying:
-		return g.handlePlayingKey(key)
+		return g.handlePlayingKey(msg)
 	case StateHelp:
 		if key == "?" || key == "escape" || key == "enter" || key == "q" {
 			g.state = StatePlaying
@@ -132,9 +132,29 @@ func (g *Game) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 // handlePlayingKey processes keys during normal gameplay.
-func (g *Game) handlePlayingKey(key string) (tea.Model, tea.Cmd) {
+func (g *Game) handlePlayingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
 	dx, dy := 0, 0
 	action := false
+
+	// Shift+arrow keys: run until blocked (nethack-style)
+	k := msg.Key()
+	if k.Mod&tea.ModShift != 0 {
+		switch k.Code {
+		case tea.KeyUp:
+			g.runDirection(0, -1)
+			return g, nil
+		case tea.KeyDown:
+			g.runDirection(0, 1)
+			return g, nil
+		case tea.KeyLeft:
+			g.runDirection(-1, 0)
+			return g, nil
+		case tea.KeyRight:
+			g.runDirection(1, 0)
+			return g, nil
+		}
+	}
 
 	switch key {
 	case "h", "left":
@@ -158,29 +178,29 @@ func (g *Game) handlePlayingKey(key string) (tea.Model, tea.Cmd) {
 		dx = 1
 		dy = 1
 
-	// Shift+direction: run until blocked (nethack-style)
-	case "shift+up", "shift+k":
-		g.runDirection(0, -1)
-		return g, nil
-	case "shift+down", "shift+j":
-		g.runDirection(0, 1)
-		return g, nil
-	case "shift+left", "shift+h":
+	// Shift+vi-key: run until blocked (String() returns uppercase letter)
+	case "H":
 		g.runDirection(-1, 0)
 		return g, nil
-	case "shift+right", "shift+l":
+	case "J":
+		g.runDirection(0, 1)
+		return g, nil
+	case "K":
+		g.runDirection(0, -1)
+		return g, nil
+	case "L":
 		g.runDirection(1, 0)
 		return g, nil
-	case "shift+y":
+	case "Y":
 		g.runDirection(-1, -1)
 		return g, nil
-	case "shift+u":
+	case "U":
 		g.runDirection(1, -1)
 		return g, nil
-	case "shift+b":
+	case "B":
 		g.runDirection(-1, 1)
 		return g, nil
-	case "shift+n":
+	case "N":
 		g.runDirection(1, 1)
 		return g, nil
 

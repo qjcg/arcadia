@@ -200,6 +200,7 @@ func (g *Game) renderControls() string {
 	sepStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	keys := []string{
 		keyStyle.Render("h") + sepStyle.Render("←") + keyStyle.Render("j") + sepStyle.Render("↓") + keyStyle.Render("k") + sepStyle.Render("↑") + keyStyle.Render("l") + sepStyle.Render("→"),
+		keyStyle.Render("Maj+") + sepStyle.Render("courir"),
 		keyStyle.Render("g") + sepStyle.Render("ramasser"),
 		keyStyle.Render("i") + sepStyle.Render("inventaire"),
 		keyStyle.Render(">") + sepStyle.Render("descendre"),
@@ -222,6 +223,8 @@ func (g *Game) renderHelp() string {
 		{"h j k l  /  ← ↑ ↓ →", "Déplacement (vi + flèches)"},
 		{"y u b n", "Déplacement diagonal"},
 		{".", "Attendre un tour"},
+		{"Maj + ← ↑ ↓ →", "Courir tout droit (flèches)"},
+		{"Maj + H J K L Y U B N", "Courir tout droit (vi)"},
 		{"g", "Ramasser un objet"},
 		{"i", "Inventaire (voir/utiliser)"},
 		{"d", "Déposer un objet"},
