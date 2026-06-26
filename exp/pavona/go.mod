@@ -1,4 +1,4 @@
-module github.com/bolocera/pavona
+module github.com/qjcg/arcadia/exp/pavona
 
 go 1.26.4
 

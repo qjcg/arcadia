@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/GiGurra/boa/pkg/boa"
-	"github.com/bolocera/pavona/internal/site"
+	"github.com/qjcg/arcadia/exp/pavona/internal/site"
 	"github.com/spf13/cobra"
 )
 

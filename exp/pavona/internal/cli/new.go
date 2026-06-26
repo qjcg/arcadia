@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/GiGurra/boa/pkg/boa"
-	"github.com/bolocera/pavona/internal/scaffold"
+	"github.com/qjcg/arcadia/exp/pavona/internal/scaffold"
 	"github.com/spf13/cobra"
 )
 

@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/GiGurra/boa/pkg/boa"
-	"github.com/bolocera/pavona/internal/cli"
+	"github.com/qjcg/arcadia/exp/pavona/internal/cli"
 )
 
 func main() {

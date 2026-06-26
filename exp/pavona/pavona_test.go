@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bolocera/pavona/features/steps"
 	"github.com/cucumber/godog"
+	"github.com/qjcg/arcadia/exp/pavona/features/steps"
 )
 
 func TestFeatures(t *testing.T) {
