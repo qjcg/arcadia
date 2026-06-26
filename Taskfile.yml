@@ -111,6 +111,15 @@ tasks:
     cmd: go build -o /dev/null tool
 
 
+  ######################################################################
+  # update
+
+  update:
+    desc: Update dependencies.
+    cmds:
+      - go get -u tool
+      - go get -u work
+
 
   ######################################################################
   # release
