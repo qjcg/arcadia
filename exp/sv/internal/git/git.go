@@ -91,7 +91,7 @@ func HistoricalPaths(root, modulePath string) ([]string, error) {
 
 	// Walk backward through the rename chain
 	for {
-		cmd := exec.Command("git", "log", "--all", "--diff-filter=R", "--format=%H", "-1", "--", current)
+		cmd := exec.Command("git", "log", "--all", "--follow", "--diff-filter=R", "--format=%H", "-1", "--", current)
 		cmd.Dir = root
 		out, err := cmd.CombinedOutput()
 		if err != nil {
