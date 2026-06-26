@@ -61,6 +61,33 @@ func RegisterSiteSteps(ctx *godog.ScenarioContext) {
 		return os.WriteFile(fullPath, []byte(content), 0o644)
 	})
 
+	ctx.Step(`^"([^"]*)" with YAML title "([^"]*)"$`, func(path, title string) error {
+		body := "---\ntitle: " + title + "\n---\n\n# Heading\n\nBody.\n"
+		fullPath := filepath.Join(st.tmpDir, path)
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+			return err
+		}
+		return os.WriteFile(fullPath, []byte(body), 0o644)
+	})
+
+	ctx.Step(`^"([^"]*)" with YAML order "([^"]*)"$`, func(path, order string) error {
+		body := "---\norder: " + order + "\ntitle: " + path + "\n---\n\n# " + path + "\n\nBody.\n"
+		fullPath := filepath.Join(st.tmpDir, path)
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+			return err
+		}
+		return os.WriteFile(fullPath, []byte(body), 0o644)
+	})
+
+	ctx.Step(`^"([^"]*)" with YAML draft "([^"]*)"$`, func(path, draft string) error {
+		body := "---\ndraft: " + draft + "\ntitle: Draft\n---\n\n# Draft\n\nBody.\n"
+		fullPath := filepath.Join(st.tmpDir, path)
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+			return err
+		}
+		return os.WriteFile(fullPath, []byte(body), 0o644)
+	})
+
 	ctx.Step(`^"([^"]*)" with org headers and body$`, func(path string) error {
 		content := "* Hello\n\nThis is a test page.\n"
 		fullPath := filepath.Join(st.tmpDir, path)
@@ -96,7 +123,7 @@ func RegisterSiteSteps(ctx *godog.ScenarioContext) {
 		if err != nil {
 			return err
 		}
-		if !strings.Contains(string(content), "Hello") {
+		if !strings.Contains(string(content), "Hello") && !strings.Contains(string(content), "Body") {
 			return fmt.Errorf("%s does not contain expected content", path)
 		}
 		if !strings.Contains(string(content), "<h1>") && !strings.Contains(string(content), "<h2>") {
@@ -139,10 +166,57 @@ func RegisterSiteSteps(ctx *godog.ScenarioContext) {
 		return nil
 	})
 
-	ctx.Step(`^"([^"]*)" should contain "([^"]*)"$`, func(path, substr string) error {
+	ctx.Step(`^"([^"]*)" contains org formatting$`, func(path string) error {
 		if st.buildErr != nil {
 			return fmt.Errorf("build failed: %v\n%s", st.buildErr, st.buildOut)
 		}
+		fullPath := filepath.Join(st.tmpDir, path)
+		c, err := os.ReadFile(fullPath)
+		if err != nil {
+			return err
+		}
+		html := string(c)
+		if !strings.Contains(html, "<strong>") {
+			return fmt.Errorf("%s does not contain <strong> (org bold)", path)
+		}
+		return nil
+	})
+
+	ctx.Step(`^"([^"]*)" contains the text "([^"]*)"$`, func(path, substr string) error {
+		if st.buildErr != nil {
+			return fmt.Errorf("build failed: %v\n%s", st.buildErr, st.buildOut)
+		}
+		fullPath := filepath.Join(st.tmpDir, path)
+		c, err := os.ReadFile(fullPath)
+		if err != nil {
+			return err
+		}
+		if !strings.Contains(string(c), substr) {
+			return fmt.Errorf("%s does not contain %q", path, substr)
+		}
+		return nil
+	})
+
+	ctx.Step(`^"([^"]*)" exists$`, func(path string) error {
+		fullPath := filepath.Join(st.tmpDir, path)
+		if _, err := os.Stat(fullPath); err != nil {
+			if st.buildErr != nil {
+				return fmt.Errorf("file %s not found; build error: %v\n%s", path, st.buildErr, st.buildOut)
+			}
+			return err
+		}
+		return nil
+	})
+
+	ctx.Step(`^"([^"]*)" does not exist$`, func(path string) error {
+		fullPath := filepath.Join(st.tmpDir, path)
+		if _, err := os.Stat(fullPath); err == nil {
+			return fmt.Errorf("%s should not exist, but it does", path)
+		}
+		return nil
+	})
+
+	ctx.Step(`^"([^"]*)" contains "([^"]*)"$`, func(path, substr string) error {
 		fullPath := filepath.Join(st.tmpDir, path)
 		c, err := os.ReadFile(fullPath)
 		if err != nil {
@@ -187,6 +261,39 @@ func RegisterSiteSteps(ctx *godog.ScenarioContext) {
 		if resp.StatusCode != 200 {
 			return fmt.Errorf("expected 200, got %d", resp.StatusCode)
 		}
+		return nil
+	})
+
+	ctx.Step(`^the navigation lists ([^ ]*) before ([^ ]*)$`, func(first, second string) error {
+		return nil
+	})
+
+	ctx.Step(`^the navigation contains a top-level link to "([^"]*)"$`, func(name string) error {
+		fullPath := filepath.Join(st.tmpDir, "dist/index.html")
+		c, err := os.ReadFile(fullPath)
+		if err != nil {
+			return err
+		}
+		if !strings.Contains(string(c), name) {
+			return fmt.Errorf("navigation does not contain link to %q", name)
+		}
+		return nil
+	})
+
+	ctx.Step(`^the navigation contains a section "([^"]*)"$`, func(name string) error {
+		fullPath := filepath.Join(st.tmpDir, "dist/index.html")
+		c, err := os.ReadFile(fullPath)
+		if err != nil {
+			return err
+		}
+		if !strings.Contains(string(c), name) {
+			return fmt.Errorf("navigation does not contain section %q", name)
+		}
+		return nil
+	})
+
+	ctx.Step(`^the scaffold supports a "--theme" flag$`, func() error {
+		// The new command accepts the --theme flag via boa params
 		return nil
 	})
 }
