@@ -3,6 +3,7 @@ version: "3"
 vars:
   BIN_DIR: bin
   BIN_NAME: pavona
+  BIN: '{{.BIN_DIR}}/{{.BIN_NAME}}'
 
 tasks:
   default:
@@ -15,14 +16,15 @@ tasks:
       - '**/*.go'
       - '**/go.*'
     generates:
-      - '{{.BIN_DIR}}/{{.BIN_NAME}}'
+      - '{{.BIN}}'
     cmds:
-      - go build -o "{{.BIN_DIR}}/{{.BIN_NAME}}" .
+      - go build -o "{{.BIN}}" .
 
   install:
     desc: Install pavona to GOBIN
+    deps: [build]
     cmds:
-      - go install -ldflags '-s -w' .
+      - cp {{.BIN_DIR}}/{{.BIN_NAME
 
   test:
     desc: Run all tests (godog BDD scenarios)

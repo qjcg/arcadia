@@ -23,7 +23,10 @@ func RenderMarkdown(content []byte) ([]byte, error) {
 
 // RenderOrg converts org-mode content to HTML.
 func RenderOrg(content []byte, path string) ([]byte, error) {
-	doc := org.New().Parse(bytes.NewReader(content), path)
+	// Prepend option to disable auto-generated table of contents.
+	// Org files should control their own output, not get an implicit nav.
+	prefixed := append([]byte("#+OPTIONS: toc:nil\n"), content...)
+	doc := org.New().Parse(bytes.NewReader(prefixed), path)
 	if doc.Error != nil {
 		return nil, fmt.Errorf("parsing org: %w", doc.Error)
 	}
