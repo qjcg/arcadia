@@ -1,5 +1,6 @@
 Feature: Static site builder — site package
-  The site package builds Markdown and org-mode content into static HTML.
+  The site package builds Markdown and org-mode content into static HTML
+  with templ-based themes.
 
   Scenario: Build produces HTML from markdown
     Given "content/index.md" with frontmatter and body
@@ -45,3 +46,27 @@ Feature: Static site builder — site package
     Given "content/index.md" with frontmatter and body
     When I run `pavona serve`
     Then the dev server serves the built file over HTTP
+
+  Scenario: Site scaffold includes a theme directory
+    When I scaffold a "site" named "mysite"
+    Then "mysite/theme/" should exist
+    And "mysite/theme/default.templ" should exist
+
+  Scenario: Default theme wraps content in a full HTML page
+    Given "content/index.md" with frontmatter and body
+    When I run `pavona build`
+    Then "dist/index.html" contains "<!DOCTYPE html>"
+    And "dist/index.html" contains "<html"
+    And "dist/index.html" contains "<head>"
+    And "dist/index.html" contains "<body>"
+
+  Scenario: Default theme has responsive navigation
+    Given "content/index.md" with frontmatter and body
+    And "content/about.md" with frontmatter and body
+    When I run `pavona build`
+    Then "dist/index.html" contains a navigation element
+    And "dist/about.html" contains a navigation element
+
+  Scenario: Theme is customizable via --theme flag
+    When I scaffold a "site" named "mysite" with format "markdown"
+    Then the scaffold supports a "--theme" flag

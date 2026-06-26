@@ -117,9 +117,15 @@ with goldmark for Markdown or go-org for org-mode, Tailwind CLI for CSS,
 and file watching for dev. Includes a `features/` directory with godog
 suite for testing generated output.
 
+Every site includes a `theme/` directory with a `templ` template that
+wraps rendered content in a full HTML page. The default theme provides
+a clean, responsive layout with navigation, syntax-highlighted code
+blocks, and mobile-friendly typography.
+
 ```
-pavona serve       # dev server with live reload
-pavona build       # produces dist/ with static HTML/CSS/JS
+pavona new site blog                          # default theme
+pavona new site blog --theme custom           # use a custom theme
+pavona new site blog --format org --theme modern  # org + modern theme
 ```
 
 ### 4. TUI App
