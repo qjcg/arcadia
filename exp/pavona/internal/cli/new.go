@@ -10,10 +10,11 @@ import (
 )
 
 type NewParams struct {
-	Type   string   `positional:"true" descr:"Project type (tool, lib, site, tui, app, agent)"`
-	Name   string   `positional:"true" descr:"Project name"`
-	Format string   `short:"f" descr:"Content format for site type (markdown or org)" default:"markdown" optional:"true"`
-	Pages  []string `short:"p" descr:"Pages to scaffold (comma-separated paths, supports brace expansion like services/{foo,bar})" optional:"true"`
+	Type     string   `positional:"true" descr:"Project type (tool, lib, site, tui, app, agent)"`
+	Name     string   `positional:"true" descr:"Project name"`
+	Format   string   `short:"f" descr:"Content format for site type (markdown or org)" default:"markdown" optional:"true"`
+	SiteName string   `short:"n" descr:"Display name for the site (defaults to project name)" optional:"true"`
+	Pages    []string `short:"p" descr:"Pages to scaffold (comma-separated paths, supports brace expansion like services/{foo,bar})" optional:"true"`
 }
 
 func NewCmd() boa.CmdT[NewParams] {
@@ -47,10 +48,11 @@ Examples:
 			}
 
 			opts := scaffold.Options{
-				Name:   p.Name,
-				Dir:    dir,
-				Format: p.Format,
-				Pages:  p.Pages,
+				Name:     p.Name,
+				Dir:      dir,
+				Format:   p.Format,
+				SiteName: p.SiteName,
+				Pages:    p.Pages,
 			}
 
 			if err := scaffold.Generate(p.Type, opts); err != nil {

@@ -45,10 +45,11 @@
   <header class="sticky top-0 z-10" style="border-bottom: 1px solid var(--border); background: var(--bg-card); backdrop-filter: blur(8px); transition: background 0.2s;">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
-        <a href="/" class="text-lg font-bold hover:opacity-80 transition-opacity no-underline" style="color: var(--text);">&#127754; {{.Title}}</a>
+        <a href="/" class="text-lg font-bold hover:opacity-80 transition-opacity no-underline" style="color: var(--text);">&#127754; Pavona</a>
         <div class="flex items-center gap-1">
           <nav class="flex gap-1">
             {{range .Nav.Children}}
+            {{if ne .URL "index.html"}}
             <div class="relative group">
               <a href="/{{.URL}}" class="nav-link px-3 py-1.5 text-sm font-medium rounded-lg no-underline transition-colors inline-block">{{.Title}}</a>
               {{if .Children}}
@@ -59,6 +60,7 @@
               </ul>
               {{end}}
             </div>
+            {{end}}
             {{end}}
           </nav>
           <button id="theme-toggle" class="theme-btn" onclick="cycleTheme()" aria-label="Switch theme">

@@ -11,7 +11,7 @@ templ Layout(title string, content string, pages []Page) {
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<title>{ title } &mdash; {{.Name}}</title>
+			<title>{ title } &mdash; {{.SiteName}}</title>
 			<link rel="stylesheet" href="/style.css"/>
 			<style>
 				@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -37,13 +37,15 @@ templ Layout(title string, content string, pages []Page) {
 				<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div class="flex items-center justify-between h-16">
 						<a href="/" class="text-lg font-bold text-base-content hover:text-primary transition-colors">
-							&#127754; {{.Name}}
+							&#127754; {{.SiteName}}
 						</a>
 						<div class="flex items-center gap-1">
 							<nav class="flex gap-1">
 								for _, p := range pages {
+								if p.URL != "index.html" {
 									<a href={ templ.URL(p.URL) } class="px-3 py-1.5 text-sm font-medium text-base-content/70 hover:text-primary hover:bg-base-200 rounded-lg transition-colors">{ p.Title }</a>
 								}
+							}
 							</nav>
 							<button id="theme-toggle" class="btn btn-ghost btn-sm" onclick="cycleTheme()" aria-label="Switch theme">
 								<svg id="theme-icon-system" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>

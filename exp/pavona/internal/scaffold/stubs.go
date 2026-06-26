@@ -68,6 +68,10 @@ var siteFeaturesGitkeep string
 type SiteGenerator struct{}
 
 func (g SiteGenerator) Generate(opts Options) error {
+	if opts.SiteName == "" {
+		opts.SiteName = opts.Name
+	}
+
 	var contentTmpl string
 	contentName := "content/index.md"
 	if opts.Format == "org" {
