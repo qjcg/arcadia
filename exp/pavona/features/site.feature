@@ -10,6 +10,13 @@ Feature: Static site builder — site package
     Given "content/index.org" with org headers and body
     When I run `pavona build`
     Then "dist/index.html" exists and contains the rendered content
+    And "dist/index.html" contains org-specific HTML
+
+  Scenario: Org content with bold and emphasis renders correctly
+    Given "content/formatting.org" with org bold and emphasis
+    When I run `pavona build`
+    Then "dist/formatting.html" contains org formatting
+    And "dist/formatting.html" contains the text "<em>"
 
   Scenario: Mixed markdown and org both produce HTML
     Given "content/intro.md" with frontmatter and body

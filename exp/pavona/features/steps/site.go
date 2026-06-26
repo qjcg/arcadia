@@ -70,12 +70,20 @@ func RegisterSiteSteps(ctx *godog.ScenarioContext) {
 		return os.WriteFile(fullPath, []byte(content), 0o644)
 	})
 
+	ctx.Step(`^"([^"]*)" with org bold and emphasis$`, func(path string) error {
+		content := "* Bold and Emphasis\n\nThis is *bold* and /emphasis/ text.\n"
+		fullPath := filepath.Join(st.tmpDir, path)
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+			return err
+		}
+		return os.WriteFile(fullPath, []byte(content), 0o644)
+	})
+
 	ctx.Step(`^I run `+"`"+`pavona build`+"`"+`$`, func() error {
 		cmd := exec.Command(st.bin, "build", "-d", st.tmpDir)
 		out, err := cmd.CombinedOutput()
 		st.buildOut = string(out)
 		st.buildErr = err
-		// Don't return error here — caller decides if failure is expected
 		return nil
 	})
 
@@ -111,6 +119,37 @@ func RegisterSiteSteps(ctx *godog.ScenarioContext) {
 		}
 		if !strings.Contains(string(content), "<h2") && !strings.Contains(string(content), "<h1") {
 			return fmt.Errorf("%s does not contain heading HTML", path)
+		}
+		return nil
+	})
+
+	ctx.Step(`^"([^"]*)" contains org-specific HTML$`, func(path string) error {
+		if st.buildErr != nil {
+			return fmt.Errorf("build failed: %v\n%s", st.buildErr, st.buildOut)
+		}
+		fullPath := filepath.Join(st.tmpDir, path)
+		c, err := os.ReadFile(fullPath)
+		if err != nil {
+			return err
+		}
+		html := string(c)
+		if !strings.Contains(html, "outline-container") && !strings.Contains(html, "outline-2") {
+			return fmt.Errorf("%s does not contain org-specific HTML (outline containers)", path)
+		}
+		return nil
+	})
+
+	ctx.Step(`^"([^"]*)" should contain "([^"]*)"$`, func(path, substr string) error {
+		if st.buildErr != nil {
+			return fmt.Errorf("build failed: %v\n%s", st.buildErr, st.buildOut)
+		}
+		fullPath := filepath.Join(st.tmpDir, path)
+		c, err := os.ReadFile(fullPath)
+		if err != nil {
+			return err
+		}
+		if !strings.Contains(string(c), substr) {
+			return fmt.Errorf("%s does not contain %q", path, substr)
 		}
 		return nil
 	})
