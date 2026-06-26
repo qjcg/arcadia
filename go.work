@@ -10,6 +10,7 @@ use (
 	./exp/fractalis
 	./exp/jmacs
 	./exp/pangrams
+	./exp/roubaix
 	./exp/skillo
 	./exp/slidesdeck
 	./exp/sv
