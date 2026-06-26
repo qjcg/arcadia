@@ -38,7 +38,14 @@
     /* Nav */
     .nav-link { color: var(--text-muted); }
     .nav-link:hover { color: var(--text); background: var(--code-bg); }
-    .nav-dropdown a:hover { background: var(--code-bg); border-radius: 0.25rem; }
+    /* Search */
+    #search-container { position: relative; }
+    #search-results a { display: block; padding: 0.625rem 0.75rem; border-bottom: 1px solid var(--border); color: var(--text); text-decoration: none; transition: background 0.15s; }
+    #search-results a:last-child { border-bottom: none; }
+    #search-results a:hover { background: var(--code-bg); }
+    #search-results .result-title { font-weight: 600; font-size: 0.875rem; }
+    #search-results .result-snippet { font-size: 0.75rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #search-results .result-empty { padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.875rem; }
   </style>
 </head>
 <body class="min-h-screen" style="background: var(--bg); color: var(--text); transition: background 0.2s, color 0.2s;">
@@ -63,6 +70,10 @@
             {{end}}
             {{end}}
           </nav>
+          <div style="position:relative" id="search-container">
+            <input type="search" id="search-input" placeholder="Search..." style="width:9rem; padding:0.25rem 0.625rem; font-size:0.875rem; background:var(--code-bg); border:1px solid var(--border); border-radius:0.5rem; color:var(--text); outline:none;" onfocus="this.style.borderColor='var(--link)'" onblur="this.style.borderColor=''"/>
+            <div id="search-results" class="search-results" style="display:none; position:absolute; right:0; top:100%; margin-top:0.25rem; width:18rem; background:var(--bg-card); border:1px solid var(--border); border-radius:0.5rem; box-shadow:0 10px 25px rgba(0,0,0,0.15); max-height:20rem; overflow-y:auto; z-index:50;"></div>
+          </div>
           <button id="theme-toggle" class="theme-btn" onclick="cycleTheme()" aria-label="Switch theme">
             <svg id="icon-system" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             <svg id="icon-light" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -81,7 +92,55 @@
       Built with &hearts; using <a href="https://github.com/qjcg/arcadia" style="text-decoration: underline;">Pavona</a>
     </div>
   </footer>
+  <script src="https://cdn.jsdelivr.net/npm/flexsearch@0.8.105/dist/flexsearch.bundle.min.js"></script>
   <script>
+    var flexIndex = null;
+    var searchData = null;
+
+    function initSearch(data) {
+      searchData = data;
+      flexIndex = new FlexSearch.Document({
+        document: { id: 'id', index: ['title', 'content'], store: ['title', 'url'] },
+        tokenize: 'forward'
+      });
+      for (var i = 0; i < data.length; i++) {
+        flexIndex.add(data[i]);
+      }
+    }
+
+    function performSearch(query) {
+      var container = document.getElementById('search-results');
+      if (!flexIndex || query.length < 2) {
+        container.style.display = 'none';
+        return;
+      }
+      var results = flexIndex.search(query, { limit: 10, enrich: true });
+      var hits = [];
+      var seen = {};
+      for (var f = 0; f < results.length; f++) {
+        for (var r = 0; r < results[f].result.length; r++) {
+          var item = results[f].result[r];
+          if (!seen[item.id]) {
+            seen[item.id] = true;
+            hits.push(item);
+          }
+        }
+      }
+      if (hits.length === 0) {
+        container.innerHTML = '<div class="result-empty" style="padding:1rem; text-align:center; color:var(--text-muted); font-size:0.875rem;">No results found</div>';
+        container.style.display = 'block';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < hits.length; i++) {
+        var doc = searchData[hits[i].id];
+        var snippet = doc.content.substring(0, 120);
+        html += '<a href="/' + doc.url + '" style="display:block; padding:0.625rem 0.75rem; border-bottom:1px solid var(--border); color:var(--text); text-decoration:none;"><div style="font-weight:600; font-size:0.875rem;">' + doc.title + '</div><div style="font-size:0.75rem; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + snippet + '</div></a>';
+      }
+      container.innerHTML = html;
+      container.style.display = 'block';
+    }
+
     function getTheme(){return localStorage.getItem('theme')||'system'}
     function setTheme(t){localStorage.setItem('theme',t);applyTheme(t)}
     function applyTheme(t){
@@ -96,7 +155,16 @@
       document.getElementById('icon-dark').style.display=t==='dark'?'':'none';
     }
     function cycleTheme(){var a=['system','light','dark'],c=getTheme();setTheme(a[(a.indexOf(c)+1)%3])}
-    document.addEventListener('DOMContentLoaded',function(){applyTheme(getTheme());window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){if(getTheme()==='system')applyTheme('system')})});
+    document.addEventListener('DOMContentLoaded',function(){
+      applyTheme(getTheme());
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){if(getTheme()==='system')applyTheme('system')});
+      fetch('/search-index.json').then(function(r){return r.json()}).then(function(data){initSearch(data)});
+      var si=document.getElementById('search-input'),sr=document.getElementById('search-results'),dt=null;
+      si.addEventListener('input',function(){clearTimeout(dt);dt=setTimeout(function(){performSearch(si.value.trim())},150)});
+      si.addEventListener('focus',function(){if(si.value.trim().length>=2)sr.style.display='block'});
+      document.addEventListener('click',function(e){if(!document.getElementById('search-container').contains(e.target))sr.style.display='none'});
+      si.addEventListener('keydown',function(e){if(e.key==='Escape')sr.style.display='none'});
+    });
   </script>
 </body>
 </html>

@@ -2,6 +2,7 @@ package site
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"os"
@@ -87,7 +88,58 @@ func BuildWithTheme(contentDir, outputDir string, theme Theme) error {
 		}
 	}
 
+	// Build search index
+	var searchIndex []searchIndexEntry
+	for _, p := range flat {
+		if p.Draft {
+			continue
+		}
+		searchIndex = append(searchIndex, searchIndexEntry{
+			ID:      len(searchIndex),
+			Title:   p.Title,
+			URL:     p.URL,
+			Content: stripHTML(string(p.HTML)),
+		})
+	}
+	searchJSON, err := json.Marshal(searchIndex)
+	if err != nil {
+		return fmt.Errorf("marshalling search index: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(outputDir, "search-index.json"), searchJSON, 0o644); err != nil {
+		return fmt.Errorf("writing search index: %w", err)
+	}
+
 	return nil
+}
+
+// searchIndexEntry represents a single page in the full-text search index.
+type searchIndexEntry struct {
+	ID      int    `json:"id"`
+	Title   string `json:"title"`
+	URL     string `json:"url"`
+	Content string `json:"content"`
+}
+
+// stripHTML removes HTML tags from a string, returning plain text.
+func stripHTML(s string) string {
+	var b strings.Builder
+	inTag := false
+	for _, r := range s {
+		if r == '<' {
+			inTag = true
+			continue
+		}
+		if r == '>' {
+			inTag = false
+			continue
+		}
+		if !inTag {
+			b.WriteRune(r)
+		}
+	}
+	// Collapse whitespace
+	result := strings.Join(strings.Fields(b.String()), " ")
+	return result
 }
 
 // Build wraps BuildWithTheme using the default theme.
