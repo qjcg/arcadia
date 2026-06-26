@@ -460,7 +460,9 @@ func (g *Game) TotalFloors() int {
 
 // View implements tea.Model. Returns the rendered terminal view.
 func (g *Game) View() tea.View {
-	return tea.NewView(g.render())
+	v := tea.NewView(g.render())
+	v.AltScreen = true
+	return v
 }
 
 // Helper: integer to string (no strconv import needed)

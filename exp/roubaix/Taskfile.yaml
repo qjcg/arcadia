@@ -1,0 +1,40 @@
+version: '3'
+
+vars:
+  BIN: ./bin/roubaix
+
+tasks:
+  default:
+    deps: [test]
+
+  build:
+    desc: Build the roubaix binary
+    cmds:
+      - CGO_ENABLED=0 go build -ldflags '-s -w' -o {{.BIN}} .
+    sources:
+      - '**/*.go'
+      - '**/go.*'
+    generates:
+      - '{{.BIN}}'
+
+  run:
+    desc: Run the game
+    cmds:
+      - go run .
+
+  install:
+    desc: Build and install roubaix to $GOPATH/bin
+    deps: [build]
+    cmds:
+      - cp {{.BIN}} $GOPATH/bin
+      - upx $GOPATH/bin/roubaix || echo "Install upx for smaller binaries"
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./...
+
+  clean:
+    desc: Remove built binary
+    cmds:
+      - rm -f {{.BIN}}
