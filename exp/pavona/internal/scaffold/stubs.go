@@ -47,6 +47,12 @@ var siteIndexOrgTmpl string
 //go:embed templates/site/theme/default.templ.tmpl
 var siteThemeDefaultTmpl string
 
+//go:embed templates/site/build.go.tmpl
+var siteBuildGoTmpl string
+
+//go:embed templates/site/go.mod.tmpl
+var siteGoModTmpl string
+
 //go:embed templates/site/features/.gitkeep
 var siteFeaturesGitkeep string
 
@@ -64,6 +70,8 @@ func (g SiteGenerator) Generate(opts Options) error {
 
 	files := map[string]string{
 		contentName:           contentTmpl,
+		"build.go":            siteBuildGoTmpl,
+		"go.mod":              siteGoModTmpl,
 		"features/.gitkeep":   siteFeaturesGitkeep,
 		"theme/default.templ": siteThemeDefaultTmpl,
 	}

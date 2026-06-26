@@ -1,0 +1,15 @@
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/qjcg/arcadia/exp/pavona/pkg/site"
+)
+
+func main() {
+	if err := site.Build("content", "dist"); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
