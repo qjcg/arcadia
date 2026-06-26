@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- 30ce367e - Bump sv tool version
+- 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
 - 49cce786 - Update deps
 - 34a64f69 - Bump go tool sv to v0.9.0
 - 4ff23fe2 - Use sv validate-cc for commit-msg git hook checks

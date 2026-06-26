@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [exp/diplomat/unreleased]
 
 ### Changed
+- 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
 - 54dd9f3e - Update go deps
 
 ## [exp/diplomat/v0.1.0] - 2026-05-19
