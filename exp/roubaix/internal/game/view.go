@@ -117,14 +117,9 @@ func (g *Game) renderTile(x, y int) string {
 		return exploredStyle.Render(tileChar)
 	}
 
-	// Check for items on ground (visible only)
-	for _, item := range m.Items {
-		if item.OnGround && item.X == x && item.Y == y {
-			if c, ok := itemColors[item.Type]; ok {
-				return lipgloss.NewStyle().Foreground(c).Render(string(item.Symbol))
-			}
-			return string(item.Symbol)
-		}
+	// Player
+	if x == g.player.X && y == g.player.Y {
+		return lipgloss.NewStyle().Foreground(playerColor).Bold(true).Render("@")
 	}
 
 	// Check for monsters (visible only)
@@ -137,9 +132,14 @@ func (g *Game) renderTile(x, y int) string {
 		}
 	}
 
-	// Player
-	if x == g.player.X && y == g.player.Y {
-		return lipgloss.NewStyle().Foreground(playerColor).Bold(true).Render("@")
+	// Check for items on ground (visible only)
+	for _, item := range m.Items {
+		if item.OnGround && item.X == x && item.Y == y {
+			if c, ok := itemColors[item.Type]; ok {
+				return lipgloss.NewStyle().Foreground(c).Render(string(item.Symbol))
+			}
+			return string(item.Symbol)
+		}
 	}
 
 	// Normal tile rendering
