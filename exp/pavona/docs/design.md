@@ -8,7 +8,10 @@ Named after leaf coral of the *Pavona* genus: layered, branching, and symbiotic.
 
 **"A framework that gets out of your way the moment you know what you're doing."**
 
-CLI tools, libraries, and web apps share 80% of the same DNA — config loading, dependency wiring, logging, testing infrastructure, command routing, middleware patterns. Pavona provides that 80% as modular, composable layers, then stays silent for the other 20%.
+CLI tools, libraries, TUIs, and web apps share 80% of the same DNA —
+config loading, dependency wiring, logging, testing infrastructure,
+command routing, middleware patterns. Pavona provides that 80% as
+modular, composable layers, then stays silent for the other 20%.
 
 ## Core Architecture
 
@@ -18,9 +21,10 @@ pavona/
 ├── app/           # Runtime kernel — bootstrap, lifecycle, shutdown
 ├── wire/          # Dependency injection & module registration
 ├── conf/          # Config loading (YAML/TOML/JSON/env, layered)
-├── log/           # Structured logging (zerolog-based, level-filtered)
+├── log/           # Structured logging (slog-based, level-filtered)
 ├── serve/         # HTTP server (net/http, middleware stack, graceful shutdown)
 ├── cli/           # CLI framework (cobra-like, top-level subcommands)
+├── tui/           # TUI framework (bubbletea-based, composable components)
 ├── pool/          # Worker pool / background job runner
 ├── test/          # Test helpers, golden file utils, DB fixtures
 ├── type/          # Shared types & validation (by convention, not inheritance)
@@ -45,9 +49,11 @@ app.Wait()    // blocks on signals (SIGINT/SIGTERM)
 app.Stop()    // graceful shutdown in dependency order
 ```
 
-`App` is not a framework — it's a **lifecycle manager**. Modules register start/stop hooks, health checks, and depend on each other. Pavona resolves the DAG and starts/stops in order.
+`App` is not a framework — it's a **lifecycle manager**. Modules
+register start/stop hooks, health checks, and depend on each
+other. Pavona resolves the DAG and starts/stops in order.
 
-## Three Project Types
+## Four Project Types
 
 ### 1. CLI Tool
 
@@ -55,7 +61,9 @@ app.Stop()    // graceful shutdown in dependency order
 pavona new tool gh-deploy
 ```
 
-Generates: single binary with subcommands (`deploy`, `rollback`, `status`, `config`). Uses `pavona/cli` for command routing, `pavona/conf` for config, and `pavona/pool` for concurrent API calls.
+Generates: single binary with subcommands (`deploy`, `rollback`,
+`status`, `config`). Uses `pavona/cli` for command routing,
+`pavona/conf` for config, and `pavona/pool` for concurrent API calls.
 
 ```go
 cmd := cli.New("gh-deploy").
@@ -72,15 +80,109 @@ app := pavona.New(pavona.WithCLI(cmd))
 pavona new lib go-csvstream
 ```
 
-Generates: minimal Go module with `pavona/test` helpers, CI setup, and example-driven docs. The library uses zero Pavona runtime dependencies in production — only the dev toolchain.
+Generates: minimal Go module with `pavona/test` helpers, CI setup, and
+example-driven docs. The library uses zero Pavona runtime dependencies
+in production — only the dev toolchain.
 
-### 3. Full-Stack Web App
+### 3. TUI App
+
+```
+pavona new tui chatmonitor
+```
+
+Generates: bubbletea-based terminal app with component structure
+(views/, models/, commands/), keyboard-driven navigation, log viewer,
+help overlay, and `Taskfile.yaml`. Uses `pavona/tui` for the component
+model, layout primitives, and keybinding management.
+
+### 4. Full-Stack Web App
 
 ```
 pavona new app acmecorp
 ```
 
-Generates: HTTP server, static file serving, templ rendering (via a-h/templ), HTMX + Alpine.js wiring, SQLite (with sqlc), CSS pipeline (Tailwind via daisyui), Dockerfile, and `Taskfile.yaml`.
+Generates: HTTP server, static file serving, templ rendering (via
+a-h/templ), HTMX + Alpine.js wiring, SQLite (with sqlc), CSS pipeline
+(Tailwind via daisyui), Dockerfile, and `Taskfile.yaml`.
+
+## Templates
+
+Every project type can be extended with a `--template` flag that wires in
+a specific technology stack. Templates are versioned, community-contributed
+packages stored in a registry. They overlay scaffolding on top of the base
+project type — adding config, dependencies, wiring code, and examples.
+
+```
+pavona new app dashboard --template nats
+pavona new tui chatmonitor --template nats
+pavona new tool eventsink --template nats
+```
+
+### NATS Template
+
+A "nothing but NATS" template that scaffolds a project with NATS as the sole
+backing service. No database, no HTTP server (unless the project type
+requires one) — just NATS for pub/sub, request/reply, and JetStream
+persistence.
+
+**What it wires:**
+- `go get github.com/nats-io/nats.go` and embeds
+  `github.com/nats-io/nats-server/v2` as a library
+  (no external process needed)
+- A `nats/` package with reusable connection lifecycle using the Pavona `app`
+  kernel's start/stop hooks
+- Embedded NATS server configured via `pavona/conf` (memory-backed by default,
+  filesystem persistence opt-in)
+- A `nats/streams/` directory for declarative JetStream stream and consumer
+  definitions
+- Three example patterns:
+  - **pub/sub**: event bus for in-process communication
+  - **request/reply**: RPC-style handlers wired to CLI subcommands or HTTP
+    endpoints
+  - **JetStream work queue**: durable consumer with Pavona's `pool/` worker
+    pulling and ack'ing messages
+- Test helpers: `nats/test` with an embedded server spun up per test suite,
+  no network dependency
+
+**Generated structure (app + nats template):**
+
+```
+app/
+├── main.go
+├── handlers/
+├── nats/
+│   ├── conn.go          # connection lifecycle (start/stop hooks)
+│   ├── server.go        # embedded server setup
+│   └── streams/
+│       └── events.go    # stream & consumer definitions
+├── pool/
+│   └── workers.go       # JetStream consumers as app modules
+├── db/                  # absent — NATS is the only backend
+├── static/
+├── Taskfile.yaml
+├── go.mod
+└── config.yaml
+```
+
+**Why NATS as a template:**
+NATS is the simplest possible backend that still has real teeth —
+persistence, clustering, RPC, streaming, key-value, object store. A
+NATS-only project is production-viable for event-driven services, lightweight
+backends, and inter-service communication. The embedded server means zero
+infrastructure to develop against.
+
+### Extending with Templates
+
+```
+pavona template new my-stack       # create a new template from scratch
+pavona template publish my-stack   # publish to the registry
+pavona template search postgres    # discover community templates
+```
+
+Templates are Go modules with a `template.yaml` manifest that declares
+dependencies, file templates (using Go's `text/template`), and hooks that
+run after scaffolding. They compose with project types — a template can add
+files to any project type that has the required hooks.
 
 ## Key Design Decisions
 
@@ -90,6 +192,7 @@ Generates: HTTP server, static file serving, templ rendering (via a-h/templ), HT
 | **Config**     | `conf` merges: defaults → file → env → flags.                                                        | The Unix philosophy — layers override cleanly.                               |
 | **DB**         | Pavona provides migration runner and connection lifecycle. Actual queries use **sqlc**.              | Type-safe SQL beats any ORM.                                                 |
 | **Middleware** | Standard `net/http` middleware. Pavona provides `recover`, `request-id`, `access-log`, `rate-limit`. | No custom handler signature. Compatible with everything.                     |
+| **TUI**        | `tui` package wraps bubbletea with layout primitives, keybinding registry, and screen primitives.    | Start a full-screen TUI in 10 lines. Components are reusable modules.        |
 | **Testing**    | `test` package gives you: temp DB, golden file comparison, request recording, clock mocking.         | The stuff you rewrite for every project.                                     |
 | **Build**      | Single `go build`, no codegen step at runtime.                                                       | Fast iteration, simple debugging.                                            |
 | **Scaffold**   | Codegen produces files once — you own them after.                                                    | No framework lock-in. You can delete `pavona` from go.mod and still compile. |
@@ -118,8 +221,11 @@ pavona serve                            # runs dev server with hot reload (air)
 pavona build                            # produces single binary: ./bin/blog
 ```
 
-The same binary serves HTTP *and* exposes CLI commands — useful for admin operations, data migrations, or cron jobs that share the same domain code.
+The same binary serves HTTP, exposes CLI commands, *and* can launch a TUI — all sharing the same domain code.
 
 ## Summary
 
-Pavona is not the biggest or most opinionated framework. It is the **most ergonomic** — designed to be picked up in 5 minutes and outgrown gracefully. Like coral, it provides structure for life to flourish, then becomes part of the reef.
+Pavona is not the biggest or most opinionated framework. It is the
+**most ergonomic** — designed to be picked up in 5 minutes and
+outgrown gracefully. Like coral, it provides structure for life to
+flourish, then becomes part of the reef.
