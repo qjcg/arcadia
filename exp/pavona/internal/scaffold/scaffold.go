@@ -8,8 +8,9 @@ import (
 type Options struct {
 	Name        string
 	Dir         string
-	Format      string // markdown or org (for site type)
-	PackageName string // sanitized Go package name (no hyphens)
+	Format      string   // markdown or org (for site type)
+	PackageName string   // sanitized Go package name (no hyphens)
+	Pages       []string // page paths to scaffold (for site type)
 }
 
 // Generator creates a project of a specific type.
