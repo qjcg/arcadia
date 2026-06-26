@@ -1,6 +1,6 @@
 # Pavona
 
-> A Go framework that grows with you — from CLI tools to full-stack web apps.
+> A Go framework that grows with you — from CLI tools to agentic services.
 
 Named after leaf coral of the *Pavona* genus: layered, branching, and symbiotic. You start with a single `main.go` and extend outward in predictable patterns.
 
@@ -39,6 +39,7 @@ pavona/
 ├── log/           # Structured logging (slog-based, level-filtered)
 ├── serve/         # HTTP server (net/http, middleware stack, graceful shutdown)
 ├── site/          # Static site builder (Markdown → HTML, Tailwind pipeline, dev server)
+├── agent/         # NATS Agent Protocol host: prompt/status/hb endpoints
 ├── cli/           # CLI framework (cobra-like, top-level subcommands)
 ├── tui/           # TUI framework (bubbletea-based, composable components)
 ├── pool/          # Worker pool / background job runner
@@ -69,7 +70,7 @@ app.Stop()    // graceful shutdown in dependency order
 register start/stop hooks, health checks, and depend on each
 other. Pavona resolves the DAG and starts/stops in order.
 
-## Five Project Types
+## Six Project Types
 
 ### 1. CLI Tool
 
@@ -138,6 +139,70 @@ Generates: HTTP server, static file serving, templ rendering (via
 a-h/templ), HTMX + Alpine.js wiring, SQLite (with sqlc), CSS pipeline
 (Tailwind via daisyui), Dockerfile, and `Taskfile.yaml`.
 
+### 6. Agent
+
+```
+pavona new agent triagebot
+```
+
+Generates: a Go service that speaks the NATS Agent Protocol — registering
+as a NATS micro service named `agents` with `prompt`, `status`, and `hb`
+(heartbeat) endpoints. Uses `pavona/agent` for the protocol implementation.
+
+```go
+import "github.com/pavona/pavona/agent"
+
+agt := agent.New("triagebot",
+    agent.WithDescription("Triage incoming support tickets"),
+    agent.WithPrompt(func(ctx context.Context, req agent.Request) agent.Response {
+        // req.Text is the prompt, req.Attachments carries base64 blobs
+        // Response can stream typed JSON chunks
+        return agent.NewResponse().
+            Write("Analyzing ticket contents...").
+            Write(result)
+    }),
+    agent.WithStatus(func(ctx context.Context) agent.Status {
+        return agent.Status{Healthy: true, Load: currentLoad}
+    }),
+)
+
+app := pavona.New(
+    pavona.WithConfig("config.yaml"),
+    pavona.WithModules(agt),
+    pavona.WithLogger(log.LevelInfo),
+)
+app.Start()
+app.Wait()
+app.Stop()
+```
+
+**Generated structure:**
+
+```
+agent/
+├── main.go
+├── agent/
+│   └── handler.go      # prompt/status/hb logic
+├── knowledge/           # reference docs, embeddings, tools
+├── nats/
+│   ├── conn.go          # connection lifecycle (inherited from NATS template)
+│   └── server.go        # embedded server in dev, remote in production
+├── Taskfile.yaml
+├── go.mod
+└── config.yaml
+```
+
+Every agent is automatically discoverable via `nats req '$SRV.INFO.agents'`.
+The same agent binary can run as a CLI (one-shot prompt via stdin), a TUI
+(interactive session), or a daemon (long-lived NATS micro service) — the
+project type determines the entry point, the protocol stays the same.
+
+```
+pavona new agent triagebot             # daemon (default)
+pavona new agent triagebot --as tool   # CLI that prompts the agent
+pavona new agent triagebot --as tui    # interactive TUI session
+```
+
 ## Templates
 
 Every project type can be extended with a `--template` flag that wires in
@@ -149,6 +214,7 @@ project type — adding config, dependencies, wiring code, and examples.
 pavona new app dashboard --template nats
 pavona new tui chatmonitor --template nats
 pavona new tool eventsink --template nats
+pavona new agent triagebot --template nats  # NATS already built-in, no-op
 ```
 
 ### NATS Template
@@ -254,7 +320,7 @@ pavona serve                            # runs dev server with hot reload (air)
 pavona build                            # produces single binary: ./bin/blog
 ```
 
-The same binary serves HTTP, exposes CLI commands, *and* can launch a TUI — all sharing the same domain code.
+The same binary serves HTTP, exposes CLI commands, launches a TUI, *or* speaks the NATS Agent Protocol — all sharing the same domain code.
 
 ## Summary
 
