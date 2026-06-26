@@ -105,6 +105,22 @@ Feature: Static site builder — site package
     And "mysite/go.mod" should exist
     And "mysite/go.mod" should contain "github.com/qjcg/arcadia/exp/pavona"
 
+  Scenario: Site scaffold with --pages creates content files
+    When I scaffold a "site" named "mysite" with pages "about,contact"
+    Then "mysite/content/about.md" should exist
+    And "mysite/content/contact.md" should exist
+
+  Scenario: Site scaffold with --pages and brace expansion
+    When I scaffold a "site" named "mysite" with pages "services/{foo,bar},clients/{bar,baz}"
+    Then "mysite/content/services/foo.md" should exist
+    And "mysite/content/services/bar.md" should exist
+    And "mysite/content/clients/bar.md" should exist
+    And "mysite/content/clients/baz.md" should exist
+
+  Scenario: Site scaffold with --pages in org format
+    When I scaffold a "site" named "mysite" with format "org" and pages "about"
+    Then "mysite/content/about.org" should exist
+
   Scenario: Site scaffold includes a theme directory
     When I scaffold a "site" named "mysite"
     Then "mysite/theme/" should exist

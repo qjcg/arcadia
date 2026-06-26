@@ -204,6 +204,31 @@ func RegisterScaffoldSteps(ctx *godog.ScenarioContext) {
 			}
 			return nil
 		})
+	ctx.Step(`^I scaffold a "([^"]*)" named "([^"]*)" with pages "([^"]*)"$`,
+		func(projectType, name, pages string) error {
+			s.projectType = projectType
+			s.projectName = name
+			// Split pages on commas (the step definition passes them as a single string)
+			pageArgs := strings.Split(pages, ",")
+			args := []string{"new", projectType, name}
+			for _, p := range pageArgs {
+				args = append(args, "--pages", strings.TrimSpace(p))
+			}
+			s.lastError = s.runPavona(args...)
+			return nil
+		})
+	ctx.Step(`^I scaffold a "([^"]*)" named "([^"]*)" with format "([^"]*)" and pages "([^"]*)"$`,
+		func(projectType, name, format, pages string) error {
+			s.projectType = projectType
+			s.projectName = name
+			pageArgs := strings.Split(pages, ",")
+			args := []string{"new", projectType, name, "--format", format}
+			for _, p := range pageArgs {
+				args = append(args, "--pages", strings.TrimSpace(p))
+			}
+			s.lastError = s.runPavona(args...)
+			return nil
+		})
 	ctx.Step(`^I scaffold a "([^"]*)" named "([^"]*)" with format "([^"]*)"$`,
 		func(projectType, name, format string) error {
 			s.projectType = projectType
