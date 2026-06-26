@@ -1,6 +1,6 @@
 # Pavona
 
-> A Go framework that grows with you — from CLI tools to agentic services.
+> A Go framework that grows with you — from CLI tools to full-stack web apps to agents.
 
 Named after leaf coral of the *Pavona* genus: layered, branching, and symbiotic. You start with a single `main.go` and extend outward in predictable patterns.
 
@@ -22,8 +22,8 @@ The framework is built around 10 principles:
 | 3  | **Peel away**              | Start with Pavona providing everything, then replace any component with your own. The framework cedes control gracefully.                                                  |
 | 4  | **Compile-time > runtime** | If `go build` can catch it, it should. Generic `Register[T]`, sqlc queries, typed config structs. Zero panic-from-reflection paths.                                        |
 | 5  | **Locality**               | Related code lives together. The scaffold suggests a layout but never enforces a folder religion. You can move a handler next to its tests without fighting import cycles. |
-| 6  | **Testable by default**    | Every Pavona component produces a clean interface and a test helper that works without network, filesystem, or global state.                                               |
-| 7  | **5-minute onboarding**    | `pavona new app` produces a project a new team member can understand in 5 minutes. The scaffold *is* the documentation.                                                    |
+| 6  | **Testable by default**    | Every Pavona component produces a clean interface, godog BDD step helpers, and a test helper that works without network, filesystem, or global state.                                               |
+| 7  | **5-minute onboarding**    | `pavona new` produces a project a new team member can understand in 5 minutes. The scaffold *is* the documentation.                                                    |
 | 8  | **No lock-in exit**        | Drop `pavona` from `go.mod` and the project still compiles. Templates produce standard Go files you own.                                                                   |
 | 9  | **Symmetry**               | Every `pavona add` has a corresponding `pavona remove`. What the scaffold creates it can also delete cleanly.                                                              |
 | 10 | **Boring is beautiful**    | `net/http`, `slog`, `database/sql`, `text/template`. Not fashionable abstractions. Pavona reads like the stdlib.                                                           |
@@ -80,6 +80,7 @@ pavona new tool gh-deploy
 Generates: single binary with subcommands (`deploy`, `rollback`,
 `status`, `config`). Uses `pavona/cli` for command routing,
 `pavona/conf` for config, and `pavona/pool` for concurrent API calls.
+Includes a `features/` directory with godog suite.
 
 ```go
 cmd := cli.New("gh-deploy").
@@ -99,6 +100,7 @@ pavona new lib go-csvstream
 Generates: minimal Go module with `pavona/test` helpers, godog BDD
 scaffold, CI setup, and example-driven docs. The library uses zero
 Pavona runtime dependencies in production — only the dev toolchain.
+Includes a `features/` directory with godog suite.
 
 ### 3. Static Site
 
@@ -112,7 +114,8 @@ with hot reload via `pavona serve`, and a `pavona build` command that
 outputs to `dist/`. Content lives in `content/` as Markdown (with
 frontmatter) or `.org` files. Uses `pavona/site` for the build pipeline
 with goldmark for Markdown or go-org for org-mode, Tailwind CLI for CSS,
-and file watching for dev.
+and file watching for dev. Includes a `features/` directory with godog
+suite for testing generated output.
 
 ```
 pavona serve       # dev server with live reload
@@ -128,7 +131,8 @@ pavona new tui chatmonitor
 Generates: bubbletea-based terminal app with component structure
 (views/, models/, commands/), keyboard-driven navigation, log viewer,
 help overlay, and `Taskfile.yaml`. Uses `pavona/tui` for the component
-model, layout primitives, and keybinding management.
+model, layout primitives, and keybinding management. Includes a
+`features/` directory with godog suite.
 
 ### 5. Full-Stack Web App
 
@@ -189,7 +193,7 @@ agent/
 │   └── handler.go      # prompt/status/hb logic
 ├── knowledge/           # reference docs, embeddings, tools
 ├── nats/
-│   ├── conn.go          # connection lifecycle (inherited from NATS template)
+│   ├── conn.go          # connection lifecycle (start/stop hooks)
 │   └── server.go        # embedded server in dev, remote in production
 ├── features/            # gherkin feature files + godog suite
 ├── Taskfile.yaml
@@ -253,6 +257,7 @@ app/
 │   └── workers.go       # JetStream consumers as app modules
 ├── db/                  # absent — NATS is the only backend
 ├── static/
+├── features/            # gherkin feature files + godog suite
 ├── Taskfile.yaml
 ├── go.mod
 └── config.yaml
