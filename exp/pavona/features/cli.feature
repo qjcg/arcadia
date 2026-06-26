@@ -1,5 +1,5 @@
-Feature: CLI Tool scaffolding
-  The pavona CLI can scaffold a new CLI tool project.
+Feature: Project scaffolding
+  The pavona CLI can scaffold all six project types.
 
   Scenario: Scaffold a CLI tool with default name
     When I scaffold a "tool" named "gh-deploy"
