@@ -204,4 +204,25 @@ func RegisterScaffoldSteps(ctx *godog.ScenarioContext) {
 			}
 			return nil
 		})
+	ctx.Step(`^I scaffold a "([^"]*)" named "([^"]*)" with format "([^"]*)"$`,
+		func(projectType, name, format string) error {
+			s.projectType = projectType
+			s.projectName = name
+			s.lastError = s.runPavona("new", projectType, name, "--format", format)
+			return nil
+		})
+	ctx.Step(`^a directory called "([^"]*)"$`,
+		func(name string) error {
+			return os.MkdirAll(filepath.Join(s.tmpDir, name), 0o755)
+		})
+	ctx.Step(`^I should get an error about the directory already existing$`,
+		func() error {
+			if s.lastError == nil {
+				return fmt.Errorf("expected error about directory existing, but got none")
+			}
+			if !strings.Contains(s.lastError.Error(), "already exists") {
+				return fmt.Errorf("expected error containing %q, got %q", "already exists", s.lastError.Error())
+			}
+			return nil
+		})
 }

@@ -11,6 +11,11 @@ tasks:
 
   build:
     desc: Build the pavona CLI
+    sources:
+      - '**/*.go'
+      - '**/go.*'
+    generates:
+      - '{{.BIN_DIR}}/{{.BIN_NAME}}'
     cmds:
       - go build -o "{{.BIN_DIR}}/{{.BIN_NAME}}" .
 

@@ -6,12 +6,35 @@ Feature: Static site builder — site package
     When I run `pavona build`
     Then "dist/index.html" exists and contains the rendered body
 
-  Scenario: Org-mode content is rendered
+  Scenario: Build produces HTML from org-mode
     Given "content/index.org" with org headers and body
     When I run `pavona build`
     Then "dist/index.html" exists and contains the rendered content
+
+  Scenario: Mixed markdown and org both produce HTML
+    Given "content/intro.md" with frontmatter and body
+    And "content/setup.org" with org headers and body
+    When I run `pavona build`
+    Then "dist/intro.html" exists and contains the rendered body
+    And "dist/setup.html" exists and contains the rendered content
+
+  Scenario: Multiple markdown files each produce their own HTML
+    Given "content/index.md" with frontmatter and body
+    And "content/about.md" with frontmatter and body
+    When I run `pavona build`
+    Then "dist/index.html" exists and contains the rendered body
+    And "dist/about.html" exists and contains the rendered body
+
+  Scenario: Build fails with clear error when content directory is missing
+    When I run `pavona build`
+    Then I should get an error about the content directory
 
   Scenario: Dev server starts
     Given "content/index.md" with frontmatter and body
     When I run `pavona serve`
     Then the dev server starts on localhost
+
+  Scenario: Dev server serves built files
+    Given "content/index.md" with frontmatter and body
+    When I run `pavona serve`
+    Then the dev server serves the built file over HTTP

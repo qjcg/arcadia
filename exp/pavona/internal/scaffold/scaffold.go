@@ -6,9 +6,10 @@ import (
 
 // Options configures project scaffolding.
 type Options struct {
-	Name   string
-	Dir    string
-	Format string // markdown or org (for site type)
+	Name        string
+	Dir         string
+	Format      string // markdown or org (for site type)
+	PackageName string // sanitized Go package name (no hyphens)
 }
 
 // Generator creates a project of a specific type.

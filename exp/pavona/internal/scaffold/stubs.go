@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 )
 
@@ -134,6 +135,12 @@ func (g AgentGenerator) Generate(opts Options) error {
 }
 
 func writeTemplates(opts Options, files map[string]string) error {
+	funcMap := template.FuncMap{
+		"sanitize": func(s string) string {
+			return strings.ReplaceAll(s, "-", "_")
+		},
+	}
+
 	for path, content := range files {
 		fullPath := filepath.Join(opts.Dir, path)
 		dir := filepath.Dir(fullPath)
@@ -141,7 +148,7 @@ func writeTemplates(opts Options, files map[string]string) error {
 			return fmt.Errorf("creating directory %s: %w", dir, err)
 		}
 
-		tmpl, err := template.New(path).Parse(content)
+		tmpl, err := template.New(path).Funcs(funcMap).Parse(content)
 		if err != nil {
 			return fmt.Errorf("parsing template %s: %w", path, err)
 		}
