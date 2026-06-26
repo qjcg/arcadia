@@ -1,0 +1,5 @@
+#+TITLE: foo
+
+* Welcome
+
+This is a static site built with Pavona in org-mode.

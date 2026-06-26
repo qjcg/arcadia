@@ -35,7 +35,8 @@ func RenderOrg(content []byte, path string) ([]byte, error) {
 }
 
 // Build scans a content directory, renders all files to HTML in dist/.
-func Build(contentDir, outputDir, format string) error {
+// Files with .org extension use go-org; all others use goldmark.
+func Build(contentDir, outputDir string) error {
 	entries, err := os.ReadDir(contentDir)
 	if err != nil {
 		return fmt.Errorf("reading content dir: %w", err)
@@ -56,7 +57,7 @@ func Build(contentDir, outputDir, format string) error {
 		}
 
 		var html []byte
-		if strings.HasSuffix(entry.Name(), ".org") || format == "org" {
+		if strings.HasSuffix(strings.ToLower(entry.Name()), ".org") {
 			html, err = RenderOrg(content, entry.Name())
 		} else {
 			html, err = RenderMarkdown(content)
@@ -65,7 +66,7 @@ func Build(contentDir, outputDir, format string) error {
 			return fmt.Errorf("rendering %s: %w", entry.Name(), err)
 		}
 
-		outPath := filepath.Join(outputDir, "index.html")
+		outPath := filepath.Join(outputDir, strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))+".html")
 		if err := os.WriteFile(outPath, html, 0o644); err != nil {
 			return fmt.Errorf("writing %s: %w", outPath, err)
 		}

@@ -11,8 +11,7 @@ import (
 )
 
 type BuildParams struct {
-	Dir    string `short:"d" descr:"Project directory" default:"." optional:"true"`
-	Format string `short:"f" descr:"Content format (markdown or org)" default:"markdown" optional:"true"`
+	Dir string `short:"d" descr:"Project directory" default:"." optional:"true"`
 }
 
 func BuildCmd() boa.CmdT[BuildParams] {
@@ -24,7 +23,7 @@ func BuildCmd() boa.CmdT[BuildParams] {
 			contentDir := filepath.Join(p.Dir, "content")
 			outputDir := filepath.Join(p.Dir, "dist")
 
-			if err := site.Build(contentDir, outputDir, p.Format); err != nil {
+			if err := site.Build(contentDir, outputDir); err != nil {
 				fmt.Fprintf(os.Stderr, "Error building site: %v\n", err)
 				os.Exit(1)
 			}

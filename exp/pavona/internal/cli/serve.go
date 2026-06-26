@@ -13,9 +13,8 @@ import (
 )
 
 type ServeParams struct {
-	Dir    string `short:"d" descr:"Project directory" default:"." optional:"true"`
-	Port   int    `short:"p" descr:"Port to serve on" default:"8080" optional:"true"`
-	Format string `short:"f" descr:"Content format (markdown or org)" default:"markdown" optional:"true"`
+	Dir  string `short:"d" descr:"Project directory" default:"." optional:"true"`
+	Port int    `short:"p" descr:"Port to serve on" default:"8080" optional:"true"`
 }
 
 func ServeCmd() boa.CmdT[ServeParams] {
@@ -27,13 +26,11 @@ func ServeCmd() boa.CmdT[ServeParams] {
 			contentDir := filepath.Join(p.Dir, "content")
 			outputDir := filepath.Join(p.Dir, "dist")
 
-			// Initial build
-			if err := site.Build(contentDir, outputDir, p.Format); err != nil {
+			if err := site.Build(contentDir, outputDir); err != nil {
 				fmt.Fprintf(os.Stderr, "Error building site: %v\n", err)
 				os.Exit(1)
 			}
 
-			// Serve static files
 			fs := http.FileServer(http.Dir(outputDir))
 			mux := http.NewServeMux()
 			mux.Handle("/", fs)
