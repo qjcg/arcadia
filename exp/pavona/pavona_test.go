@@ -25,6 +25,7 @@ func TestFeatures(t *testing.T) {
 		Name: "pavona",
 		ScenarioInitializer: func(ctx *godog.ScenarioContext) {
 			steps.RegisterScaffoldSteps(ctx)
+			steps.RegisterSiteSteps(ctx)
 		},
 		Options: &godog.Options{
 			Format:   "pretty",
