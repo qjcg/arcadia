@@ -1,19 +1,51 @@
 package main
 
 import (
-	"fmt"
+	"database/sql"
 	"log/slog"
 	"net/http"
 	"os"
+
+	"github.com/a-h/templ"
+
+	"{{.Name}}/internal/handlers"
+	"{{.Name}}/internal/views"
+
+	_ "modernc.org/sqlite"
 )
 
 func main() {
+	// Initialize database
+	db, err := sql.Open("sqlite3", "./data.db")
+	if err != nil {
+		slog.Error("failed to open database", "error", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		slog.Error("failed to ping database", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("database connected")
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "<h1>{{.Name}}</h1><p>Built with Pavona.</p>")
-	})
+
+	// Health check
+	healthHandler := handlers.NewHealthHandler(db)
+	mux.HandleFunc("GET /health", healthHandler.Health)
+
+	// Static files
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("internal/static"))))
+
+	// Index page
+	indexHandler := handlers.NewIndexHandler(db)
+	mux.Handle("GET /", templ.Handler(views.Index(indexHandler)))
 
 	addr := ":8080"
+	if p := os.Getenv("PORT"); p != "" {
+		addr = ":" + p
+	}
 	slog.Info("server starting", "addr", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		slog.Error("server failed", "error", err)

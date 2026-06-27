@@ -1,0 +1,30 @@
+version: "3"
+
+tasks:
+  default:
+    desc: Build and run the server
+    cmds:
+      - task: build
+      - ./{{.Name}}
+
+  build:
+    desc: Generate templ code and build the binary
+    cmds:
+      - go tool templ generate
+      - go build -o {{.Name}} .
+
+  dev:
+    desc: Run with live reload (requires air)
+    cmds:
+      - air --build.cmd "go tool templ generate && go build -o {{.Name}} ." --build.bin "./{{.Name}}"
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go tool templ generate
+      - go test ./...
+
+  templ:
+    desc: Regenerate templ code
+    cmds:
+      - go tool templ generate

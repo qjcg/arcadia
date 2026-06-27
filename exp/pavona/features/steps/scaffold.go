@@ -14,6 +14,7 @@ import (
 type ScaffoldState struct {
 	tmpDir      string
 	lastError   error
+	lastOutput  string
 	projectType string
 	projectName string
 }
@@ -32,21 +33,21 @@ func (s *ScaffoldState) Cleanup() {
 	os.RemoveAll(s.tmpDir)
 }
 
-func (s *ScaffoldState) runPavona(args ...string) error {
+func (s *ScaffoldState) runPavona(args ...string) (string, error) {
 	// Allow override via env var (set by test runner)
 	if bin := os.Getenv("PAVONA_BIN"); bin != "" {
 		cmd := exec.Command(bin, args...)
 		cmd.Dir = s.tmpDir
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("%s: %s", err, string(out))
+			return string(out), fmt.Errorf("%s: %s", err, string(out))
 		}
-		return nil
+		return string(out), nil
 	}
 
 	binary, err := os.Executable()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Look for pavona next to the test binary, then in PATH
@@ -55,7 +56,7 @@ func (s *ScaffoldState) runPavona(args ...string) error {
 		var err error
 		pavonaBin, err = exec.LookPath("pavona")
 		if err != nil {
-			return fmt.Errorf("pavona binary not found (set PAVONA_BIN): %w", err)
+			return "", fmt.Errorf("pavona binary not found (set PAVONA_BIN): %w", err)
 		}
 	}
 
@@ -63,15 +64,15 @@ func (s *ScaffoldState) runPavona(args ...string) error {
 	cmd.Dir = s.tmpDir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("%s: %s", err, string(out))
+		return string(out), fmt.Errorf("%s: %s", err, string(out))
 	}
-	return nil
+	return string(out), nil
 }
 
 func (s *ScaffoldState) iScaffoldATypeNamed(projectType, name string) error {
 	s.projectType = projectType
 	s.projectName = name
-	s.lastError = s.runPavona("new", projectType, name)
+	s.lastOutput, s.lastError = s.runPavona("new", projectType, name)
 	return nil
 }
 
@@ -106,6 +107,15 @@ func (s *ScaffoldState) fileShouldExist(filePath string) error {
 func (s *ScaffoldState) theProjectShouldCompile() error {
 	projectDir := filepath.Join(s.tmpDir, s.projectName)
 
+	// If the project has .templ files, run templ generate first
+	if hasTemplFiles(projectDir) {
+		gen := exec.Command("go", "tool", "templ", "generate")
+		gen.Dir = projectDir
+		if out, err := gen.CombinedOutput(); err != nil {
+			return fmt.Errorf("templ generate failed: %w\n%s", err, out)
+		}
+	}
+
 	tidy := exec.Command("go", "mod", "tidy")
 	tidy.Dir = projectDir
 	if out, err := tidy.CombinedOutput(); err != nil {
@@ -119,6 +129,20 @@ func (s *ScaffoldState) theProjectShouldCompile() error {
 	}
 
 	return nil
+}
+
+func hasTemplFiles(dir string) bool {
+	has := false
+	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || has {
+			return err
+		}
+		if !info.IsDir() && strings.HasSuffix(path, ".templ") {
+			has = true
+		}
+		return nil
+	})
+	return has
 }
 
 func (s *ScaffoldState) iShouldGetAnError(expected string) error {
@@ -148,7 +172,7 @@ func RegisterScaffoldSteps(ctx *godog.ScenarioContext) {
 		func(projectType, name string) error {
 			s.projectType = projectType
 			s.projectName = name
-			s.lastError = s.runPavona("new", projectType, name)
+			s.lastOutput, s.lastError = s.runPavona("new", projectType, name)
 			return nil
 		})
 	ctx.Step(`^the project "([^"]*)" should exist$`,
@@ -214,7 +238,7 @@ func RegisterScaffoldSteps(ctx *godog.ScenarioContext) {
 			for _, p := range pageArgs {
 				args = append(args, "--pages", strings.TrimSpace(p))
 			}
-			s.lastError = s.runPavona(args...)
+			s.lastOutput, s.lastError = s.runPavona(args...)
 			return nil
 		})
 	ctx.Step(`^I scaffold a "([^"]*)" named "([^"]*)" with format "([^"]*)" and pages "([^"]*)"$`,
@@ -226,14 +250,14 @@ func RegisterScaffoldSteps(ctx *godog.ScenarioContext) {
 			for _, p := range pageArgs {
 				args = append(args, "--pages", strings.TrimSpace(p))
 			}
-			s.lastError = s.runPavona(args...)
+			s.lastOutput, s.lastError = s.runPavona(args...)
 			return nil
 		})
 	ctx.Step(`^I scaffold a "([^"]*)" named "([^"]*)" with format "([^"]*)"$`,
 		func(projectType, name, format string) error {
 			s.projectType = projectType
 			s.projectName = name
-			s.lastError = s.runPavona("new", projectType, name, "--format", format)
+			s.lastOutput, s.lastError = s.runPavona("new", projectType, name, "--format", format)
 			return nil
 		})
 	ctx.Step(`^a directory called "([^"]*)"$`,
@@ -247,6 +271,21 @@ func RegisterScaffoldSteps(ctx *godog.ScenarioContext) {
 			}
 			if !strings.Contains(s.lastError.Error(), "already exists") {
 				return fmt.Errorf("expected error containing %q, got %q", "already exists", s.lastError.Error())
+			}
+			return nil
+		})
+	ctx.Step(`^I run pavona with version flag$`,
+		func() error {
+			s.lastOutput, s.lastError = s.runPavona("--version")
+			return nil
+		})
+	ctx.Step(`^the output should contain version info$`,
+		func() error {
+			if s.lastError != nil {
+				return fmt.Errorf("command failed: %w", s.lastError)
+			}
+			if !strings.Contains(s.lastOutput, "version") {
+				return fmt.Errorf("expected output to contain version info, got: %s", s.lastOutput)
 			}
 			return nil
 		})

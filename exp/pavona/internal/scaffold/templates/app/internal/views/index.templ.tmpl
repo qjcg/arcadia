@@ -1,0 +1,18 @@
+package views
+
+templ Index(message string) {
+	@Layout("Home") {
+		<div class="hero min-h-[60vh]">
+			<div class="hero-content text-center">
+				<div class="max-w-md">
+					<h1 class="text-5xl font-bold mb-4">{ message }</h1>
+					<p class="text-lg mb-6 text-base-content/70">Built with Pavona — a Go framework that grows with you.</p>
+					<div class="flex gap-4 justify-center" hx-boost="true">
+						<a href="/health" class="btn btn-primary">Health Check</a>
+						<a href="https://github.com/qjcg/arcadia" class="btn btn-outline">GitHub</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+}

@@ -1,0 +1,30 @@
+package main
+
+import (
+	"os"
+	"testing"
+
+	"github.com/cucumber/godog"
+)
+
+func TestFeatures(t *testing.T) {
+	suite := godog.TestSuite{
+		Name: "{{.Name}}",
+		ScenarioInitializer: func(ctx *godog.ScenarioContext) {
+			// Register step definitions here
+		},
+		Options: &godog.Options{
+			Format:   "pretty",
+			Paths:    []string{"features"},
+			TestingT: t,
+		},
+	}
+
+	if suite.Run() != 0 {
+		t.Fatal("non-zero status")
+	}
+}
+
+func TestMain(m *testing.M) {
+	os.Exit(m.Run())
+}

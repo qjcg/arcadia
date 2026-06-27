@@ -1,0 +1,7 @@
+Feature: Health check
+  The server exposes a /health endpoint for monitoring.
+
+  Scenario: Health endpoint returns OK
+    When I request GET /health
+    Then the response status should be 200
+    And the response body should contain "ok"

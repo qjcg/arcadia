@@ -1,0 +1,44 @@
+package db
+
+import (
+	"database/sql"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	_ "modernc.org/sqlite"
+)
+
+// Open opens a SQLite database, creating the parent directory if needed.
+func Open(path string) (*sql.DB, error) {
+	dir := filepath.Dir(path)
+	if dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return nil, fmt.Errorf("creating db directory: %w", err)
+		}
+	}
+
+	db, err := sql.Open("sqlite3", path)
+	if err != nil {
+		return nil, fmt.Errorf("opening database: %w", err)
+	}
+
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("pinging database: %w", err)
+	}
+
+	return db, nil
+}
+
+// Migrate runs all embedded migrations against the database.
+func Migrate(db *sql.DB) error {
+	schema, err := os.ReadFile("internal/db/schema.sql")
+	if err != nil {
+		return fmt.Errorf("reading schema file: %w", err)
+	}
+	if _, err := db.Exec(string(schema)); err != nil {
+		return fmt.Errorf("executing schema: %w", err)
+	}
+	return nil
+}

@@ -1,15 +1,25 @@
 package main
 
 import (
+	"runtime/debug"
+
 	"github.com/GiGurra/boa/pkg/boa"
 	"github.com/qjcg/arcadia/exp/pavona/internal/cli"
 )
 
+func getVersion() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		return info.Main.Version
+	}
+	return ""
+}
+
 func main() {
 	boa.CmdT[boa.NoParams]{
-		Use:   "pavona",
-		Short: "A Go framework that grows with you",
-		Long:  "Pavona is a Go framework for building CLI tools, libraries,\nstatic sites, TUIs, web apps, and agents. Named after leaf coral\nof the Pavona genus: layered, branching, and symbiotic.",
+		Use:     "pavona",
+		Short:   "A Go framework that grows with you",
+		Long:    "Pavona is a Go framework for building CLI tools, libraries,\nstatic sites, TUIs, web apps, and agents. Named after leaf coral\nof the Pavona genus: layered, branching, and symbiotic.",
+		Version: getVersion(),
 		SubCmds: boa.SubCmds(
 			cli.NewCmd(),
 			cli.AddCmd(),

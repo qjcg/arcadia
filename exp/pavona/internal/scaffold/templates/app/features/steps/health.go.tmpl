@@ -1,0 +1,91 @@
+package steps
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/cucumber/godog"
+)
+
+type HealthState struct {
+	baseURL  string
+	lastResp *http.Response
+	lastBody string
+}
+
+func NewHealthState() *HealthState {
+	return &HealthState{baseURL: "http://localhost:8080"}
+}
+
+func (s *HealthState) iRequestGET(path string) error {
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(s.baseURL + path)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	s.lastResp = resp
+	s.lastBody = ""
+	if resp.Body != nil {
+		var body map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+			resp.Body.Close()
+			return fmt.Errorf("decoding response: %w", err)
+		}
+		resp.Body.Close()
+		b, _ := json.Marshal(body)
+		s.lastBody = string(b)
+	}
+	return nil
+}
+
+func (s *HealthState) theResponseStatusShouldBe(status int) error {
+	if s.lastResp == nil {
+		return fmt.Errorf("no response received")
+	}
+	if s.lastResp.StatusCode != status {
+		return fmt.Errorf("expected status %d, got %d", status, s.lastResp.StatusCode)
+	}
+	return nil
+}
+
+func (s *HealthState) theResponseBodyShouldContain(substr string) error {
+	if !containsJSONValue(s.lastBody, substr) {
+		return fmt.Errorf("expected body to contain value %q, got %s", substr, s.lastBody)
+	}
+	return nil
+}
+
+func containsJSONValue(s, target string) bool {
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(s), &data); err != nil {
+		return false
+	}
+	for _, v := range data {
+		if str, ok := v.(string); ok && str == target {
+			return true
+		}
+	}
+	return false
+}
+
+func RegisterAppSteps(ctx *godog.ScenarioContext) {
+	s := NewHealthState()
+
+	ctx.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
+		s = NewHealthState()
+		return ctx, nil
+	})
+
+	ctx.Step(`^I request GET /health$`, func() error {
+		return s.iRequestGET("/health")
+	})
+	ctx.Step(`^the response status should be (\d+)$`, func(status int) error {
+		return s.theResponseStatusShouldBe(status)
+	})
+	ctx.Step(`^the response body should contain "([^"]*)"$`, func(substr string) error {
+		return s.theResponseBodyShouldContain(substr)
+	})
+}

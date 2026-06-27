@@ -1,6 +1,10 @@
 Feature: Project scaffolding
   The pavona CLI can scaffold all six project types.
 
+  Scenario: --version flag prints version info
+    When I run pavona with version flag
+    Then the output should contain version info
+
   Scenario: Scaffold a CLI tool with default name
     When I scaffold a "tool" named "gh-deploy"
     Then the project "gh-deploy" should exist

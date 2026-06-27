@@ -161,6 +161,51 @@ var appMainTmpl string
 //go:embed templates/app/go.mod.tmpl
 var appGoModTmpl string
 
+//go:embed templates/app/Taskfile.yaml.tmpl
+var appTaskfileTmpl string
+
+//go:embed templates/app/Dockerfile.tmpl
+var appDockerfileTmpl string
+
+//go:embed templates/app/gitignore.tmpl
+var appGitignoreTmpl string
+
+//go:embed templates/app/config.yaml.tmpl
+var appConfigTmpl string
+
+//go:embed templates/app/internal/handlers/health.go.tmpl
+var appHealthHandlerTmpl string
+
+//go:embed templates/app/internal/views/layout.templ.tmpl
+var appLayoutTemplTmpl string
+
+//go:embed templates/app/internal/views/index.templ.tmpl
+var appIndexTemplTmpl string
+
+//go:embed templates/app/internal/db/schema.sql.tmpl
+var appSchemaSQLTmpl string
+
+//go:embed templates/app/internal/db/db.go.tmpl
+var appDbGoTmpl string
+
+//go:embed templates/app/internal/db/queries.sql.tmpl
+var appQueriesSQLTmpl string
+
+//go:embed templates/app/internal/static/style.css.tmpl
+var appStyleCSSTmpl string
+
+//go:embed templates/app/sqlc.yaml.tmpl
+var appSqlcYamlTmpl string
+
+//go:embed templates/app/features/health.feature.tmpl
+var appHealthFeatureTmpl string
+
+//go:embed templates/app/features/steps/health.go.tmpl
+var appHealthStepsTmpl string
+
+//go:embed templates/app/main_test.go.tmpl
+var appMainTestTmpl string
+
 //go:embed templates/app/features/.gitkeep
 var appFeaturesGitkeep string
 
@@ -168,9 +213,24 @@ type AppGenerator struct{}
 
 func (g AppGenerator) Generate(opts Options) error {
 	files := map[string]string{
-		"main.go":           appMainTmpl,
-		"go.mod":            appGoModTmpl,
-		"features/.gitkeep": appFeaturesGitkeep,
+		"main.go":                     appMainTmpl,
+		"go.mod":                      appGoModTmpl,
+		"Taskfile.yaml":               appTaskfileTmpl,
+		"Dockerfile":                  appDockerfileTmpl,
+		".gitignore":                  appGitignoreTmpl,
+		"config.yaml":                 appConfigTmpl,
+		"internal/handlers/health.go": appHealthHandlerTmpl,
+		"internal/views/layout.templ": appLayoutTemplTmpl,
+		"internal/views/index.templ":  appIndexTemplTmpl,
+		"internal/db/schema.sql":      appSchemaSQLTmpl,
+		"internal/db/db.go":           appDbGoTmpl,
+		"internal/db/queries.sql":     appQueriesSQLTmpl,
+		"internal/static/style.css":   appStyleCSSTmpl,
+		"sqlc.yaml":                   appSqlcYamlTmpl,
+		"features/health.feature":     appHealthFeatureTmpl,
+		"features/steps/health.go":    appHealthStepsTmpl,
+		"main_test.go":                appMainTestTmpl,
+		"features/.gitkeep":           appFeaturesGitkeep,
 	}
 	return writeTemplates(opts, files)
 }
