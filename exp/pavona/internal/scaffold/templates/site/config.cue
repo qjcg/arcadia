@@ -4,8 +4,8 @@ name:        "site"
 description: "A static site with Markdown or org-mode content and a custom theme"
 
 variables: {
-	// Site name (e.g., My Blog)
-	site_name: string
+	// Project name (e.g., my-blog)
+	project_name: string
 
 	// Author name
 	author?: string | *""

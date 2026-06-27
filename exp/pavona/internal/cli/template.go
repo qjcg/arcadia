@@ -93,7 +93,7 @@ func RunTemplate(p *TemplateParams, cmd *cobra.Command, args []string) {
 	// Pre-fill name from --name flag if provided
 	if p.Name != "" {
 		for i, v := range cfg.Variables {
-			if v.Name == "project_name" || v.Name == "site_name" {
+			if v.Name == "project_name" {
 				cfg.Variables[i].Default = p.Name
 			}
 		}
@@ -120,16 +120,10 @@ func RunTemplate(p *TemplateParams, cmd *cobra.Command, args []string) {
 	// Determine output directory
 	outputDir := p.Output
 	if outputDir == "" {
-		// Use project_name or site_name or first non-empty value
-		for _, v := range cfg.Variables {
-			if val, ok := values[v.Name]; ok && val != "" {
-				outputDir = val
-				break
-			}
-		}
-		if outputDir == "" {
-			outputDir = "output"
-		}
+		outputDir = values["project_name"]
+	}
+	if outputDir == "" {
+		outputDir = "output"
 	}
 
 	// Resolve relative paths to absolute
