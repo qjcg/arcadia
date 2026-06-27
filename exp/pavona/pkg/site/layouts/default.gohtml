@@ -159,11 +159,13 @@
       applyTheme(getTheme());
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){if(getTheme()==='system')applyTheme('system')});
       fetch('/search-index.json').then(function(r){return r.json()}).then(function(data){initSearch(data)});
-      var si=document.getElementById('search-input'),sr=document.getElementById('search-results'),dt=null;
+      var si=document.getElementById('search-input'),sr=document.getElementById('search-results'),dt=null,isMac=navigator.platform.toUpperCase().indexOf('MAC')>=0;
+      si.placeholder='Search...  ('+(isMac?'Cmd':'Ctrl')+'+K)';
       si.addEventListener('input',function(){clearTimeout(dt);dt=setTimeout(function(){performSearch(si.value.trim())},150)});
       si.addEventListener('focus',function(){if(si.value.trim().length>=2)sr.style.display='block'});
       document.addEventListener('click',function(e){if(!document.getElementById('search-container').contains(e.target))sr.style.display='none'});
       si.addEventListener('keydown',function(e){if(e.key==='Escape')sr.style.display='none'});
+      document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();si.focus()}});
     });
   </script>
 </body>
