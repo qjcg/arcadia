@@ -1,9 +1,9 @@
-package {{.Name | sanitize}}
+package {{.project_name | sanitize}}
 
 import "testing"
 
 func TestHello(t *testing.T) {
-	if Hello() != "Hello from {{.Name}}" {
+	if Hello() != "Hello from {{.project_name}}" {
 		t.Fatal("unexpected greeting")
 	}
 }

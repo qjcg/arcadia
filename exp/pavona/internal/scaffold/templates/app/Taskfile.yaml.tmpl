@@ -5,18 +5,18 @@ tasks:
     desc: Build and run the server
     cmds:
       - task: build
-      - ./{{.Name}}
+      - ./{{.project_name}}
 
   build:
     desc: Generate templ code and build the binary
     cmds:
       - go tool templ generate
-      - go build -o {{.Name}} .
+      - go build -o {{.project_name}} .
 
   dev:
     desc: Run with live reload (requires air)
     cmds:
-      - air --build.cmd "go tool templ generate && go build -o {{.Name}} ." --build.bin "./{{.Name}}"
+      - air --build.cmd "go tool templ generate && go build -o {{.project_name}} ." --build.bin "./{{.project_name}}"
 
   test:
     desc: Run all tests

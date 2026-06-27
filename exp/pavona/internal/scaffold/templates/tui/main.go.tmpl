@@ -29,7 +29,7 @@ func (m model) View() string {
 	if m.quitting {
 		return ""
 	}
-	return fmt.Sprintf("{{.Name}}\n\nPress q to quit.\n")
+	return fmt.Sprintf("{{.project_name}}\n\nPress q to quit.\n")
 }
 
 func main() {

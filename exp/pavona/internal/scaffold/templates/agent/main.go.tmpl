@@ -23,11 +23,11 @@ func main() {
 	svc, err := micro.AddService(nc, micro.Config{
 		Name:        "agents",
 		Version:     "0.1.0",
-		Description: "{{.Name}} — NATS Agent Protocol",
+		Description: "{{.project_name}} — NATS Agent Protocol",
 		Endpoint: &micro.EndpointConfig{
-			Subject: "agents.prompt.{{.Name}}",
+			Subject: "agents.prompt.{{.project_name}}",
 			Handler: micro.HandlerFunc(func(req micro.Request) {
-				req.Respond([]byte(fmt.Sprintf("response from {{.Name}}: %s", string(req.Data()))))
+				req.Respond([]byte(fmt.Sprintf("response from {{.project_name}}: %s", string(req.Data()))))
 			}),
 		},
 	})
@@ -37,7 +37,7 @@ func main() {
 	}
 	defer svc.Stop()
 
-	slog.Info("agent started", "name", "{{.Name}}")
+	slog.Info("agent started", "name", "{{.project_name}}")
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()

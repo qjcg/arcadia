@@ -15,17 +15,11 @@ func getVersion() string {
 }
 
 func main() {
-	boa.CmdT[boa.NoParams]{
+	boa.CmdT[cli.TemplateParams]{
 		Use:     "pavona",
-		Short:   "A Go framework that grows with you",
-		Long:    "Pavona is a Go framework for building CLI tools, libraries,\nstatic sites, TUIs, web apps, and agents. Named after leaf coral\nof the Pavona genus: layered, branching, and symbiotic.",
+		Short:   "A cookiecutter-inspired template engine",
+		Long:    "Pavona hydrates templates — point it at a template directory\n(or use a built-in), answer a few questions, and get a fully\nrendered project in seconds.",
 		Version: getVersion(),
-		SubCmds: boa.SubCmds(
-			cli.NewCmd(),
-			cli.AddCmd(),
-			cli.RemoveCmd(),
-			cli.BuildCmd(),
-			cli.ServeCmd(),
-		),
+		RunFunc: cli.RunTemplate,
 	}.Run()
 }

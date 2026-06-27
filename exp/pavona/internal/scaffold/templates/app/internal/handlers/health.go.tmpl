@@ -28,5 +28,5 @@ func NewIndexHandler(db *sql.DB) *IndexHandler {
 }
 
 func (h *IndexHandler) Index() (string, error) {
-	return "Welcome to {{.Name}}", nil
+	return "Welcome to {{.project_name}}", nil
 }
