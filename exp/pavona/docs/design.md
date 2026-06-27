@@ -107,8 +107,8 @@ Includes a `features/` directory with godog suite.
 ```
 pavona new site blog                            # markdown (default)
 pavona new site blog --format org               # org-mode
-pavona new site blog --theme custom             # use a custom theme directory
-pavona new site blog --format org --theme modern  # org + custom theme
+pavona new site blog --site-name "My Blog"      # custom display name
+pavona new site blog --format org --site-name "My Blog" --theme modern
 ```
 
 Generates: a Go module with content files, a `templ`-based theme, and
@@ -120,9 +120,11 @@ blog/
 ├── content/
 │   └── index.md              # or index.org
 ├── theme/
-│   └── default.templ         # user-editable theme template
-├── static/                   # copied verbatim to dist/
-├── build.go                  # renderer that uses the templ theme
+│   └── default.templ         # user-editable theme template (DaisyUI 5, dark mode toggle)
+├── static/
+│   └── style.css             # CSS entry point (Tailwind v4 + DaisyUI 5)
+├── build.go                  # renders content through theme, builds CSS
+├── package.json              # npm deps: tailwindcss v4, daisyui 5.6.3, @tailwindcss/cli
 ├── go.mod
 └── features/
     └── .gitkeep
@@ -165,7 +167,12 @@ Every site includes a `theme/` directory with a `templ` file that wraps
 rendered content in a full HTML page. The theme has full access to `templ`
 features: conditionals, loops, nested components, CSS/Tailwind classes.
 
-**The theme contract** — the templ component receives three values:
+The scaffolded theme uses **Tailwind CSS v4** with **DaisyUI 5.6.3**,
+providing a built-in dark mode toggle. The toggle cycles through three
+states (system, light, dark) and defaults to the user's OS preference.
+The preference is persisted in `localStorage`.
+
+**Theme contract** — the templ component receives three values:
 
 - `title` — page title (from frontmatter or heading detection)
 - `content` — rendered HTML body (from goldmark for Markdown or go-org for org-mode)
@@ -176,22 +183,33 @@ The scaffolded `theme/default.templ` defines the component signature:
 ```templ
 package theme
 
-templ Layout(title string, content string, pages []site.TreeNode) {
+type Page struct {
+    URL   string
+    Title string
+}
+
+templ Layout(title string, content string, pages []Page) {
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="en" data-theme="system">
         <head>
             <meta charset="UTF-8"/>
             <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-            <title>{ title }</title>
-            <script src="https://cdn.tailwindcss.com"></script>
+            <title>{ title } &mdash; {{.SiteName}}</title>
+            <link rel="stylesheet" href="/style.css"/>
         </head>
-        <body>
+        <body class="bg-base-200 min-h-screen">
             <header>
-                <nav>
-                    for _, p := range pages {
-                        <a href={ templ.URL(p.URL) }>{ p.Title }</a>
-                    }
-                </nav>
+                <div>
+                    <a href="/">&#127754; {{.SiteName}}</a>
+                    <nav>
+                        for _, p := range pages {
+                            if p.URL != "index.html" {
+                                <a href={ templ.URL(p.URL) }>{ p.Title }</a>
+                            }
+                        }
+                    </nav>
+                    <button onclick="cycleTheme()">...</button>
+                </div>
             </header>
             <main>
                 <article>{ content }</article>
@@ -260,26 +278,32 @@ Markdown/org to HTML, builds the navigation tree, and returns a flat
 page list plus a rooted tree for nav. It's the same pipeline Pavona
 uses internally — now exported for projects to call directly.
 
-**The build flow:**
+**Dev server (`pavona serve`):**
+
+The dev server watches `content/` for changes to `.md` and `.org` files
+using `fsnotify`. When a content file changes, the site is rebuilt
+automatically (debounced at 200ms) and the browser picks up the new
+HTML on next refresh. Only the content rebuild runs — the cached
+renderer binary is reused for fast iteration.
+
+The scaffolded site also builds CSS from Tailwind v4 + DaisyUI 5:
+the `build.go` runs `npx @tailwindcss/cli` to compile `static/style.css`
+into `dist/style.css` before rendering content.
+
+For scaffolded sites, the build flow is:
 
 ```
-pavona build [--theme <dir>]
-
-1. Read .templ files from <theme-dir> (default: theme/)
-2. Copy them to .pavona/theme/
-3. Run `templ generate`          → compiles .templ → _templ.go
-4. Run `go run build.go`         → renders content/ → dist/
+cd blog && go run build.go
 ```
 
-For the dev server (`pavona serve`), the renderer binary is cached and
-only rebuilt when `.templ` files change. On content-only changes, the
-cached renderer re-runs without recompilation — keeping iteration
-fast for content edits.
+The generated `build.go` compiles CSS via `@tailwindcss/cli`, then walks
+`content/` and renders each page through the theme. The project is fully
+self-contained — no Pavona CLI needed after scaffold.
 
-**Backward compatibility:** Existing site projects scaffolded before
-this change (without `go.mod` or `build.go`) can still use `pavona build`
-with the embedded `gohtml` fallback layout. New projects get the full
-`templ` pipeline.
+**Backward compatibility:** The Pavona CLI's `pavona build` command
+uses an embedded `gohtml` fallback that works without a `theme/`
+directory, for quick prototyping or existing projects without a custom
+theme.
 
 ### 4. TUI App
 

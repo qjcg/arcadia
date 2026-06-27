@@ -151,3 +151,28 @@ Feature: Static site builder — site package
     Given a custom theme in "themes/docs/default.templ"
     When I run `pavona build --theme ./themes/docs`
     Then "dist/index.html" exists and contains the rendered body
+
+  Scenario: Site scaffold includes package.json and style.css
+    When I scaffold a "site" named "mysite"
+    Then "mysite/package.json" should exist
+    And "mysite/static/style.css" should exist
+    And "mysite/static/style.css" should contain "daisyui"
+
+  Scenario: Site scaffold with --site-name flag sets the site title
+    When I scaffold a "site" named "mysite" with site name "My Site"
+    Then "mysite/theme/default.templ" should contain "My Site"
+
+  Scenario: Default theme has dark mode toggle
+    Given "content/index.md" with frontmatter and body
+    When I run `pavona build`
+    Then "dist/index.html" contains the text "theme-toggle"
+    And "dist/index.html" contains the text "cycleTheme"
+    And "dist/index.html" contains the text "data-theme"
+
+  Scenario: Index page is excluded from navigation
+    Given "content/index.md" with frontmatter and body
+    And "content/about.md" with YAML title "About"
+    When I run `pavona build`
+    Then "dist/about.html" contains the text "About"
+    And "dist/index.html" does not contain the text "Welcome"
+    And "dist/index.html" contains the text "theme-toggle"

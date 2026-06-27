@@ -197,6 +197,21 @@ func RegisterSiteSteps(ctx *godog.ScenarioContext) {
 		return nil
 	})
 
+	ctx.Step(`^"([^"]*)" does not contain the text "([^"]*)"$`, func(path, substr string) error {
+		if st.buildErr != nil {
+			return fmt.Errorf("build failed: %v\n%s", st.buildErr, st.buildOut)
+		}
+		fullPath := filepath.Join(st.tmpDir, path)
+		c, err := os.ReadFile(fullPath)
+		if err != nil {
+			return err
+		}
+		if strings.Contains(string(c), substr) {
+			return fmt.Errorf("%s should not contain %q", path, substr)
+		}
+		return nil
+	})
+
 	ctx.Step(`^"([^"]*)" exists$`, func(path string) error {
 		fullPath := filepath.Join(st.tmpDir, path)
 		if _, err := os.Stat(fullPath); err != nil {
