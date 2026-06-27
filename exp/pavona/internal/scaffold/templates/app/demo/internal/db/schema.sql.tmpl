@@ -3,5 +3,6 @@ CREATE TABLE IF NOT EXISTS urls (
     short_code TEXT NOT NULL UNIQUE,
     original_url TEXT NOT NULL,
     expires_at DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    qr_code BLOB
 );

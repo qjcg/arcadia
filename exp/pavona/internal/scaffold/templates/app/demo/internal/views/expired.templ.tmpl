@@ -2,17 +2,26 @@ package views
 
 templ Expired(code string) {
 	<!DOCTYPE html>
-	<html lang="en" data-theme="light">
+	<html lang="en" data-theme="dark">
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>Link Expired</title>
-			<script src="https://cdn.tailwindcss.com"></script>
-			<link href="https://cdn.jsdelivr.net/npm/daisyui@5.6.3/dist/full.min.css" rel="stylesheet" type="text/css"/>
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+			<link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet"/>
+			<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css"/>
+			<link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css"/>
+			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+			<style>
+				body { font-family: 'Inter', sans-serif; }
+			</style>
 		</head>
-		<body class="min-h-screen flex items-center justify-center bg-base-200">
+		<body class="min-h-screen flex items-center justify-center">
+			<div class="fixed inset-0 -z-10 bg-gradient-to-br from-base-300 via-base-200 to-base-300"></div>
+			<div class="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,hsl(var(--er)/0.08),transparent_60%)]"></div>
 			<div class="text-center max-w-md px-4">
-				<div class="text-8xl font-bold text-error mb-4">410</div>
+				<div class="text-8xl font-bold bg-gradient-to-b from-error to-error/50 bg-clip-text text-transparent mb-4">410</div>
 				<h1 class="text-3xl font-semibold mb-2">This link has expired</h1>
 				<p class="text-base-content/60 mb-2">
 					The short link <code class="font-mono bg-base-300 px-2 py-0.5 rounded">/{ code }</code> is no longer available.

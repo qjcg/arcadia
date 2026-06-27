@@ -11,7 +11,7 @@ import (
 	"{{.Name}}/internal/handlers"
 	"{{.Name}}/internal/views"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/ncruces/go-sqlite3/driver"
 )
 
 func main() {
@@ -78,7 +78,13 @@ func migrateDB(db *sql.DB) error {
 		short_code TEXT NOT NULL UNIQUE,
 		original_url TEXT NOT NULL,
 		expires_at DATETIME,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		qr_code BLOB
 	)`)
-	return err
+	if err != nil {
+		return err
+	}
+	// Add qr_code column for databases created before this migration
+	db.Exec("ALTER TABLE urls ADD COLUMN qr_code BLOB")
+	return nil
 }

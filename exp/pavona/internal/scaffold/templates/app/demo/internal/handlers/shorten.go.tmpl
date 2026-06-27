@@ -37,6 +37,7 @@ type Link struct {
 	CreatedAt   string `json:"created_at"`
 	IsExpired   bool   `json:"is_expired"`
 	QRDataURI   string `json:"qr_data_uri,omitempty"`
+	QRBytes     []byte `json:"-"`
 }
 
 func NewShortenHandler(db *sql.DB) *ShortenHandler {
@@ -44,7 +45,7 @@ func NewShortenHandler(db *sql.DB) *ShortenHandler {
 }
 
 func (h *ShortenHandler) ListRecent() ([]Link, error) {
-	rows, err := h.db.Query(`SELECT short_code, original_url, COALESCE(expires_at, ''), created_at FROM urls ORDER BY created_at DESC LIMIT 20`)
+	rows, err := h.db.Query(`SELECT short_code, original_url, COALESCE(expires_at, ''), created_at, qr_code FROM urls ORDER BY created_at DESC LIMIT 20`)
 	if err != nil {
 		return nil, err
 	}
@@ -54,11 +55,14 @@ func (h *ShortenHandler) ListRecent() ([]Link, error) {
 	for rows.Next() {
 		var l Link
 		var expiresAt string
-		if err := rows.Scan(&l.ShortCode, &l.OriginalURL, &expiresAt, &l.CreatedAt); err != nil {
+		if err := rows.Scan(&l.ShortCode, &l.OriginalURL, &expiresAt, &l.CreatedAt, &l.QRBytes); err != nil {
 			return nil, err
 		}
 		l.ExpiresAt = expiresAt
 		l.IsExpired = isExpired(expiresAt)
+		if len(l.QRBytes) > 0 {
+			l.QRDataURI = "data:image/png;base64," + base64.StdEncoding.EncodeToString(l.QRBytes)
+		}
 		links = append(links, l)
 	}
 	return links, rows.Err()
@@ -108,14 +112,14 @@ func (h *ShortenHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	qrDataURI := "data:image/png;base64," + base64.StdEncoding.EncodeToString(qrPNG)
 
-	// Insert
+	// Insert with QR code bytes
 	var expiresStr *string
 	if expiresAt != nil {
 		s := expiresAt.Format(time.RFC3339)
 		expiresStr = &s
 	}
-	_, err = h.db.Exec(`INSERT INTO urls (short_code, original_url, expires_at) VALUES (?, ?, ?)`,
-		shortCode, originalURL, expiresStr)
+	_, err = h.db.Exec(`INSERT INTO urls (short_code, original_url, expires_at, qr_code) VALUES (?, ?, ?, ?)`,
+		shortCode, originalURL, expiresStr, qrPNG)
 	if err != nil {
 		slog.Error("failed to insert url", "error", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -157,7 +161,7 @@ func (h *ShortenHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 
 	if expiresAt.Valid && isExpired(expiresAt.String) {
 		w.WriteHeader(http.StatusGone)
-		w.Write([]byte(fmt.Sprintf(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Link Expired</title><script src="https://cdn.tailwindcss.com"></script></head><body class="min-h-screen flex items-center justify-center bg-base-200"><div class="text-center"><h1 class="text-6xl font-bold text-error mb-4">410</h1><p class="text-xl mb-2">This link has expired</p><p class="text-base-content/60 mb-6">The short link <code class="font-mono bg-base-300 px-2 py-1 rounded">/%s</code> is no longer available.</p><a href="/" class="btn btn-primary">Go Home</a></div></body></html>`, code)))
+		w.Write([]byte(fmt.Sprintf(`<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Link Expired</title><link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css"/><link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css"/><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script></head><body class="min-h-screen flex items-center justify-center"><div class="fixed inset-0 -z-10 bg-gradient-to-br from-base-300 via-base-200 to-base-300"></div><div class="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,hsl(var(--er)/0.08),transparent_60%%)]"></div><div class="text-center max-w-md px-4"><div class="text-8xl font-bold bg-gradient-to-b from-error to-error/50 bg-clip-text text-transparent mb-4">410</div><h1 class="text-3xl font-semibold mb-2">This link has expired</h1><p class="text-base-content/60 mb-2">The short link <code class="font-mono bg-base-300 px-2 py-0.5 rounded">/%s</code> is no longer available.</p><p class="text-sm text-base-content/40 mb-6">Links expire based on the time chosen when they were created.</p><a href="/" class="btn btn-primary">Create a new short link</a></div></body></html>`, code)))
 		return
 	}
 
@@ -171,16 +175,32 @@ func (h *ShortenHandler) QRCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	baseURL := fmt.Sprintf("http://localhost:8080/%s", code)
-	qrPNG, err := encodeQR(baseURL)
+	var qrBytes []byte
+	err := h.db.QueryRow(`SELECT qr_code FROM urls WHERE short_code = ?`, code).Scan(&qrBytes)
+	if err == sql.ErrNoRows {
+		http.NotFound(w, r)
+		return
+	}
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
+	// Fallback: regenerate if QR not stored (legacy rows)
+	if len(qrBytes) == 0 {
+		baseURL := fmt.Sprintf("http://localhost:8080/%s", code)
+		qrBytes, err = encodeQR(baseURL)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		// Store for next time
+		h.db.Exec(`UPDATE urls SET qr_code = ? WHERE short_code = ?`, qrBytes, code)
+	}
+
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", "public, max-age=86400")
-	w.Write(qrPNG)
+	w.Write(qrBytes)
 }
 
 // encodeQR generates a QR code PNG for the given text.
