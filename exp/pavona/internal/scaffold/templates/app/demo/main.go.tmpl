@@ -35,7 +35,10 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		links, _ := shortenHandler.ListRecent()
+		links, err := shortenHandler.ListRecent()
+		if err != nil {
+			slog.Error("failed to list recent links", "error", err)
+		}
 		templ.Handler(views.Index(links)).ServeHTTP(w, r)
 	})
 	mux.HandleFunc("POST /{$}", func(w http.ResponseWriter, r *http.Request) {
@@ -72,8 +75,12 @@ func openDB(path string) (*sql.DB, error) {
 		return nil, err
 	}
 	// Run migrations
-	migrateDB(db)
-	appdb.RunMigrations(db)
+	if err := migrateDB(db); err != nil {
+		slog.Error("failed to migrate database schema", "error", err)
+	}
+	if err := appdb.RunMigrations(db); err != nil {
+		slog.Error("failed to seed demo data", "error", err)
+	}
 	return db, nil
 }
 
