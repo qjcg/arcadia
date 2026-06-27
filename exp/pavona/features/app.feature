@@ -53,7 +53,7 @@ Feature: Full-stack web app scaffold — pavona new app
     Then "acmecorp/internal/db/schema.sql" should contain "CREATE TABLE"
     And "acmecorp/internal/db/db.go" should contain "database/sql"
     And "acmecorp/internal/db/db.go" should contain "sqlite"
-    And "acmecorp/go.mod" should contain "modernc.org/sqlite"
+    And "acmecorp/go.mod" should contain "go-sqlite3"
     And "acmecorp/sqlc.yaml" should exist
 
   Scenario: Health handler returns status
