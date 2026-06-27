@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"bytes"
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"log/slog"
 	"math/big"
 	"net/http"
@@ -13,8 +15,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/skip2/go-qrcode"
+	qrcode "github.com/yeqown/go-qrcode/v2"
+	"github.com/yeqown/go-qrcode/writer/standard"
 )
+
+// nopCloser wraps an io.Writer to implement io.WriteCloser.
+type nopCloser struct {
+	io.Writer
+}
+
+func (nopCloser) Close() error { return nil }
 
 type ShortenHandler struct {
 	db *sql.DB
@@ -90,7 +100,7 @@ func (h *ShortenHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Generate QR code PNG bytes
 	baseURL := fmt.Sprintf("http://localhost:8080/%s", shortCode)
-	qrPNG, err := qrcode.Encode(baseURL, qrcode.Medium, 256)
+	qrPNG, err := encodeQR(baseURL)
 	if err != nil {
 		slog.Error("failed to generate QR code", "error", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -162,7 +172,7 @@ func (h *ShortenHandler) QRCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	baseURL := fmt.Sprintf("http://localhost:8080/%s", code)
-	qrPNG, err := qrcode.Encode(baseURL, qrcode.Medium, 512)
+	qrPNG, err := encodeQR(baseURL)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -171,6 +181,22 @@ func (h *ShortenHandler) QRCode(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", "public, max-age=86400")
 	w.Write(qrPNG)
+}
+
+// encodeQR generates a QR code PNG for the given text.
+func encodeQR(text string) ([]byte, error) {
+	qrc, err := qrcode.NewWith(text, qrcode.WithErrorCorrectionLevel(qrcode.ErrorCorrectionMedium))
+	if err != nil {
+		return nil, fmt.Errorf("creating qr code: %w", err)
+	}
+	buf := &bytes.Buffer{}
+	w := standard.NewWithWriter(&nopCloser{buf},
+		standard.WithBuiltinImageEncoder(standard.PNG_FORMAT),
+	)
+	if err := qrc.Save(w); err != nil {
+		return nil, fmt.Errorf("saving qr code: %w", err)
+	}
+	return buf.Bytes(), nil
 }
 
 func generateShortCode() string {
