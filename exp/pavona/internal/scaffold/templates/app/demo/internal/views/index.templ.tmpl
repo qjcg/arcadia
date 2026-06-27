@@ -124,10 +124,10 @@ templ Index(links []handlers.Link) {
 											<tr id={"row-" + l.ShortCode} class="hover transition-colors">
 												<td>
 													if l.QRDataURI != "" {
-														<div class="dropdown dropdown-right dropdown-hover">
+														<div class="dropdown dropdown-right">
 															<img src={ l.QRDataURI } alt="QR" class="w-10 h-10 rounded-box cursor-pointer ring-1 ring-base-300 hover:ring-primary transition-all" title={ l.ShortCode } tabindex="0" role="button"/>
 															<div class="dropdown-content z-10 p-2 bg-base-100 rounded-box shadow-2xl border border-base-300/50 mt-1">
-																<img src={ l.QRDataURI } alt="QR" class="w-40 h-40 rounded-box"/>
+																<img src={ l.QRDataURI } alt="QR" class="w-48 h-48 rounded-box"/>
 															</div>
 														</div>
 													} else {
