@@ -201,10 +201,7 @@ func (w *wizard) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		w.width = msg.Width
 		w.height = msg.Height
 		if w.inList {
-			availH := msg.Height - 4
-			if availH < 3 {
-				availH = 3
-			}
+			availH := max(msg.Height-4, 3)
 			w.list.SetSize(msg.Width-4, availH)
 		}
 	}
