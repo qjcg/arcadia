@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [exp/fractalis/unreleased]
 
 ### Changed
+- 6f2d4ba3 - Update wasm
+- 0638b54a - Update changelogs
 - 63db3549 - Update changelogs
 - 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
 - 49cce786 - Update deps

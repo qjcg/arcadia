@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [exp/sv/unreleased]
 
 ### Changed
+- 0638b54a - Update changelogs
 - 63db3549 - Update changelogs
 
 ## [exp/sv/v0.10.1] - 2026-06-25
