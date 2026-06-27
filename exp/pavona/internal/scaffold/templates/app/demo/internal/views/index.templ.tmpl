@@ -115,7 +115,7 @@ templ Index(links []handlers.Link) {
 					</div>
 
 					<!-- Embedded links data -->
-					<script id="links-data" type="application/json">{ templ.HTML(mustJSON(links)) }</script>
+					<script>window.__LINKS__ = { templ.HTML(mustJSON(links)) };</script>
 
 					<!-- Recent links card — Alpine-driven table -->
 					<div class="card bg-base-100/60 backdrop-blur-sm border border-base-300/50 shadow-xl"
@@ -295,13 +295,11 @@ templ Index(links []handlers.Link) {
 					if (evt.detail.xhr.status !== 200) return;
 					try {
 						var link = JSON.parse(evt.detail.xhr.responseText);
-						var store = document.querySelector('[x-data="tableStore()"]').__x.$data;
-						store.links = [link].concat(store.links);
-						evt.detail.target.reset();
-						// Reset Alpine expiry to 1 day
-						if (document.querySelector('[x-data]').__x) {
-							document.querySelector('[x-data="{ expiry: 86400 }"]').__x.$data.expiry = 86400;
+						var el = document.querySelector('[x-data^="tableStore"]');
+						if (el && el.__x) {
+							el.__x.$data.links = [link].concat(el.__x.$data.links);
 						}
+						evt.detail.target.reset();
 					} catch(e) {}
 				}
 			</script>
