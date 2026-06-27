@@ -8,6 +8,7 @@ import (
 
 	"github.com/a-h/templ"
 
+	appdb "{{.Name}}/internal/db"
 	"{{.Name}}/internal/handlers"
 	"{{.Name}}/internal/views"
 
@@ -72,7 +73,7 @@ func openDB(path string) (*sql.DB, error) {
 	}
 	// Run migrations
 	migrateDB(db)
-	seedDB(db)
+	appdb.Migrate(db)
 	return db, nil
 }
 
@@ -91,22 +92,4 @@ func migrateDB(db *sql.DB) error {
 	// Add qr_code column for databases created before this migration
 	db.Exec("ALTER TABLE urls ADD COLUMN qr_code BLOB")
 	return nil
-}
-
-func seedDB(db *sql.DB) {
-	// Only seed if the table is empty
-	var count int
-	db.QueryRow("SELECT COUNT(*) FROM urls").Scan(&count)
-	if count > 0 {
-		return
-	}
-	seed, err := os.ReadFile("internal/db/seed.sql")
-	if err != nil {
-		slog.Warn("no seed file found, skipping", "error", err)
-		return
-	}
-	if _, err := db.Exec(string(seed)); err != nil {
-		slog.Error("failed to seed database", "error", err)
-	}
-	slog.Info("seeded database with demo entries")
 }

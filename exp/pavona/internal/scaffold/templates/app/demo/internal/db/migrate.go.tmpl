@@ -1,0 +1,102 @@
+package db
+
+import (
+	"database/sql"
+	"embed"
+	"fmt"
+	"log/slog"
+	"path"
+	"sort"
+	"strconv"
+	"strings"
+)
+
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
+
+// Migrate applies any pending embedded migrations.
+// Idempotent: tracks applied versions in a schema_migrations table.
+func Migrate(db *sql.DB) error {
+	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
+		version INTEGER PRIMARY KEY,
+		applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)`); err != nil {
+		return fmt.Errorf("creating migration table: %w", err)
+	}
+
+	migrations, err := loadMigrations()
+	if err != nil {
+		return fmt.Errorf("loading migrations: %w", err)
+	}
+
+	for _, m := range migrations {
+		var applied int
+		if err := db.QueryRow(`SELECT COUNT(*) FROM schema_migrations WHERE version = ?`, m.version).Scan(&applied); err != nil {
+			return fmt.Errorf("checking migration %d: %w", m.version, err)
+		}
+		if applied > 0 {
+			continue
+		}
+		slog.Info("applying migration", "version", m.version)
+		if _, err := db.Exec(m.up); err != nil {
+			return fmt.Errorf("migration %d up: %w", m.version, err)
+		}
+		if _, err := db.Exec(`INSERT INTO schema_migrations (version) VALUES (?)`, m.version); err != nil {
+			return fmt.Errorf("recording migration %d: %w", m.version, err)
+		}
+	}
+	return nil
+}
+
+type migration struct {
+	version int
+	up      string
+	down    string
+}
+
+func loadMigrations() ([]migration, error) {
+	entries, err := migrationsFS.ReadDir("migrations")
+	if err != nil {
+		return nil, err
+	}
+
+	groups := map[int]migration{}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		parts := strings.SplitN(name, "_", 2)
+		if len(parts) < 2 {
+			continue
+		}
+		v, err := strconv.Atoi(parts[0])
+		if err != nil {
+			continue
+		}
+
+		data, err := migrationsFS.ReadFile(path.Join("migrations", name))
+		if err != nil {
+			return nil, fmt.Errorf("reading %s: %w", name, err)
+		}
+
+		m := groups[v]
+		m.version = v
+		if strings.HasSuffix(name, ".up.sql") {
+			m.up = string(data)
+		} else if strings.HasSuffix(name, ".down.sql") {
+			m.down = string(data)
+		}
+		groups[v] = m
+	}
+
+	var result []migration
+	for _, m := range groups {
+		if m.up == "" {
+			continue
+		}
+		result = append(result, m)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].version < result[j].version })
+	return result, nil
+}

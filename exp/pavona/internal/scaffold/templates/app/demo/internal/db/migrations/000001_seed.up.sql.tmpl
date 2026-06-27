@@ -1,6 +1,3 @@
--- Seed data for demo URL shortener
--- Idempotent: uses INSERT OR IGNORE so it only runs once per slug
-
 INSERT OR IGNORE INTO urls (short_code, original_url, expires_at) VALUES
 ('gh',       'https://github.com',                  NULL),
 ('hn',       'https://news.ycombinator.com',         NULL),
