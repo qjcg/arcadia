@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -148,18 +149,19 @@ func (h *ShortenHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return the table row HTML fragment
+	// Return the link as JSON
 	expiryLabel := "Never"
 	if expiresAt != nil {
 		expiryLabel = formatDuration(time.Until(*expiresAt))
 	}
-	fmt.Fprintf(w, `<tr class="hover" id="row-%s">
-		<td><img src="%s" alt="QR" class="w-10 h-10" title="%s"/></td>
-		<td><a href="/%s" class="link link-primary" hx-boost="false">/%s</a></td>
-		<td class="max-w-xs truncate"><a href="%s" class="link link-secondary" target="_blank">%s</a></td>
-		<td>%s</td>
-		<td><button class="btn btn-xs btn-ghost" hx-delete="/%s" hx-target="#row-%s" hx-swap="outerHTML">✕</button></td>
-	</tr>`, shortCode, qrDataURI, shortCode, shortCode, shortCode, originalURL, originalURL, expiryLabel, shortCode, shortCode)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"short_code":   shortCode,
+		"original_url": originalURL,
+		"expires_at":   expiryLabel,
+		"is_expired":   false,
+		"qr_data_uri":  qrDataURI,
+	})
 }
 
 func (h *ShortenHandler) Redirect(w http.ResponseWriter, r *http.Request) {
