@@ -73,7 +73,7 @@ func openDB(path string) (*sql.DB, error) {
 	}
 	// Run migrations
 	migrateDB(db)
-	appdb.Migrate(db)
+	appdb.RunMigrations(db)
 	return db, nil
 }
 

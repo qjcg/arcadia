@@ -253,6 +253,15 @@ var appDemoSchemaTmpl string
 //go:embed templates/app/demo/internal/db/queries.sql.tmpl
 var appDemoQueriesTmpl string
 
+//go:embed templates/app/demo/internal/db/migrate.go.tmpl
+var appDemoMigrateTmpl string
+
+//go:embed templates/app/demo/internal/db/migrations/000001_seed.up.sql.tmpl
+var appDemoMigrateUpTmpl string
+
+//go:embed templates/app/demo/internal/db/migrations/000001_seed.down.sql.tmpl
+var appDemoMigrateDownTmpl string
+
 //go:embed templates/app/demo/features/shorten.feature.tmpl
 var appDemoShortenFeatureTmpl string
 
@@ -263,14 +272,17 @@ type AppDemoGenerator struct{}
 
 func (g AppDemoGenerator) Generate(opts Options) error {
 	files := map[string]string{
-		"main.go":                      appDemoMainTmpl,
-		"internal/handlers/shorten.go": appDemoShortenTmpl,
-		"internal/views/index.templ":   appDemoIndexTemplTmpl,
-		"internal/views/expired.templ": appDemoExpiredTemplTmpl,
-		"internal/db/schema.sql":       appDemoSchemaTmpl,
-		"internal/db/queries.sql":      appDemoQueriesTmpl,
-		"features/shorten.feature":     appDemoShortenFeatureTmpl,
-		"features/steps/shorten.go":    appDemoShortenStepsTmpl,
+		"main.go":                                     appDemoMainTmpl,
+		"internal/handlers/shorten.go":                appDemoShortenTmpl,
+		"internal/views/index.templ":                  appDemoIndexTemplTmpl,
+		"internal/views/expired.templ":                appDemoExpiredTemplTmpl,
+		"internal/db/schema.sql":                      appDemoSchemaTmpl,
+		"internal/db/queries.sql":                     appDemoQueriesTmpl,
+		"internal/db/migrate.go":                      appDemoMigrateTmpl,
+		"internal/db/migrations/000001_seed.up.sql":   appDemoMigrateUpTmpl,
+		"internal/db/migrations/000001_seed.down.sql": appDemoMigrateDownTmpl,
+		"features/shorten.feature":                    appDemoShortenFeatureTmpl,
+		"features/steps/shorten.go":                   appDemoShortenStepsTmpl,
 	}
 	return writeTemplates(opts, files)
 }

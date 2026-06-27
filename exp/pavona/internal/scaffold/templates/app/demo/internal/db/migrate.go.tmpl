@@ -14,9 +14,9 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-// Migrate applies any pending embedded migrations.
+// RunMigrations applies any pending embedded migrations.
 // Idempotent: tracks applied versions in a schema_migrations table.
-func Migrate(db *sql.DB) error {
+func RunMigrations(db *sql.DB) error {
 	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
 		version INTEGER PRIMARY KEY,
 		applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
