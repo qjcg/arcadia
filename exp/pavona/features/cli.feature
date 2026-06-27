@@ -23,13 +23,11 @@ Feature: Project scaffolding
     When I scaffold a "site" named "blog"
     Then the project "blog" should exist
     And "blog/content/index.md" should exist
-    And "blog/features/" should exist
 
   Scenario: Scaffold a static site with org-mode
     When I scaffold a "site" named "orgblog" with format "org"
     Then the project "orgblog" should exist
     And "orgblog/content/index.org" should exist
-    And "orgblog/features/" should exist
 
   Scenario: Scaffold a TUI
     When I scaffold a "tui" named "chatmonitor"

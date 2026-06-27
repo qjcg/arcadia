@@ -8,7 +8,6 @@ import (
 type Options struct {
 	Name        string   // project name (used as dir name, Go module path)
 	Dir         string   // output directory
-	SiteName    string   // display name for site type (defaults to Name)
 	Format      string   // markdown or org (for site type)
 	PackageName string   // sanitized Go package name (no hyphens)
 	Pages       []string // page paths to scaffold (for site type)

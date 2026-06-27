@@ -236,13 +236,6 @@ func RegisterScaffoldSteps(ctx *godog.ScenarioContext) {
 			s.lastError = s.runPavona("new", projectType, name, "--format", format)
 			return nil
 		})
-	ctx.Step(`^I scaffold a "([^"]*)" named "([^"]*)" with site name "([^"]*)"$`,
-		func(projectType, name, siteName string) error {
-			s.projectType = projectType
-			s.projectName = name
-			s.lastError = s.runPavona("new", projectType, name, "--site-name", siteName)
-			return nil
-		})
 	ctx.Step(`^a directory called "([^"]*)"$`,
 		func(name string) error {
 			return os.MkdirAll(filepath.Join(s.tmpDir, name), 0o755)

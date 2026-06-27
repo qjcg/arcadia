@@ -41,10 +41,9 @@ func NewCmd() boa.CmdT[boa.NoParams] {
 		Name string `positional:"true" descr:"Project name"`
 	}
 	type siteParams struct {
-		Name     string   `positional:"true" descr:"Project name"`
-		Format   string   `short:"f" descr:"Content format (markdown or org)" default:"markdown" optional:"true"`
-		SiteName string   `short:"n" descr:"Display name for the site (defaults to project name)" optional:"true"`
-		Pages    []string `short:"p" descr:"Pages to scaffold (comma-separated paths, supports brace expansion like services/{foo,bar})" optional:"true"`
+		Name   string   `positional:"true" descr:"Project name"`
+		Format string   `short:"f" descr:"Content format (markdown or org)" default:"markdown" optional:"true"`
+		Pages  []string `short:"p" descr:"Pages to scaffold (comma-separated paths, supports brace expansion like services/{foo,bar})" optional:"true"`
 	}
 	type tuiParams struct {
 		Name string `positional:"true" descr:"Project name"`
@@ -99,9 +98,8 @@ Examples:
   pavona new site docs --format org --pages "about,services/{foo,bar}"`,
 				RunFunc: func(p *siteParams, cmd *cobra.Command, args []string) {
 					opts := scaffold.Options{
-						Format:   p.Format,
-						SiteName: p.SiteName,
-						Pages:    p.Pages,
+						Format: p.Format,
+						Pages:  p.Pages,
 					}
 					scaffoldProject("site", p.Name, opts)
 				},

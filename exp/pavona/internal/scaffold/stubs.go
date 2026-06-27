@@ -47,31 +47,9 @@ var siteIndexMdTmpl string
 //go:embed templates/site/content/index.org.tmpl
 var siteIndexOrgTmpl string
 
-//go:embed templates/site/theme/default.templ.tmpl
-var siteThemeDefaultTmpl string
-
-//go:embed templates/site/build.go.tmpl
-var siteBuildGoTmpl string
-
-//go:embed templates/site/go.mod.tmpl
-var siteGoModTmpl string
-
-//go:embed templates/site/package.json.tmpl
-var sitePackageJsonTmpl string
-
-//go:embed templates/site/static/style.css.tmpl
-var siteStyleCssTmpl string
-
-//go:embed templates/site/features/.gitkeep
-var siteFeaturesGitkeep string
-
 type SiteGenerator struct{}
 
 func (g SiteGenerator) Generate(opts Options) error {
-	if opts.SiteName == "" {
-		opts.SiteName = opts.Name
-	}
-
 	var contentTmpl string
 	contentName := "content/index.md"
 	if opts.Format == "org" {
@@ -82,13 +60,7 @@ func (g SiteGenerator) Generate(opts Options) error {
 	}
 
 	files := map[string]string{
-		contentName:           contentTmpl,
-		"build.go":            siteBuildGoTmpl,
-		"go.mod":              siteGoModTmpl,
-		"package.json":        sitePackageJsonTmpl,
-		"features/.gitkeep":   siteFeaturesGitkeep,
-		"static/style.css":    siteStyleCssTmpl,
-		"theme/default.templ": siteThemeDefaultTmpl,
+		contentName: contentTmpl,
 	}
 
 	if err := writeTemplates(opts, files); err != nil {

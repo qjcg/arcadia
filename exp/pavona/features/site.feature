@@ -99,12 +99,6 @@ Feature: Static site builder — site package
     When I run `pavona serve`
     Then the dev server serves the built file over HTTP
 
-  Scenario: Site scaffold includes build.go and go.mod
-    When I scaffold a "site" named "mysite"
-    Then "mysite/build.go" should exist
-    And "mysite/go.mod" should exist
-    And "mysite/go.mod" should contain "github.com/qjcg/arcadia/exp/pavona"
-
   Scenario: Site scaffold with --pages creates content files
     When I scaffold a "site" named "mysite" with pages "about,contact"
     Then "mysite/content/about.md" should exist
@@ -121,11 +115,6 @@ Feature: Static site builder — site package
     When I scaffold a "site" named "mysite" with format "org" and pages "about"
     Then "mysite/content/about.org" should exist
 
-  Scenario: Site scaffold includes a theme directory
-    When I scaffold a "site" named "mysite"
-    Then "mysite/theme/" should exist
-    And "mysite/theme/default.templ" should exist
-
   Scenario: Default theme wraps content in a full HTML page
     Given "content/index.md" with frontmatter and body
     When I run `pavona build`
@@ -140,27 +129,6 @@ Feature: Static site builder — site package
     When I run `pavona build`
     Then "dist/index.html" contains a navigation element
     And "dist/about.html" contains a navigation element
-
-  Scenario: Build compiles the templ theme and renders content
-    Given "content/index.md" with frontmatter and body
-    When I run `pavona build`
-    Then the build invokes `templ generate` on the theme
-    And "dist/index.html" exists and contains the rendered body
-
-  Scenario: Custom --theme flag selects a different theme directory
-    Given a custom theme in "themes/docs/default.templ"
-    When I run `pavona build --theme ./themes/docs`
-    Then "dist/index.html" exists and contains the rendered body
-
-  Scenario: Site scaffold includes package.json and style.css
-    When I scaffold a "site" named "mysite"
-    Then "mysite/package.json" should exist
-    And "mysite/static/style.css" should exist
-    And "mysite/static/style.css" should contain "daisyui"
-
-  Scenario: Site scaffold with --site-name flag sets the site title
-    When I scaffold a "site" named "mysite" with site name "My Site"
-    Then "mysite/theme/default.templ" should contain "My Site"
 
   Scenario: Default theme has dark mode toggle
     Given "content/index.md" with frontmatter and body
