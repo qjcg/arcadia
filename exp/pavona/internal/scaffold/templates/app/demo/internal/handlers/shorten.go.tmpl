@@ -203,6 +203,23 @@ func (h *ShortenHandler) QRCode(w http.ResponseWriter, r *http.Request) {
 	w.Write(qrBytes)
 }
 
+func (h *ShortenHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	code := r.PathValue("code")
+	if code == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	_, err := h.db.Exec(`DELETE FROM urls WHERE short_code = ?`, code)
+	if err != nil {
+		slog.Error("failed to delete url", "error", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // encodeQR generates a QR code PNG for the given text.
 func encodeQR(text string) ([]byte, error) {
 	qrc, err := qrcode.NewWith(text, qrcode.WithErrorCorrectionLevel(qrcode.ErrorCorrectionMedium))

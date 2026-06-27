@@ -46,6 +46,9 @@ func main() {
 	mux.HandleFunc("GET /{code}/qr.png", func(w http.ResponseWriter, r *http.Request) {
 		shortenHandler.QRCode(w, r)
 	})
+	mux.HandleFunc("DELETE /{code}", func(w http.ResponseWriter, r *http.Request) {
+		shortenHandler.Delete(w, r)
+	})
 
 	addr := ":8080"
 	if p := os.Getenv("PORT"); p != "" {
