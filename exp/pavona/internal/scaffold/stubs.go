@@ -263,14 +263,14 @@ type AppDemoGenerator struct{}
 
 func (g AppDemoGenerator) Generate(opts Options) error {
 	files := map[string]string{
-		"main.go":                     appDemoMainTmpl,
+		"main.go":                      appDemoMainTmpl,
 		"internal/handlers/shorten.go": appDemoShortenTmpl,
-		"internal/views/index.templ":  appDemoIndexTemplTmpl,
+		"internal/views/index.templ":   appDemoIndexTemplTmpl,
 		"internal/views/expired.templ": appDemoExpiredTemplTmpl,
-		"internal/db/schema.sql":      appDemoSchemaTmpl,
-		"internal/db/queries.sql":     appDemoQueriesTmpl,
-		"features/shorten.feature":    appDemoShortenFeatureTmpl,
-		"features/steps/shorten.go":   appDemoShortenStepsTmpl,
+		"internal/db/schema.sql":       appDemoSchemaTmpl,
+		"internal/db/queries.sql":      appDemoQueriesTmpl,
+		"features/shorten.feature":     appDemoShortenFeatureTmpl,
+		"features/steps/shorten.go":    appDemoShortenStepsTmpl,
 	}
 	return writeTemplates(opts, files)
 }

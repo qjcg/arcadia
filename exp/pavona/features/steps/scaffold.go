@@ -108,9 +108,7 @@ func (s *ScaffoldState) theProjectShouldCompile() error {
 	projectDir := filepath.Join(s.tmpDir, s.projectName)
 
 	// Build env: clean environment with GOWORK=off to avoid workspace issues
-	buildEnv := append(
-		[]string{"GOWORK=off", "PATH=" + os.Getenv("PATH"), "HOME=" + os.Getenv("HOME")},
-	)
+	buildEnv := []string{"GOWORK=off", "PATH=" + os.Getenv("PATH"), "HOME=" + os.Getenv("HOME")}
 
 	// Add GOPATH and GOMODCACHE if set
 	if gopath := os.Getenv("GOPATH"); gopath != "" {
