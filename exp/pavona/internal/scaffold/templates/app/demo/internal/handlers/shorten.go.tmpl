@@ -274,11 +274,13 @@ func isExpired(expiresAt string) bool {
 	if expiresAt == "" {
 		return false
 	}
-	t, err := time.Parse(time.RFC3339, expiresAt)
-	if err != nil {
-		return false
+	for _, layout := range []string{time.RFC3339, "2006-01-02 15:04:05"} {
+		t, err := time.Parse(layout, expiresAt)
+		if err == nil {
+			return time.Now().After(t)
+		}
 	}
-	return time.Now().After(t)
+	return false
 }
 
 func formatDuration(d time.Duration) string {

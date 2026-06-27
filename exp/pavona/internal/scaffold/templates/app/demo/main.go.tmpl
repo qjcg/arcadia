@@ -89,8 +89,8 @@ func migrateDB(db *sql.DB) error {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		short_code TEXT NOT NULL UNIQUE,
 		original_url TEXT NOT NULL,
-		expires_at DATETIME,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		expires_at TEXT,
+		created_at TEXT DEFAULT (datetime('now')),
 		qr_code BLOB
 	)`)
 	if err != nil {
