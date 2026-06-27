@@ -92,8 +92,8 @@ my-cli/
 
 ### Rules
 
-1. **`config.cue`** is required. It defines the template's variables, prompts,
-   defaults, and validation.
+1. **`config.cue`** is required. It defines the template's metadata and
+   variables using CUE type syntax.
 2. **`.tmpl` files** are rendered through `text/template` and written without
    the `.tmpl` suffix.
 3. **Non-`.tmpl` files** are copied byte-for-byte.
@@ -110,24 +110,39 @@ my-cli/
 The CUE configuration file lives at the root of every template directory.
 It defines template metadata and all variables needed for hydration.
 
+Variables are defined using **CUE type syntax**, not special struct fields:
+
+| Concept       | CUE Syntax                                      | Meaning                     |
+|---------------|-------------------------------------------------|-----------------------------|
+| Freeform      | `name: string`                                  | Required text input         |
+| Optional      | `name?: string \| *"default"`                   | Optional, with default      |
+| Choice        | `name?: "a" \| *"b" \| "c"`                     | Choice list, default "b"    |
+| Required      | `name: "a" \| "b"`                              | Choice list, must pick      |
+| Prompt text   | `// Doc comment before the field`               | Used as the prompt          |
+| Field marker  | `?` on field name                               | Optional field in the struct|
+
+### Key principles
+
+- **No `prompt`, `default`, `required`, `choices`, or `help` fields.**
+  These are fully expressed through CUE's type system and doc comments.
+- A **doc comment** (`// ...`) above a variable field serves as the prompt
+  text displayed to the user.
+- The **`?` marker** on a field name makes the variable optional. Without it,
+  the user must provide a value (or accept the default).
+- A **default value** is indicated with `*value` inside a disjunction.
+- **Choices** are a disjunction of concrete string literals
+  (e.g. `"a" | "b" | "c"`). If the disjunction includes the `string` type,
+  it becomes freeform instead.
+
+### Built-in Template Schema
+
 ```cue
-// config.cue — template definition
 package template
 
-// Template metadata
 name:        string
 description: string
 
-// Variable definitions
-variables: {
-	[name =~ "^[a-z][a-zA-Z0-9_]*$"]: {
-		prompt:    string           // Question displayed to the user
-		default?:  string           // Default value (empty = no default)
-		required?: bool             // If true, cannot be empty
-		choices?:  [...string]      // Restricted set of values (enum)
-		help?:     string           // Additional help text
-	}
-}
+variables: { ... }
 ```
 
 ### Example: CLI Tool Template
@@ -136,33 +151,24 @@ variables: {
 package template
 
 name:        "tool"
-description: "A Go CLI tool with cobra, cobra-style subcommands, and BDD tests"
+description: "A Go CLI tool with cobra subcommands and BDD tests"
 
 variables: {
-	project_name: {
-		prompt:    "Project name"
-		default:   ""
-		required:  true
-		help:      "The name of your CLI tool (e.g., gh-deploy)"
-	}
-	description: {
-		prompt:    "Short description"
-		default:   "A CLI tool built with Pavona"
-		required:  false
-	}
-	version: {
-		prompt:    "Initial version"
-		default:   "0.1.0"
-		required:  false
-	}
-	license: {
-		prompt:    "License"
-		default:   "MIT"
-		choices:   ["MIT", "Apache-2.0", "GPL-3.0", "BSD-3-Clause", "None"]
-		required:  false
-	}
+	// Project name (e.g., gh-deploy)
+	project_name: string
+
+	// Short description
+	description?: string | *"A CLI tool built with Pavona"
+
+	// Initial version
+	version?: string | *"0.1.0"
 }
 ```
+
+This defines three variables:
+- `project_name` — freeform, required (no `?`, no default)
+- `description` — freeform, optional (`?`), defaults to `"A CLI tool built with Pavona"`
+- `version` — freeform, optional (`?`), defaults to `"0.1.0"`
 
 ### Example: Static Site Template
 
@@ -170,27 +176,32 @@ variables: {
 package template
 
 name:        "site"
-description: "A static site with Markdown content and a custom theme"
+description: "A static site with Markdown or org-mode content and a custom theme"
 
 variables: {
-	site_name: {
-		prompt:    "Site name"
-		default:   ""
-		required:  true
-	}
-	author: {
-		prompt:    "Author name"
-		default:   ""
-		required:  false
-	}
-	format: {
-		prompt:    "Content format"
-		default:   "markdown"
-		choices:   ["markdown", "org"]
-		required:  false
-	}
+	// Site name (e.g., My Blog)
+	site_name: string
+
+	// Author name
+	author?: string | *""
+
+	// Content format
+	format?: *"markdown" | "org"
 }
 ```
+
+Here `format` is a **choice** — the user selects from `"markdown"` or
+`"org"`, with `"markdown"` as the default. `author` is an optional freeform field with
+an empty default (user can skip it).
+
+### How CUE Types Map to Prompts
+
+| CUE Definition                              | Prompt Type  | Required | Default  |
+|---------------------------------------------|--------------|----------|----------|
+| `name: string`                              | text input   | yes      | none     |
+| `name?: string \| *"hello"`                 | text input   | no       | `"hello"`|
+| `name?: "x" \| *"y" \| "z"`                | list select  | no       | `"y"`    |
+| `name: "x" \| "y"`                         | list select  | yes      | none     |
 
 ---
 
@@ -227,16 +238,29 @@ When the user passes `-t <source>`, pavona resolves the template in this order:
 
 ## Interactive Prompt Flow
 
-1. Read `config.cue` and extract `variables`.
-2. For each variable (in definition order):
-   - Print the `prompt` text.
-   - If `choices` is set, present a numbered menu.
-   - If `default` is non-empty, show it in brackets.
-   - If `required` is true, loop until a non-empty value is provided.
-3. Assemble the variable map.
-4. Walk the template directory, render every `.tmpl` file, copy every other
+Pavona uses **bubbletea v2** (via `charm.land/bubbletea/v2`) with the
+`charm.land/bubbles/v2` component library for interactive prompts:
+
+1. Read `config.cue` and extract `variables` using the CUE Go API.
+2. For each variable (alphabetically sorted):
+   - **Freeform** (`string` type) — show a `textinput.Model` with the
+     default value pre-filled.
+   - **Choice** (disjunction of string literals) — show a `list.Model`
+     with the default item pre-selected.
+3. User navigates with arrow keys (list) or types text (freeform) and
+   presses Enter to confirm.
+4. Pressing Ctrl+C at any point cancels the wizard.
+5. Assemble the variable map.
+6. Walk the template directory, render every `.tmpl` file, copy every other
    file, render directory names.
-5. Print a summary of what was created.
+
+### Prompt Components
+
+| Component      | Package                      | Used For           |
+|----------------|------------------------------|--------------------|
+| `textinput`    | `charm.land/bubbles/textinput` | Freeform variables |
+| `list`         | `charm.land/bubbles/list`      | Choice variables   |
+| `lipgloss`     | `charm.land/lipgloss/v2`       | Styling            |
 
 ---
 
@@ -251,7 +275,7 @@ pavona/
 │   └── scaffold/
 │       ├── scaffold.go          # Template engine: walk, render, copy
 │       ├── config.go            # config.cue parsing (cuelang SDK)
-│       ├── prompt.go            # Interactive terminal prompts
+│       ├── prompt.go            # Interactive prompts via bubbletea
 │       └── templates/           # Built-in templates (embedded)
 │           ├── tool/
 │           │   ├── config.cue
@@ -275,7 +299,7 @@ pavona/
 | `cli/template.go`      | CLI parsing, `-t`/`-o`/`-q` flags                 |
 | `scaffold/scaffold.go` | Walk template dir, render files, manage output    |
 | `scaffold/config.go`   | Load and validate `config.cue`, extract variables |
-| `scaffold/prompt.go`   | Interactive terminal prompts for each variable    |
+| `scaffold/prompt.go`   | Interactive bubbletea prompts for each variable   |
 
 ### Template Resolution (`scaffold/scaffold.go`)
 
@@ -293,6 +317,13 @@ func ListBuiltin() []TemplateInfo
 ### Config Parsing (`scaffold/config.go`)
 
 ```go
+// VariableType indicates how a variable is presented to the user.
+type VariableType int
+const (
+    TypeFreeform VariableType = iota // free-form text input
+    TypeChoice                       // select from a list of options
+)
+
 // Config is the parsed config.cue for a template.
 type Config struct {
     Name        string
@@ -300,14 +331,14 @@ type Config struct {
     Variables   []Variable
 }
 
-// Variable defines a single template variable.
+// Variable defines a single template variable, inferred from CUE types.
 type Variable struct {
     Name     string
-    Prompt   string
-    Default  string
-    Required bool
-    Choices  []string
-    Help     string
+    Prompt   string      // From CUE doc comments
+    Type     VariableType
+    Default  string      // From CUE *default syntax
+    Required bool        // From ? field marker
+    Choices  []string    // From CUE disjunction literals
 }
 
 // ParseConfig reads and validates config.cue from a directory.
@@ -317,7 +348,8 @@ func ParseConfig(dir string) (*Config, error)
 ### Prompt Flow
 
 ```go
-// PromptForVariables asks the user for each variable interactively.
+// PromptForVariables asks the user for each variable interactively
+// using bubbletea (textinput for freeform, list for choices).
 // In quiet mode (-q), returns defaults for everything.
 func PromptForVariables(vars []Variable, quiet bool) map[string]string
 ```
@@ -366,7 +398,7 @@ function Hydrate(templateDir, outputDir, vars):
 | `config.cue` parse error        | Print CUE error and exit 1                            |
 | Output dir exists and non-empty | Print error and exit 2 (unless `--force`)             |
 | Template execution error        | Print file + template error and exit 1                |
-| CUE validation error            | Print variable validation failures and exit 1         |
+| User cancels (Ctrl+C)           | Print "Cancelled." and exit 1                         |
 
 ---
 
@@ -388,6 +420,4 @@ function Hydrate(templateDir, outputDir, vars):
 - **Template repositories**: `pavona -t github.com/user/repo`
 - **Template chains**: `pavona -t base,plugin` — layer templates
 - **Post-hydration hooks**: scripts in `config.cue` that run after hydration
-- **CUE validation**: validate user input against CUE constraints
-- **TUI mode**: terminal UI for browsing and selecting templates
 - **Template authoring**: `pavona init-template` to create a template skeleton

@@ -12,6 +12,25 @@ import (
 	"cuelang.org/go/cue/load"
 )
 
+// VariableType indicates how a variable is presented to the user.
+type VariableType int
+
+const (
+	TypeFreeform VariableType = iota // free-form text input
+	TypeChoice                       // select from a list of options
+)
+
+func (t VariableType) String() string {
+	switch t {
+	case TypeFreeform:
+		return "freeform"
+	case TypeChoice:
+		return "choice"
+	default:
+		return "unknown"
+	}
+}
+
 // Config represents a parsed config.cue template definition.
 type Config struct {
 	Name        string
@@ -19,25 +38,23 @@ type Config struct {
 	Variables   []Variable
 }
 
-// Variable defines a single template variable.
+// Variable defines a single template variable, inferred from CUE types.
 type Variable struct {
 	Name     string
 	Prompt   string
+	Type     VariableType
 	Default  string
 	Required bool
 	Choices  []string
-	Help     string
 }
 
 // ParseConfig reads and validates config.cue from a directory.
 func ParseConfig(dir string) (*Config, error) {
-	// Check config.cue exists
 	configPath := filepath.Join(dir, "config.cue")
 	if _, err := os.Stat(configPath); err != nil {
 		return nil, fmt.Errorf("template must have a config.cue file: %w", err)
 	}
 
-	// Load the CUE instance from the template directory
 	ctx := cuecontext.New()
 	bis := load.Instances([]string{"."}, &load.Config{
 		Dir: dir,
@@ -81,50 +98,67 @@ func ParseConfig(dir string) (*Config, error) {
 		return nil, fmt.Errorf("config.cue: missing required field 'variables': %w", variablesVal.Err())
 	}
 
-	fields, err := variablesVal.Fields(cue.Definitions(false), cue.Hidden(false))
+	fields, err := variablesVal.Fields(cue.Optional(true), cue.Definitions(false), cue.Hidden(false))
 	if err != nil {
 		return nil, fmt.Errorf("config.cue: reading variables: %w", err)
 	}
 
-	var varNames []string
-	for fields.Next() {
-		varNames = append(varNames, fields.Label())
+	// Collect field info with optionality from the iterator
+	type fieldEntry struct {
+		Name  string
+		IsOpt bool
+		Value cue.Value
 	}
-	sort.Strings(varNames)
+	var entries []fieldEntry
+	for fields.Next() {
+		sel := fields.Selector()
+		entries = append(entries, fieldEntry{
+			Name:  sel.Unquoted(),
+			IsOpt: fields.IsOptional(),
+			Value: fields.Value(),
+		})
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name < entries[j].Name
+	})
 
-	for _, name := range varNames {
-		path := cue.ParsePath("variables." + name)
-		v := inst.LookupPath(path)
-		if v.Err() != nil {
-			continue
+	for _, fe := range entries {
+		variable := Variable{
+			Name:     fe.Name,
+			Required: !fe.IsOpt,
 		}
+		v := fe.Value
 
-		variable := Variable{Name: name}
-
-		if s, err := v.LookupPath(cue.ParsePath("prompt")).String(); err == nil {
-			variable.Prompt = s
-		}
-		if s, err := v.LookupPath(cue.ParsePath("default")).String(); err == nil {
-			variable.Default = s
-		}
-		if b, err := v.LookupPath(cue.ParsePath("required")).Bool(); err == nil {
-			variable.Required = b
-		}
-		if s, err := v.LookupPath(cue.ParsePath("help")).String(); err == nil {
-			variable.Help = s
-		}
-
-		// Parse choices
-		choicesVal := v.LookupPath(cue.ParsePath("choices"))
-		if choicesVal.Err() == nil {
-			iter, err := choicesVal.List()
-			if err == nil {
-				for iter.Next() {
-					if s, err := iter.Value().String(); err == nil {
-						variable.Choices = append(variable.Choices, s)
-					}
-				}
+		// Extract doc comment as the prompt text
+		docs := v.Doc()
+		if len(docs) > 0 {
+			prompt := strings.TrimSpace(docs[0].Text())
+			if prompt != "" {
+				variable.Prompt = prompt
 			}
+		}
+		if variable.Prompt == "" {
+			variable.Prompt = fe.Name
+		}
+
+		// Extract default value from CUE's *default syntax
+		defVal, hasDefault := v.Default()
+		if hasDefault {
+			if s, err := defVal.String(); err == nil {
+				variable.Default = s
+			}
+		}
+
+		// Determine type: choice (disjunction of concrete string literals)
+		// or freeform (allows any string)
+		freeform, choices := extractTypeInfo(v)
+		if freeform {
+			variable.Type = TypeFreeform
+		} else if len(choices) > 0 {
+			variable.Type = TypeChoice
+			variable.Choices = choices
+		} else {
+			variable.Type = TypeFreeform
 		}
 
 		cfg.Variables = append(cfg.Variables, variable)
@@ -133,29 +167,42 @@ func ParseConfig(dir string) (*Config, error) {
 	return cfg, nil
 }
 
-// ValidateValues checks that values satisfy the config constraints.
-func ValidateValues(cfg *Config, values map[string]string) error {
-	var errs []string
-	for _, v := range cfg.Variables {
-		val := values[v.Name]
-		if v.Required && strings.TrimSpace(val) == "" {
-			errs = append(errs, fmt.Sprintf("%s: value is required", v.Name))
+// extractTypeInfo inspects a CUE value using the value-level expression API
+// to determine if it allows any string (freeform) or only a finite set
+// of concrete string literals (choice).
+func extractTypeInfo(v cue.Value) (freeform bool, choices []string) {
+	op, args := v.Expr()
+	switch op {
+	case cue.NoOp:
+		// Single non-composite value
+		if v.IncompleteKind() == cue.StringKind && !v.IsConcrete() {
+			return true, nil // just "string"
 		}
-		if len(v.Choices) > 0 {
-			found := false
-			for _, c := range v.Choices {
-				if val == c {
-					found = true
-					break
-				}
-			}
-			if !found {
-				errs = append(errs, fmt.Sprintf("%s: %q is not a valid choice (valid: %v)", v.Name, val, v.Choices))
+		if v.IsConcrete() {
+			if s, err := v.String(); err == nil {
+				return false, []string{s}
 			}
 		}
+		// Some other concrete value or non-string type
+		return true, nil
+
+	case cue.OrOp:
+		// Disjunction — e.g. "a" | "b" | "c" or string | *"default"
+		hasString := false
+		var literals []string
+		for _, arg := range args {
+			argFree, argLiterals := extractTypeInfo(arg)
+			if argFree {
+				hasString = true
+			}
+			literals = append(literals, argLiterals...)
+		}
+		if hasString {
+			return true, nil
+		}
+		return false, literals
+
+	default:
+		return true, nil
 	}
-	if len(errs) > 0 {
-		return fmt.Errorf("validation errors:\n  %s", strings.Join(errs, "\n  "))
-	}
-	return nil
 }

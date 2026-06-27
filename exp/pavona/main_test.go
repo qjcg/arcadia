@@ -177,16 +177,11 @@ name:        "custom"
 description: "A custom template for testing"
 
 variables: {
-	project_name: {
-		prompt:    "Project name"
-		default:   ""
-		required:  true
-	}
-	message: {
-		prompt:    "Greeting message"
-		default:   "Hello, World!"
-		required:  false
-	}
+	// Project name
+	project_name: string
+
+	// Greeting message
+	message?: string | *"Hello, World!"
 }
 `
 	if err := os.WriteFile(filepath.Join(customDir, "config.cue"), []byte(cfg), 0o644); err != nil {
