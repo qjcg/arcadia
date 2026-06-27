@@ -14,7 +14,9 @@ func TestFeatures(t *testing.T) {
 	// Build pavona binary if PAVONA_BIN not set
 	if os.Getenv("PAVONA_BIN") == "" {
 		bin := filepath.Join(t.TempDir(), "pavona")
-		out, err := exec.Command("go", "build", "-o", bin, ".").CombinedOutput()
+		cmd := exec.Command("go", "build", "-o", bin, ".")
+		cmd.Env = append(os.Environ(), "GOWORK=off")
+		out, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("building pavona: %v\n%s", err, out)
 		}

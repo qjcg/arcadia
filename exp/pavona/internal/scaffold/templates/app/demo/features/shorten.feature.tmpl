@@ -1,0 +1,21 @@
+Feature: URL Shortener Demo
+  The demo URL shortener creates short links with expiry times and QR codes.
+
+  Scenario: Create a short link
+    When I create a short link for "https://example.com"
+    Then the response should contain a short code
+
+  Scenario: Short link redirects to original
+    Given a short link for "https://example.com"
+    When I visit the short link
+    Then I am redirected to "https://example.com"
+
+  Scenario: Expired link shows 410 page
+    Given a short link with expiry in the past
+    When I visit the short link
+    Then I see a 410 Gone page
+
+  Scenario: QR code is generated
+    Given a short link for "https://example.com"
+    When I request the QR code image
+    Then the response is a PNG image

@@ -83,3 +83,39 @@ Feature: Full-stack web app scaffold — pavona new app
   Scenario: Scaffolded project compiles
     When I scaffold an "app" named "acmecorp"
     Then the project should compile
+
+  Scenario: Demo flag creates a URL shortener
+    When I scaffold an "app" named "urlshort" with demo
+    Then "urlshort/main.go" should contain "{code}"
+    And "urlshort/main.go" should contain "shorten"
+
+  Scenario: Demo app has shorten handler
+    When I scaffold an "app" named "urlshort" with demo
+    Then "urlshort/internal/handlers/shorten.go" should exist
+    And "urlshort/internal/handlers/shorten.go" should contain "short_code"
+    And "urlshort/internal/handlers/shorten.go" should contain "qrcode"
+
+  Scenario: Demo app has expiry slider in the form
+    When I scaffold an "app" named "urlshort" with demo
+    Then "urlshort/internal/views/index.templ" should contain "range"
+    And "urlshort/internal/views/index.templ" should contain "expiry"
+
+  Scenario: Demo app has expired template
+    When I scaffold an "app" named "urlshort" with demo
+    Then "urlshort/internal/views/expired.templ" should exist
+    And "urlshort/internal/views/expired.templ" should contain "410"
+
+  Scenario: Demo app has urls table schema
+    When I scaffold an "app" named "urlshort" with demo
+    Then "urlshort/internal/db/schema.sql" should contain "CREATE TABLE IF NOT EXISTS urls"
+    And "urlshort/internal/db/schema.sql" should contain "expires_at"
+
+  Scenario: Demo app includes shorten feature file
+    When I scaffold an "app" named "urlshort" with demo
+    Then "urlshort/features/shorten.feature" should exist
+    And "urlshort/features/steps/shorten.go" should exist
+    And "urlshort/features/shorten.feature" should contain "QR code"
+
+  Scenario: Demo app compiles
+    When I scaffold an "app" named "urlshort" with demo
+    Then the project should compile

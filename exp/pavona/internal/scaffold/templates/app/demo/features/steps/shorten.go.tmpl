@@ -1,0 +1,184 @@
+package steps
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/cucumber/godog"
+)
+
+type ShortenState struct {
+	baseURL    string
+	lastResp   *http.Response
+	lastBody   string
+	shortCode  string
+}
+
+func NewShortenState() *ShortenState {
+	return &ShortenState{baseURL: "http://localhost:8080"}
+}
+
+func (s *ShortenState) iCreateAShortLinkFor(originalURL string) error {
+	body := fmt.Sprintf("url=%s&expiry=86400", originalURL)
+	resp, err := http.Post(s.baseURL+"/", "application/x-www-form-urlencoded", strings.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("create request failed: %w", err)
+	}
+	s.lastResp = resp
+	b, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	s.lastBody = string(b)
+
+	// Extract short code from the response (first link containing /xxx)
+	for _, word := range strings.Fields(s.lastBody) {
+		if strings.HasPrefix(word, "/") && len(word) == 7 {
+			s.shortCode = word[1:]
+			break
+		}
+	}
+	if s.shortCode == "" && resp.StatusCode == http.StatusOK {
+		return fmt.Errorf("could not extract short code from response: %s", s.lastBody)
+	}
+	return nil
+}
+
+func (s *ShortenState) theResponseShouldContainAShortCode() error {
+	if s.shortCode == "" {
+		return fmt.Errorf("no short code found in response: %s", s.lastBody)
+	}
+	return nil
+}
+
+func (s *ShortenState) aShortLinkFor(originalURL string) error {
+	return s.iCreateAShortLinkFor(originalURL)
+}
+
+func (s *ShortenState) iVisitTheShortLink() error {
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	resp, err := client.Get(s.baseURL + "/" + s.shortCode)
+	if err != nil {
+		return fmt.Errorf("visit request failed: %w", err)
+	}
+	s.lastResp = resp
+	return nil
+}
+
+func (s *ShortenState) iAmRedirectedTo(expectedURL string) error {
+	if s.lastResp == nil {
+		return fmt.Errorf("no response received")
+	}
+	if s.lastResp.StatusCode != http.StatusMovedPermanently {
+		return fmt.Errorf("expected 301 redirect, got %d", s.lastResp.StatusCode)
+	}
+	location := s.lastResp.Header.Get("Location")
+	if location != expectedURL {
+		return fmt.Errorf("expected redirect to %q, got %q", expectedURL, location)
+	}
+	return nil
+}
+
+func (s *ShortenState) aShortLinkWithExpiryInThePast() error {
+	// Create a link with 0-second expiry (already expired)
+	body := "url=https://example.com&expiry=0"
+	resp, err := http.Post(s.baseURL+"/", "application/x-www-form-urlencoded", strings.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("create request failed: %w", err)
+	}
+	b, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	// Wait a tiny bit to ensure it's expired
+	time.Sleep(50 * time.Millisecond)
+
+	// Extract short code
+	for _, word := range strings.Fields(string(b)) {
+		if strings.HasPrefix(word, "/") && len(word) == 7 {
+			s.shortCode = word[1:]
+			break
+		}
+	}
+	return nil
+}
+
+func (s *ShortenState) iSeeA410GonePage() error {
+	if s.lastResp == nil {
+		return fmt.Errorf("no response received")
+	}
+	if s.lastResp.StatusCode != http.StatusGone {
+		return fmt.Errorf("expected 410 Gone, got %d", s.lastResp.StatusCode)
+	}
+	return nil
+}
+
+func (s *ShortenState) iRequestTheQRCodeImage() error {
+	resp, err := http.Get(s.baseURL + "/" + s.shortCode + "/qr.png")
+	if err != nil {
+		return fmt.Errorf("qr request failed: %w", err)
+	}
+	s.lastResp = resp
+	return nil
+}
+
+func (s *ShortenState) theResponseIsAPNGImage() error {
+	if s.lastResp == nil {
+		return fmt.Errorf("no response received")
+	}
+	contentType := s.lastResp.Header.Get("Content-Type")
+	if contentType != "image/png" {
+		return fmt.Errorf("expected Content-Type image/png, got %q", contentType)
+	}
+	// Check PNG magic bytes
+	b, _ := io.ReadAll(s.lastResp.Body)
+	s.lastResp.Body.Close()
+	if !bytes.HasPrefix(b, []byte{137, 80, 78, 71, 13, 10, 26, 10}) {
+		return fmt.Errorf("response body does not start with PNG magic bytes")
+	}
+	return nil
+}
+
+func RegisterDemoSteps(ctx *godog.ScenarioContext) {
+	s := NewShortenState()
+
+	ctx.Before(func(ctx context.Context, sc *godog.Scenario) (context.Context, error) {
+		s = NewShortenState()
+		return ctx, nil
+	})
+
+	ctx.Step(`^I create a short link for "([^"]*)"$`, func(url string) error {
+		return s.iCreateAShortLinkFor(url)
+	})
+	ctx.Step(`^the response should contain a short code$`, func() error {
+		return s.theResponseShouldContainAShortCode()
+	})
+	ctx.Step(`^a short link for "([^"]*)"$`, func(url string) error {
+		return s.aShortLinkFor(url)
+	})
+	ctx.Step(`^I visit the short link$`, func() error {
+		return s.iVisitTheShortLink()
+	})
+	ctx.Step(`^I am redirected to "([^"]*)"$`, func(url string) error {
+		return s.iAmRedirectedTo(url)
+	})
+	ctx.Step(`^a short link with expiry in the past$`, func() error {
+		return s.aShortLinkWithExpiryInThePast()
+	})
+	ctx.Step(`^I see a 410 Gone page$`, func() error {
+		return s.iSeeA410GonePage()
+	})
+	ctx.Step(`^I request the QR code image$`, func() error {
+		return s.iRequestTheQRCodeImage()
+	})
+	ctx.Step(`^the response is a PNG image$`, func() error {
+		return s.theResponseIsAPNGImage()
+	})
+}

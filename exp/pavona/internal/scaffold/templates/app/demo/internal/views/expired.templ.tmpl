@@ -1,0 +1,25 @@
+package views
+
+templ Expired(code string) {
+	<!DOCTYPE html>
+	<html lang="en" data-theme="light">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>Link Expired</title>
+			<script src="https://cdn.tailwindcss.com"></script>
+			<link href="https://cdn.jsdelivr.net/npm/daisyui@5.6.3/dist/full.min.css" rel="stylesheet" type="text/css"/>
+		</head>
+		<body class="min-h-screen flex items-center justify-center bg-base-200">
+			<div class="text-center max-w-md px-4">
+				<div class="text-8xl font-bold text-error mb-4">410</div>
+				<h1 class="text-3xl font-semibold mb-2">This link has expired</h1>
+				<p class="text-base-content/60 mb-2">
+					The short link <code class="font-mono bg-base-300 px-2 py-0.5 rounded">/{ code }</code> is no longer available.
+				</p>
+				<p class="text-sm text-base-content/40 mb-6">Links expire based on the time chosen when they were created.</p>
+				<a href="/" class="btn btn-primary">Create a new short link</a>
+			</div>
+		</body>
+	</html>
+}

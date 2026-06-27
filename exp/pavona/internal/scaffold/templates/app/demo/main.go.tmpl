@@ -1,0 +1,84 @@
+package main
+
+import (
+	"database/sql"
+	"log/slog"
+	"net/http"
+	"os"
+
+	"github.com/a-h/templ"
+
+	"{{.Name}}/internal/handlers"
+	"{{.Name}}/internal/views"
+
+	_ "modernc.org/sqlite"
+)
+
+func main() {
+	db, err := openDB("./data.db")
+	if err != nil {
+		slog.Error("failed to open database", "error", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	slog.Info("database connected")
+
+	mux := http.NewServeMux()
+
+	shortenHandler := handlers.NewShortenHandler(db)
+
+	// Routes
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		links, _ := shortenHandler.ListRecent()
+		templ.Handler(views.Index(links)).ServeHTTP(w, r)
+	})
+	mux.HandleFunc("POST /{$}", func(w http.ResponseWriter, r *http.Request) {
+		shortenHandler.Create(w, r)
+	})
+	mux.HandleFunc("GET /{code}", func(w http.ResponseWriter, r *http.Request) {
+		shortenHandler.Redirect(w, r)
+	})
+	mux.HandleFunc("GET /{code}/qr.png", func(w http.ResponseWriter, r *http.Request) {
+		shortenHandler.QRCode(w, r)
+	})
+
+	addr := ":8080"
+	if p := os.Getenv("PORT"); p != "" {
+		addr = ":" + p
+	}
+	slog.Info("server starting", "addr", addr)
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		slog.Error("server failed", "error", err)
+		os.Exit(1)
+	}
+}
+
+func openDB(path string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", path)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, err
+	}
+	// Run migrations
+	migrateDB(db)
+	return db, nil
+}
+
+func migrateDB(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS urls (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		short_code TEXT NOT NULL UNIQUE,
+		original_url TEXT NOT NULL,
+		expires_at DATETIME,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)`)
+	return err
+}

@@ -50,6 +50,7 @@ func NewCmd() boa.CmdT[boa.NoParams] {
 	}
 	type appParams struct {
 		Name string `positional:"true" descr:"Project name"`
+		Demo bool   `short:"d" descr:"Scaffold a demo app (URL shortener with QR codes and expiry)" optional:"true"`
 	}
 	type agentParams struct {
 		Name string `positional:"true" descr:"Project name"`
@@ -114,8 +115,17 @@ Examples:
 			boa.CmdT[appParams]{
 				Use:   "app",
 				Short: "Scaffold a web app",
+				Long: `Scaffold a full-stack web app with templ, SQLite, HTMX, Alpine.js,
+and Tailwind/DaisyUI via CDN.
+
+Use --demo to scaffold a URL shortener demo with QR codes and expiry.
+
+Examples:
+  pavona new app acmecorp
+  pavona new app urlshort --demo`,
 				RunFunc: func(p *appParams, cmd *cobra.Command, args []string) {
-					scaffoldProject("app", p.Name, scaffold.Options{})
+					opts := scaffold.Options{Demo: p.Demo}
+					scaffoldProject("app", p.Name, opts)
 				},
 			},
 			boa.CmdT[agentParams]{

@@ -11,6 +11,7 @@ type Options struct {
 	Format      string   // markdown or org (for site type)
 	PackageName string   // sanitized Go package name (no hyphens)
 	Pages       []string // page paths to scaffold (for site type)
+	Demo        bool     // scaffold the demo variant (URL shortener for app type)
 }
 
 // Generator creates a project of a specific type.
@@ -37,5 +38,16 @@ func Generate(projectType string, opts Options) error {
 		}
 		return fmt.Errorf("unknown project type %q (valid: %v)", projectType, types)
 	}
-	return gen.Generate(opts)
+
+	if err := gen.Generate(opts); err != nil {
+		return err
+	}
+
+	// Apply demo overlay for app type
+	if opts.Demo && projectType == "app" {
+		demoGen := AppDemoGenerator{}
+		return demoGen.Generate(opts)
+	}
+
+	return nil
 }

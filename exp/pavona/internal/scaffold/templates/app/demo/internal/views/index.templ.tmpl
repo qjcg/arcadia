@@ -1,0 +1,116 @@
+package views
+
+import "{{.Name}}/internal/handlers"
+
+templ Index(links []handlers.Link) {
+	<!DOCTYPE html>
+	<html lang="en" data-theme="light">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>URL Shortener</title>
+			<script src="https://cdn.tailwindcss.com"></script>
+			<link href="https://cdn.jsdelivr.net/npm/daisyui@5.6.3/dist/full.min.css" rel="stylesheet" type="text/css"/>
+			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+		</head>
+		<body class="min-h-screen bg-base-200" x-data="{ expiry: 86400 }">
+			<div class="navbar bg-base-100 shadow-sm mb-6">
+				<div class="flex-1">
+					<a class="btn btn-ghost text-xl" href="/">🔗 URL Shortener</a>
+				</div>
+				<div class="flex-none">
+					<ul class="menu menu-horizontal px-1">
+						<li><a href="/health">Health</a></li>
+						<li><a href="https://github.com/qjcg/arcadia">GitHub</a></li>
+					</ul>
+				</div>
+			</div>
+			<main class="container mx-auto max-w-3xl px-4">
+				<div class="card bg-base-100 shadow-sm mb-6">
+					<div class="card-body">
+						<h2 class="card-title">Create a short link</h2>
+						<form hx-post="/" hx-target="#links-body" hx-swap="afterbegin" class="flex flex-col gap-4">
+							<label class="input input-bordered flex items-center gap-2">
+								🔗
+								<input type="url" name="url" placeholder="https://example.com/very/long/url" class="grow" required/>
+							</label>
+							<div>
+								<label class="label">
+									<span class="label-text">Expires: <span class="font-semibold" x-text="expiryLabel(expiry)">1 day</span></span>
+								</label>
+								<input type="range" name="expiry" min="0" max="2592000" step="1" value="86400" class="range range-primary w-full" x-model="expiry"/>
+								<div class="flex justify-between text-xs px-2 mt-1 text-base-content/60">
+									<span>Never</span>
+									<span>1 hour</span>
+									<span>1 day</span>
+									<span>1 week</span>
+									<span>1 month</span>
+								</div>
+							</div>
+							<button type="submit" class="btn btn-primary">Shorten!</button>
+						</form>
+					</div>
+				</div>
+
+				<div class="card bg-base-100 shadow-sm">
+					<div class="card-body">
+						<h2 class="card-title">Recent links</h2>
+						<div class="overflow-x-auto">
+							<table class="table table-zebra">
+								<thead>
+									<tr>
+										<th>QR</th>
+										<th>Short URL</th>
+										<th>Original</th>
+										<th>Expires</th>
+										<th></th>
+									</tr>
+								</thead>
+								<tbody id="links-body">
+									for _, l := range links {
+										<tr id={"row-" + l.ShortCode}>
+											<td>
+												if l.QRDataURI != "" {
+													<img src={ l.QRDataURI } alt="QR" class="w-10 h-10" title={ l.ShortCode }/>
+												} else {
+													<a href={ templ.URL("/" + l.ShortCode + "/qr.png") } class="btn btn-xs btn-ghost" target="_blank">QR</a>
+												}
+											</td>
+											<td><a href={ templ.URL("/" + l.ShortCode) } class="link link-primary" hx-boost="false" target="_blank">{ "/" + l.ShortCode }</a></td>
+											<td class="max-w-xs truncate"><a href={ templ.URL(l.OriginalURL) } class="link link-secondary" target="_blank">{ l.OriginalURL }</a></td>
+											<td>
+												if l.IsExpired {
+													<span class="badge badge-error badge-sm">Expired</span>
+												} else {
+													{ l.ExpiresAt }
+												}
+											</td>
+											<td><button class="btn btn-xs btn-ghost" hx-delete={ "/" + l.ShortCode } hx-target={ "#row-" + l.ShortCode } hx-swap="outerHTML">✕</button></td>
+										</tr>
+									}
+								</tbody>
+							</table>
+							if len(links) == 0 {
+								<div class="text-center py-8 text-base-content/40">
+									<p>No links yet. Create your first short link above!</p>
+								</div>
+							}
+						</div>
+					</div>
+				</div>
+			</main>
+			<script>
+				function expiryLabel(val) {
+					var v = parseInt(val);
+					if (v === 0) return 'Never';
+					if (v < 3600) return '< 1 hour';
+					if (v < 86400) return Math.floor(v/3600) + ' hours';
+					if (v < 604800) return Math.floor(v/86400) + ' days';
+					if (v < 2592000) return Math.floor(v/604800) + ' weeks';
+					return Math.floor(v/2592000) + ' months';
+				}
+			</script>
+		</body>
+	</html>
+}

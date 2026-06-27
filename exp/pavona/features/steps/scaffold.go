@@ -107,23 +107,40 @@ func (s *ScaffoldState) fileShouldExist(filePath string) error {
 func (s *ScaffoldState) theProjectShouldCompile() error {
 	projectDir := filepath.Join(s.tmpDir, s.projectName)
 
-	// If the project has .templ files, run templ generate first
+	// Build env: clean environment with GOWORK=off to avoid workspace issues
+	buildEnv := append(
+		[]string{"GOWORK=off", "PATH=" + os.Getenv("PATH"), "HOME=" + os.Getenv("HOME")},
+	)
+
+	// Add GOPATH and GOMODCACHE if set
+	if gopath := os.Getenv("GOPATH"); gopath != "" {
+		buildEnv = append(buildEnv, "GOPATH="+gopath)
+	}
+	if gomodcache := os.Getenv("GOMODCACHE"); gomodcache != "" {
+		buildEnv = append(buildEnv, "GOMODCACHE="+gomodcache)
+	}
+
+	// Always run go mod tidy first to populate go.sum
+	tidy := exec.Command("go", "mod", "tidy")
+	tidy.Dir = projectDir
+	tidy.Env = buildEnv
+	if out, err := tidy.CombinedOutput(); err != nil {
+		return fmt.Errorf("go mod tidy failed: %w\n%s", err, out)
+	}
+
+	// If the project has .templ files, run templ generate after go.sum is ready
 	if hasTemplFiles(projectDir) {
 		gen := exec.Command("go", "tool", "templ", "generate")
 		gen.Dir = projectDir
+		gen.Env = buildEnv
 		if out, err := gen.CombinedOutput(); err != nil {
 			return fmt.Errorf("templ generate failed: %w\n%s", err, out)
 		}
 	}
 
-	tidy := exec.Command("go", "mod", "tidy")
-	tidy.Dir = projectDir
-	if out, err := tidy.CombinedOutput(); err != nil {
-		return fmt.Errorf("go mod tidy failed: %w\n%s", err, out)
-	}
-
 	build := exec.Command("go", "build", "-o", "/dev/null", ".")
 	build.Dir = projectDir
+	build.Env = buildEnv
 	if out, err := build.CombinedOutput(); err != nil {
 		return fmt.Errorf("go build failed: %w\n%s", err, out)
 	}
@@ -175,6 +192,16 @@ func RegisterScaffoldSteps(ctx *godog.ScenarioContext) {
 			s.lastOutput, s.lastError = s.runPavona("new", projectType, name)
 			return nil
 		})
+	ctx.Step(`^I scaffold an "([^"]*)" named "([^"]*)" with demo$`,
+		func(projectType, name string) error {
+			s.projectType = projectType
+			s.projectName = name
+			s.lastOutput, s.lastError = s.runPavona("new", projectType, name, "--demo")
+			if s.lastError != nil {
+				return fmt.Errorf("scaffold failed: %w\n%s", s.lastError, s.lastOutput)
+			}
+			return nil
+		})
 	ctx.Step(`^the project "([^"]*)" should exist$`,
 		func(name string) error {
 			dir := filepath.Join(s.tmpDir, name)
@@ -205,18 +232,7 @@ func RegisterScaffoldSteps(ctx *godog.ScenarioContext) {
 		})
 	ctx.Step(`^the project should compile$`,
 		func() error {
-			projectDir := filepath.Join(s.tmpDir, s.projectName)
-			tidy := exec.Command("go", "mod", "tidy")
-			tidy.Dir = projectDir
-			if out, err := tidy.CombinedOutput(); err != nil {
-				return fmt.Errorf("go mod tidy failed: %w\n%s", err, out)
-			}
-			build := exec.Command("go", "build", "-o", "/dev/null", ".")
-			build.Dir = projectDir
-			if out, err := build.CombinedOutput(); err != nil {
-				return fmt.Errorf("go build failed: %w\n%s", err, out)
-			}
-			return nil
+			return s.theProjectShouldCompile()
 		})
 	ctx.Step(`^I should get an error about unknown project type$`,
 		func() error {
