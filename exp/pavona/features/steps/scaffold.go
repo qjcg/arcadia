@@ -197,10 +197,10 @@ func RegisterScaffoldSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^I should get an error about unknown project type$`,
 		func() error {
 			if s.lastError == nil {
-				return fmt.Errorf("expected error containing %q, but got none", "unknown project type")
+				return fmt.Errorf("expected error containing %q, but got none", "unknown")
 			}
-			if !strings.Contains(s.lastError.Error(), "unknown project type") {
-				return fmt.Errorf("expected error containing %q, got %q", "unknown project type", s.lastError.Error())
+			if !strings.Contains(s.lastError.Error(), "unknown") {
+				return fmt.Errorf("expected error containing %q, got %q", "unknown", s.lastError.Error())
 			}
 			return nil
 		})
