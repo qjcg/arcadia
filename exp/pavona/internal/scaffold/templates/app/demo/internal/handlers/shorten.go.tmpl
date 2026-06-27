@@ -99,8 +99,30 @@ func (h *ShortenHandler) Create(w http.ResponseWriter, r *http.Request) {
 		expiresAt = &t
 	}
 
-	// Generate short code
-	shortCode := generateShortCode()
+	// Generate or use custom short code
+	shortCode := strings.TrimSpace(r.FormValue("code"))
+	if shortCode != "" {
+		// Validate custom code: alphanumeric only, reasonable length
+		if len(shortCode) < 2 || len(shortCode) > 32 {
+			http.Error(w, "custom code must be 2-32 characters", http.StatusBadRequest)
+			return
+		}
+		for _, c := range shortCode {
+			if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_') {
+				http.Error(w, "custom code must be alphanumeric (dashes and underscores allowed)", http.StatusBadRequest)
+				return
+			}
+		}
+		// Check uniqueness
+		var existing int
+		h.db.QueryRow(`SELECT COUNT(*) FROM urls WHERE short_code = ?`, shortCode).Scan(&existing)
+		if existing > 0 {
+			http.Error(w, "custom code already taken", http.StatusConflict)
+			return
+		}
+	} else {
+		shortCode = generateShortCode()
+	}
 
 	// Generate QR code PNG bytes
 	baseURL := fmt.Sprintf("http://localhost:8080/%s", shortCode)

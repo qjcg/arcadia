@@ -72,6 +72,11 @@ templ Index(links []handlers.Link) {
 									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 text-base-content/40 shrink-0"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
 									<input type="url" name="url" placeholder="https://example.com/very/long/url" class="grow" required/>
 								</label>
+								<label class="input input-bordered flex items-center gap-3 bg-base-200/50 focus-within:bg-base-200 transition-colors">
+									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 text-base-content/40 shrink-0"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+									<span class="text-base-content/40 shrink-0">/</span>
+									<input type="text" name="code" placeholder="custom-slug (optional)" class="grow font-mono text-sm" pattern="[a-zA-Z0-9\-_]{2,32}" title="2–32 characters: letters, digits, dashes, underscores"/>
+								</label>
 								<div>
 									<label class="label py-1">
 										<span class="label-text flex items-center gap-1.5">
