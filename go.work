@@ -10,9 +10,9 @@ use (
 	./exp/fractalis
 	./exp/jmacs
 	./exp/pangrams
+	./exp/pavona
 	./exp/roubaix
 	./exp/skillo
 	./exp/slidesdeck
 	./exp/sv
-	./exp/pavona
 )
