@@ -12,24 +12,6 @@ import (
 	"unicode"
 )
 
-//go:embed templates/tool
-var toolTmpls embed.FS
-
-//go:embed templates/lib
-var libTmpls embed.FS
-
-//go:embed templates/site
-var siteTmpls embed.FS
-
-//go:embed templates/tui
-var tuiTmpls embed.FS
-
-//go:embed templates/app
-var appTmpls embed.FS
-
-//go:embed templates/agent
-var agentTmpls embed.FS
-
 // TemplateInfo describes a built-in template.
 type TemplateInfo struct {
 	Name        string
@@ -48,54 +30,13 @@ type builtinEntry struct {
 
 var builtinRegistry []builtinEntry
 
-func init() {
-	builtinRegistry = []builtinEntry{
-		{
-			Name: "tool", Desc: "A Go CLI tool with cobra subcommands and BDD tests",
-			FS: toolTmpls, Root: "templates/tool",
-			ExtraFiles: map[string]string{
-				".gitignore": "/{{.project_name}}\n",
-			},
-			ExtraDirs: []string{"features"},
-		},
-		{
-			Name: "lib", Desc: "A minimal Go library module with test helpers",
-			FS: libTmpls, Root: "templates/lib",
-			ExtraFiles: map[string]string{
-				".gitignore": "/bin/\n",
-			},
-			ExtraDirs: []string{"features"},
-		},
-		{
-			Name: "site", Desc: "A static site with Markdown or org-mode content",
-			FS: siteTmpls, Root: "templates/site",
-			ExtraDirs: []string{},
-		},
-		{
-			Name: "tui", Desc: "A terminal UI app using bubbletea",
-			FS: tuiTmpls, Root: "templates/tui",
-			ExtraFiles: map[string]string{
-				".gitignore": "/bin/\n",
-			},
-			ExtraDirs: []string{"features", "views", "models"},
-		},
-		{
-			Name: "app", Desc: "A full-stack web app with templ, SQLite, HTMX, Tailwind",
-			FS: appTmpls, Root: "templates/app",
-			ExtraFiles: map[string]string{
-				".gitignore": "/{{.project_name}}\n",
-			},
-			ExtraDirs: []string{"features", "features/steps", "handlers", "static", "internal", "demo"},
-		},
-		{
-			Name: "agent", Desc: "A NATS Agent Protocol service",
-			FS: agentTmpls, Root: "templates/agent",
-			ExtraFiles: map[string]string{
-				".gitignore": "/bin/\n",
-			},
-			ExtraDirs: []string{"features", "agent", "nats"},
-		},
-	}
+// RegisterBuiltin registers a built-in template so ListBuiltin and Resolve can find it.
+func RegisterBuiltin(name, desc string, fs embed.FS, root string, extraFiles map[string]string, extraDirs []string) {
+	builtinRegistry = append(builtinRegistry, builtinEntry{
+		Name: name, Desc: desc, FS: fs, Root: root,
+		ExtraFiles: extraFiles,
+		ExtraDirs:  extraDirs,
+	})
 }
 
 // ListBuiltin returns info about all registered built-in templates.
