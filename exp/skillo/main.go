@@ -677,8 +677,8 @@ func moduleVersionFromGoMod(skilloDir, module string) string {
 	if err != nil {
 		return ""
 	}
-	lines := strings.Split(string(data), "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(string(data), "\n")
+	for line := range lines {
 		trimmed := strings.TrimSpace(line)
 		fields := strings.Fields(trimmed)
 		for i, f := range fields {

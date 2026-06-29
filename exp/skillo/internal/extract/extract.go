@@ -151,11 +151,11 @@ func extractSkillName(skillDir string) (string, error) {
 		return "", nil
 	}
 	rest := content[3:]
-	end := strings.Index(rest, "\n---")
-	if end < 0 {
+	before, _, ok := strings.Cut(rest, "\n---")
+	if !ok {
 		return "", nil
 	}
-	fmStr := rest[:end]
+	fmStr := before
 	var fm struct {
 		Name string `yaml:"name"`
 	}
