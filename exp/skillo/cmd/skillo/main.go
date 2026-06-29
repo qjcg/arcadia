@@ -299,6 +299,13 @@ are no longer in selections. Idempotent — safe to run repeatedly.`,
 		Short:   "List installed skills",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			scope, _ := cmd.Flags().GetString("scope")
+			// Map --user/--project persistent flags to scope
+			if userFlag && scope == "" {
+				scope = "user"
+			}
+			if projectFlag && scope == "" {
+				scope = "project"
+			}
 			showOutdated, _ := cmd.Flags().GetBool("outdated")
 			format, _ := cmd.Flags().GetString("format")
 
