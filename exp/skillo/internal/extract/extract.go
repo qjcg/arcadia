@@ -29,7 +29,7 @@ func extractFrontmatter(content string) string {
 	return strings.Join(frontmatter, "\n")
 }
 
-func ExtractSkills(moduleDir, skillsDir, modulesDir, module string) error {
+func ExtractSkills(moduleDir, skillsDir, modulesDir, module, version string) error {
 	var extractedSkills []string
 	skillsFound := 0
 	err := filepath.Walk(moduleDir, func(path string, info os.FileInfo, err error) error {
@@ -89,7 +89,7 @@ func ExtractSkills(moduleDir, skillsDir, modulesDir, module string) error {
 		if err != nil {
 			return fmt.Errorf("load manifest: %w", err)
 		}
-		m.AddSkills(module, extractedSkills)
+		m.AddSkills(module, extractedSkills, version)
 		if err := m.Save(modulesDir); err != nil {
 			return fmt.Errorf("save manifest: %w", err)
 		}

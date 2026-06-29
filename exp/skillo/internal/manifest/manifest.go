@@ -11,6 +11,8 @@ import (
 type Manifest struct {
 	// ModuleSkills maps module path to list of skill names
 	ModuleSkills map[string][]string `json:"module_skills"`
+	// ModuleVersions maps module path to the installed version
+	ModuleVersions map[string]string `json:"module_versions,omitempty"`
 }
 
 // Load reads the manifest from the modules directory
@@ -19,7 +21,10 @@ func Load(modulesDir string) (*Manifest, error) {
 	data, err := os.ReadFile(manifestPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return &Manifest{ModuleSkills: make(map[string][]string)}, nil
+			return &Manifest{
+				ModuleSkills:   make(map[string][]string),
+				ModuleVersions: make(map[string]string),
+			}, nil
 		}
 		return nil, fmt.Errorf("read manifest: %w", err)
 	}
@@ -30,6 +35,9 @@ func Load(modulesDir string) (*Manifest, error) {
 	}
 	if m.ModuleSkills == nil {
 		m.ModuleSkills = make(map[string][]string)
+	}
+	if m.ModuleVersions == nil {
+		m.ModuleVersions = make(map[string]string)
 	}
 	return &m, nil
 }
@@ -47,9 +55,10 @@ func (m *Manifest) Save(modulesDir string) error {
 	return nil
 }
 
-// AddSkills records that a module provides specific skills
-func (m *Manifest) AddSkills(module string, skills []string) {
+// AddSkills records that a module provides specific skills and the installed version
+func (m *Manifest) AddSkills(module string, skills []string, version string) {
 	m.ModuleSkills[module] = skills
+	m.ModuleVersions[module] = version
 }
 
 // GetSkills returns the skills provided by a module
