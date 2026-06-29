@@ -8,10 +8,9 @@ skillo init
 mkdir -p $HOME/.agents/skills/my-skill
 mkdir -p $HOME/.agents/skills/plain-skill
 
-# List should show description and skill name
+# List should show skill names
 skillo list
 stdout 'my-skill'
-stdout 'A useful test skill'
 
 # plain-skill has no description, should still appear
 stdout 'plain-skill'

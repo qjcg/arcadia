@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -337,18 +338,12 @@ are no longer in selections. Idempotent — safe to run repeatedly.`,
 					}
 				}
 
-				// Build version map from go list
+				// Build version map from go.mod
 				skillVersion := make(map[string]string)
-				skillModule := make(map[string]string)
 				for module := range sel {
-					goList := exec.Command("go", "list", "-m", "-f", "{{.Version}}", module)
-					goList.Dir = skilloDir
-					if verOut, err := goList.CombinedOutput(); err == nil {
-						ver := strings.TrimSpace(string(verOut))
-						for _, name := range sel[module] {
-							skillVersion[name] = ver
-							skillModule[name] = module
-						}
+					ver := moduleVersionFromGoMod(skilloDir, module)
+					for _, name := range sel[module] {
+						skillVersion[name] = ver
 					}
 				}
 
@@ -361,7 +356,7 @@ are no longer in selections. Idempotent — safe to run repeatedly.`,
 							entry := skillEntry{
 								Name:        name,
 								Version:     skillVersion[name],
-								Module:      skillModule[name],
+								Module:      module,
 								Description: descriptions[name],
 								Location:    location,
 							}
@@ -484,32 +479,40 @@ are no longer in selections. Idempotent — safe to run repeatedly.`,
 				}
 				return enc.Encode(allEntries)
 			default:
+				w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+				fmt.Fprintln(w, "SKILL\tVERSION\tMODULE\tSCOPE\tSTATUS")
 				for _, e := range allEntries {
-					var buf strings.Builder
-					buf.WriteString(e.Name)
-					if e.Version != "" {
-						buf.WriteString(fmt.Sprintf("  %s", e.Version))
+					ver := e.Version
+					if ver == "" {
+						ver = "—"
+					}
+					mod := e.Module
+					if mod == "" {
+						mod = "—"
+					}
+					scope := e.Location
+					if scope == "" {
+						scope = "project"
+					}
+					status := ""
+					if e.Orphaned {
+						status = "orphaned"
+					} else if e.Stale {
+						status = "stale"
 					}
 					if e.Outdated {
-						buf.WriteString(" (outdated)")
+						if status != "" {
+							status += ", "
+						}
+						status += "outdated"
 					}
-					if e.Orphaned {
-						buf.WriteString(" (orphaned)")
+					if status == "" {
+						status = "—"
 					}
-					if e.Stale {
-						buf.WriteString(" (stale — run sync)")
-					}
-					if e.Location == "user" {
-						buf.WriteString(" (user)")
-					}
-					if e.Module != "" {
-						buf.WriteString(fmt.Sprintf("  [%s]", e.Module))
-					}
-					if e.Description != "" {
-						buf.WriteString(fmt.Sprintf("  # %s", e.Description))
-					}
-					fmt.Println(buf.String())
+					line := fmt.Sprintf("%s\t%s\t%s\t%s\t%s", e.Name, ver, mod, scope, status)
+					fmt.Fprintln(w, line)
 				}
+				w.Flush()
 				return nil
 			}
 		},
@@ -617,6 +620,30 @@ func syncScope(skilloDir, skillsDir string) error {
 
 	fmt.Println("Sync complete")
 	return nil
+}
+
+// moduleVersionFromGoMod reads a module's version directly from go.mod.
+// This is a fallback when go list -m fails (e.g., stale cache or go.sum mismatch).
+func moduleVersionFromGoMod(skilloDir, module string) string {
+	data, err := os.ReadFile(filepath.Join(skilloDir, "go.mod"))
+	if err != nil {
+		return ""
+	}
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		fields := strings.Fields(trimmed)
+		for i, f := range fields {
+			if f == module && i+1 < len(fields) {
+				candidate := fields[i+1]
+				// Skip non-version tokens like "//" or ")"
+				if !strings.HasPrefix(candidate, "//") && candidate != ")" {
+					return candidate
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // findModuleDir locates a module's directory after go get has installed it.

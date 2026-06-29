@@ -4,9 +4,11 @@ mkdir $WORK/home
 # Initialize skillo
 skillo init
 
-# Empty list (no skills installed yet)
+# Empty list (no skills installed yet) — header shows
 skillo list
-! stdout .
+stdout 'SKILL'
+stdout 'STATUS'
+! stdout 'test-skill'
 
 # Create a fake skill directory to test listing
 mkdir -p $HOME/.agents/skills/test-skill
