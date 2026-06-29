@@ -9,7 +9,7 @@ skillo list
 ! stdout .
 
 # Create a fake skill directory to test listing
-mkdir -p $HOME/.config/agents/skills/test-skill
+mkdir -p $HOME/.agents/skills/test-skill
 
 # List should show the skill
 skillo list

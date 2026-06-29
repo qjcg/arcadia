@@ -1,0 +1,24 @@
+env HOME=$WORK/home
+mkdir -p $WORK/home
+
+# Initialize skillo
+skillo init
+
+# Create a skill dir so there's output
+mkdir -p $HOME/.agents/skills/my-skill
+
+# List with --format json should produce valid JSON
+skillo list --format json
+stdout '\['
+stdout '\]'
+
+# Create manifest
+mkdir -p $HOME/.skillo
+
+# List with --format json should show structured data
+skillo list --format json
+stdout '"name": "my-skill"'
+stdout '"version": "v2.0.0"'
+stdout '"module": "github.com/example/repo"'
+-- home/.skillo/.skillo-manifest.json --
+{"module_skills":{"github.com/example/repo":["my-skill"]},"module_versions":{"github.com/example/repo":"v2.0.0"}}

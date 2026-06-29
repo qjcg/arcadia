@@ -1,0 +1,16 @@
+env HOME=$WORK/home
+mkdir -p $WORK/home
+
+# Initialize skillo (this creates $HOME/.skillo with go.mod)
+skillo init
+
+# Create a fake skill directory to test listing
+mkdir -p $HOME/.agents/skills/test-skill
+
+# Create a manifest with version info (before list, it's manually embedded in txtar)
+# List should show the skill with version
+skillo list
+stdout 'test-skill'
+stdout 'v1\.2\.3'
+-- home/.skillo/.skillo-manifest.json --
+{"module_skills":{"github.com/example/my-skill":["test-skill"]},"module_versions":{"github.com/example/my-skill":"v1.2.3"}}
