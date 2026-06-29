@@ -164,20 +164,10 @@ Use --user or --project to target a specific scope.`,
 			}
 			fmt.Printf("Installed %s@%s\n", module, version)
 
-			// Ensure module is fully resolved before listing its directory.
-			// go get does not always make the module visible to go list -m
-			// when fetched over the network.
-			goDown := exec.Command("go", "mod", "download")
-			goDown.Dir = skilloDir
-			goDown.Run()
-
-			goList := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", module)
-			goList.Dir = skilloDir
-			listOut, err := goList.CombinedOutput()
+			moduleDir, err := findModuleDir(skilloDir, module)
 			if err != nil {
-				return fmt.Errorf("go list: %v\n%s", err, listOut)
+				return fmt.Errorf("find module dir: %w", err)
 			}
-			moduleDir := strings.TrimSpace(string(listOut))
 
 			var extracted []string
 			if len(skillList) > 0 {
@@ -620,6 +610,80 @@ func syncScope(skilloDir, skillsDir string) error {
 
 	fmt.Println("Sync complete")
 	return nil
+}
+
+// findModuleDir locates a module's directory after go get has installed it.
+// It first tries go list -m, then falls back to reading go.mod and the module cache.
+func findModuleDir(skilloDir, module string) (string, error) {
+	// First try go list -m
+	goList := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", module)
+	goList.Dir = skilloDir
+	if listOut, err := goList.CombinedOutput(); err == nil {
+		dir := strings.TrimSpace(string(listOut))
+		if dir != "" {
+			info, err := os.Stat(dir)
+			if err == nil && info.IsDir() {
+				return dir, nil
+			}
+		}
+	}
+
+	// Fallback: parse go.mod to find the actual module path and version,
+	// then construct the directory from the module cache.
+	goModPath := filepath.Join(skilloDir, "go.mod")
+	data, err := os.ReadFile(goModPath)
+	if err != nil {
+		return "", fmt.Errorf("read go.mod: %w", err)
+	}
+
+	// Get the module cache root
+	cacheCmd := exec.Command("go", "env", "GOMODCACHE")
+	cacheCmd.Dir = skilloDir
+	cacheOut, err := cacheCmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("go env GOMODCACHE: %w", err)
+	}
+	modCache := strings.TrimSpace(string(cacheOut))
+
+	// Parse go.mod for require directives
+	// Look for the module we requested, or one that starts with it
+	inRequire := false
+	for _, line := range strings.Split(string(data), "\n") {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "require (") {
+			inRequire = true
+			continue
+		}
+		if inRequire && trimmed == ")" {
+			inRequire = false
+			continue
+		}
+		if inRequire || (!inRequire && strings.HasPrefix(trimmed, "require ") && !strings.HasPrefix(trimmed, "require (")) {
+			// Extract module path and version
+			fields := strings.Fields(trimmed)
+			if len(fields) >= 2 {
+				candidatePath := fields[0]
+				candidateVer := fields[len(fields)-1]
+				// Skip version that looks like an indirect marker "//"
+				if strings.HasPrefix(candidateVer, "//") || candidateVer == ")" {
+					continue
+				}
+				// Match: exact match OR requested module is a prefix of candidate
+				if candidatePath == module || strings.HasPrefix(candidatePath, module) {
+					// Check both the clean module path and with version suffix
+					for _, tryPath := range []string{candidatePath, module} {
+						candidateDir := filepath.Join(modCache, tryPath+"@"+candidateVer)
+						if info, err := os.Stat(candidateDir); err == nil && info.IsDir() {
+							return candidateDir, nil
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return "", fmt.Errorf("module %q not found in go.mod or module cache after go get", module)
 }
 
 func readSkillDescriptions(dir string) map[string]string {
