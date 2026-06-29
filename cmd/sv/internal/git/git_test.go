@@ -3,7 +3,6 @@ package git
 import (
 	"os"
 	"os/exec"
-	"reflect"
 	"testing"
 )
 
@@ -82,7 +81,7 @@ func TestCommitsSince(t *testing.T) {
 	runGit(t, tmpDir, "commit", "-m", "fix: module fix")
 
 	// Test commits since tag for root
-	var commits []string
+	var commits []CommitInfo
 	var err error
 	runGit(t, tmpDir, "tag", "v1.0.0")
 	runGit(t, tmpDir, "commit", "--allow-empty", "-m", "feat: after v1.0.0")
@@ -91,9 +90,8 @@ func TestCommitsSince(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected := []string{"feat: after v1.0.0"}
-	if !reflect.DeepEqual(commits, expected) {
-		t.Errorf("expected %v, got %v", expected, commits)
+	if len(commits) != 1 || commits[0].Message != "feat: after v1.0.0" {
+		t.Errorf("expected 1 commit with message 'feat: after v1.0.0', got %d commits", len(commits))
 	}
 
 	// Test commits since tag for module
@@ -101,9 +99,8 @@ func TestCommitsSince(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected = []string{"fix: module fix"}
-	if !reflect.DeepEqual(commits, expected) {
-		t.Errorf("expected %v, got %v", expected, commits)
+	if len(commits) != 1 || commits[0].Message != "fix: module fix" {
+		t.Errorf("expected 1 commit with message 'fix: module fix', got %d commits", len(commits))
 	}
 }
 
@@ -222,5 +219,41 @@ func TestLatestTag_NonExistentPath(t *testing.T) {
 	}
 	if tag != "" {
 		t.Errorf("expected no tag, got %q", tag)
+	}
+}
+
+func TestCommitAtTag(t *testing.T) {
+	tmpDir := setupGitRepo(t)
+
+	// First commit + tag
+	runGit(t, tmpDir, "commit", "--allow-empty", "-m", "initial")
+	runGit(t, tmpDir, "tag", "v0.1.0")
+
+	// Second commit + tag
+	runGit(t, tmpDir, "commit", "--allow-empty", "-m", "feat: add feature")
+	runGit(t, tmpDir, "tag", "v1.0.0")
+
+	// Test v0.1.0
+	ci, err := CommitAtTag(tmpDir, "v0.1.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ci.Message != "initial" {
+		t.Errorf("expected message %q, got %q", "initial", ci.Message)
+	}
+
+	// Test v1.0.0
+	ci, err = CommitAtTag(tmpDir, "v1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ci.Message != "feat: add feature" {
+		t.Errorf("expected message %q, got %q", "feat: add feature", ci.Message)
+	}
+
+	// Test nonexistent tag
+	_, err = CommitAtTag(tmpDir, "nonexistent")
+	if err == nil {
+		t.Error("expected error for nonexistent tag")
 	}
 }

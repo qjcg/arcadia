@@ -1,0 +1,51 @@
+# Test that sv changelog includes a tag even when there are no path-scoped
+# commits between it and the previous tag (e.g., a major version bump with
+# underlying changes outside the module path).
+exec git init -q
+exec git config user.email test@example.com
+exec git config user.name "Test User"
+
+# Add a root go.mod first so we can make commits that don't touch pkg/m/
+cp root_go_mod go.mod
+exec git add go.mod
+exec git commit -m init-root
+
+# Create a submodule at pkg/m
+mkdir -p pkg/m
+cp sub_go_mod pkg/m/go.mod
+exec git add pkg/m/go.mod
+exec git commit -m init-sub
+
+# Tag v0.1.0 for pkg/m (on the init-sub commit)
+exec git tag pkg/m/v0.1.0
+
+# Make empty commits that don't touch pkg/m/ (simulates build/config changes)
+# Use -F to read a conventional commit message with spaces from a file
+exec git commit --allow-empty -F commit_msg
+
+# Tag v1.0.0 for pkg/m (on the build-update commit, no pkg/m changes)
+exec git tag pkg/m/v1.0.0
+
+# Add a commit to pkg/m so the unreleased section doesn't skew things
+cp sub_go_mod_v2 pkg/m/go.mod
+exec git add pkg/m/go.mod
+exec git commit -m feat-add
+
+# Changelog for pkg/m should include v1.0.0 even though the only commit
+# between v0.1.0 and v1.0.0 doesn't touch pkg/m/
+exec sv changelog -p pkg/m
+stdout '## \[v1.0.0\]'
+stdout 'update build tool'
+
+# v0.1.0 should also be present
+stdout '## \[v0.1.0\]'
+
+-- root_go_mod --
+module example.com/root
+-- sub_go_mod --
+module example.com/root/pkg/m
+-- sub_go_mod_v2 --
+module example.com/root/pkg/m
+go 1.21
+-- commit_msg --
+build: update build tool

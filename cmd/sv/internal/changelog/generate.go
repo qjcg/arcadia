@@ -185,7 +185,13 @@ func generateFromTags(root, modulePath string, ascTags []string, startIdx, endId
 		}
 
 		if len(commits) == 0 {
-			continue
+			// No path-scoped commits found; fall back to the tag's own commit
+			// so version bumps like v0.1.1→v1.0.0 still produce an entry.
+			tagCommit, err := git.CommitAtTag(root, tag)
+			if err != nil {
+				continue
+			}
+			commits = []git.CommitInfo{tagCommit}
 		}
 
 		date, err := git.TagDate(root, tag)
@@ -193,7 +199,7 @@ func generateFromTags(root, modulePath string, ascTags []string, startIdx, endId
 			date = "" // non-fatal; omit date
 		}
 
-		entry := buildEntry(tag, date, commits)
+		entry := buildEntry(stripModulePrefix(tag, modulePath), date, commits)
 		entries = append(entries, entry)
 	}
 
@@ -202,29 +208,21 @@ func generateFromTags(root, modulePath string, ascTags []string, startIdx, endId
 		latestTag := tags[len(tags)-1]
 		unreleasedCommits, err := git.CommitsBetweenDetail(root, latestTag, "", modulePath, excludePaths)
 		if err == nil && len(unreleasedCommits) > 0 {
-			entry := buildEntry(unreleasedVersion(modulePath), "", unreleasedCommits)
+			entry := buildEntry("unreleased", "", unreleasedCommits)
 			entries = append(entries, entry)
 		}
 	}
 
 	// Sort entries: newest first for output using semver comparison
-	unrelVer := unreleasedVersion(modulePath)
 	sort.Slice(entries, func(i, j int) bool {
-		if entries[i].Version == unrelVer {
+		if entries[i].Version == "unreleased" {
 			return true
 		}
-		if entries[j].Version == unrelVer {
+		if entries[j].Version == "unreleased" {
 			return false
 		}
-		// Strip module path prefix for proper semver parsing
-		a := entries[i].Version
-		b := entries[j].Version
-		if modulePath != "." {
-			a = strings.TrimPrefix(a, modulePath+"/")
-			b = strings.TrimPrefix(b, modulePath+"/")
-		}
-		vi, errI := mastersemver.NewVersion(a)
-		vj, errJ := mastersemver.NewVersion(b)
+		vi, errI := mastersemver.NewVersion(entries[i].Version)
+		vj, errJ := mastersemver.NewVersion(entries[j].Version)
 		if errI == nil && errJ == nil {
 			return vi.GreaterThan(vj)
 		}
@@ -281,13 +279,18 @@ func submoduleExclusions(root, modulePath string) []string {
 	return exclusions
 }
 
-// unreleasedVersion returns the version string for unreleased entries.
-// For root modules it's "unreleased"; for sub-modules it includes the module path.
-func unreleasedVersion(modulePath string) string {
-	if modulePath == "." || modulePath == "" {
-		return "unreleased"
+// stripModulePrefix removes the module path prefix from a version tag.
+// For root modules ("."), the tag is returned as-is.
+func stripModulePrefix(tag, modulePath string) string {
+	if modulePath == "" || modulePath == "." {
+		return tag
 	}
-	return modulePath + "/unreleased"
+	return strings.TrimPrefix(tag, modulePath+"/")
+}
+
+// unreleasedVersion returns the version string for unreleased entries.
+func unreleasedVersion(string) string {
+	return "unreleased"
 }
 
 // parseSince parses a --from value that represents a date, duration, or year.

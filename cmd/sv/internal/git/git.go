@@ -140,10 +140,11 @@ func HistoricalPaths(root, modulePath string) ([]string, error) {
 	return paths, nil
 }
 
-// CommitsSince returns commit messages since a tag, scoped to a path.
+// CommitsSince returns commit info since a tag, scoped to a path.
 // When excludePaths is provided and path is ".", commits that only touch
-// files in excluded paths are filtered out.
-func CommitsSince(root, tag, path string, excludePaths []string) ([]string, error) {
+// files in excluded paths are filtered out. For the root path with exclusions,
+// commit.Files is populated with only the non-excluded files.
+func CommitsSince(root, tag, path string, excludePaths []string) ([]CommitInfo, error) {
 	// Get commit hash and message (one per line: hash\nmessage)
 	args := []string{"log", "--format=%H%n%s"}
 	if tag != "" {
@@ -186,7 +187,7 @@ func CommitsSince(root, tag, path string, excludePaths []string) ([]string, erro
 
 	// If path is "." and we have exclusions, filter by file
 	if path == "." && len(excludePaths) > 0 {
-		var filtered []string
+		var filtered []CommitInfo
 		for _, entry := range entries {
 			if len(entry) < 2 {
 				continue
@@ -205,6 +206,7 @@ func CommitsSince(root, tag, path string, excludePaths []string) ([]string, erro
 			fileLines := strings.Split(strings.TrimSpace(string(fileOut)), "\n")
 			// fileLines[0] = commit message, fileLines[1:] = files
 
+			var nonExcludedFiles []string
 			hasNonExcluded := false
 			hasFiles := false
 			for _, f := range fileLines[1:] {
@@ -222,7 +224,7 @@ func CommitsSince(root, tag, path string, excludePaths []string) ([]string, erro
 				}
 				if !isExcluded {
 					hasNonExcluded = true
-					break
+					nonExcludedFiles = append(nonExcludedFiles, f)
 				}
 			}
 
@@ -230,17 +232,24 @@ func CommitsSince(root, tag, path string, excludePaths []string) ([]string, erro
 			// - It has no files (e.g., empty commits via --allow-empty)
 			// - It has at least one non-excluded file
 			if !hasFiles || hasNonExcluded {
-				filtered = append(filtered, msg)
+				filtered = append(filtered, CommitInfo{
+					Hash:    hash,
+					Message: msg,
+					Files:   nonExcludedFiles,
+				})
 			}
 		}
 		return filtered, nil
 	}
 
-	// No exclusions: just return the messages
-	var commits []string
+	// No exclusions: just return the commit info
+	var commits []CommitInfo
 	for _, entry := range entries {
 		if len(entry) >= 2 {
-			commits = append(commits, entry[1])
+			commits = append(commits, CommitInfo{
+				Hash:    entry[0],
+				Message: entry[1],
+			})
 		}
 	}
 	return commits, nil
@@ -327,9 +336,10 @@ func CommitsBetween(root, fromTag, toTag, path string) ([]string, error) {
 
 // CommitInfo holds a parsed git commit result.
 type CommitInfo struct {
-	Hash    string // full commit hash
-	Short   string // short hash (7 characters)
-	Message string // commit message subject line
+	Hash    string   // full commit hash
+	Short   string   // short hash (7 characters)
+	Message string   // commit message subject line
+	Files   []string // changed files (only populated when computed)
 }
 
 // CommitsBetweenDetail returns commits between two tags (exclusive of fromTag, inclusive of toTag).
@@ -513,4 +523,30 @@ func Root() (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(string(out)), nil
+}
+
+// CommitAtTag returns the single commit that a tag points to, regardless of path.
+func CommitAtTag(root, tag string) (CommitInfo, error) {
+	cmd := exec.Command("git", "log", "-1", "--format=%H%n%h%n%s", tag)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return CommitInfo{}, err
+	}
+
+	trimmed := strings.TrimSpace(string(out))
+	if trimmed == "" {
+		return CommitInfo{}, fmt.Errorf("no commit for tag %s", tag)
+	}
+
+	lines := strings.Split(trimmed, "\n")
+	if len(lines) < 3 {
+		return CommitInfo{}, fmt.Errorf("unexpected output for tag %s", tag)
+	}
+
+	return CommitInfo{
+		Hash:    strings.TrimSpace(lines[0]),
+		Short:   strings.TrimSpace(lines[1]),
+		Message: strings.TrimSpace(lines[2]),
+	}, nil
 }
