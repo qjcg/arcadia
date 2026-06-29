@@ -4,20 +4,19 @@ mkdir -p $WORK/home
 # Initialize skillo
 skillo init
 
-# Create manifest for module+version info
-mkdir -p $HOME/.skillo
+# Create selections + skills dir for module+version info
+mkdir -p $HOME/.agents/skills/my-skill
+mkdir -p $HOME/.agents/skills/plain-skill
 
-# List should show description and module source
+# List should show description and skill name
 skillo list
 stdout 'my-skill'
-stdout 'v2\.0\.0'
 stdout 'A useful test skill'
-stdout '\[github.com/example/repo\]'
 
 # plain-skill has no description, should still appear
 stdout 'plain-skill'
--- home/.skillo/.skillo-manifest.json --
-{"module_skills":{"github.com/example/repo":["my-skill"]},"module_versions":{"github.com/example/repo":"v2.0.0"}}
+-- home/.config/skillo/selections.json --
+{"github.com/example/repo":["my-skill"]}
 -- home/.agents/skills/my-skill/SKILL.md --
 ---
 name: my-skill
@@ -26,4 +25,3 @@ license: MIT
 ---
 
 # My Skill
--- home/.agents/skills/plain-skill/.gitkeep --

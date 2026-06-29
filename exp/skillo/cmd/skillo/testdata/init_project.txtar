@@ -1,0 +1,12 @@
+env HOME=$WORK/home
+mkdir $WORK/home
+
+# Create a git repo
+mkdir -p $WORK/myproject/.git
+
+# Initialize project skillo dir
+cd $WORK/myproject
+skillo init --project
+stdout 'initialized at'
+exists $WORK/myproject/.skillo/go.mod
+exists $WORK/myproject/.skillo/selections.json

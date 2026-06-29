@@ -24,17 +24,8 @@ func RegisterAllSteps(ctx *godog.ScenarioContext, s *State) {
 		_, err := s.runApp(parts...)
 		return err
 	})
-	ctx.Step(`^I run "skillo" with "init --modules-dir " and the path "([^"]+)"$`, func(path string) error {
-		fullPath := filepath.Join(s.homeDir, path)
-		_, err := s.runApp("init", "--modules-dir", fullPath)
-		return err
-	})
-	ctx.Step(`^I run "skillo" with "search" and the term "([^"]*)"$`, func(term string) error {
-		_, err := s.runApp("search", term)
-		return err
-	})
-	ctx.Step(`^I run "skillo" with "validate" and the path$`, func() error {
-		_, err := s.runApp("validate", s.storedDir)
+	ctx.Step(`^I run "skillo" with "init --project"$`, func() error {
+		_, err := s.runApp("init", "--project")
 		return err
 	})
 	ctx.Step(`^it should succeed$`, func() error {

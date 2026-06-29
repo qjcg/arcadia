@@ -1,17 +1,13 @@
 env HOME=$WORK/home
 mkdir $WORK/home
 
-# First init
+# First init creates ~/.config/skillo/
 skillo init
 stdout 'initialized at'
-exists $WORK/home/.skillo/go.mod
-grep 'module skillo.local/skills' $WORK/home/.skillo/go.mod
+exists $HOME/.config/skillo/go.mod
+exists $HOME/.config/skillo/selections.json
+grep 'module skillo.local/skills' $HOME/.config/skillo/go.mod
 
 # Second init should be idempotent-ish
 skillo init
 stdout 'workspace already initialized at'
-
-# Explicit modules dir
-skillo init --modules-dir $WORK/custom-skillo
-stdout 'initialized at'
-exists $WORK/custom-skillo/go.mod

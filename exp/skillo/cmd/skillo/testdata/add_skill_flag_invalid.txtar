@@ -1,0 +1,14 @@
+env HOME=$WORK/home
+mkdir $WORK/home
+
+# Initialize
+skillo init
+
+# Test that --help shows all commands
+skillo --help
+stdout 'add'
+stdout 'init'
+stdout 'list'
+stdout 'remove'
+stdout 'sync'
+stdout 'update'
