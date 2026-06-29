@@ -36,7 +36,7 @@ func (s *State) buildBinary() error {
 		return nil
 	}
 	s.binPath = filepath.Join(s.testDir, "skillo")
-	cmd := exec.Command("go", "build", "-o", s.binPath, "./cmd/skillo")
+	cmd := exec.Command("go", "build", "-o", s.binPath, ".")
 	cmd.Dir = projectRoot
 	cmd.Env = append(os.Environ(), "GOWORK=off")
 	out, err := cmd.CombinedOutput()
