@@ -309,6 +309,7 @@ are no longer in selections. Idempotent — safe to run repeatedly.`,
 			}
 			showOutdated, _ := cmd.Flags().GetBool("outdated")
 			format, _ := cmd.Flags().GetString("format")
+			showTree, _ := cmd.Flags().GetBool("tree")
 
 			sources := skilldirs.Detect(home, cwd)
 
@@ -479,6 +480,52 @@ are no longer in selections. Idempotent — safe to run repeatedly.`,
 				}
 				return enc.Encode(allEntries)
 			default:
+				if showTree {
+					// Group by module@version
+					type modKey struct {
+						module  string
+						version string
+					}
+					tree := make(map[modKey][]skillEntry)
+					var keys []modKey
+					for _, e := range allEntries {
+						mk := modKey{e.Module, e.Version}
+						if _, ok := tree[mk]; !ok {
+							keys = append(keys, mk)
+						}
+						tree[mk] = append(tree[mk], e)
+					}
+					for i, mk := range keys {
+						mod := mk.module
+						if mod == "" {
+							mod = "(unknown)"
+						}
+						ver := mk.version
+						if ver == "" {
+							ver = "—"
+						}
+						label := mod + "@" + ver
+						fmt.Println(label)
+						entries := tree[mk]
+						for j, e := range entries {
+							prefix := "├── "
+							suffix := ""
+							if j == len(entries)-1 {
+								prefix = "└── "
+							}
+							if e.Orphaned {
+								suffix = " (orphaned)"
+							} else if e.Stale {
+								suffix = " (stale)"
+							}
+							fmt.Println(prefix + e.Name + suffix)
+						}
+						if i < len(keys)-1 {
+							fmt.Println()
+						}
+					}
+					return nil
+				}
 				w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 				fmt.Fprintln(w, "SKILL\tVERSION\tMODULE\tSCOPE\tSTATUS")
 				for _, e := range allEntries {
@@ -520,6 +567,7 @@ are no longer in selections. Idempotent — safe to run repeatedly.`,
 	listCmd.Flags().String("scope", "", "Scope to show: user, project, or auto (default)")
 	listCmd.Flags().Bool("outdated", false, "Show only skills with available upgrades")
 	listCmd.Flags().String("format", "table", "Output format (table, json)")
+	listCmd.Flags().BoolP("tree", "t", false, "Show tree view grouped by module")
 
 	// ─── update ───────────────────────────────────────────────────────────────
 	updateCmd := &cobra.Command{
