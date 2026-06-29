@@ -5,158 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [exp/sv/unreleased]
-
-### Changed
-- 0638b54a - Update changelogs
-- 63db3549 - Update changelogs
-
-## [exp/sv/v0.10.1] - 2026-06-25
-
-### Changed
-- 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
+## [unreleased]
 
 ### Fixed
-- 8a828b66 - include pre-rename commits in submodule changelogs
+- b1127611 - scope breaking change detection to source code per module
+- 8a52bfa9 - include tags with no scoped commits in changelog
 
-## [exp/sv/v0.10.0] - 2026-06-25
+## [v1.0.0] - 2026-06-28
+
+### Changed
+- 150c17c7 - Update go tool to use new cmd/sv path
+
+## [v0.1.1] - 2026-06-28
+
+### Fixed
+- f93827df - Use appropriate dir names in relative_paths.txtar
+
+## [v0.1.0] - 2026-06-28
 
 ### Added
 - 3963b900 - Add `--write` flag
-
-### Changed
-- 49cce786 - Update deps
-
-## [exp/sv/v0.9.0] - 2026-06-19
-
-### Added
 - 3c8598e0 - add validate-cc subcommand for conventional commit validation
-
-### Changed
-- 7b93b891 - Run `go fix work`
-
-### Fixed
-- 8060e250 - remove redundant VALID/INVALID output from validate-cc
-
-## [exp/sv/v0.8.6] - 2026-06-19
-
-### Fixed
-- f1cf5ccb - sort changelog entries by semver, not lexicographically
-
-## [exp/sv/v0.8.5] - 2026-06-19
-
-### Fixed
-- 93257ba6 - prevent cross-module commit leaks from bogus rename detection
-
-## [exp/sv/v0.8.4] - 2026-06-19
-
-### Fixed
-- f4f57a20 - prevent retracted versions from duplicating commits in changelog
-
-## [exp/sv/v0.8.3] - 2026-06-19
-
-### Fixed
-- 348b27e8 - avoid duplicate # Changelog headings in multi-module output
-
-## [exp/sv/v0.8.2] - 2026-06-19
-
-### Fixed
-- 7d51a924 - exclude submodule commits from root module changelog
-
-## [exp/sv/v0.8.1] - 2026-06-19
-
-### Fixed
-- 0da1deca - include historical commits in changelog after module renames
-- f84dd7ff - search recursively for changelog overview files
-- 63502d70 - suppress changelog stdout with --dir and clean stale entry files
-
-## [exp/sv/v0.8.0] - 2026-06-19
-
-### Added
 - dfd978e9 - replace --since with --from/--to with date-aware tag generation
 - 80391959 - add changelog command for keepachangelog output
 - 8741730e - add changelog feature design document
-
-### Changed
-- 35e69b52 - Run `go fix`
-- a8cd3eec - Update go deps
-- b2cdf599 - document --tag, --tag-format, and --dry-run flags in README
-
-## [exp/sv/v0.7.0] - 2026-06-18
-
-### Added
 - cb2838cb - add --dry-run flag to `sv next`
 - eb6f23dc - add annotated git tag support to `sv next`
-
-### Changed
-- 3f071074 - rename --debug flag to --verbose
-
-## [exp/sv/v0.6.0] - 2026-06-15
-
-### Added
 - 2ee093a1 - skip retracted Go module versions when calculating next version
-
-### Changed
-- 7cae5fa3 - Update go deps
-- 54dd9f3e - Update go deps
-
-## [exp/sv/v0.5.0] - 2026-05-25
-
-### Added
 - b1e1b863 - add --default-patch flag to next subcommand
-
-## [exp/sv/v0.4.0] - 2026-05-25
-
-### Added
 - b0a103fc - Remove -v/--verbose flags from subcommands
-
-## [exp/sv/v0.3.0] - 2026-05-25
-
-### Added
 - 6a33fcef - support repeated and comma-separated --path flag
-
-### Changed
-- 35baa6af - Run `task lint:fix`
-- 512e7454 - extract CLI subcommands into internal/cli
-
-## [exp/sv/v0.2.4] - 2026-05-24
-
-### Changed
-- 51d22a3a - Bump go deps
-
-## [exp/sv/v0.2.3] - 2026-05-19
-
-### Changed
-- 5b9213e1 - Tweak clean task
-
-## [exp/sv/v0.2.2] - 2026-05-19
-
-### Changed
-- 1db5f54c - use boa CLI framework
-
-## [exp/sv/v0.2.1] - 2026-05-19
-
-### Changed
-- f64b5684 - Update go deps
-
-### Fixed
-- d9d8d0ec - show modules with chore-only commits in sv next -a
-
-## [exp/sv/v0.2.0] - 2026-04-06
-
-### Added
 - 937e5936 - add --version flag using debug.ReadBuildInfo
-
-### Fixed
-- 0a787d56 - use commit hash instead of message in file filtering
-
-## [exp/sv/v0.1.0] - 2026-04-06
-
-### Added
 - 011d7d20 - default to v0.1.0 for untagged modules
 - d887b140 - implement semantic versioning tool with monorepo support
 
 ### Changed
+- 9e483f97 - Graduate out of exp(erimental) dir to cmd
+- 6731ec0a - Update all changelogs
+- 0638b54a - Update changelogs
+- 63db3549 - Update changelogs
+- 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
+- 49cce786 - Update deps
+- 7b93b891 - Run `go fix work`
+- 35e69b52 - Run `go fix`
+- a8cd3eec - Update go deps
+- b2cdf599 - document --tag, --tag-format, and --dry-run flags in README
+- 3f071074 - rename --debug flag to --verbose
+- 7cae5fa3 - Update go deps
+- 54dd9f3e - Update go deps
+- 35baa6af - Run `task lint:fix`
+- 512e7454 - extract CLI subcommands into internal/cli
+- 51d22a3a - Bump go deps
+- 5b9213e1 - Tweak clean task
+- 1db5f54c - use boa CLI framework
+- f64b5684 - Update go deps
 - 3c976e6b - improve test coverage and fix error handling
 - a7d247e8 - Improve sv test coverage and fix code quality
 - 844a2f69 - Rename x/ directory to exp/
@@ -169,4 +71,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - c585192c - add product vision and automation documentation
 
 ### Fixed
+- 8a828b66 - include pre-rename commits in submodule changelogs
+- 8060e250 - remove redundant VALID/INVALID output from validate-cc
+- f1cf5ccb - sort changelog entries by semver, not lexicographically
+- 93257ba6 - prevent cross-module commit leaks from bogus rename detection
+- f4f57a20 - prevent retracted versions from duplicating commits in changelog
+- 348b27e8 - avoid duplicate # Changelog headings in multi-module output
+- 7d51a924 - exclude submodule commits from root module changelog
+- 0da1deca - include historical commits in changelog after module renames
+- f84dd7ff - search recursively for changelog overview files
+- 63502d70 - suppress changelog stdout with --dir and clean stale entry files
+- d9d8d0ec - show modules with chore-only commits in sv next -a
+- 0a787d56 - use commit hash instead of message in file filtering
 - 56610dcc - filter commits by module path

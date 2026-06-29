@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [unreleased]
+
+### Changed
+- 150c17c7 - Update go tool to use new cmd/sv path
+- 9e483f97 - Graduate out of exp(erimental) dir to cmd
+
+## [v0.40.0] - 2026-06-27
+
+### Added
+- 75d6dbf3 - add shell completion for -t flag and normalize project_name
+
+### Changed
+- 16baed62 - Update deps
+- 29681f6c - reimagine pavona as a cookiecutter-inspired template engine
+- 6731ec0a - Update all changelogs
+
 ## [v0.39.0] - 2026-06-26
 
 ### Added
@@ -20,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - 4da59a85 - add roguelike game set in a French industrial town
+- 3963b900 - Add `--write` flag
+- 3c8598e0 - add validate-cc subcommand for conventional commit validation
 
 ### Changed
 - 3db75bd5 - Update deps
@@ -31,23 +49,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 34a64f69 - Bump go tool sv to v0.9.0
 - 4ff23fe2 - Use sv validate-cc for commit-msg git hook checks
 - f91b0d45 - Remove unneeded scripts
+- 7b93b891 - Run `go fix work`
 - 67b7d44f - Bump sv go tool
 - 0cbeca29 - Bump sv go tool
 - e48df127 - use go tool sv instead of hardcoded version in workflow
 - e36add3a - Bump sv version to v0.8.2
 
+### Fixed
+- 8a828b66 - include pre-rename commits in submodule changelogs
+- 8060e250 - remove redundant VALID/INVALID output from validate-cc
+- f1cf5ccb - sort changelog entries by semver, not lexicographically
+- 93257ba6 - prevent cross-module commit leaks from bogus rename detection
+- f4f57a20 - prevent retracted versions from duplicating commits in changelog
+- 348b27e8 - avoid duplicate # Changelog headings in multi-module output
+- 7d51a924 - exclude submodule commits from root module changelog
+- 0da1deca - include historical commits in changelog after module renames
+- f84dd7ff - search recursively for changelog overview files
+- 63502d70 - suppress changelog stdout with --dir and clean stale entry files
+
 ## [v0.37.0] - 2026-06-19
 
 ### Added
+- dfd978e9 - replace --since with --from/--to with date-aware tag generation
 - 80391959 - add changelog command for keepachangelog output
+- 8741730e - add changelog feature design document
+- cb2838cb - add --dry-run flag to `sv next`
+- eb6f23dc - add annotated git tag support to `sv next`
+- 2ee093a1 - skip retracted Go module versions when calculating next version
 
 ### Changed
+- 35e69b52 - Run `go fix`
 - 84507050 - Remove unused `tag:*` tasks
 - efa25bba - Remove chglog tool (unused)
 - ba761ae3 - Update go.work.sum
 - 91d532aa - Add goimports to linters and bump golangci-lint
 - a8cd3eec - Update go deps
+- b2cdf599 - document --tag, --tag-format, and --dry-run flags in README
 - c1ddc273 - Update sv version and use new `--tag` flag
+- 3f071074 - rename --debug flag to --verbose
 - 61a57e29 - Add Earthfile for typst templates
 - f60057e6 - Bump sv version to v0.6.0
 - f4fc5314 - Update go.work.sum
@@ -78,8 +117,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.34.1] - 2026-05-25
 
+### Added
+- b1e1b863 - add --default-patch flag to next subcommand
+- b0a103fc - Remove -v/--verbose flags from subcommands
+- 6a33fcef - support repeated and comma-separated --path flag
+
 ### Changed
 - e9e67498 - Bump sv version
+- 35baa6af - Run `task lint:fix`
+- 512e7454 - extract CLI subcommands into internal/cli
 
 ### Fixed
 - 1b19d549 - prevent sv-release failure when no version bumps needed
@@ -151,6 +197,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - dd162920 - Bump sv version
+- 5b9213e1 - Tweak clean task
+- 1db5f54c - use boa CLI framework
 
 ## [v0.33.3] - 2026-05-19
 
@@ -182,6 +230,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - 24dedb43 - fix sv-release workflow empty heredoc and tag matching
+- d9d8d0ec - show modules with chore-only commits in sv next -a
 - 726d4bcd - Remove bento examples
 
 ## [v0.32.3] - 2026-04-24
@@ -196,6 +245,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.32.2] - 2026-04-06
 
+### Added
+- 937e5936 - add --version flag using debug.ReadBuildInfo
+
 ### Changed
 - 814fcb2f - Use sv instead of svu in Taskfile
 
@@ -204,10 +256,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.32.1] - 2026-04-06
 
+### Changed
+- 3c976e6b - improve test coverage and fix error handling
+
 ### Fixed
 - 56610dcc - filter commits by module path
 
 ## [v0.32.0] - 2026-04-06
+
+### Added
+- 011d7d20 - default to v0.1.0 for untagged modules
 
 ### Changed
 - 35ef18a6 - Bump to latest release
@@ -276,6 +334,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 4f75421b - Add exp/README.md
 - d175d000 - Use top-level variable for golangci-lint version
 - 614e7a8e - Rename selfhosting/ directory to infra/
+- a7d247e8 - Improve sv test coverage and fix code quality
 - 844a2f69 - Rename x/ directory to exp/
 - 9b5d7909 - Remove cruft
 - 414dd73f - Update go.work.sum
@@ -587,6 +646,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - 51c26a51 - Update deps
+
+## [v0.10.0] - 2025-09-21
+
+### Added
+- 8adbf437 - Add joliv-spark example tests
 
 ## [v0.9.1] - 2025-09-21
 

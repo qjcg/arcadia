@@ -5,9 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [exp/fractalis/unreleased]
+## [unreleased]
 
 ### Changed
+- 6731ec0a - Update all changelogs
 - 6f2d4ba3 - Update wasm
 - 0638b54a - Update changelogs
 - 63db3549 - Update changelogs
@@ -17,28 +18,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 7cae5fa3 - Update go deps
 - 54dd9f3e - Update go deps
 
-## [exp/fractalis/v0.1.4] - 2026-05-24
+## [v0.1.4] - 2026-05-24
 
 ### Changed
 - 991531a9 - Bump go deps & run `go fix`
 - 8ccb22df - Run `go fix work`
 
-## [exp/fractalis/v0.1.3] - 2026-05-24
+## [v0.1.3] - 2026-05-24
 
 ### Changed
 - 51d22a3a - Bump go deps
 
-## [exp/fractalis/v0.1.2] - 2026-05-19
+## [v0.1.2] - 2026-05-19
 
 ### Changed
 - 85d23d61 - Run `gofumpt -w .`
 
-## [exp/fractalis/v0.1.1] - 2026-05-19
+## [v0.1.1] - 2026-05-19
 
 ### Changed
 - 78aadba0 - Update fractalis wasm
 
-## [exp/fractalis/v0.1.0] - 2026-04-06
+## [v0.1.0] - 2026-04-06
 
 ### Added
 - 8281d9aa - allow inpaint and outpaint modes to be active simultaneously

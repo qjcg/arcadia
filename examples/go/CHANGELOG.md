@@ -5,40 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [examples/go/unreleased]
+## [unreleased]
 
 ### Changed
+- 6731ec0a - Update all changelogs
 - 0638b54a - Update changelogs
 - 63db3549 - Update changelogs
 - 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
 
-## [examples/go/v0.1.5] - 2026-05-24
+## [v0.1.5] - 2026-05-24
 
 ### Changed
 - 991531a9 - Bump go deps & run `go fix`
 - 8ccb22df - Run `go fix work`
 
-## [examples/go/v0.1.4] - 2026-05-24
+## [v0.1.4] - 2026-05-24
 
 ### Changed
 - 51d22a3a - Bump go deps
 
-## [examples/go/v0.1.3] - 2026-05-24
+## [v0.1.3] - 2026-05-24
 
 ### Changed
 - 529ab5bc - Bump go deps
 
-## [examples/go/v0.1.2] - 2026-05-19
+## [v0.1.2] - 2026-05-19
 
 ### Changed
 - 85d23d61 - Run `gofumpt -w .`
 
-## [examples/go/v0.1.1] - 2026-05-19
+## [v0.1.1] - 2026-05-19
 
 ### Changed
 - f64b5684 - Update go deps
 
-## [examples/go/v0.1.0] - 2026-04-06
+## [v0.1.0] - 2026-04-06
 
 ### Added
 - 8adbf437 - Add joliv-spark example tests

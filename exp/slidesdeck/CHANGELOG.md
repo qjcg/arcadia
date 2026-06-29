@@ -5,16 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [exp/slidesdeck/unreleased]
+## [unreleased]
 
 ### Changed
+- 6731ec0a - Update all changelogs
 - 0638b54a - Update changelogs
 - 63db3549 - Update changelogs
 - 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
 - 49cce786 - Update deps
 - a8cd3eec - Update go deps
 
-## [exp/slidesdeck/v0.1.3] - 2026-06-15
+## [v0.1.3] - 2026-06-15
 
 ### Changed
 - 7cae5fa3 - Update go deps
@@ -23,17 +24,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - 95e301f0 - Use correct import path
 
-## [exp/slidesdeck/v0.1.2] - 2026-05-24
+## [v0.1.2] - 2026-05-24
 
 ### Changed
 - 991531a9 - Bump go deps & run `go fix`
 
-## [exp/slidesdeck/v0.1.1] - 2026-05-24
+## [v0.1.1] - 2026-05-24
 
 ### Changed
 - 51d22a3a - Bump go deps
 
-## [exp/slidesdeck/v0.1.0] - 2026-04-06
+## [v0.1.0] - 2026-04-06
 
 ### Added
 - ab55e46b - set gradient-dark as the default theme

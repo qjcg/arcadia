@@ -5,9 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [cmd/horeb/unreleased]
+## [unreleased]
 
 ### Changed
+- 6731ec0a - Update all changelogs
 - 0638b54a - Update changelogs
 - 63db3549 - Update changelogs
 - 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
@@ -16,12 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 7cae5fa3 - Update go deps
 - 54dd9f3e - Update go deps
 
-## [cmd/horeb/v0.17.1] - 2026-05-24
+## [v0.17.1] - 2026-05-24
 
 ### Changed
 - 51d22a3a - Bump go deps
 
-## [cmd/horeb/v0.17.0] - 2026-04-06
+## [v0.17.0] - 2026-04-06
 
 ### Added
 - c5da519e - Add updated .goreleaser
@@ -44,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - 0184efa3 - Run modernize
 
-## [cmd/horeb/v0.16.0] - 2025-09-14
+## [v0.16.0] - 2025-09-14
 
 ### Added
 - b52b5c02 - Move horeb from x/ to cmd/
