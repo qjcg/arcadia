@@ -164,6 +164,13 @@ Use --user or --project to target a specific scope.`,
 			}
 			fmt.Printf("Installed %s@%s\n", module, version)
 
+			// Ensure module is fully resolved before listing its directory.
+			// go get does not always make the module visible to go list -m
+			// when fetched over the network.
+			goDown := exec.Command("go", "mod", "download")
+			goDown.Dir = skilloDir
+			goDown.Run()
+
 			goList := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", module)
 			goList.Dir = skilloDir
 			listOut, err := goList.CombinedOutput()
