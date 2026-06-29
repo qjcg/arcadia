@@ -642,12 +642,12 @@ func readSkillDescriptions(dir string) map[string]string {
 			continue
 		}
 		rest := content[3:]
-		end := strings.Index(rest, "\n---")
-		if end < 0 {
+		before, _, ok := strings.Cut(rest, "\n---")
+		if !ok {
 			continue
 		}
 		var skill types.Skill
-		if err := yaml.Unmarshal([]byte(rest[:end]), &skill); err != nil {
+		if err := yaml.Unmarshal([]byte(before), &skill); err != nil {
 			continue
 		}
 		if skill.Description != "" {

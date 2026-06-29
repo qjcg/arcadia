@@ -6,6 +6,7 @@ package selections
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -133,8 +134,6 @@ func ModuleSkills(s Selections, module string) []string {
 // into selections format.
 func ConvertLegacyManifest(moduleSkills map[string][]string) Selections {
 	s := make(Selections, len(moduleSkills))
-	for mod, skills := range moduleSkills {
-		s[mod] = skills
-	}
+	maps.Copy(s, moduleSkills)
 	return s
 }
