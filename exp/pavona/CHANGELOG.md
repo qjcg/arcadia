@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- 3c164cdf - Update changelog
+- 7596abf0 - Add BDD feature tests with godog
 - fd4726e2 - move built-in templates to top-level templates directory
 
 ## [v0.2.0] - 2026-06-27

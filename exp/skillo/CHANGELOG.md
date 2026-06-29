@@ -5,9 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [v0.2.0] - 2026-06-29
+
+### Added
+- a9335c65 - enhance CLI with user/project dirs and rich list output
+- 6c4543b8 - add skilldirs package and version tracking to manifest
 
 ### Changed
+- fafc522e - add BDD feature tests with godog
+- ae73b3c2 - Update all the changelogs
 - c48959a8 - Update all changelogs
 - 6731ec0a - Update all changelogs
 - 0638b54a - Update changelogs

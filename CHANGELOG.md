@@ -5,7 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [v0.42.0] - 2026-06-29
+
+### Added
+- 8d9efdd2 - add go-gherkin-testing skill
+
+### Changed
+- 5baab1c4 - Update go.sum
+- ae73b3c2 - Update all the changelogs
+
+## [v0.41.0] - 2026-06-28
 
 ### Changed
 - b15c0483 - Bump version to v1.0.1
