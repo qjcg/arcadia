@@ -827,10 +827,6 @@ github.com/protocolbuffers/txtpbfmt v0.0.0-20260420112717-c39628bde8b5 h1:Mckui8
 github.com/protocolbuffers/txtpbfmt v0.0.0-20260420112717-c39628bde8b5/go.mod h1:JSbkp0BviKovYYt9XunS95M3mLPibE9bGg+Y95DsEEY=
 github.com/psanford/sqlite3vfs v0.0.0-20260519004904-f9180fa2acc9 h1:9bBMbcwroL46feESdJWjRX0GV+k8o/P9gAg9UX6Vz7U=
 github.com/psanford/sqlite3vfs v0.0.0-20260519004904-f9180fa2acc9/go.mod h1:iW4cSew5PAb1sMZiTEkVJAIBNrepaB6jTYjeP47WtI0=
-github.com/qjcg/arcadia/cmd/sv v0.1.1 h1:oPg+q4WSnZxFLnSUy+G/nhOV9RywEmKex4ZEaB3b+Ok=
-github.com/qjcg/arcadia/cmd/sv v0.1.1/go.mod h1:loBXsjsoXy+qjwc4w5mlR/C3GH44zJcraQH6V3Wwmj0=
-github.com/qjcg/arcadia/cmd/sv v1.0.0 h1:jmdoxkGQlcJwTTKbp9Lg9erQ+XYAyiPH668AST0kMc4=
-github.com/qjcg/arcadia/cmd/sv v1.0.0/go.mod h1:loBXsjsoXy+qjwc4w5mlR/C3GH44zJcraQH6V3Wwmj0=
 github.com/qjcg/arcadia/cmd/sv v1.0.1 h1:uGSbc6TEsEiy1LtULVIALAQr2MjuabfIYZgQB//wYHA=
 github.com/qjcg/arcadia/cmd/sv v1.0.1/go.mod h1:loBXsjsoXy+qjwc4w5mlR/C3GH44zJcraQH6V3Wwmj0=
 github.com/rakyll/hey v0.1.5 h1:oc3QhpT8ETXcr5xIE2xgWYNSNA/Z52XA20ku9hWCchY=
