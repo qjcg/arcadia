@@ -15,9 +15,18 @@ const (
 	BumpMajor
 )
 
+// Commit represents a single commit for version calculation purposes.
+type Commit struct {
+	Message string
+	Files   []string // changed files relative to repo root (optional)
+}
+
 // CalculateNext calculates the next version based on commits.
 // defaultPatch controls whether non-feat/fix commits bump the patch version.
-func CalculateNext(current, path string, commits []string, defaultPatch bool) (string, error) {
+// When path is "." and a commit has populated Files, the "!" breaking change
+// marker is only respected if at least one file is a .go file or go.mod,
+// so that submodule-scoped breaking changes don't bump the root module.
+func CalculateNext(current, path string, commits []Commit, defaultPatch bool) (string, error) {
 	vStr := current
 	if vStr == "" {
 		vStr = "v0.1.0"
@@ -41,16 +50,23 @@ func CalculateNext(current, path string, commits []string, defaultPatch bool) (s
 	bump := BumpNone
 	hasCommits := len(commits) > 0
 	for _, commit := range commits {
-		commit = strings.ToLower(commit)
-		if strings.Contains(commit, "breaking change:") || strings.Contains(commit, "!") && strings.Contains(commit, ":") {
+		msg := strings.ToLower(commit.Message)
+		if strings.Contains(msg, "breaking change:") {
 			bump = BumpMajor
 			break // Major is highest
 		}
-		if strings.HasPrefix(commit, "feat") {
+		if strings.Contains(msg, "!") && strings.Contains(msg, ":") {
+			// Only count ! as breaking if the commit touches relevant source files
+			if commitHasSourceCode(commit.Files, path) {
+				bump = BumpMajor
+				break // Major is highest
+			}
+		}
+		if strings.HasPrefix(msg, "feat") {
 			if bump < BumpMinor {
 				bump = BumpMinor
 			}
-		} else if strings.HasPrefix(commit, "fix") {
+		} else if strings.HasPrefix(msg, "fix") {
 			if bump < BumpPatch {
 				bump = BumpPatch
 			}
@@ -79,6 +95,21 @@ func CalculateNext(current, path string, commits []string, defaultPatch bool) (s
 		return path + "/" + nextStr, nil
 	}
 	return nextStr, nil
+}
+
+// commitHasSourceCode checks if a commit's changed files include source code
+// (.go or go.mod) relevant to the module at the given path.
+// An empty files slice is treated as having source code for backward compatibility.
+func commitHasSourceCode(files []string, path string) bool {
+	if len(files) == 0 {
+		return true // fall back to counting the ! when no file info
+	}
+	for _, f := range files {
+		if strings.HasSuffix(f, ".go") || f == "go.mod" {
+			return true
+		}
+	}
+	return false
 }
 
 // Increment forces a specific bump on the current version

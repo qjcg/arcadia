@@ -91,7 +91,12 @@ func runNext(out, errOut io.Writer, root string, m discovery.Module, allModulesL
 		return err
 	}
 
-	next, err := semver.CalculateNext(tag, m.Name, commits, defaultPatch)
+	// Convert git.CommitInfo to semver.Commit
+	semverCommits := make([]semver.Commit, len(commits))
+	for i, c := range commits {
+		semverCommits[i] = semver.Commit{Message: c.Message, Files: c.Files}
+	}
+	next, err := semver.CalculateNext(tag, m.Name, semverCommits, defaultPatch)
 	if err != nil {
 		return err
 	}

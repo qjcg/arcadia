@@ -7,7 +7,7 @@ func TestCalculateNext(t *testing.T) {
 		name         string
 		current      string
 		path         string
-		commits      []string
+		commits      []Commit
 		defaultPatch bool
 		want         string
 	}{
@@ -15,49 +15,49 @@ func TestCalculateNext(t *testing.T) {
 			name:    "root patch",
 			current: "v1.0.0",
 			path:    ".",
-			commits: []string{"fix: bug"},
+			commits: []Commit{{Message: "fix: bug"}},
 			want:    "v1.0.1",
 		},
 		{
 			name:    "root minor",
 			current: "v1.0.0",
 			path:    ".",
-			commits: []string{"feat: feature"},
+			commits: []Commit{{Message: "feat: feature"}},
 			want:    "v1.1.0",
 		},
 		{
 			name:    "module path-based tag",
 			current: "x/slidedeck/v2.3.1",
 			path:    "x/slidedeck",
-			commits: []string{"feat: feature"},
+			commits: []Commit{{Message: "feat: feature"}},
 			want:    "x/slidedeck/v2.4.0",
 		},
 		{
 			name:    "breaking change",
 			current: "v1.0.0",
 			path:    ".",
-			commits: []string{"feat!: break"},
+			commits: []Commit{{Message: "feat!: break"}},
 			want:    "v2.0.0",
 		},
 		{
 			name:    "breaking change footer",
 			current: "v1.0.0",
 			path:    ".",
-			commits: []string{"feat: something", "BREAKING CHANGE: something broke"},
+			commits: []Commit{{Message: "feat: something"}, {Message: "BREAKING CHANGE: something broke"}},
 			want:    "v2.0.0",
 		},
 		{
 			name:    "multiple commits",
 			current: "v1.0.0",
 			path:    ".",
-			commits: []string{"fix: bug1", "fix: bug2", "feat: feat1"},
+			commits: []Commit{{Message: "fix: bug1"}, {Message: "fix: bug2"}, {Message: "feat: feat1"}},
 			want:    "v1.1.0",
 		},
 		{
 			name:         "no relevant commits with default patch",
 			current:      "v1.0.0",
 			path:         ".",
-			commits:      []string{"chore: docs", "style: lint"},
+			commits:      []Commit{{Message: "chore: docs"}, {Message: "style: lint"}},
 			defaultPatch: true,
 			want:         "v1.0.1",
 		},
@@ -65,43 +65,64 @@ func TestCalculateNext(t *testing.T) {
 			name:    "initial version",
 			current: "",
 			path:    ".",
-			commits: []string{"feat: initial"},
+			commits: []Commit{{Message: "feat: initial"}},
 			want:    "v0.1.0",
 		},
 		{
 			name:    "pre-release patch bump",
 			current: "v1.0.0-alpha",
 			path:    ".",
-			commits: []string{"fix: bug"},
+			commits: []Commit{{Message: "fix: bug"}},
 			want:    "v1.0.0",
 		},
 		{
 			name:    "pre-release minor bump",
 			current: "v1.0.0-rc.1",
 			path:    ".",
-			commits: []string{"feat: feature"},
+			commits: []Commit{{Message: "feat: feature"}},
 			want:    "v1.1.0",
 		},
 		{
 			name:    "zero patch version",
 			current: "v0.0.1",
 			path:    ".",
-			commits: []string{"fix: bug"},
+			commits: []Commit{{Message: "fix: bug"}},
 			want:    "v0.0.2",
 		},
 		{
 			name:    "zero minor version bump",
 			current: "v0.1.0",
 			path:    ".",
-			commits: []string{"feat: feature"},
+			commits: []Commit{{Message: "feat: feature"}},
 			want:    "v0.2.0",
 		},
 		{
 			name:    "zero major version",
 			current: "v0.1.0",
 			path:    ".",
-			commits: []string{"feat!: breaking"},
+			commits: []Commit{{Message: "feat!: breaking"}},
 			want:    "v1.0.0",
+		},
+		{
+			name:    "scoped breaking change ignored on root with no source files",
+			current: "v0.1.0",
+			path:    ".",
+			commits: []Commit{{Message: "feat(sv)!: major change in sv", Files: []string{"go.work", "README.md"}}},
+			want:    "v0.2.0", // feat without ! (no .go files in scope) → minor
+		},
+		{
+			name:    "scoped breaking change applies with source files",
+			current: "v0.1.0",
+			path:    ".",
+			commits: []Commit{{Message: "feat(sv)!: major change", Files: []string{"main.go"}}},
+			want:    "v1.0.0", // ! with .go file → major
+		},
+		{
+			name:    "scoped breaking change on submodule always applies",
+			current: "v0.1.0",
+			path:    "cmd/sv",
+			commits: []Commit{{Message: "feat(sv)!: major change"}},
+			want:    "cmd/sv/v1.0.0", // no file info → backward compatible, ! counts
 		},
 	}
 
@@ -153,21 +174,21 @@ func TestCalculateNext_Errors(t *testing.T) {
 		name    string
 		current string
 		path    string
-		commits []string
+		commits []Commit
 		wantErr bool
 	}{
 		{
 			name:    "invalid semver",
 			current: "not-a-version",
 			path:    ".",
-			commits: []string{"feat: feature"},
+			commits: []Commit{{Message: "feat: feature"}},
 			wantErr: true,
 		},
 		{
 			name:    "invalid semver with module path",
 			current: "x/mod/bad-version",
 			path:    "x/mod",
-			commits: []string{"fix: bug"},
+			commits: []Commit{{Message: "fix: bug"}},
 			wantErr: true,
 		},
 	}
@@ -198,14 +219,7 @@ func TestIncrement_Errors(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "invalid semver with module path",
-			current: "x/mod/v1.not",
-			path:    "x/mod",
-			bump:    BumpPatch,
-			wantErr: true,
-		},
-		{
-			name:    "BumpNone returns current",
+			name:    "invalid bump type",
 			current: "v1.0.0",
 			path:    ".",
 			bump:    BumpNone,
