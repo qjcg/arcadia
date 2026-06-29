@@ -3,6 +3,7 @@ go 1.26.4
 use (
 	.
 	./cmd/horeb
+	./cmd/sv
 	./examples/go
 	./exp/diplomat
 	./exp/elbereth
@@ -14,5 +15,4 @@ use (
 	./exp/roubaix
 	./exp/skillo
 	./exp/slidesdeck
-	./exp/sv
 )

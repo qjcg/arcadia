@@ -5,7 +5,7 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/qjcg/arcadia/exp/sv/internal/semver"
+	"github.com/qjcg/arcadia/cmd/sv/internal/semver"
 	"github.com/spf13/cobra"
 )
 

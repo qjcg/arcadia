@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/GiGurra/boa/pkg/boa"
-	"github.com/qjcg/arcadia/exp/sv/internal/changelog"
-	"github.com/qjcg/arcadia/exp/sv/internal/git"
+	"github.com/qjcg/arcadia/cmd/sv/internal/changelog"
+	"github.com/qjcg/arcadia/cmd/sv/internal/git"
 	"github.com/spf13/cobra"
 )
 

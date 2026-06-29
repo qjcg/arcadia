@@ -1,4 +1,4 @@
-module github.com/qjcg/arcadia/exp/sv
+module github.com/qjcg/arcadia/cmd/sv
 
 go 1.26.4
 

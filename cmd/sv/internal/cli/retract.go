@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/qjcg/arcadia/exp/sv/internal/git"
-	"github.com/qjcg/arcadia/exp/sv/internal/semver"
+	"github.com/qjcg/arcadia/cmd/sv/internal/git"
+	"github.com/qjcg/arcadia/cmd/sv/internal/semver"
 )
 
 // latestNonRetractedTag returns the latest tag for a module, skipping retracted versions.

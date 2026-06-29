@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/qjcg/arcadia/exp/sv/internal/git"
+	"github.com/qjcg/arcadia/cmd/sv/internal/git"
 )
 
 func TestCategorizeCommit(t *testing.T) {

@@ -4,10 +4,10 @@ exec git config user.email test@example.com
 exec git config user.name "Test User"
 
 mkdir exp
-mkdir exp/sv
+mkdir cmd/sv
 mkdir exp/slidesdeck
 
-cp go_mod_sv exp/sv/go.mod
+cp go_mod_sv cmd/sv/go.mod
 cp go_mod_sd exp/slidesdeck/go.mod
 
 exec git add .
@@ -19,13 +19,13 @@ cp feat_txt exp/slidesdeck/feat.txt
 exec git add exp/slidesdeck/feat.txt
 exec git commit -m feat:relpath
 
-# Run from exp/sv pointing to ../slidesdeck
-cd exp/sv
+# Run from cmd/sv pointing to ../slidesdeck
+cd cmd/sv
 exec sv next --path ../slidesdeck
 stdout '^exp/slidesdeck/v1.1.0'
 
 -- go_mod_sv --
-module github.com/qjcg/arcadia/exp/sv
+module github.com/qjcg/arcadia/cmd/sv
 -- go_mod_sd --
 module github.com/qjcg/arcadia/exp/slidesdeck
 -- feat_txt --

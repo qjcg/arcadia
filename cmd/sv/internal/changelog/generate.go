@@ -10,9 +10,9 @@ import (
 	"time"
 
 	mastersemver "github.com/Masterminds/semver/v3"
-	"github.com/qjcg/arcadia/exp/sv/internal/discovery"
-	"github.com/qjcg/arcadia/exp/sv/internal/git"
-	"github.com/qjcg/arcadia/exp/sv/internal/semver"
+	"github.com/qjcg/arcadia/cmd/sv/internal/discovery"
+	"github.com/qjcg/arcadia/cmd/sv/internal/git"
+	"github.com/qjcg/arcadia/cmd/sv/internal/semver"
 )
 
 // Generate generates a Changelog for the given module.

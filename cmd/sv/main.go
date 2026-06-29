@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/qjcg/arcadia/exp/sv/internal/cli"
+	"github.com/qjcg/arcadia/cmd/sv/internal/cli"
 )
 
 func main() {
