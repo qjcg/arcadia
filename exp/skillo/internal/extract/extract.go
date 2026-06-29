@@ -5,11 +5,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
-
-	"github.com/qjcg/arcadia/exp/skillo/internal/types"
-	"github.com/qjcg/arcadia/exp/skillo/internal/validate"
 )
 
 // Result describes a single extracted skill.
@@ -50,63 +48,34 @@ func extractFiltered(moduleDir, skillsDir string, requested []string) ([]string,
 			return nil
 		}
 
-		if err := validate.Validate(path); err != nil {
-			return fmt.Errorf("validate %s: %w", path, err)
-		}
-
-		data, err := os.ReadFile(skillMDPath)
+		// Extract the skill name from the SKILL.md frontmatter.
+		name, err := extractSkillName(path)
 		if err != nil {
-			return err
-		}
-
-		var fm struct {
-			Name string `yaml:"name"`
-		}
-		if err := yaml.Unmarshal(data, &fm); err != nil {
-			return fmt.Errorf("parse YAML in %s: %w", skillMDPath, err)
-		}
-
-		if fm.Name == "" {
-			// Try extracting frontmatter manually
-			content := string(data)
-			if len(content) < 3 || content[:3] != "---" {
-				return fmt.Errorf("no YAML frontmatter found in %s", skillMDPath)
-			}
-			rest := content[3:]
-			end := 0
-			for i := 0; i < len(rest); i++ {
-				if rest[i] == '-' && i+2 < len(rest) && rest[i+1] == '-' && rest[i+2] == '-' {
-					end = i
-					break
-				}
-			}
-			if end > 0 {
-				fmStr := rest[:end]
-				if err := yaml.Unmarshal([]byte(fmStr), &fm); err != nil {
-					return fmt.Errorf("parse YAML in %s: %w", skillMDPath, err)
-				}
-			}
-		}
-		if fm.Name == "" {
-			return fmt.Errorf("skill in %s has no name", path)
-		}
-
-		// Filter by requested list if provided
-		if len(requestedSet) > 0 && !requestedSet[fm.Name] {
-			skillsFound++
+			fmt.Printf("Warning: skipping %s: %v\n", path, err)
 			return nil
 		}
 
-		dest := filepath.Join(skillsDir, fm.Name)
+		if name == "" {
+			return nil
+		}
+
+		// Only count toward skillsFound after we have the name
+		skillsFound++
+
+		// Filter by requested list if provided
+		if len(requestedSet) > 0 && !requestedSet[name] {
+			return nil
+		}
+
+		dest := filepath.Join(skillsDir, name)
 		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
 			return err
 		}
 		if err := copyDir(path, dest); err != nil {
 			return fmt.Errorf("copy %s to %s: %w", path, dest, err)
 		}
-		fmt.Printf("Extracted skill: %s\n", fm.Name)
-		extracted = append(extracted, fm.Name)
-		skillsFound++
+		fmt.Printf("Extracted skill: %s\n", name)
+		extracted = append(extracted, name)
 		return nil
 	})
 
@@ -169,6 +138,36 @@ func copyFile(src, dst string) error {
 	return err
 }
 
+// extractSkillName reads a SKILL.md and returns the skill name from frontmatter.
+// Returns ("", nil) if the file has no frontmatter (not a skill).
+// Returns ("", error) if the frontmatter exists but is invalid.
+func extractSkillName(skillDir string) (string, error) {
+	data, err := os.ReadFile(filepath.Join(skillDir, "SKILL.md"))
+	if err != nil {
+		return "", err
+	}
+	content := string(data)
+	if len(content) < 3 || content[:3] != "---" {
+		return "", nil
+	}
+	rest := content[3:]
+	end := strings.Index(rest, "\n---")
+	if end < 0 {
+		return "", nil
+	}
+	fmStr := rest[:end]
+	var fm struct {
+		Name string `yaml:"name"`
+	}
+	if err := yaml.Unmarshal([]byte(fmStr), &fm); err != nil {
+		return "", fmt.Errorf("invalid frontmatter: %w", err)
+	}
+	if fm.Name == "" {
+		return "", fmt.Errorf("missing name in frontmatter")
+	}
+	return fm.Name, nil
+}
+
 // ListAvailableSkills returns skill names from SKILL.md frontmatter in a module dir.
 func ListAvailableSkills(moduleDir string) ([]string, error) {
 	var names []string
@@ -182,27 +181,9 @@ func ListAvailableSkills(moduleDir string) ([]string, error) {
 		if filepath.Base(path) != "SKILL.md" {
 			return nil
 		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		// Parse just the name using the types.Skill struct
-		content := string(data)
-		if len(content) < 3 || content[:3] != "---" {
-			return nil
-		}
-		rest := content[3:]
-		end := stringsIndex(rest, "\n---")
-		if end < 0 {
-			return nil
-		}
-		fmStr := rest[:end]
-		var skill types.Skill
-		if err := yaml.Unmarshal([]byte(fmStr), &skill); err != nil {
-			return nil
-		}
-		if skill.Name != "" {
-			names = append(names, skill.Name)
+		name, err := extractSkillName(filepath.Dir(path))
+		if err == nil && name != "" {
+			names = append(names, name)
 		}
 		return nil
 	})
@@ -218,5 +199,4 @@ func stringsIndex(s, substr string) int {
 	return -1
 }
 
-// Ensure the unused import is used
-var _ = types.Skill{}
+var _ = stringsIndex // keep string utility available
