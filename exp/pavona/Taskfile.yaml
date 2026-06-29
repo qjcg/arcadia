@@ -33,7 +33,7 @@ tasks:
       - upx {{.INSTALLED_BIN}} || echo Install upx for smaller binaries.
 
   test:
-    desc: Run all tests (godog BDD scenarios)
+    desc: Run all tests (unit + godog BDD scenarios)
     cmds:
       - go test ./...
 
