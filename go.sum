@@ -829,6 +829,8 @@ github.com/psanford/sqlite3vfs v0.0.0-20260519004904-f9180fa2acc9 h1:9bBMbcwroL4
 github.com/psanford/sqlite3vfs v0.0.0-20260519004904-f9180fa2acc9/go.mod h1:iW4cSew5PAb1sMZiTEkVJAIBNrepaB6jTYjeP47WtI0=
 github.com/qjcg/arcadia/cmd/sv v0.1.1 h1:oPg+q4WSnZxFLnSUy+G/nhOV9RywEmKex4ZEaB3b+Ok=
 github.com/qjcg/arcadia/cmd/sv v0.1.1/go.mod h1:loBXsjsoXy+qjwc4w5mlR/C3GH44zJcraQH6V3Wwmj0=
+github.com/qjcg/arcadia/cmd/sv v1.0.0 h1:jmdoxkGQlcJwTTKbp9Lg9erQ+XYAyiPH668AST0kMc4=
+github.com/qjcg/arcadia/cmd/sv v1.0.0/go.mod h1:loBXsjsoXy+qjwc4w5mlR/C3GH44zJcraQH6V3Wwmj0=
 github.com/rakyll/hey v0.1.5 h1:oc3QhpT8ETXcr5xIE2xgWYNSNA/Z52XA20ku9hWCchY=
 github.com/rakyll/hey v0.1.5/go.mod h1:tLUK++7gal6z92HvVEaP4QfIhEb5cYywEJgrUqmqt7Y=
 github.com/redis/go-redis/extra/rediscmd/v9 v9.5.3 h1:1/BDligzCa40GTllkDnY3Y5DTHuKCONbB2JcRyIfl20=
