@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- b15c0483 - Bump version to v1.0.1
+- 1153dfcc - Bump version to v1.0.0
+- c48959a8 - Update all changelogs
 - 150c17c7 - Update go tool to use new cmd/sv path
 - 9e483f97 - Graduate out of exp(erimental) dir to cmd
 
