@@ -164,7 +164,7 @@ Use --user or --project to target a specific scope.`,
 			}
 			fmt.Printf("Installed %s@%s\n", module, version)
 
-			moduleDir, err := findModuleDir(skilloDir, module)
+			moduleDir, err := findModuleDir(skilloDir, module, version)
 			if err != nil {
 				return fmt.Errorf("find module dir: %w", err)
 			}
@@ -620,30 +620,22 @@ func syncScope(skilloDir, skillsDir string) error {
 }
 
 // findModuleDir locates a module's directory after go get has installed it.
-// It first tries go list -m, then falls back to reading go.mod and the module cache.
-func findModuleDir(skilloDir, module string) (string, error) {
-	// First try go list -m
-	goList := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", module)
-	goList.Dir = skilloDir
-	if listOut, err := goList.CombinedOutput(); err == nil {
-		dir := strings.TrimSpace(string(listOut))
-		if dir != "" {
-			info, err := os.Stat(dir)
-			if err == nil && info.IsDir() {
-				return dir, nil
-			}
+func findModuleDir(skilloDir, module, version string) (string, error) {
+	// go list -m -e -json returns the Dir even for modules with errors.
+	// Try without version first (uses go.mod, respects replace directives).
+	cmd := exec.Command("go", "list", "-m", "-e", "-json", module)
+	cmd.Dir = skilloDir
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		var result struct {
+			Dir string `json:"Dir"`
+		}
+		if json.Unmarshal(out, &result) == nil && result.Dir != "" {
+			return result.Dir, nil
 		}
 	}
 
-	// Fallback: parse go.mod to find the actual module path and version,
-	// then construct the directory from the module cache.
-	goModPath := filepath.Join(skilloDir, "go.mod")
-	data, err := os.ReadFile(goModPath)
-	if err != nil {
-		return "", fmt.Errorf("read go.mod: %w", err)
-	}
-
-	// Get the module cache root
+	// Fallback: search the module cache directly.
 	cacheCmd := exec.Command("go", "env", "GOMODCACHE")
 	cacheCmd.Dir = skilloDir
 	cacheOut, err := cacheCmd.CombinedOutput()
@@ -652,45 +644,22 @@ func findModuleDir(skilloDir, module string) (string, error) {
 	}
 	modCache := strings.TrimSpace(string(cacheOut))
 
-	// Parse go.mod for require directives
-	// Look for the module we requested, or one that starts with it
-	inRequire := false
-	for _, line := range strings.Split(string(data), "\n") {
-		trimmed := strings.TrimSpace(line)
-
-		if strings.HasPrefix(trimmed, "require (") {
-			inRequire = true
-			continue
-		}
-		if inRequire && trimmed == ")" {
-			inRequire = false
-			continue
-		}
-		if inRequire || (!inRequire && strings.HasPrefix(trimmed, "require ") && !strings.HasPrefix(trimmed, "require (")) {
-			// Extract module path and version
-			fields := strings.Fields(trimmed)
-			if len(fields) >= 2 {
-				candidatePath := fields[0]
-				candidateVer := fields[len(fields)-1]
-				// Skip version that looks like an indirect marker "//"
-				if strings.HasPrefix(candidateVer, "//") || candidateVer == ")" {
-					continue
-				}
-				// Match: exact match OR requested module is a prefix of candidate
-				if candidatePath == module || strings.HasPrefix(candidatePath, module) {
-					// Check both the clean module path and with version suffix
-					for _, tryPath := range []string{candidatePath, module} {
-						candidateDir := filepath.Join(modCache, tryPath+"@"+candidateVer)
-						if info, err := os.Stat(candidateDir); err == nil && info.IsDir() {
-							return candidateDir, nil
-						}
-					}
-				}
-			}
-		}
+	// Try with @latest in cache path
+	candidateDir := filepath.Join(modCache, module+"@latest")
+	if info, err := os.Stat(candidateDir); err == nil && info.IsDir() {
+		return candidateDir, nil
 	}
 
-	return "", fmt.Errorf("module %q not found in go.mod or module cache after go get", module)
+	// Try to find any version in the cache
+	// The cache path is <module>@<version>, glob for it
+	pattern := filepath.Join(modCache, module+"@*")
+	matches, err := filepath.Glob(pattern)
+	if err == nil && len(matches) > 0 {
+		// Return the first (most recent) match
+		return matches[len(matches)-1], nil
+	}
+
+	return "", fmt.Errorf("module %s not found in module cache after go get", module)
 }
 
 func readSkillDescriptions(dir string) map[string]string {
