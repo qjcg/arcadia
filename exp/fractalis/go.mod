@@ -36,7 +36,7 @@ require (
 	github.com/evanw/esbuild v0.27.3 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
-	github.com/go-openapi/jsonpointer v0.23.2 // indirect
+	github.com/go-openapi/jsonpointer v0.24.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gohugoio/hashstructure v0.6.0 // indirect
 	github.com/gohugoio/hugo v0.155.2 // indirect
