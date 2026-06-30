@@ -1,6 +1,6 @@
 ---
 name: go-gherkin-testing
-description: Add observable-behavior tests to Go projects using Gherkin feature files and godog (Cucumber for Go). Use when the user asks to add BDD tests, acceptance tests, integration tests, behavior-driven tests, Cucumber tests, Gherkin scenarios, godog, feature files, step definitions, scenario-based testing, or observable-behavior testing to a Go project. This covers the full workflow: adding the godog dependency, writing .feature files with Given/When/Then scenarios, organizing step definitions, wiring the godog test suite, and running tests. Also use when discussing testing strategy, test organization, or writing readable executable specifications in Go.
+description: "Add observable-behavior tests to Go projects using Gherkin feature files and godog (Cucumber for Go). Use when the user asks to add BDD tests, acceptance tests, integration tests, behavior-driven tests, Cucumber tests, Gherkin scenarios, godog, feature files, step definitions, scenario-based testing, or observable-behavior testing to a Go project. This covers the full workflow: adding the godog dependency, writing .feature files with Given/When/Then scenarios, organizing step definitions, wiring the godog test suite, and running tests. Also use when discussing testing strategy, test organization, or writing readable executable specifications in Go."
 ---
 
 # Go Gherkin Testing
