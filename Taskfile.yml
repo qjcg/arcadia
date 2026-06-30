@@ -6,7 +6,7 @@ shopt: [globstar]
 
 vars:
   V_GOLANGCILINT: v2.12.2
-  V_TRIVY: v0.71.2
+  V_TRIVY: v0.72.0
 
 tasks:
   default:
