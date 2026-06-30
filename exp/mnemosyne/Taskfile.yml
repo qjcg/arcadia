@@ -1,0 +1,59 @@
+# https://taskfile.dev
+
+version: '3'
+
+shopt: [globstar]
+
+tasks:
+  default:
+    - task: test
+
+  install:
+    desc: install binary
+    cmds:
+      - CGO_ENABLED=0 go install -ldflags '-s -w' .
+    sources:
+      - '**/*.go'
+      - go.mod
+      - go.sum
+    generates:
+      - $GOBIN/mnemosyne
+
+  test:
+    cmd: go test -tags integration ./...
+
+  build:
+    cmds:
+      - go tool goreleaser build --auto-snapshot --clean
+    sources:
+      - '**/*.go'
+      - go.mod
+      - go.sum
+    generates:
+      - ./dist/artifacts.json
+
+  build:release:
+    cmds:
+      - go tool goreleaser release --auto-snapshot --clean
+    sources:
+      - '**/*.go'
+      - go.mod
+      - go.sum
+    generates:
+      - ./dist/artifacts.json
+
+  cover:
+    cmds:
+      - mkdir -p tmp
+      - go test -tags integration -coverprofile tmp/coverprofile.out ./...
+      - go tool cover -func tmp/coverprofile.out
+      - go tool cover -html tmp/coverprofile.out
+    sources:
+      - '**/*.go'
+    generates:
+      - tmp/coverprofile.out
+
+  clean:
+    cmd: rm -rf ./dist
+    status:
+      - '! test -d ./dist'

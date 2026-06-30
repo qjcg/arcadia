@@ -3,6 +3,7 @@ go 1.26.4
 use (
 	.
 	./cmd/horeb
+	./exp/mnemosyne
 	./cmd/sv
 	./examples/go
 	./exp/diplomat
