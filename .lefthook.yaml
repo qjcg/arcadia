@@ -4,14 +4,12 @@ _gofiles: &gofiles
   - "*.go"
   - "go.{mod,sum,work,work.sum}"
 
+
 commit-msg:
   parallel: true
   jobs:
-    - name: header-is-within-max-length
+    - name: validate-conventional-commit
       run: go tool sv validate-cc -m 80 -f {1}
-
-    - name: header-is-conventional-commit
-      run: go tool sv validate-cc -f {1}
 
 
 pre-commit:
@@ -39,9 +37,25 @@ pre-commit:
           - name: editorconfig-checker
             run: go tool editorconfig-checker {staged_files}
 
+          - name: typstyle
+            run: typstyle {staged_files}
+            glob: "*.{typ,typst}"
+            stage_fixed: true
+
+          - name: go fix
+            run: go fix work
+            glob: "*.go"
+            stage_fixed: true
+
+          - name: go vet
+            run: go vet -fix work
+            glob: "*.go"
+            stage_fixed: true
+
     - name: unit-tests
       run: go test work
       glob: *gofiles
+
 
 pre-push:
   piped: true
