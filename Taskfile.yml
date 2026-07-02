@@ -43,6 +43,7 @@ tasks:
       - lint:cuefmt
       - lint:go:fix
       - lint:go:vet
+      - lint:typstyle
       #- lint:editorconfig
 
   lint:full:
@@ -70,6 +71,8 @@ tasks:
   lint:go:fix: go fix -diff work
   lint:go:vet: go vet work
 
+  lint:typstyle: typstyle --check .
+
   lint:trivy:
     desc: Run trivy secret scan.
     cmds:
@@ -82,6 +85,7 @@ tasks:
       - go fix work
       - go tool goimports -w .
       - go tool gofumpt -w .
+      - typstyle -i .
 
 
   ######################################################################
