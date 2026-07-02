@@ -13,7 +13,10 @@
     paper: "us-letter",
     flipped: true,
     margin: 1cm,
-    background: place(center + horizon, rotate(25deg, text(120pt, fill: rgb("#f5f5f5"))[CERTIFICATE])),
+    background: place(center + horizon, rotate(25deg, text(
+      120pt,
+      fill: rgb("#f5f5f5"),
+    )[CERTIFICATE])),
   )
 
   set text(font: "Libertinus Serif", size: 12pt)
@@ -97,7 +100,7 @@
         align(right + bottom)[
           #let r = 38pt
           #let n = 48
-          #box(width: r*2, height: r*2)[
+          #box(width: r * 2, height: r * 2)[
             // Base polygon: centered by offsetting coordinates by r
             #polygon(
               fill: rgb("#d4af37"),
@@ -106,19 +109,24 @@
                 let angle = i * 360deg / n
                 let r-i = if calc.even(i) { r } else { r * 0.92 }
                 (r + calc.cos(angle) * r-i, r + calc.sin(angle) * r-i)
-              })
+              }),
             )
 
             // Place text block at the center of the r*2 box
             #place(center + horizon)[
-              #set text(size: 7.2pt, fill: white.darken(5%), weight: "bold", tracking: 0.4pt)
+              #set text(
+                size: 7.2pt,
+                fill: white.darken(5%),
+                weight: "bold",
+                tracking: 0.4pt,
+              )
               #set par(leading: 0.35em)
               #box(width: r * 1.5)[
                 #align(center, seal_text)
               ]
             ]
           ]
-        ]
+        ],
       )
 
       #v(0.1fr)

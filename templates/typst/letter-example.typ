@@ -23,7 +23,11 @@
   closing: "With warm regards,",
   signatory: "Marcus Aurelius Vega",
   signatory-title: "Chief Grants Officer, Arcadia Foundation",
-  enclosures: ("Grant Award Terms & Conditions (signed)", "Payment Schedule Overview", "Reporting Guidelines"),
+  enclosures: (
+    "Grant Award Terms & Conditions (signed)",
+    "Payment Schedule Overview",
+    "Reporting Guidelines",
+  ),
 )
 
 We are delighted to inform you that your proposal titled *"Project Hermes: Next-Generation Optical Communication Networks"* has been selected for funding by the Arcadia Foundation Review Board.

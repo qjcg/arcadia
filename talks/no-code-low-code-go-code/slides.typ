@@ -4,11 +4,11 @@
 #import "template.typ": slides, themes
 
 #show: slides.with(
-    title: "No Code\nLow Code\nGo Code",
-	subtitle: "Embracing the code that isn't there",
-    shortTitle: "No Code, Low Code, Go Code",
-	author: "John Gosset",
-	theme: themes.dark,
+  title: "No Code\nLow Code\nGo Code",
+  subtitle: "Embracing the code that isn't there",
+  shortTitle: "No Code, Low Code, Go Code",
+  author: "John Gosset",
+  theme: themes.dark,
 )
 
 
@@ -18,10 +18,10 @@
 
 - #link("https://dl.acm.org/doi/10.1145/5948.315654")[Programming Pearls: A Literate Program] (1986)
 - #quote()[
-Read a file of text, determine the n most frequently used
-words, and print out a sorted list of those words along with
-their frequencies.
-]
+    Read a file of text, determine the n most frequently used
+    words, and print out a sorted list of those words along with
+    their frequencies.
+  ]
 
 #align(center)[
   #image("./imgs/knuth-vs-mcilroy.png", height: 50%)
@@ -30,18 +30,18 @@ their frequencies.
 == McIlroy's Low Code Solution
 
 #sourcecode(frame: none)[
-```sh
-tr -cs A-Za-z '\n' |
-tr A-Z a-z |
-sort |
-uniq -c |
-sort -rn |
-sed ${1}q
-```
+  ```sh
+  tr -cs A-Za-z '\n' |
+  tr A-Z a-z |
+  sort |
+  uniq -c |
+  sort -rn |
+  sed ${1}q
+  ```
 ]
 
 #quote()[
-Knuth has shown us here how to program intelligibly, but not wisely. I buy the discipline. I do not buy the result. He has fashioned a sort of industrial-strength Fabergé egg—intricate, wonderfully worked, refined beyond all ordinary desires, a museum piece from the start.
+  Knuth has shown us here how to program intelligibly, but not wisely. I buy the discipline. I do not buy the result. He has fashioned a sort of industrial-strength Fabergé egg—intricate, wonderfully worked, refined beyond all ordinary desires, a museum piece from the start.
 ]
 
 == Keep it Simple, Superhero
@@ -55,19 +55,19 @@ Knuth has shown us here how to program intelligibly, but not wisely. I buy the d
   #set quote(block: true)
 
   #quote(attribution: [Ken Thompson])[
-  One of my most productive days was throwing away 1000 lines of code.
+    One of my most productive days was throwing away 1000 lines of code.
   ]
 
   #quote(attribution: [Gordon Bell])[
-  The cheapest, fastest, and most reliable components are those that aren't there.
+    The cheapest, fastest, and most reliable components are those that aren't there.
   ]
 
   #quote(attribution: [Albert Einstein])[
-  Everything should be made as simple as possible, but not simpler.
+    Everything should be made as simple as possible, but not simpler.
   ]
 
   #quote(attribution: [Steve Jobs])[
-  #strike[Simplify, Simplify,] Simplify
+    #strike[Simplify, Simplify,] Simplify
   ]
 ]
 
@@ -76,16 +76,16 @@ Knuth has shown us here how to program intelligibly, but not wisely. I buy the d
 == Go was born to simplify
 
 #quote(attribution: [Rob Pike, Less is Exponentially More])[
-Back around September 2007, I was
-doing some minor but central work on an enormous Google C++ program,
-one you've all interacted with, and my compilations were taking about
-45 minutes on our huge distributed compile cluster. ... At this point
-I asked myself a question: Did the C++ committee really believe that
-was wrong with C++ was that it didn't have enough features? ... I
-started another compilation, turned my chair around to face Robert,
-and started asking pointed questions. Before the compilation was done,
-we'd roped Ken in and had decided to do something. We did not want to
-be writing in C++ forever...
+  Back around September 2007, I was
+  doing some minor but central work on an enormous Google C++ program,
+  one you've all interacted with, and my compilations were taking about
+  45 minutes on our huge distributed compile cluster. ... At this point
+  I asked myself a question: Did the C++ committee really believe that
+  was wrong with C++ was that it didn't have enough features? ... I
+  started another compilation, turned my chair around to face Robert,
+  and started asking pointed questions. Before the compilation was done,
+  we'd roped Ken in and had decided to do something. We did not want to
+  be writing in C++ forever...
 ]
 
 == Kent Beck: 4 Rules of Simple Design
@@ -151,20 +151,20 @@ https://www.benthos.dev
 #set text(size: 22pt)
 
 #sourcecode(frame: none)[
-```yaml
-# config.yaml
-input:
-  generate:
-    mapping: root = "Hello, Benthos!"
-    count: 1
+  ```yaml
+  # config.yaml
+  input:
+    generate:
+      mapping: root = "Hello, Benthos!"
+      count: 1
 
-pipeline:
-  processors:
-    - mapping: content().uppercase()
+  pipeline:
+    processors:
+      - mapping: content().uppercase()
 
-output:
-  stdout: {}
-```
+  output:
+    stdout: {}
+  ```
 ]
 
 #set text(size: 18pt)
@@ -172,22 +172,22 @@ output:
 == Benthos: HTTP
 
 #sourcecode(frame: none)[
-```yaml
-# config.yaml
-input:
-  http_client:
-    url: https://tradestie.com/api/v1/apps/reddit
-    rate_limit: reddit
+  ```yaml
+  # config.yaml
+  input:
+    http_client:
+      url: https://tradestie.com/api/v1/apps/reddit
+      rate_limit: reddit
 
-pipeline:
-  processors:
-    - unarchive:
-        format: json_array
+  pipeline:
+    processors:
+      - unarchive:
+          format: json_array
 
-    - mapping: |
-        root = this
-        root.yolo = true
-```
+      - mapping: |
+          root = this
+          root.yolo = true
+  ```
 ]
 
 == Benthos: Unit Tests
@@ -195,51 +195,51 @@ pipeline:
 #set text(size: 16pt)
 
 #sourcecode(frame: none)[
-```yaml
-# config.yaml
-input:
-  generate:
-    mapping: root = "Hello, Benthos!"
-    count: 1
+  ```yaml
+  # config.yaml
+  input:
+    generate:
+      mapping: root = "Hello, Benthos!"
+      count: 1
 
-pipeline:
-  processors:
-    - mapping: content().uppercase()
+  pipeline:
+    processors:
+      - mapping: content().uppercase()
 
-tests:
-  - name: Content must be uppercase
-    target_processors: /pipeline/processors/0
-    input_batch:
-      - content: hello
-    output_batches:
-      - - content_equals: HELLO
-```
+  tests:
+    - name: Content must be uppercase
+      target_processors: /pipeline/processors/0
+      input_batch:
+        - content: hello
+      output_batches:
+        - - content_equals: HELLO
+  ```
 ]
 
 == Benthos: Custom Plugins (in Go)
 
 #sourcecode(frame: none)[
-```go
-func (r *reverseProcessor) Process(ctx context.Context, m *service.Message) (service.MessageBatch, error) {
-	bytesContent, err := m.AsBytes()
-	if err != nil {
-		return nil, err
-	}
+  ```go
+  func (r *reverseProcessor) Process(ctx context.Context, m *service.Message) (service.MessageBatch, error) {
+  bytesContent, err := m.AsBytes()
+  if err != nil {
+        return nil, err
+  }
 
-	newBytes := make([]byte, len(bytesContent))
-	for i, b := range bytesContent {
-		newBytes[len(newBytes)-i-1] = b
-	}
+  newBytes := make([]byte, len(bytesContent))
+  for i, b := range bytesContent {
+        newBytes[len(newBytes)-i-1] = b
+  }
 
-	if bytes.Equal(newBytes, bytesContent) {
-		r.logger.Infof("Woah! This is like totally a palindrome: %s", bytesContent)
-		r.countPalindromes.Incr(1)
-	}
+  if bytes.Equal(newBytes, bytesContent) {
+        r.logger.Infof("Woah! This is like totally a palindrome: %s", bytesContent)
+        r.countPalindromes.Incr(1)
+  }
 
-	m.SetBytes(newBytes)
-	return []*service.Message{m}, nil
-}
-```
+        m.SetBytes(newBytes)
+        return []*service.Message{m}, nil
+  }
+  ```
 ]
 
 == Benthos: Studio
@@ -262,15 +262,23 @@ func (r *reverseProcessor) Process(ctx context.Context, m *service.Message) (ser
 == Further Reading
 
 - Knuth & McIlroy
-  - #link("https://dl.acm.org/doi/10.1145/5948.315654")[Programming Pearls: A Literate Program]
-  - #link("http://www.leancrew.com/all-this/2011/12/more-shell-less-egg/")[More Shell, Less Egg]
+  - #link(
+      "https://dl.acm.org/doi/10.1145/5948.315654",
+    )[Programming Pearls: A Literate Program]
+  - #link(
+      "http://www.leancrew.com/all-this/2011/12/more-shell-less-egg/",
+    )[More Shell, Less Egg]
 - Rob Pike: #link("https://commandcenter.blogspot.com/2012/06/less-is-exponentially-more.html")[Less is Exponentially More]
 - Kent Beck: #link("https://martinfowler.com/bliki/BeckDesignRules.html")[4 Rules for Simple Design]
 - Benthos
   - #link("https://www.benthos.dev")[Benthos]
-  - #link("https://github.com/benthosdev/benthos-plugin-example")[Benthos Plugin example repo (Go)]
+  - #link(
+      "https://github.com/benthosdev/benthos-plugin-example",
+    )[Benthos Plugin example repo (Go)]
   - #link("https://studio.benthos.dev/")[Benthos Studio]
-  - #link("https://www.youtube.com/watch?v=EA2Pco3EvpU")[Stream Processing the Easy Way (with NATS and Benthos)]
+  - #link(
+      "https://www.youtube.com/watch?v=EA2Pco3EvpU",
+    )[Stream Processing the Easy Way (with NATS and Benthos)]
 
 == Thank You!
 
