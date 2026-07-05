@@ -370,10 +370,7 @@ are no longer in selections. Idempotent — safe to run repeatedly.`,
 						}
 					} else {
 						// Empty array = all skills from this module
-						goList := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", module)
-						goList.Dir = skilloDir
-						if dirOut, err := goList.CombinedOutput(); err == nil {
-							modDir := strings.TrimSpace(string(dirOut))
+						if modDir, err := resolveModuleDir(skilloDir, module); err == nil {
 							if available, err := extract.ListAvailableSkills(modDir); err == nil {
 								for _, name := range available {
 									entry := skillEntry{
@@ -633,14 +630,11 @@ func syncScope(skilloDir, skillsDir string) error {
 	expected := make(map[string]bool)
 
 	for module, names := range sel {
-		goList := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", module)
-		goList.Dir = skilloDir
-		listOut, err := goList.CombinedOutput()
+		moduleDir, err := resolveModuleDir(skilloDir, module)
 		if err != nil {
-			fmt.Printf("Warning: go list %s: %v\n", module, err)
+			fmt.Printf("Warning: resolveModuleDir %s: %v\n", module, err)
 			continue
 		}
-		moduleDir := strings.TrimSpace(string(listOut))
 
 		var extracted []string
 		if len(names) > 0 {
@@ -692,6 +686,55 @@ func moduleVersionFromGoMod(skilloDir, module string) string {
 		}
 	}
 	return ""
+}
+
+// resolveModuleDir finds a module's directory in the Go module cache.
+// It reads the version from go.mod and constructs the cache path directly,
+// falling back to go list -m -e -json for modules that are known dependencies.
+func resolveModuleDir(skilloDir, module string) (string, error) {
+	// First try: read the version from go.mod and construct the cache path.
+	ver := moduleVersionFromGoMod(skilloDir, module)
+	if ver != "" {
+		cacheCmd := exec.Command("go", "env", "GOMODCACHE")
+		cacheCmd.Dir = skilloDir
+		cacheOut, err := cacheCmd.CombinedOutput()
+		if err == nil {
+			modCache := strings.TrimSpace(string(cacheOut))
+			candidateDir := filepath.Join(modCache, module+"@"+ver)
+			if info, err := os.Stat(candidateDir); err == nil && info.IsDir() {
+				return candidateDir, nil
+			}
+		}
+	}
+
+	// Second try: go list -m -e -json (works for direct deps or when go.sum is in sync).
+	cmd := exec.Command("go", "list", "-m", "-e", "-json", module)
+	cmd.Dir = skilloDir
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		var result struct {
+			Dir string `json:"Dir"`
+		}
+		if json.Unmarshal(out, &result) == nil && result.Dir != "" {
+			return result.Dir, nil
+		}
+	}
+
+	// Fallback: glob the module cache for any version.
+	cacheCmd := exec.Command("go", "env", "GOMODCACHE")
+	cacheCmd.Dir = skilloDir
+	cacheOut, err := cacheCmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("module %s: go env GOMODCACHE: %w", module, err)
+	}
+	modCache := strings.TrimSpace(string(cacheOut))
+	pattern := filepath.Join(modCache, module+"@*")
+	matches, err := filepath.Glob(pattern)
+	if err == nil && len(matches) > 0 {
+		return matches[len(matches)-1], nil
+	}
+
+	return "", fmt.Errorf("module %s not found in module cache", module)
 }
 
 // findModuleDir locates a module's directory after go get has installed it.
