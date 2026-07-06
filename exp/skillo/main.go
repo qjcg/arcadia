@@ -188,7 +188,7 @@ Use --user or --project to target a specific scope.`,
 				}
 				extracted, err = extract.ExtractFiltered(moduleDir, targetSkillsDir, skillList)
 				if err != nil {
-					return fmt.Errorf("extract skills: %w", err)
+					fmt.Printf("Warning: %v\n", err)
 				}
 			} else {
 				available, err := extract.ListAvailableSkillInfo(moduleDir)
@@ -198,7 +198,7 @@ Use --user or --project to target a specific scope.`,
 				if len(available) <= 1 {
 					extracted, err = extract.ExtractAll(moduleDir, targetSkillsDir)
 					if err != nil {
-						return fmt.Errorf("extract skills: %w", err)
+						fmt.Printf("Warning: %v\n", err)
 					}
 				} else {
 					// Check if module already has selections to pre-check.
@@ -232,11 +232,15 @@ Use --user or --project to target a specific scope.`,
 					}
 					extracted, err = extract.ExtractFiltered(moduleDir, targetSkillsDir, selected)
 					if err != nil {
-						return fmt.Errorf("extract skills: %w", err)
+						fmt.Printf("Warning: %v\n", err)
 					}
 				}
 			}
 
+			if len(extracted) == 0 {
+				fmt.Println("No skills extracted.")
+				return nil
+			}
 			if err := selections.AddModule(skilloDir, module, extracted); err != nil {
 				return fmt.Errorf("update selections: %w", err)
 			}
