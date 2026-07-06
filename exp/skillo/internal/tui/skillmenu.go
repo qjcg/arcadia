@@ -64,12 +64,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case tea.KeyEnter:
 			return m, tea.Quit
-		case tea.KeyUp:
+		case tea.KeyUp, 'k':
 			if m.cursor > 0 {
 				m.cursor--
 			}
-		case tea.KeyDown:
+		case 'p':
+			if msg.Mod == tea.ModCtrl && m.cursor > 0 {
+				m.cursor--
+			}
+		case tea.KeyDown, 'j':
 			if m.cursor < len(m.skills)-1 {
+				m.cursor++
+			}
+		case 'n':
+			if msg.Mod == tea.ModCtrl && m.cursor < len(m.skills)-1 {
 				m.cursor++
 			}
 		case ' ':
@@ -108,6 +116,6 @@ func (m model) View() tea.View {
 		}
 	}
 	b.WriteString("\n\n")
-	b.WriteString(lipgloss.NewStyle().Faint(true).Render("↑/↓ navigate • Space toggle • Enter confirm • q quit"))
+	b.WriteString(lipgloss.NewStyle().Faint(true).Render("↑/k/Ctrl-p navigate • ↓/j/Ctrl-n navigate • Space toggle • Enter confirm • q quit"))
 	return tea.NewView(b.String())
 }
