@@ -47,7 +47,7 @@ func TestInit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(data) != "{}" {
+	if string(data) != "{}\n" {
 		t.Fatalf("expected {}, got %s", string(data))
 	}
 

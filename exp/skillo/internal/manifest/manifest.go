@@ -49,6 +49,7 @@ func (m *Manifest) Save(modulesDir string) error {
 	if err != nil {
 		return fmt.Errorf("marshal manifest: %w", err)
 	}
+	data = append(data, '\n')
 	if err := os.WriteFile(manifestPath, data, 0o644); err != nil {
 		return fmt.Errorf("write manifest: %w", err)
 	}

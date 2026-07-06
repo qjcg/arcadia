@@ -45,6 +45,7 @@ func Save(dir string, s Selections) error {
 	if err != nil {
 		return fmt.Errorf("marshal selections: %w", err)
 	}
+	data = append(data, '\n')
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		return fmt.Errorf("write selections: %w", err)
 	}
