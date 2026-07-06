@@ -168,6 +168,12 @@ func extractSkillName(skillDir string) (string, error) {
 	return fm.Name, nil
 }
 
+// SkillInfo holds metadata for a skill available in a module.
+type SkillInfo struct {
+	Name        string
+	Description string
+}
+
 // ListAvailableSkills returns skill names from SKILL.md frontmatter in a module dir.
 func ListAvailableSkills(moduleDir string) ([]string, error) {
 	var names []string
@@ -188,6 +194,55 @@ func ListAvailableSkills(moduleDir string) ([]string, error) {
 		return nil
 	})
 	return names, err
+}
+
+// ListAvailableSkillInfo returns name and description for each skill in a module dir.
+func ListAvailableSkillInfo(moduleDir string) ([]SkillInfo, error) {
+	var infos []SkillInfo
+	err := filepath.Walk(moduleDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if filepath.Base(path) != "SKILL.md" {
+			return nil
+		}
+		si, err := extractSkillInfo(filepath.Dir(path))
+		if err == nil && si.Name != "" {
+			infos = append(infos, si)
+		}
+		return nil
+	})
+	return infos, err
+}
+
+func extractSkillInfo(skillDir string) (SkillInfo, error) {
+	data, err := os.ReadFile(filepath.Join(skillDir, "SKILL.md"))
+	if err != nil {
+		return SkillInfo{}, err
+	}
+	content := string(data)
+	if len(content) < 3 || content[:3] != "---" {
+		return SkillInfo{}, nil
+	}
+	rest := content[3:]
+	before, _, ok := strings.Cut(rest, "\n---")
+	if !ok {
+		return SkillInfo{}, nil
+	}
+	var skill struct {
+		Name        string `yaml:"name"`
+		Description string `yaml:"description"`
+	}
+	if err := yaml.Unmarshal([]byte(before), &skill); err != nil {
+		return SkillInfo{}, fmt.Errorf("invalid frontmatter: %w", err)
+	}
+	if skill.Name == "" {
+		return SkillInfo{}, fmt.Errorf("missing name in frontmatter")
+	}
+	return SkillInfo{Name: skill.Name, Description: skill.Description}, nil
 }
 
 func stringsIndex(s, substr string) int {

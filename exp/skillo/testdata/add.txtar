@@ -13,7 +13,7 @@ exec go mod tidy
 
 # Run add with the fake module (no version = @latest)
 cd $WORK
-skillo add example.com/fake
+skillo add example.com/fake --skill my-skill --skill other-skill
 stdout 'Installed example.com/fake@latest'
 stdout 'Extracted skill: my-skill'
 stdout 'Extracted skill: other-skill'

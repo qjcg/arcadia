@@ -16,6 +16,7 @@ import (
 	"github.com/qjcg/arcadia/exp/skillo/internal/normalize"
 	"github.com/qjcg/arcadia/exp/skillo/internal/selections"
 	"github.com/qjcg/arcadia/exp/skillo/internal/skilldirs"
+	"github.com/qjcg/arcadia/exp/skillo/internal/tui"
 	"github.com/qjcg/arcadia/exp/skillo/internal/types"
 )
 
@@ -190,9 +191,49 @@ Use --user or --project to target a specific scope.`,
 					return fmt.Errorf("extract skills: %w", err)
 				}
 			} else {
-				extracted, err = extract.ExtractAll(moduleDir, targetSkillsDir)
+				available, err := extract.ListAvailableSkillInfo(moduleDir)
 				if err != nil {
-					return fmt.Errorf("extract skills: %w", err)
+					return fmt.Errorf("scan module: %w", err)
+				}
+				if len(available) <= 1 {
+					extracted, err = extract.ExtractAll(moduleDir, targetSkillsDir)
+					if err != nil {
+						return fmt.Errorf("extract skills: %w", err)
+					}
+				} else {
+					// Check if module already has selections to pre-check.
+					sel, _ := selections.Load(skilloDir)
+					existing := make(map[string]bool)
+					for _, name := range sel[module] {
+						existing[name] = true
+					}
+
+					tuiSkills := make([]tui.SkillInfo, len(available))
+					for i, s := range available {
+						tuiSkills[i] = tui.SkillInfo{
+							Name:        s.Name,
+							Description: s.Description,
+							Installed:   existing[s.Name],
+						}
+					}
+
+					title := fmt.Sprintf("Select skills from %s@%s", module, version)
+					selected, err := tui.RunSkillMenu(title, tuiSkills)
+					if err != nil {
+						return fmt.Errorf("skill selection: %w", err)
+					}
+					if selected == nil {
+						fmt.Println("Cancelled.")
+						return nil
+					}
+					if len(selected) == 0 {
+						fmt.Println("No skills selected.")
+						return nil
+					}
+					extracted, err = extract.ExtractFiltered(moduleDir, targetSkillsDir, selected)
+					if err != nil {
+						return fmt.Errorf("extract skills: %w", err)
+					}
 				}
 			}
 
@@ -206,18 +247,95 @@ Use --user or --project to target a specific scope.`,
 
 	// ─── remove / rm ─────────────────────────────────────────────────────────
 	removeCmd := &cobra.Command{
-		Use:     "remove <name|module>",
+		Use:     "remove [name|module]",
 		Aliases: []string{"rm"},
 		Short:   "Remove a skill or entire module",
 		Long: `Remove by skill name or by entire module.
-  - remove tester          removes a single skill
-  - remove github.com/org/repo  removes all skills from that module
-  - remove org/repo             short form (normalized)
+  - remove                         interactive menu
+  - remove tester                  removes a single skill
+  - remove github.com/org/repo     removes all skills from that module
+  - remove org/repo                short form (normalized)
   - remove https://github.com/org/repo  HTTPS URL`,
-		Args: cobra.ExactArgs(1),
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			arg := args[0]
 			skilloDir, targetSkillsDir := resolveScope()
+
+			if len(args) == 0 {
+				// Interactive menu: show all installed skills, let user toggle which to remove.
+				sel, err := selections.Load(skilloDir)
+				if err != nil {
+					return err
+				}
+				descriptions := readSkillDescriptions(targetSkillsDir)
+
+				var allSkills []tui.SkillInfo
+				for module, names := range sel {
+					if len(names) > 0 {
+						for _, name := range names {
+							allSkills = append(allSkills, tui.SkillInfo{
+								Name:        name,
+								Description: descriptions[name],
+							})
+						}
+					} else {
+						// All skills from this module.
+						if modDir, err := resolveModuleDir(skilloDir, module); err == nil {
+							if available, err := extract.ListAvailableSkillInfo(modDir); err == nil {
+								for _, s := range available {
+									allSkills = append(allSkills, tui.SkillInfo{
+										Name:        s.Name,
+										Description: s.Description,
+									})
+								}
+							}
+						}
+					}
+				}
+				if len(allSkills) == 0 {
+					fmt.Println("No skills installed.")
+					return nil
+				}
+
+				selected, err := tui.RunSkillMenu("Remove skills", allSkills)
+				if err != nil {
+					return fmt.Errorf("skill selection: %w", err)
+				}
+				if selected == nil {
+					fmt.Println("Cancelled.")
+					return nil
+				}
+				if len(selected) == 0 {
+					fmt.Println("No skills removed.")
+					return nil
+				}
+				for _, name := range selected {
+					os.RemoveAll(filepath.Join(targetSkillsDir, name))
+
+					// Find the owning module and remove from selections.
+					sel, _ = selections.Load(skilloDir)
+					module := selections.FindModule(sel, name)
+					if module == "" {
+						continue
+					}
+					if err := selections.RemoveSkill(skilloDir, name); err != nil {
+						fmt.Printf("Warning: remove %s from selections: %v\n", name, err)
+					}
+					// If module has no more skills, clean up go.mod.
+					sel, _ = selections.Load(skilloDir)
+					if _, exists := sel[module]; !exists {
+						goEdit := exec.Command("go", "mod", "edit", "-droprequire", module)
+						goEdit.Dir = skilloDir
+						goEdit.CombinedOutput()
+						goTidy := exec.Command("go", "mod", "tidy")
+						goTidy.Dir = skilloDir
+						goTidy.Run()
+					}
+					fmt.Printf("Removed skill %s\n", name)
+				}
+				return nil
+			}
+
+			arg := args[0]
 
 			if normalize.LooksLikeModulePath(arg) {
 				module, _, err := normalize.ModulePath(arg)
