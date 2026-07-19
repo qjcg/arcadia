@@ -1,0 +1,15 @@
+# nested braces
+terebra -c 'echo {a,{b,c}}'
+stdout 'a b c'
+
+# adjacent groups (cartesian product)
+terebra -c 'echo {a,b}{1,2}'
+stdout 'a1 a2 b1 b2'
+
+# range with step
+terebra -c 'echo {1..10..2}'
+stdout '1 3 5 7 9'
+
+# alpha range
+terebra -c 'echo {a..f}'
+stdout 'a b c d e f'

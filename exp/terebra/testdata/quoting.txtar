@@ -1,0 +1,19 @@
+# single quotes preserve all characters literally
+-- single.trb --
+echo 'hello world'
+terebra single.trb
+stdout 'hello world'
+
+# single quotes prevent variable expansion
+-- single-novar.trb --
+echo '$HOME'
+terebra single-novar.trb
+stdout '$HOME'
+
+# double quotes allow variable expansion
+terebra -c 'FOO=bar ; echo "value is $FOO"'
+stdout 'value is bar'
+
+# backslash escape next character
+terebra -c 'echo hello\ world'
+stdout 'hello world'

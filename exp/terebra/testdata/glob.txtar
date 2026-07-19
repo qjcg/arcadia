@@ -31,3 +31,17 @@ stdout 'sub/deep/deep.txt'
 terebra echo sub/**
 stdout 'sub/nested.txt'
 stdout 'sub/deep/deep.txt'
+
+# glob with ? matching single char
+-- ab.txt --
+ab
+-- ac.txt --
+ac
+terebra echo ??.txt
+stdout 'ab.txt'
+stdout 'ac.txt'
+
+# glob with [...] character class
+terebra echo [a-z]*.txt
+stdout 'ab.txt'
+stdout 'ac.txt'

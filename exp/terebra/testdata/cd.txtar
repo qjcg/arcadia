@@ -1,0 +1,7 @@
+# cd to /tmp and pwd
+terebra -c 'cd /tmp ; pwd'
+stdout '/tmp'
+
+# cd to nonexistent dir
+! terebra -c 'cd /nonexistent_path_xyz'
+stderr 'cd:'

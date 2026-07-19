@@ -1,0 +1,12 @@
+# redirect stderr to file
+terebra -c 'echo hello 2> err.txt ; cat err.txt'
+stdout 'hello'
+
+# redirect stderr append
+terebra -c 'echo a 2> err.txt ; echo b 2>> err.txt ; cat err.txt'
+stdout 'a'
+stdout 'b'
+
+# 2>&1 merges stderr to stdout
+terebra -c 'echo hello 2>&1'
+stdout 'hello'

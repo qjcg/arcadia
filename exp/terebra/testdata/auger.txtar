@@ -1,0 +1,7 @@
+# auger pipe: valid CUE piped through cat
+terebra -c 'echo "name: \"test\"" |> cat'
+stdout 'name: "test"'
+
+# auger pipe with json encoder
+terebra -c 'echo "name: \"test\"" |> json'
+stdout '{"name":"test"}'

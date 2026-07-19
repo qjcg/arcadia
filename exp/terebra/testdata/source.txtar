@@ -4,3 +4,7 @@ echo "sourced"
 # source
 terebra -c 'source lib.trb'
 stdout 'sourced'
+
+# source nonexistent file
+! terebra -c 'source nonexistent_file'
+stderr 'source:'

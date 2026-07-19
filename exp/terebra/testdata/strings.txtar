@@ -21,3 +21,27 @@ stdout 'HELLO'
 # length
 terebra -c 'FOO=hello ; echo ${#FOO}'
 stdout '5'
+
+# remove shortest prefix
+terebra -c 'FOO=hello ; echo ${FOO#hel}'
+stdout 'lo'
+
+# remove longest prefix
+terebra -c 'FOO=hello ; echo ${FOO##he}'
+stdout 'llo'
+
+# remove shortest suffix
+terebra -c 'FOO=hello ; echo ${FOO%lo}'
+stdout 'hel'
+
+# remove longest suffix
+terebra -c 'FOO=hello ; echo ${FOO%%lo}'
+stdout 'hel'
+
+# lowercase first
+terebra -c 'FOO=HELLO ; echo ${FOO,}'
+stdout 'hELLO'
+
+# lowercase all
+terebra -c 'FOO=HELLO ; echo ${FOO,,}'
+stdout 'hello'

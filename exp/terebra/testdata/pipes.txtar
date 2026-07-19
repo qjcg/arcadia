@@ -14,3 +14,7 @@ stdout 'b'
 # redirect stdin
 terebra -c 'echo hello > in.txt ; cat < in.txt'
 stdout 'hello'
+
+# multiple pipes
+terebra -c 'echo hello | wc -c | tr -d " "'
+stdout '6'

@@ -8,3 +8,23 @@ EOF
 terebra heredoc.trb
 stdout 'hello'
 stdout 'world'
+
+# heredoc with variable expansion
+-- heredoc-var.trb --
+NAME=terebra
+cat << EOF
+hello $NAME
+EOF
+
+terebra heredoc-var.trb
+stdout 'hello terebra'
+
+# heredoc with quoted delimiter (no expansion)
+-- heredoc-quoted.trb --
+NAME=terebra
+cat << 'EOF'
+hello $NAME
+EOF
+
+terebra heredoc-quoted.trb
+stdout 'hello $NAME'

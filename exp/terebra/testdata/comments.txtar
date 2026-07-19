@@ -1,0 +1,7 @@
+# comment after command
+terebra -c 'echo hello # this is a comment'
+stdout 'hello'
+
+# comment at start of script
+terebra -c '# comment only'
+stdout ''

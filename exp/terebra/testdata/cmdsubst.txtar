@@ -5,3 +5,7 @@ stdout 'hello'
 # backtick
 terebra -c 'echo `echo hello`'
 stdout 'hello'
+
+# nested $(cmd)
+terebra -c 'echo $(echo $(echo deep))'
+stdout 'deep'
