@@ -2,7 +2,6 @@ package shell
 
 import (
 	"errors"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -104,9 +103,9 @@ func New() *Shell {
 	})
 	s.builtins.Register("readonly", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return s.builtinReadonly(args, stdout, stderr)
+	})
 	s.builtins.Register("exit", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return s.builtinExit(args, stdout, stderr)
-	})
 	})
 	// Load ~/.terebrarc if it exists
 	s.loadRc()
@@ -263,13 +262,11 @@ func (s *Shell) Repl() error {
 func (s *Shell) filterInput(r rune) (rune, bool) {
 	// Ctrl+R (0x12) triggers fuzzy search
 	if r == 0x12 {
-		// Close the write end of the stdin pipe so readline gets EOF
-		if s.stdinW != nil {
-			s.stdinW.Close()
-			// Also close the read end so the copy goroutine exits quickly
-			// (the write end close will cause broken pipe on the next write)
-		}
 		s.fuzzy = true
+		// Write a Ctrl+D (EOF) to the pipe so readline returns immediately
+		if s.stdinW != nil {
+			s.stdinW.Write([]byte{0x04})
+		}
 		return r, false // consume the key
 	}
 	return r, true
@@ -286,41 +283,40 @@ func (s *Shell) setupStdinPipe() {
 		s.stdinW = nil
 		s.stdinDone = nil
 		return
-	s.stdinR = r
-	s.stdinW = w
-	s.stdinDone = make(chan struct{})
+		s.stdinW = w
+		s.stdinDone = make(chan struct{})
 
-	go func() {
-		defer close(s.stdinDone)
-		buf := make([]byte, 4096)
-		for {
-			// Use a helper goroutine to read so we can detect
-			// when the pipe is closed (via s.stdinDone)
-			type readResult struct {
-				n   int
-				err error
-			}
-			ch := make(chan readResult, 1)
-			go func() {
-				n, err := os.Stdin.Read(buf)
-				ch <- readResult{n, err}
-			}()
+		go func() {
+			defer close(s.stdinDone)
+			buf := make([]byte, 4096)
+			for {
+				// Use a helper goroutine to read so we can detect
+				// when the pipe is closed (via s.stdinDone)
+				type readResult struct {
+					n   int
+					err error
+				}
+				ch := make(chan readResult, 1)
+				go func() {
+					n, err := os.Stdin.Read(buf)
+					ch <- readResult{n, err}
+				}()
 
-			select {
-			case r := <-ch:
-				if r.err != nil {
+				select {
+				case r := <-ch:
+					if r.err != nil {
+						return
+					}
+					if _, err := w.Write(buf[:r.n]); err != nil {
+						return
+					}
+				case <-s.stdinDone:
 					return
 				}
-				if _, err := w.Write(buf[:r.n]); err != nil {
-					return
-				}
-			case <-s.stdinDone:
-				return
 			}
-		}
-	}()
-}
+		}()
 	}
+}
 
 // closeStdinPipe closes the stdin pipe and waits for the copy goroutine
 // to exit.
