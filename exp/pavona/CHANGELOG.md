@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- 51f343c6 - Bump go deps
+- 453a8cfc - Update go deps
+- 79771f93 - Update all changelogs
 - 3c164cdf - Update changelog
 - 7596abf0 - Add BDD feature tests with godog
 - fd4726e2 - move built-in templates to top-level templates directory

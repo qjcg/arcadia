@@ -8,12 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- 79771f93 - Update all changelogs
 - ae73b3c2 - Update all the changelogs
 - c48959a8 - Update all changelogs
 - 6731ec0a - Update all changelogs
 - 0638b54a - Update changelogs
 - 63db3549 - Update changelogs
 - 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
+
+### Fixed
+- d9733a23 - Use tabs in Earthfiles
 
 ## [v0.1.5] - 2026-05-24
 

@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [unreleased]
+
+### Added
+- 6ed9977b - Add terebra
+
+### Changed
+- ea8cde3a - Pin trivy version
+- 51f343c6 - Bump go deps
+- 317458fd - Add formatters, unify conventional-commit check
+- 5139f958 - Tweak go.work
+- 0ce2ade3 - Add typstyle lint task
+- 6038f013 - Run `typstyle -i .`
+
+### Fixed
+- d9733a23 - Use tabs in Earthfiles
+
+## [v0.44.0] - 2026-06-30
+
+### Added
+- ff07089d - Add mnemosyne scaffolding (idea phase)
+
+### Changed
+- ee6368c0 - Update go.work.sum
+
+## [v0.43.0] - 2026-06-30
+
+### Added
+- daebfcce - Add specs skill
+
+### Changed
+- 18798705 - Update deps
+- 4f9815c1 - Bump trivy
+- b396bc19 - Remove agent-browser skill
+- 6d6b8415 - Add .agents/skills to .gitignore (favor skillo sync)
+- 7a372144 - Update go.work.sum
+- dafb1370 - Update deps
+- 79771f93 - Update all changelogs
+
+### Fixed
+- dd5462bd - Quote description to avoid YAML loading error
+
 ## [v0.42.0] - 2026-06-29
 
 ### Added
