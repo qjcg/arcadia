@@ -2,6 +2,18 @@
 terebra -c 'help'
 stdout 'Terebra -- auger shell'
 
+# help for a specific builtin
+terebra -c 'help cd'
+stdout 'cd \[dir\]'
+
+# help for a topic
+terebra -c 'help strings'
+stdout 'Substring'
+
+# help for unknown builtin
+! terebra -c 'help nonexistent_cmd'
+stderr 'no help'
+
 # --version
 terebra --version
 stdout 'terebra'

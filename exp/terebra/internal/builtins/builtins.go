@@ -119,7 +119,59 @@ func exitHandler(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	return 0
 }
 
+var builtinHelp = map[string]string{
+	"cd":       "  cd [dir]       Change directory (defaults to $HOME)\n",
+	"pwd":      "  pwd            Print working directory\n",
+	"echo":     "  echo [args]    Print arguments\n",
+	"exit":     "  exit [code]    Exit the shell\n",
+	"help":     "  help [cmd]     Show help for a builtin or topic\n",
+	"type":     "  type [cmd]     Show how a command would be interpreted\n",
+	"which":    "  which [cmd]    Locate a command in PATH\n",
+	"export":   "  export [name[=value]]  Set or list environment variables\n",
+	"unset":    "  unset <name>   Remove a variable\n",
+	"set":      "  set [-x|+x] [-o vi|emacs]  List vars or toggle debug/options\n",
+	"readonly": "  readonly [name=value]  Mark variables as read-only\n",
+	"alias":    "  alias [name=value]  Define or list command aliases\n",
+	"unalias":  "  unalias <name>  Remove an alias\n",
+	"history":  "  history [n]    Show command history\n",
+	"source":   "  source <file>  Execute a script file\n",
+	"jobs":     "  jobs           List background jobs\n",
+	"fg":       "  fg [job]       Bring a job to foreground\n",
+	"bg":       "  bg [job]       Continue a stopped job in background\n",
+	"drill":    "  drill <sub>    Drill into structured data (cue, fs, proc, net)\n",
+	"cue":      "  cue <sub>      CUE operations (eval, vet, export, def, fmt, trim)\n",
+	"plugin":   "  plugin <sub>   Manage plugins (load, list)\n",
+	"state":    "  state [save|load]  Export/import shell state as CUE\n",
+}
+
+func helpBuiltin(name string, stdout, stderr io.Writer) int {
+	if help, ok := builtinHelp[name]; ok {
+		fmt.Fprintf(stdout, "%s\n", help)
+		return 0
+	}
+	// Check if it's a topic covered in the general help
+	topics := map[string]string{
+		"pipes":     "  cmd1 | cmd2           Pipe stdout to stdin\n  cmd1 |> cmd2          Auger pipe: pass CUE values between commands\n",
+		"redirects": "  cmd > file            Redirect stdout to file\n  cmd >> file           Append stdout to file\n  cmd < file            Read stdin from file\n  cmd 2> file           Redirect stderr to file\n  cmd 2>> file          Append stderr to file\n  cmd 2>&1              Redirect stderr to stdout\n",
+		"chaining":  "  cmd1 && cmd2          Run cmd2 only if cmd1 succeeds\n  cmd1 || cmd2          Run cmd2 only if cmd1 fails\n  cmd1 ; cmd2           Run cmd1 then cmd2 regardless\n",
+		"quoting":   "  'single quotes'      Preserve all characters literally\n  \"double quotes\"      Preserve most, allow $, `, and \\\n  \\escape              Escape next character\n",
+		"vars":      "  $VAR                 Expand variable\n  ${VAR}               Expand variable with braces\n  $?                   Last exit code\n  $$                   Shell PID\n  arr=(a b c)          Indexed array\n  arr[key]=val         Associative array\n  ${arr[idx]}          Array element\n  $arr[idx]            Array element (without braces)\n  ${#arr[@]}           Array length\n  ${!arr[@]}           Array keys\n",
+		"strings":   "  ${var:off:len}       Substring\n  ${var/old/new}       Replace first match\n  ${var//old/new}      Replace all matches\n  ${var#pat}           Remove shortest prefix\n  ${var##pat}          Remove longest prefix\n  ${var%pat}           Remove shortest suffix\n  ${var%%pat}          Remove longest suffix\n  ${var^} ${var^^}     Uppercase first/all\n  ${var,} ${var,,}     Lowercase first/all\n",
+		"expansion": "  $(cmd)               Command substitution\n  `cmd`                Backtick command substitution\n  $((expr))            Arithmetic expansion\n  {a,b,c}              Brace expansion\n  {1..5}               Numeric range\n  {a..f}               Alpha range\n  *.go                 Glob matching\n  **/go.mod            Recursive glob\n",
+	}
+	if topic, ok := topics[name]; ok {
+		fmt.Fprint(stdout, topic)
+		return 0
+	}
+	fmt.Fprintf(stderr, "help: no help for %q\n", name)
+	return 1
+}
+
 func helpHandler(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	if len(args) > 0 {
+		return helpBuiltin(args[0], stdout, stderr)
+	}
+
 	fmt.Fprint(stdout, "Terebra -- auger shell\n\n")
 	fmt.Fprint(stdout, "Built-in commands:\n")
 	fmt.Fprint(stdout, "  cd [dir]       Change directory (defaults to $HOME)\n")
