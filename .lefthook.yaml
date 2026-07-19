@@ -69,7 +69,7 @@ pre-push:
             glob: *gofiles
 
           - name: 'trivy (scanners: secret)'
-            run: GOEXPERIMENT=jsonv2 go run github.com/aquasecurity/trivy/cmd/trivy@latest fs --exit-code 1 --scanners secret .
+            run: GOEXPERIMENT=jsonv2 go run github.com/aquasecurity/trivy/cmd/trivy@v0.72.0 fs --exit-code 1 --scanners secret .
 
     - name: linters
       group:
