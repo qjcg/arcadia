@@ -1,0 +1,10 @@
+-- heredoc.trb --
+cat << EOF
+hello
+world
+EOF
+
+# basic heredoc
+terebra heredoc.trb
+stdout 'hello'
+stdout 'world'

@@ -1,0 +1,13 @@
+-- data.cue --
+name: "test"
+value: 42
+
+# cue eval
+terebra -c 'cue eval data.cue'
+stdout 'name:'
+stdout 'value: 42'
+
+# drill cue
+terebra -c 'drill cue data.cue'
+stdout 'name:'
+stdout 'value: 42'

@@ -1,0 +1,23 @@
+# substring
+terebra -c 'FOO=hello ; echo ${FOO:0:2}'
+stdout 'he'
+
+# replace first
+terebra -c 'FOO=hello ; echo ${FOO/l/xyz}'
+stdout 'hexyzlo'
+
+# replace all
+terebra -c 'FOO=hello ; echo ${FOO//l/xyz}'
+stdout 'hexyzxyzo'
+
+# uppercase first
+terebra -c 'FOO=hello ; echo ${FOO^}'
+stdout 'Hello'
+
+# uppercase all
+terebra -c 'FOO=hello ; echo ${FOO^^}'
+stdout 'HELLO'
+
+# length
+terebra -c 'FOO=hello ; echo ${#FOO}'
+stdout '5'

@@ -1,0 +1,19 @@
+# indexed array — all values
+terebra -c 'arr=(a b c) ; echo ${arr[@]}'
+stdout 'a b c'
+
+# indexed array — length
+terebra -c 'arr=(a b c) ; echo ${#arr[@]}'
+stdout '3'
+
+# indexed array — element assignment
+terebra -c 'arr=(a b c) ; arr[1]=x ; echo ${arr[1]}'
+stdout 'x'
+
+# associative array — all values
+terebra -c 'colors[red]=r ; colors[blue]=b ; echo ${colors[@]}'
+stdout 'r b'
+
+# array auto-promote (non-numeric key)
+terebra -c 'arr[key]=val ; echo ${arr[key]}'
+stdout 'val'

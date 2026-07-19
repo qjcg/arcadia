@@ -1,0 +1,16 @@
+# pipe
+terebra -c 'echo hello | wc -c'
+stdout '6'
+
+# redirect stdout
+terebra -c 'echo hello > out.txt ; cat out.txt'
+stdout 'hello'
+
+# redirect append
+terebra -c 'echo a > out.txt ; echo b >> out.txt ; cat out.txt'
+stdout 'a'
+stdout 'b'
+
+# redirect stdin
+terebra -c 'echo hello > in.txt ; cat < in.txt'
+stdout 'hello'

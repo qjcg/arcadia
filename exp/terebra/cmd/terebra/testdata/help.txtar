@@ -1,0 +1,11 @@
+# help builtin
+terebra -c 'help'
+stdout 'Terebra -- auger shell'
+
+# --version
+terebra --version
+stdout 'terebra 0.1.0'
+
+# --explain
+terebra --explain echo hello
+stdout '# would execute: echo hello'

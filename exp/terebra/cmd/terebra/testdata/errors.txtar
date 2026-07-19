@@ -1,0 +1,7 @@
+# unknown command
+! terebra -c 'nonexistent_command_xyz'
+stderr 'command not found'
+
+# parse error
+! terebra -c '|'
+stderr 'expected command name'

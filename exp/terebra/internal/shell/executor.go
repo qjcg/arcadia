@@ -49,6 +49,7 @@ func (s *Shell) ExecuteScript(script *parser.Script) error {
 		return nil
 	}
 
+	var lastErr error
 	for i, pipe := range script.Pipelines {
 		var err error
 		// Execute a single pipeline
@@ -59,6 +60,7 @@ func (s *Shell) ExecuteScript(script *parser.Script) error {
 		} else {
 			err = s.ExecutePipeline(pipe)
 		}
+		lastErr = err
 
 		if i < len(script.Ops) {
 			switch script.Ops[i] {
@@ -68,7 +70,7 @@ func (s *Shell) ExecuteScript(script *parser.Script) error {
 			case parser.ChainingAnd:
 				// Only continue if exit code is 0
 				if s.exitCode != 0 {
-					return nil
+					return err
 				}
 			case parser.ChainingOr:
 				// Only continue if exit code is non-zero
@@ -79,7 +81,7 @@ func (s *Shell) ExecuteScript(script *parser.Script) error {
 		}
 	}
 
-	return nil
+	return lastErr
 }
 
 func (s *Shell) executeAugerPipeline(pipe *parser.Pipeline) error {

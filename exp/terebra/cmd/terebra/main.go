@@ -32,6 +32,26 @@ func main() {
 			fmt.Printf("terebra %s\n", version)
 			return
 
+		case "--explain":
+			// Dry-run: show what the command would do
+			if len(os.Args) < 3 {
+				fmt.Fprintln(os.Stderr, "--explain requires a command")
+				os.Exit(1)
+			}
+			// Build a script that the shell can parse: --explain <cmd> <args>
+			var script strings.Builder
+			script.WriteString("--explain ")
+			script.WriteString(os.Args[2])
+			for _, a := range os.Args[3:] {
+				script.WriteString(" ")
+				script.WriteString(a)
+			}
+			if err := shell.RunScriptFromString(script.String()); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			return
+
 		case "help", "--help", "-h":
 			fmt.Println("Usage: terebra [command] [script]")
 			fmt.Println()

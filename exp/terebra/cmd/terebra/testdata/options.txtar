@@ -1,0 +1,7 @@
+# set -o vi
+terebra -c 'set -o vi ; echo hello'
+stdout 'hello'
+
+# set -o emacs
+terebra -c 'set -o emacs ; echo hello'
+stdout 'hello'

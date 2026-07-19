@@ -1,30 +1,30 @@
 # basic execution
-exec terebra -c 'echo hello'
+terebra -c 'echo hello'
 stdout 'hello'
 
 # brace expansion
-exec terebra -c 'echo {a,b,c}'
+terebra -c 'echo {a,b,c}'
 stdout 'a b c'
 
 # numeric range
-exec terebra -c 'echo {1..5}'
+terebra -c 'echo {1..5}'
 stdout '1 2 3 4 5'
 
 # arithmetic
-exec terebra -c 'echo $((2 + 3))'
+terebra -c 'echo $((2 + 3))'
 stdout '5'
 
 # arrays
-exec terebra -c 'arr=(a b c) ; echo ${arr[1]}'
+terebra -c 'arr=(a b c) ; echo ${arr[1]}'
 stdout 'b'
 
 # associative array
-exec terebra -c 'colors[red]="#ff0000" ; echo ${colors[red]}'
+terebra -c 'colors[red]="#ff0000" ; echo ${colors[red]}'
 stdout '#ff0000'
 
 # assoc key listing
-exec terebra -c 'colors[red]=r ; colors[blue]=b ; echo ${!colors[@]}'
+terebra -c 'colors[red]=r ; colors[blue]=b ; echo ${!colors[@]}'
 stdout 'blue red'
 
 # exit code
-! exec terebra -c 'exit 1'
+! terebra -c 'exit 1'

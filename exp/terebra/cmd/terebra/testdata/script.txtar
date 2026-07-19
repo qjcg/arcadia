@@ -1,0 +1,15 @@
+-- test.trb --
+echo "hello from script"
+
+# script execution
+terebra test.trb
+stdout 'hello from script'
+
+# script with shebang
+-- shebang.trb --
+#!/usr/bin/env terebra
+echo "shebang works"
+
+# shebang script
+terebra shebang.trb
+stdout 'shebang works'

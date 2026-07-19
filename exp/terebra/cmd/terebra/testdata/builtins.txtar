@@ -1,0 +1,39 @@
+# type
+terebra -c 'type echo'
+stdout 'echo is a shell builtin'
+
+# type external
+terebra -c 'type ls'
+stdout 'ls is '
+
+# which
+terebra -c 'which echo'
+stdout '/usr/bin/echo'
+
+# export
+terebra -c 'export FOO=bar ; echo $FOO'
+stdout 'bar'
+
+# unset
+terebra -c 'FOO=bar ; unset FOO ; echo $FOO'
+stdout ''
+
+# readonly
+terebra -c 'readonly FOO=bar'
+stdout ''
+
+# alias
+terebra -c 'alias ll="ls -la" ; alias'
+stdout 'll=ls -la'
+
+# unalias
+terebra -c 'alias ll="ls -la" ; unalias ll ; alias'
+! stdout 'll'
+
+# set -x debug trace
+terebra -c 'set -x ; echo hello'
+stderr '[+] echo hello'
+
+# set +x disable debug
+terebra -c 'set -x ; set +x ; echo hello'
+! stderr 'hello'

@@ -1,0 +1,20 @@
+# && — success
+terebra -c 'true && echo ok'
+stdout 'ok'
+
+# && — failure (short-circuit)
+! terebra -c 'false && echo nope'
+! stdout 'nope'
+
+# || — fallthrough on failure
+terebra -c 'false || echo ok'
+stdout 'ok'
+
+# || — short-circuit on success
+terebra -c 'true || echo nope'
+! stdout 'nope'
+
+# ;
+terebra -c 'echo a ; echo b'
+stdout 'a'
+stdout 'b'

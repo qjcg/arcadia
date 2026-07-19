@@ -1,0 +1,13 @@
+-- hello.txt --
+hello
+-- world.txt --
+world
+
+# glob match
+terebra echo *.txt
+stdout 'hello.txt'
+stdout 'world.txt'
+
+# no match — passes literal
+terebra echo *.nonexistent
+stdout '*.nonexistent'

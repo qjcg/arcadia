@@ -1,0 +1,27 @@
+# variable expansion
+terebra -c 'echo $HOME'
+stdout '/no-home'
+
+# local variable assignment
+terebra -c 'FOO=bar ; echo $FOO'
+stdout 'bar'
+
+# PS1 default
+terebra -c 'echo $PS1'
+stdout 'trb:'
+
+# $$ PID
+terebra -c 'echo $$'
+stdout '[0-9]+'
+
+# $? exit code
+terebra -c 'false ; echo $?'
+stdout '1'
+
+# ${VAR} braces
+terebra -c 'FOO=bar ; echo ${FOO}'
+stdout 'bar'
+
+# undefined variable
+terebra -c 'echo $UNDEFINED_VAR_XYZ'
+stdout ''

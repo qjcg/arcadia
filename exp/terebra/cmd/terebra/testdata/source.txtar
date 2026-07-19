@@ -1,0 +1,6 @@
+-- lib.trb --
+echo "sourced"
+
+# source
+terebra -c 'source lib.trb'
+stdout 'sourced'

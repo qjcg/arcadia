@@ -1,0 +1,7 @@
+# $(cmd)
+terebra -c 'echo $(echo hello)'
+stdout 'hello'
+
+# backtick
+terebra -c 'echo `echo hello`'
+stdout 'hello'
