@@ -24,7 +24,15 @@ stdout '#ff0000'
 
 # assoc key listing
 terebra -c 'colors[red]=r ; colors[blue]=b ; echo ${!colors[@]}'
-stdout '[rb]'
+stdout 'blue red'
 
 # exit code
 ! terebra -c 'exit 1'
+
+# arithmetic with variables
+terebra -c 'X=5 ; Y=3 ; echo $((X + Y))'
+stdout '8'
+
+# exit without argument (exits 0)
+terebra -c 'exit 0 ; echo nope'
+! stdout 'nope'

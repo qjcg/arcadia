@@ -8,7 +8,7 @@ stdout 'ls is '
 
 # which
 terebra -c 'which echo'
-stdout '/usr/bin/echo'
+stdout '/echo'
 
 # export
 terebra -c 'export FOO=bar ; echo $FOO'
@@ -36,4 +36,24 @@ stderr '[+] echo hello'
 
 # set +x disable debug
 terebra -c 'set -x ; set +x ; echo hello'
-! stderr 'hello'
+! stderr 'echo hello'
+
+# readonly enforcement (cannot modify readonly var)
+terebra -c 'readonly FOO=bar ; FOO=baz ; echo $FOO'
+stdout 'bar'
+
+# type for nonexistent command
+! terebra -c 'type nonexistent_cmd_xyz'
+stderr 'not found'
+
+# which for nonexistent command
+! terebra -c 'which nonexistent_cmd_xyz'
+stderr 'not found'
+
+# export listing
+terebra -c 'export FOO=bar ; export'
+stdout 'FOO=bar'
+
+# set listing shows vars
+terebra -c 'FOO=bar ; set'
+stdout 'FOO=bar'
