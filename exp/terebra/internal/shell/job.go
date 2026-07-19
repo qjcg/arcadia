@@ -3,10 +3,12 @@ package shell
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"syscall"
+	"unsafe"
 
 	"github.com/qjcg/arcadia/exp/terebra/internal/parser"
 )
@@ -90,6 +92,9 @@ func (s *Shell) executeBackground(cmd *parser.Command, stdin io.Reader, stdout i
 	extCmd.Stdin = stdin
 	extCmd.Stdout = stdout
 	extCmd.Stderr = s.Stderr
+	extCmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
 
 	in, out, errOut, closeFn, err := s.openRedirects(cmd, stdin, stdout)
 	if err != nil {
@@ -158,15 +163,66 @@ func builtinFg(args []string, stdout, stderr io.Writer, s *Shell) int {
 
 	fmt.Fprintf(stdout, "%s\n", job.Line)
 
-	if job.Cmd.Process != nil && job.State == JobRunning {
-		job.Cmd.Wait()
-		job.State = JobDone
-		s.removeJob(job)
-		return 0
+	if job.Cmd.Process == nil {
+		fmt.Fprintln(stderr, "fg: job not running")
+		return 1
 	}
 
-	fmt.Fprintln(stderr, "fg: job not running")
-	return 1
+	// If the job was stopped, send SIGCONT to resume it
+	if job.State == JobStopped {
+		job.Cmd.Process.Signal(syscall.SIGCONT)
+		job.State = JobRunning
+	}
+
+	// The readline library keeps the terminal in raw mode, which means
+	// Ctrl+C / Ctrl+Z are passed through as literal bytes instead of
+	// generating SIGINT / SIGTSTP.  Temporarily switch to cooked mode
+	// so the terminal driver delivers signals to the foreground
+	// process group.  Restore raw mode when fg returns.
+	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
+	if err == nil {
+		defer tty.Close()
+
+		// Save current terminal attributes
+		var oldState syscall.Termios
+		if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, tty.Fd(), syscall.TCGETS, uintptr(unsafe.Pointer(&oldState))); errno == 0 {
+			// Enable ISIG so that Ctrl+C / Ctrl+Z generate real
+			// signals.  Enable ICANON for line-buffered input.
+			// Don't set ECHO — the readline library handles echo.
+			newState := oldState
+			newState.Lflag |= syscall.ISIG | syscall.ICANON
+			syscall.Syscall(syscall.SYS_IOCTL, tty.Fd(), syscall.TCSETS, uintptr(unsafe.Pointer(&newState)))
+
+			// Restore the terminal mode when done
+			defer syscall.Syscall(syscall.SYS_IOCTL, tty.Fd(), syscall.TCSETS, uintptr(unsafe.Pointer(&oldState)))
+		}
+
+		// Put the job in the foreground process group so that
+		// Ctrl+C / Ctrl+Z are delivered to the job, not the shell.
+		// TIOCSPGRP takes a pointer to the pid_t value.
+		pgid := job.Cmd.Process.Pid
+		if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, tty.Fd(), syscall.TIOCSPGRP, uintptr(unsafe.Pointer(&pgid))); errno == 0 {
+			shellPgid := syscall.Getpgrp()
+			defer syscall.Syscall(syscall.SYS_IOCTL, tty.Fd(), syscall.TIOCSPGRP, uintptr(unsafe.Pointer(&shellPgid)))
+		}
+	}
+
+	// Wait for the job to complete or stop
+	job.Cmd.Wait()
+
+	// Check if the process was stopped by SIGTSTP
+	if job.Cmd.ProcessState != nil {
+		if status, ok := job.Cmd.ProcessState.Sys().(syscall.WaitStatus); ok {
+			if status.Stopped() {
+				job.State = JobStopped
+				return 0
+			}
+		}
+	}
+
+	job.State = JobDone
+	s.removeJob(job)
+	return 0
 }
 
 // builtinBg implements the bg builtin.
