@@ -338,15 +338,26 @@ func (s *Shell) expandVars(input string) string {
 				continue
 			}
 
-			// Array access: name[idx]
+			// Array access: name[idx] or !name[idx] (list keys)
 			if before, after, ok := strings.Cut(inner, "["); ok {
 				name := before
+				// Strip ! prefix for key listing
+				listKeys := false
+				if strings.HasPrefix(name, "!") {
+					listKeys = true
+					name = strings.TrimPrefix(name, "!")
+				}
 				rest := after
 				before, _, ok := strings.Cut(rest, "]")
 				if ok {
 					index := before
-					val := s.getArrayVar(name, index)
-					result.WriteString(val)
+					if listKeys {
+						val := s.getArrayVar(name, "!"+index)
+						result.WriteString(val)
+					} else {
+						val := s.getArrayVar(name, index)
+						result.WriteString(val)
+					}
 					continue
 				}
 			}
@@ -667,6 +678,19 @@ func (s *Shell) getArrayVar(name, idx string) string {
 		return ""
 	}
 
+	// ${!arr[@]} or ${!arr[*]} — list keys
+	if idx == "!@" || idx == "!*" {
+		if m, ok := s.assoc[name]; ok {
+			var keys []string
+			for k := range m {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			return strings.Join(keys, " ")
+		}
+		return ""
+	}
+
 	// Indexed array
 	if arr, ok := s.arrays[name]; ok {
 		if idx == "#" {
@@ -706,6 +730,7 @@ func (s *Shell) tryArrayAssignment(name string, args []string) bool {
 
 	// Check for arr=(...) pattern where name is "arr=(..." and args contain the rest
 	// The parser splits "arr=(1 2 3)" into name="arr=(1", args=["2", "3)"]
+	// Also handles arr=([key]=val ...) for associative arrays
 	if strings.Contains(name, "=(") {
 		before, after, _ := strings.Cut(name, "=(")
 		arrName := before
@@ -729,7 +754,30 @@ func (s *Shell) tryArrayAssignment(name string, args []string) bool {
 				values = values[:len(values)-1]
 			}
 		}
-		s.setArray(arrName, values)
+		// Check if values look like [key]=value (associative array)
+		isAssoc := false
+		for _, v := range values {
+			if strings.HasPrefix(v, "[") && strings.Contains(v, "]=") {
+				isAssoc = true
+				break
+			}
+		}
+		if isAssoc {
+			m := make(map[string]string)
+			for _, v := range values {
+				if after0, ok := strings.CutPrefix(v, "["); ok {
+					// [key]=value
+					rest := after0
+					if before, after, ok := strings.Cut(rest, "]="); ok {
+						m[before] = after
+					}
+				}
+			}
+			s.assoc[arrName] = m
+			delete(s.arrays, arrName)
+		} else {
+			s.setArray(arrName, values)
+		}
 		return true
 	}
 
@@ -1230,6 +1278,74 @@ func (s *Shell) builtinReadonly(args []string, stdout, stderr io.Writer) int {
 			s.readonly[before] = true
 		} else {
 			s.readonly[arg] = true
+		}
+	}
+	return 0
+}
+
+// builtinDeclare handles the declare builtin.
+func (s *Shell) builtinDeclare(args []string, stdout, stderr io.Writer) int {
+	if len(args) == 0 {
+		// List all variables and arrays
+		for _, v := range s.listVars() {
+			fmt.Fprintln(stdout, v)
+		}
+		names := make([]string, 0, len(s.arrays))
+		for n := range s.arrays {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		for _, n := range names {
+			fmt.Fprintf(stdout, "%s=(%s)\n", n, strings.Join(s.arrays[n], " "))
+		}
+		assocNames := make([]string, 0, len(s.assoc))
+		for n := range s.assoc {
+			assocNames = append(assocNames, n)
+		}
+		sort.Strings(assocNames)
+		for _, n := range assocNames {
+			fmt.Fprintf(stdout, "%s=(", n)
+			first := true
+			for k, v := range s.assoc[n] {
+				if !first {
+					fmt.Fprint(stdout, " ")
+				}
+				fmt.Fprintf(stdout, "[%s]=%s", k, v)
+				first = false
+			}
+			fmt.Fprintln(stdout, ")")
+		}
+		return 0
+	}
+	// Parse flags
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "-A":
+			// declare -A name — create associative array
+			i++
+			if i < len(args) {
+				name := args[i]
+				if _, ok := s.assoc[name]; !ok {
+					s.assoc[name] = make(map[string]string)
+				}
+				// Also remove from indexed arrays if present
+				delete(s.arrays, name)
+			}
+		case "-a":
+			// declare -a name — create indexed array
+			i++
+			if i < len(args) {
+				name := args[i]
+				if _, ok := s.arrays[name]; !ok {
+					s.arrays[name] = nil
+				}
+				delete(s.assoc, name)
+			}
+		default:
+			// name=value assignment
+			if before, after, ok := strings.Cut(args[i], "="); ok {
+				s.setVar(before, after)
+			}
 		}
 	}
 	return 0
