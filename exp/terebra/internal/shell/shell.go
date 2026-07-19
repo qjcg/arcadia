@@ -147,7 +147,7 @@ func (s *Shell) Repl() error {
 	}
 
 	cfg := &readline.Config{
-		Prompt:              s.prompt(),
+		Prompt:              "", // set below before first Readline
 		HistoryFile:         histPath,
 		HistoryLimit:        1000,
 		AutoComplete:        s.completer(),
@@ -391,6 +391,11 @@ func (s *Shell) prompt() string {
 			ps1 = ps1[idx+1:]
 		}
 		ps1 = strings.TrimRight(ps1, "\n\r")
+		// Strip ANSI escape codes so readline computes cursor position
+		// correctly. Trim trailing spaces so the appended space is the
+		// only one — users who include a trailing space in their PS1
+		// won't get a double space.
+		ps1 = strings.TrimRight(stripANSI(ps1), " ")
 		return ps1 + " "
 	}
 	wd, _ := os.Getwd()
@@ -404,6 +409,46 @@ func (s *Shell) prompt() string {
 		mark = "!"
 	}
 	return fmt.Sprintf("trb:%s%s ", display, mark)
+}
+
+// stripANSI removes ANSI escape codes (both CSI and OSC sequences) from s.
+func stripANSI(s string) string {
+	var result strings.Builder
+	i := 0
+	for i < len(s) {
+		if s[i] == '\033' {
+			if i+1 < len(s) && s[i+1] == '[' {
+				// CSI sequence: \033[...<letter>
+				i += 2
+				for i < len(s) && !(s[i] >= 'A' && s[i] <= 'Z' || s[i] >= 'a' && s[i] <= 'z') {
+					i++
+				}
+				if i < len(s) {
+					i++
+				}
+				continue
+			}
+			if i+1 < len(s) && s[i+1] == ']' {
+				// OSC sequence: \033]...\007 or \033]...\033\\
+				i += 2
+				for i < len(s) {
+					if s[i] == '\007' {
+						i++
+						break
+					}
+					if s[i] == '\033' && i+1 < len(s) && s[i+1] == '\\' {
+						i += 2
+						break
+					}
+					i++
+				}
+				continue
+			}
+		}
+		result.WriteByte(s[i])
+		i++
+	}
+	return result.String()
 }
 
 // expandPromptCmd finds $(...) in input, executes each command via sh -c,
