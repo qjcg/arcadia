@@ -283,39 +283,40 @@ func (s *Shell) setupStdinPipe() {
 		s.stdinW = nil
 		s.stdinDone = nil
 		return
-		s.stdinW = w
-		s.stdinDone = make(chan struct{})
+	}
+	s.stdinR = r
+	s.stdinW = w
+	s.stdinDone = make(chan struct{})
 
-		go func() {
-			defer close(s.stdinDone)
-			buf := make([]byte, 4096)
-			for {
-				// Use a helper goroutine to read so we can detect
-				// when the pipe is closed (via s.stdinDone)
-				type readResult struct {
-					n   int
-					err error
-				}
-				ch := make(chan readResult, 1)
-				go func() {
-					n, err := os.Stdin.Read(buf)
-					ch <- readResult{n, err}
-				}()
+	go func() {
+		defer close(s.stdinDone)
+		buf := make([]byte, 4096)
+		for {
+			// Use a helper goroutine to read so we can detect
+			// when the pipe is closed (via s.stdinDone)
+			type readResult struct {
+				n   int
+				err error
+			}
+			ch := make(chan readResult, 1)
+			go func() {
+				n, err := os.Stdin.Read(buf)
+				ch <- readResult{n, err}
+			}()
 
-				select {
-				case r := <-ch:
-					if r.err != nil {
-						return
-					}
-					if _, err := w.Write(buf[:r.n]); err != nil {
-						return
-					}
-				case <-s.stdinDone:
+			select {
+			case r := <-ch:
+				if r.err != nil {
 					return
 				}
+				if _, err := w.Write(buf[:r.n]); err != nil {
+					return
+				}
+			case <-s.stdinDone:
+				return
 			}
-		}()
-	}
+		}
+	}()
 }
 
 // closeStdinPipe closes the stdin pipe and waits for the copy goroutine

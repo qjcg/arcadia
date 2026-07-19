@@ -189,23 +189,14 @@ func (m fuzzyModel) View() tea.View {
 	var b strings.Builder
 
 	// Calculate available lines for results (reserve 2 for input + separator)
-	available := m.height - 3
-	if available < 0 {
-		available = 0
-	}
+	available := max(m.height-3, 0)
 
 	// Show results with scroll around selected entry
-	start := m.selected - available/2
-	if start < 0 {
-		start = 0
-	}
+	start := max(m.selected-available/2, 0)
 	end := start + available
 	if end > len(m.filtered) {
 		end = len(m.filtered)
-		start = end - available
-		if start < 0 {
-			start = 0
-		}
+		start = max(end-available, 0)
 	}
 
 	for i := start; i < end; i++ {
