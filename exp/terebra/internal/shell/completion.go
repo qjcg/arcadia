@@ -193,7 +193,8 @@ func (s *Shell) completeFileOrArg(parts []string, lastWord string) []string {
 			if e.IsDir() {
 				name += "/"
 			}
-			if dir != "." {
+			// Always include the directory prefix if the original path had one
+			if dir != "." || strings.Contains(lastWord, "/") {
 				name = dir + "/" + name
 			}
 			candidates = append(candidates, name)
