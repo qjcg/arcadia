@@ -8,3 +8,6 @@ trim_trailing_whitespace = true
 [*.{yaml,yml,json}]
 indent_style = space
 indent_size = 2
+
+[Earthfile]
+indent_style = tab

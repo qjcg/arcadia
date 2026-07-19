@@ -23,10 +23,10 @@ test-base:
 	SAVE ARTIFACT /go/bin/*
 
 # Creates the following under the `testdata` folder:
-#   - 1x operator with preferred settings
-#   - 1x system account and user
-#   - 2x accounts with preferred settings
-#   - 3x users in each account with preferred settings
+#	- 1x operator with preferred settings
+#	- 1x system account and user
+#	- 2x accounts with preferred settings
+#	- 3x users in each account with preferred settings
 testdata:
 	FROM +test-base
 
@@ -43,12 +43,12 @@ testdata:
 
 	# Create an Operator.
 	RUN nsc create operator $operator \
-	    --generate-signing-key \
-	    --sys
+		--generate-signing-key \
+		--sys
 	RUN nsc edit operator \
-	    --account-jwt-server-url $server_url \
-	    --require-signing-keys \
-	    --tag status:awesome,region:us-east
+		--account-jwt-server-url $server_url \
+		--require-signing-keys \
+		--tag status:awesome,region:us-east
 
 	# Generate nats-server resolver config file.
 	RUN nsc generate config --nats-resolver --config-file resolver.conf
@@ -60,70 +60,70 @@ testdata:
 	# Add metadata and configuration settings to the Account.
 	RUN nsc create account $account1 -K $operator_sk
 	RUN nsc edit account $account1 \
-	    --description "The $account1 Team at $operator" \
-	    --info-url "https://$operator.com/$account1" \
-	    --data 5G \
-	    --expiry 1y \
-	    --js-disk-storage 50G \
-	    --js-mem-storage 2G \
-	    --js-tier 3 \
-	    --tag status:awesome,az:us-east
+		--description "The $account1 Team at $operator" \
+		--info-url "https://$operator.com/$account1" \
+		--data 5G \
+		--expiry 1y \
+		--js-disk-storage 50G \
+		--js-mem-storage 2G \
+		--js-tier 3 \
+		--tag status:awesome,az:us-east
 
 	# Create Account2 using the Operator's signing-key.
 	# Add metadata and configuration settings to the Account.
 	RUN nsc create account $account2 -K $operator_sk
 	RUN nsc edit account $account2 \
-	    --description "The $account2 Team at $operator" \
-	    --info-url "https://$operator.com/$account2" \
-	    --data 5G \
-	    --expiry 1y \
-	    --js-disk-storage 50G \
-	    --js-mem-storage 2G \
-	    --js-tier 3 \
-	    --tag status:awesome,az:us-east
+		--description "The $account2 Team at $operator" \
+		--info-url "https://$operator.com/$account2" \
+		--data 5G \
+		--expiry 1y \
+		--js-disk-storage 50G \
+		--js-mem-storage 2G \
+		--js-tier 3 \
+		--tag status:awesome,az:us-east
 
 	# Create a signing-key for Account1.
 	# Add a role name and permissions to the signing-key.
 	RUN nsc edit account -n $account1 --sk generate
 	LET account1_sk = $(nsc describe account $account1 --json | jq -r '.nats.signing_keys[0]')
 	RUN nsc edit signing-key \
-	    --account $account1 \
-	    --sk $account1_sk \
-	    --data 4G \
-	    --conn-type STANDARD,WEBSOCKET \
-	    --role chat_user \
-	    --allow-pub "chat.post.{{tag(org)}}.{{name()}}" \
-	    --allow-sub "chat.post.{{tag(org)}}.*" \
-	    --allow-pubsub 'greetings.>' \
-	    --allow-pub-response
+		--account $account1 \
+		--sk $account1_sk \
+		--data 4G \
+		--conn-type STANDARD,WEBSOCKET \
+		--role chat_user \
+		--allow-pub "chat.post.{{tag(org)}}.{{name()}}" \
+		--allow-sub "chat.post.{{tag(org)}}.*" \
+		--allow-pubsub 'greetings.>' \
+		--allow-pub-response
 
 	# Create a signing-key for Account2.
 	# Add a role name and permissions to the signing-key.
 	RUN nsc edit account -n $account2 --sk generate
 	LET account2_sk = $(nsc describe account $account2 --json | jq -r '.nats.signing_keys[0]')
 	RUN nsc edit signing-key \
-	    --account $account2 \
-	    --sk $account2_sk \
-	    --data 4G \
-	    --conn-type STANDARD,WEBSOCKET \
-	    --role chat_user \
-	    --allow-pub "chat.post.{{tag(org)}}.{{name()}}" \
-	    --allow-sub "chat.post.{{tag(org)}}.*" \
-	    --allow-pubsub 'greetings.>' \
-	    --allow-pub-response
+		--account $account2 \
+		--sk $account2_sk \
+		--data 4G \
+		--conn-type STANDARD,WEBSOCKET \
+		--role chat_user \
+		--allow-pub "chat.post.{{tag(org)}}.{{name()}}" \
+		--allow-sub "chat.post.{{tag(org)}}.*" \
+		--allow-pubsub 'greetings.>' \
+		--allow-pub-response
 
-        # Create Account Users using scoped signing-keys and generate creds files.
-        LET a1u = ""
-        LET a2u = ""
-        FOR i IN 1 2 3
-          SET a1u = $(eval "echo \$a1_user${i}")
-          RUN nsc create user $a1u --account $account1 --private-key $account1_sk
-          RUN nsc generate creds -a $account1 -n $a1u -o ${account1}_${a1u}.creds
+		# Create Account Users using scoped signing-keys and generate creds files.
+		LET a1u = ""
+		LET a2u = ""
+		FOR i IN 1 2 3
+			SET a1u = $(eval "echo \$a1_user${i}")
+			RUN nsc create user $a1u --account $account1 --private-key $account1_sk
+			RUN nsc generate creds -a $account1 -n $a1u -o ${account1}_${a1u}.creds
 
-          SET a2u = $(eval "echo \$a2_user${i}")
-          RUN nsc create user $a2u --account $account2 --private-key $account2_sk
-          RUN nsc generate creds -a $account2 -n $a2u -o ${account2}_${a2u}.creds
-        END
+			SET a2u = $(eval "echo \$a2_user${i}")
+			RUN nsc create user $a2u --account $account2 --private-key $account2_sk
+			RUN nsc generate creds -a $account2 -n $a2u -o ${account2}_${a2u}.creds
+		END
 
 	# Export all nkeys and JWTs.
 	RUN nsc export keys --all --dir exports --include-jwts
