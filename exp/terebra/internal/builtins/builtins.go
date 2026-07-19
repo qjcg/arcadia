@@ -115,8 +115,9 @@ func exitHandler(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			code = 1
 		}
 	}
-	os.Exit(code)
-	return 0
+	// Return a special code that signals the REPL to exit cleanly.
+	// We use -1 as the sentinel (not a valid exit code).
+	return -1
 }
 
 var builtinHelp = map[string]string{

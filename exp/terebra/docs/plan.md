@@ -47,7 +47,7 @@
 | # | Task | Status |
 |---|------|--------|
 | 5.1 | **Syntax-highlighted input** — token-based coloring in readline | ⏳ (future) |
-| 5.2 | **Fuzzy command search** — Ctrl+R with preview via readline API | ⏳ (future) |
+| 5.2 | **Fuzzy command search** — Ctrl+R with bubbletea TUI overlay (fzf-style) | ✅ |
 | 5.3 | **Interactive drill viewer** — expand/collapse, scroll for CUE drill output | ⏳ (future) |
 | 5.4 | **Progress display** — spinner/progress bar for long-running commands | ⏳ (future) |
 

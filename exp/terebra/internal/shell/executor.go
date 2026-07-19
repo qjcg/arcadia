@@ -16,6 +16,18 @@ import (
 	"github.com/qjcg/arcadia/exp/terebra/internal/parser"
 )
 
+// errExitShell is a sentinel error returned by ExecuteCommand when the exit
+// builtin is called. The REPL loop checks for this error and exits cleanly.
+var errExitShell = &exitShellError{code: 0}
+
+type exitShellError struct {
+	code int
+}
+
+func (e *exitShellError) Error() string {
+	return fmt.Sprintf("exit shell with code %d", e.code)
+}
+
 func (s *Shell) ExecutePipeline(pipe *parser.Pipeline) error {
 	if len(pipe.Commands) == 0 {
 		return nil
@@ -61,6 +73,10 @@ func (s *Shell) ExecuteScript(script *parser.Script) error {
 			err = s.ExecuteCommand(pipe.Commands[0], s.Stdin, s.Stdout)
 		} else {
 			err = s.ExecutePipeline(pipe)
+		}
+		// If the exit builtin was called, stop immediately
+		if err == errExitShell {
+			return err
 		}
 		lastErr = err
 
@@ -324,6 +340,10 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 	// Check builtins first
 	if handler, ok := s.builtins.Lookup(expandedName); ok {
 		exitCode := handler(expandedArgs, in, out, errOut)
+		// -1 is a sentinel from the exit builtin: signal the REPL to stop
+		if exitCode == -1 {
+			return errExitShell
+		}
 		if exitCode != 0 {
 			s.exitCode = exitCode
 			return fmt.Errorf("command exited with code %d", exitCode)

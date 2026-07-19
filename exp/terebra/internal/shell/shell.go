@@ -1,6 +1,8 @@
 package shell
 
 import (
+	"errors"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -37,6 +39,11 @@ type Shell struct {
 	interp   *script.Interpreter
 	debug    bool // set -x debug mode
 	fuzzy    bool // Ctrl+R fuzzy search flag
+
+	// stdin pipe for interrupting readline
+	stdinR    *os.File // read end of pipe (readline reads from this)
+	stdinW    *os.File // write end of pipe (goroutine writes to this)
+	stdinDone chan struct{}
 }
 
 func New() *Shell {
@@ -97,6 +104,9 @@ func New() *Shell {
 	})
 	s.builtins.Register("readonly", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return s.builtinReadonly(args, stdout, stderr)
+	s.builtins.Register("exit", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+		return s.builtinExit(args, stdout, stderr)
+	})
 	})
 	// Load ~/.terebrarc if it exists
 	s.loadRc()
@@ -139,7 +149,14 @@ func RunScriptFromString(content string) error {
 	// Try parsing as shell script first (supports ; && || chaining)
 	script, err := parser.ParseScript(content)
 	if err == nil && len(script.Pipelines) > 0 {
-		return sh.ExecuteScript(script)
+		err = sh.ExecuteScript(script)
+		if errors.Is(err, errExitShell) {
+			if sh.exitCode != 0 {
+				os.Exit(sh.exitCode)
+			}
+			return nil
+		}
+		return err
 	}
 
 	// Fall back to the scripting language interpreter
@@ -152,12 +169,15 @@ func (s *Shell) Repl() error {
 		histPath = filepath.Join(home, historyFile)
 	}
 
+	// Set up stdin pipe so we can interrupt readline on Ctrl+R
+	s.setupStdinPipe()
+
 	cfg := &readline.Config{
 		Prompt:              "", // set below before first Readline
 		HistoryFile:         histPath,
 		HistoryLimit:        1000,
 		AutoComplete:        s.completer(),
-		Stdin:               os.Stdin,
+		Stdin:               s.stdinR,
 		Stdout:              os.Stdout,
 		Stderr:              os.Stderr,
 		InterruptPrompt:     "^C\n",
@@ -182,6 +202,29 @@ func (s *Shell) Repl() error {
 				continue
 			}
 			if err == io.EOF {
+				if s.fuzzy {
+					// Ctrl+R triggered: close old readline, launch TUI
+					s.fuzzy = false
+					s.closeStdinPipe()
+					rl.Close()
+
+					result := s.runFuzzySearch()
+
+					// Set up new pipe and readline
+					s.setupStdinPipe()
+					cfg.Stdin = s.stdinR
+					newRL, err := readline.NewEx(cfg)
+					if err != nil {
+						return fmt.Errorf("readline: %v", err)
+					}
+					s.rl = newRL
+					rl = newRL
+
+					if result != "" {
+						rl.Operation.SetBuffer(result)
+					}
+					continue
+				}
 				fmt.Fprintln(s.Stdout)
 				return nil
 			}
@@ -189,15 +232,6 @@ func (s *Shell) Repl() error {
 		}
 
 		line = strings.TrimSpace(line)
-
-		// Handle fuzzy search triggered by Ctrl+R
-		if s.fuzzy {
-			s.fuzzy = false
-			if line != "" {
-				s.doFuzzySearch(line)
-			}
-			continue
-		}
 
 		if line == "" {
 			continue
@@ -215,6 +249,9 @@ func (s *Shell) Repl() error {
 		}
 
 		if err := s.ExecuteScript(pipe); err != nil {
+			if errors.Is(err, errExitShell) {
+				os.Exit(s.exitCode)
+			}
 			fmt.Fprintf(s.Stderr, "trb: error: %v\n", err)
 			s.exitCode = 1
 		} else {
@@ -226,74 +263,82 @@ func (s *Shell) Repl() error {
 func (s *Shell) filterInput(r rune) (rune, bool) {
 	// Ctrl+R (0x12) triggers fuzzy search
 	if r == 0x12 {
+		// Close the write end of the stdin pipe so readline gets EOF
+		if s.stdinW != nil {
+			s.stdinW.Close()
+			// Also close the read end so the copy goroutine exits quickly
+			// (the write end close will cause broken pipe on the next write)
+		}
 		s.fuzzy = true
 		return r, false // consume the key
 	}
 	return r, true
 }
 
-// doFuzzySearch searches history entries containing the query and inserts the selected match.
-func (s *Shell) doFuzzySearch(query string) {
-	lines := s.readHistory()
-	// Filter for entries containing the query (case-insensitive fuzzy match)
-	ql := strings.ToLower(query)
-	var matches []string
-	seen := make(map[string]bool)
-	for _, l := range lines {
-		trimmed := strings.TrimSpace(l)
-		if trimmed == "" || seen[trimmed] {
-			continue
-		}
-		if strings.Contains(strings.ToLower(trimmed), ql) {
-			matches = append(matches, trimmed)
-			seen[trimmed] = true
-		}
-	}
-
-	if len(matches) == 0 {
-		fmt.Fprintf(s.Stderr, "\n(fuzzy-search): no matches for %q\n", query)
-		return
-	}
-
-	if len(matches) == 1 {
-		s.rl.Operation.SetBuffer(matches[0])
-		s.rl.Operation.Refresh()
-		return
-	}
-
-	// Show numbered list of matches on stderr
-	fmt.Fprintf(s.Stderr, "\n(fuzzy-search) %q: %d matches\n", query, len(matches))
-	showCount := min(len(matches), 20)
-	for i, m := range matches[:showCount] {
-		fmt.Fprintf(s.Stderr, "  %2d: %s\n", i+1, m)
-	}
-	if len(matches) > 20 {
-		fmt.Fprintf(s.Stderr, "  ... (%d more)\n", len(matches)-20)
-	}
-
-	// Read selection from stdin using the readline instance (handles raw mode correctly)
-	fmt.Fprintf(s.Stderr, "select (1-%d or Enter for 1): ", len(matches))
-	var sel int
-	// Set prompt to empty for the selection read
-	s.rl.SetPrompt("")
-	selLine, err := s.rl.Readline()
+// setupStdinPipe creates a pipe and starts a goroutine that copies
+// from os.Stdin into the pipe. Readline reads from the read end of
+// the pipe so we can interrupt it by closing the pipe.
+func (s *Shell) setupStdinPipe() {
+	r, w, err := os.Pipe()
 	if err != nil {
-		// Default to first match
-		s.rl.Operation.SetBuffer(matches[0])
-		s.rl.Operation.Refresh()
+		// Fall back to direct stdin
+		s.stdinR = os.Stdin
+		s.stdinW = nil
+		s.stdinDone = nil
 		return
+	s.stdinR = r
+	s.stdinW = w
+	s.stdinDone = make(chan struct{})
+
+	go func() {
+		defer close(s.stdinDone)
+		buf := make([]byte, 4096)
+		for {
+			// Use a helper goroutine to read so we can detect
+			// when the pipe is closed (via s.stdinDone)
+			type readResult struct {
+				n   int
+				err error
+			}
+			ch := make(chan readResult, 1)
+			go func() {
+				n, err := os.Stdin.Read(buf)
+				ch <- readResult{n, err}
+			}()
+
+			select {
+			case r := <-ch:
+				if r.err != nil {
+					return
+				}
+				if _, err := w.Write(buf[:r.n]); err != nil {
+					return
+				}
+			case <-s.stdinDone:
+				return
+			}
+		}
+	}()
+}
 	}
-	selStr := strings.TrimSpace(selLine)
-	if selStr == "" {
-		sel = 1
-	} else {
-		fmt.Sscanf(selStr, "%d", &sel)
+
+// closeStdinPipe closes the stdin pipe and waits for the copy goroutine
+// to exit.
+func (s *Shell) closeStdinPipe() {
+	if s.stdinW != nil {
+		s.stdinW.Close()
 	}
-	if sel < 1 || sel > len(matches) {
-		sel = 1
+	if s.stdinDone != nil {
+		// Wait for the goroutine to finish (it will exit after
+		// the next read from stdin fails or the write to pipe fails)
+		<-s.stdinDone
 	}
-	s.rl.Operation.SetBuffer(matches[sel-1])
-	s.rl.Operation.Refresh()
+	if s.stdinR != nil && s.stdinR != os.Stdin {
+		s.stdinR.Close()
+	}
+	s.stdinR = nil
+	s.stdinW = nil
+	s.stdinDone = nil
 }
 
 // readHistory reads the history file and returns all lines.
@@ -498,4 +543,18 @@ func (s *Shell) expandPromptCmd(input string) string {
 		i++
 	}
 	return result.String()
+}
+
+// builtinExit handles the exit builtin. It sets the shell's exit code and
+// returns -1 as a sentinel that the executor interprets as "exit the shell".
+func (s *Shell) builtinExit(args []string, stdout, stderr io.Writer) int {
+	code := 0
+	if len(args) > 0 {
+		if _, err := fmt.Sscanf(args[0], "%d", &code); err != nil {
+			fmt.Fprintf(stderr, "exit: invalid exit code: %s\n", args[0])
+			code = 1
+		}
+	}
+	s.exitCode = code
+	return -1
 }
