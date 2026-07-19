@@ -2,6 +2,10 @@
 hello
 -- world.txt --
 world
+-- sub/nested.txt --
+nested
+-- sub/deep/deep.txt --
+deep
 
 # glob match
 terebra echo *.txt
@@ -11,3 +15,19 @@ stdout 'world.txt'
 # no match — passes literal
 terebra echo *.nonexistent
 stdout '*.nonexistent'
+
+# recursive glob — all .txt files
+terebra echo **/*.txt
+stdout 'hello.txt'
+stdout 'world.txt'
+stdout 'sub/nested.txt'
+stdout 'sub/deep/deep.txt'
+
+# recursive glob — ** at start
+terebra echo **/deep.txt
+stdout 'sub/deep/deep.txt'
+
+# recursive glob — ** at end
+terebra echo sub/**
+stdout 'sub/nested.txt'
+stdout 'sub/deep/deep.txt'
