@@ -7,6 +7,7 @@ type TokenType int
 const (
 	TokenWord TokenType = iota
 	TokenPipe
+	TokenPipeErr // |&
 	TokenAugerPipe
 	TokenAmpersand
 	TokenAnd
@@ -18,6 +19,8 @@ const (
 	TokenRedirectErr
 	TokenRedirectErrAppend
 	TokenRedirectErrOut
+	TokenRedirectBoth        // &>
+	TokenRedirectBothAppend  // &>>
 	TokenRedirectHeredoc     // <<
 	TokenRedirectHeredocDash // <<-
 	TokenEOF
@@ -27,6 +30,7 @@ const (
 var tokenNames = map[TokenType]string{
 	TokenWord:                "WORD",
 	TokenPipe:                "PIPE",
+	TokenPipeErr:             "PIPE_ERR",
 	TokenAugerPipe:           "AUGER_PIPE",
 	TokenAmpersand:           "AMPERSAND",
 	TokenAnd:                 "AND",
@@ -38,6 +42,8 @@ var tokenNames = map[TokenType]string{
 	TokenRedirectErr:         "REDIRECT_ERR",
 	TokenRedirectErrAppend:   "REDIRECT_ERR_APPEND",
 	TokenRedirectErrOut:      "REDIRECT_ERR_OUT",
+	TokenRedirectBoth:        "REDIRECT_BOTH",
+	TokenRedirectBothAppend:  "REDIRECT_BOTH_APPEND",
 	TokenRedirectHeredoc:     "REDIRECT_HEREDOC",
 	TokenRedirectHeredocDash: "REDIRECT_HEREDOC_DASH",
 	TokenEOF:                 "EOF",
@@ -118,6 +124,10 @@ func (l *Lexer) NextToken() Token {
 
 	switch ch {
 	case '|':
+		if l.pos+1 < len(l.input) && l.input[l.pos+1] == '&' {
+			l.pos += 2
+			return Token{Type: TokenPipeErr, Value: "|&"}
+		}
 		if l.pos+1 < len(l.input) && l.input[l.pos+1] == '>' {
 			l.pos += 2
 			return Token{Type: TokenAugerPipe, Value: "|>"}
@@ -129,6 +139,14 @@ func (l *Lexer) NextToken() Token {
 		l.pos++
 		return Token{Type: TokenPipe, Value: "|"}
 	case '&':
+		if l.pos+1 < len(l.input) && l.input[l.pos+1] == '>' {
+			l.pos += 2
+			if l.pos < len(l.input) && l.input[l.pos] == '>' {
+				l.pos++
+				return Token{Type: TokenRedirectBothAppend, Value: "&>>"}
+			}
+			return Token{Type: TokenRedirectBoth, Value: "&>"}
+		}
 		if l.pos+1 < len(l.input) && l.input[l.pos+1] == '&' {
 			l.pos += 2
 			return Token{Type: TokenAnd, Value: "&&"}

@@ -65,10 +65,12 @@ func parsePipeline(l *Lexer) (*Pipeline, error) {
 		// Check what comes after the command
 		peek = l.PeekToken()
 		switch peek.Type {
-		case TokenPipe, TokenAugerPipe:
+		case TokenPipe, TokenPipeErr, TokenAugerPipe:
 			l.NextToken()
 			if peek.Type == TokenPipe {
 				pipe.Connects = append(pipe.Connects, ConnectPipe)
+			} else if peek.Type == TokenPipeErr {
+				pipe.Connects = append(pipe.Connects, ConnectPipeErr)
 			} else {
 				// Check for encoder pipe: |>json, |>yaml, |>cue
 				encPeek := l.PeekToken()
@@ -124,7 +126,7 @@ func parseCommand(l *Lexer) (*Command, error) {
 	// Parse args and redirects, stopping at pipe, &, auger pipe, chaining ops, or eof
 	for {
 		peek := l.PeekToken()
-		if peek.Type == TokenEOF || peek.Type == TokenPipe || peek.Type == TokenAugerPipe || peek.Type == TokenAmpersand || peek.Type == TokenSemicolon || peek.Type == TokenAnd || peek.Type == TokenOr {
+		if peek.Type == TokenEOF || peek.Type == TokenPipe || peek.Type == TokenPipeErr || peek.Type == TokenAugerPipe || peek.Type == TokenAmpersand || peek.Type == TokenSemicolon || peek.Type == TokenAnd || peek.Type == TokenOr {
 			break
 		}
 		if isRedirect(peek.Type) {
@@ -152,6 +154,7 @@ func isRedirect(tt TokenType) bool {
 	switch tt {
 	case TokenRedirectOut, TokenRedirectAppend, TokenRedirectIn,
 		TokenRedirectErr, TokenRedirectErrAppend, TokenRedirectErrOut,
+		TokenRedirectBoth, TokenRedirectBothAppend,
 		TokenRedirectHeredoc, TokenRedirectHeredocDash:
 		return true
 	}
@@ -176,6 +179,10 @@ func parseRedirect(tok Token, l *Lexer) (*Redirect, error) {
 		r.Type = RedirectStderrToStdout
 		r.File = "1"
 		return r, nil
+	case TokenRedirectBoth:
+		r.Type = RedirectBoth
+	case TokenRedirectBothAppend:
+		r.Type = RedirectBothAppend
 	case TokenRedirectHeredoc:
 		r.Type = RedirectHeredoc
 	case TokenRedirectHeredocDash:

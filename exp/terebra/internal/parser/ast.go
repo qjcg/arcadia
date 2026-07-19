@@ -32,6 +32,7 @@ type ConnectType int
 const (
 	ConnectPipe ConnectType = iota
 	ConnectAuger
+	ConnectPipeErr // |& — pipe both stdout and stderr
 )
 
 func (ct ConnectType) String() string {
@@ -40,6 +41,8 @@ func (ct ConnectType) String() string {
 		return "|"
 	case ConnectAuger:
 		return "|>"
+	case ConnectPipeErr:
+		return "|&"
 	default:
 		return fmt.Sprintf("ConnectType(%d)", ct)
 	}
@@ -79,6 +82,8 @@ const (
 	RedirectStderrAppend
 	RedirectStdin
 	RedirectStderrToStdout
+	RedirectBoth       // &>
+	RedirectBothAppend // &>>
 	RedirectHeredoc
 	RedirectHeredocDash // <<- (strip leading tabs)
 )
@@ -97,6 +102,10 @@ func (rt RedirectType) String() string {
 		return "<"
 	case RedirectStderrToStdout:
 		return "2>&1"
+	case RedirectBoth:
+		return "&>"
+	case RedirectBothAppend:
+		return "&>>"
 	case RedirectHeredoc:
 		return "<<"
 	case RedirectHeredocDash:

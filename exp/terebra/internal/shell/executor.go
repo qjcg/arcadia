@@ -40,7 +40,7 @@ func (s *Shell) ExecutePipeline(pipe *parser.Pipeline) error {
 		return fmt.Errorf("background not supported in pipelines yet")
 	}
 
-	return s.executePipedCommands(pipe.Commands)
+	return s.executePipedCommands(pipe.Commands, pipe.Connects)
 }
 
 // ExecuteScript executes a parsed Script, handling &&, ||, ; chaining.
@@ -130,7 +130,7 @@ func (s *Shell) executeAugerPipeline(pipe *parser.Pipeline) error {
 
 	// Complex case: mixed | and |> pipes
 	// For now, just run as regular pipes
-	return s.executePipedCommands(cmds)
+	return s.executePipedCommands(cmds, pipe.Connects)
 }
 
 // executeAugerWithEncoder runs a pipeline and encodes the final CUE output.
@@ -368,6 +368,24 @@ func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Wr
 		case parser.RedirectStderrToStdout:
 			errOut = stdout
 
+		case parser.RedirectBoth:
+			f, err := os.Create(file)
+			if err != nil {
+				return nil, nil, nil, nil, err
+			}
+			out = f
+			errOut = f
+			closers = append(closers, f)
+
+		case parser.RedirectBothAppend:
+			f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+			if err != nil {
+				return nil, nil, nil, nil, err
+			}
+			out = f
+			errOut = f
+			closers = append(closers, f)
+
 		case parser.RedirectHeredoc, parser.RedirectHeredocDash:
 			// Heredoc: create a pipe with the content
 			content := redir.Content
@@ -397,7 +415,7 @@ func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Wr
 	return in, out, errOut, closeFn, nil
 }
 
-func (s *Shell) executePipedCommands(cmds []*parser.Command) error {
+func (s *Shell) executePipedCommands(cmds []*parser.Command, connects []parser.ConnectType) error {
 	n := len(cmds)
 	pipes := make([]*os.File, 0, n-1)
 
