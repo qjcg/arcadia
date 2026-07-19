@@ -1,0 +1,40 @@
+version: '3'
+
+tasks:
+  default:
+    deps: [build]
+
+  build:
+    desc: Build the terebra binary
+    cmds:
+      - CGO_ENABLED=0 go build -ldflags '-s -w' -o terebra ./cmd/terebra
+    sources:
+      - '**/*.go'
+      - '**/go.*'
+    generates:
+      - terebra
+
+  run:
+    desc: Run the terebra REPL
+    cmds:
+      - go run ./cmd/terebra
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./... -v
+
+  test-parser:
+    desc: Run parser tests only
+    cmds:
+      - go test ./internal/parser/ -v
+
+  lint:
+    desc: Run go vet
+    cmds:
+      - go vet ./...
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -f terebra

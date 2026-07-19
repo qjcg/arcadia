@@ -16,4 +16,5 @@ use (
 	./exp/roubaix
 	./exp/skillo
 	./exp/slidesdeck
+	./exp/terebra
 )
