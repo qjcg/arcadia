@@ -60,6 +60,22 @@ func cdHandler(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	if dir == "" {
 		dir = "/"
 	}
+
+	// Handle cd -
+	if dir == "-" {
+		dir = os.Getenv("OLDPWD")
+		if dir == "" {
+			fmt.Fprintln(stderr, "cd: OLDPWD not set")
+			return 1
+		}
+	}
+
+	// Save current directory as OLDPWD before changing
+	oldwd, _ := os.Getwd()
+	if oldwd != "" {
+		os.Setenv("OLDPWD", oldwd)
+	}
+
 	if err := os.Chdir(dir); err != nil {
 		fmt.Fprintf(stderr, "cd: %v\n", err)
 		return 1
@@ -67,6 +83,11 @@ func cdHandler(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	wd, err := os.Getwd()
 	if err == nil {
 		os.Setenv("PWD", wd)
+	}
+
+	// Print the directory when using cd - (like bash does)
+	if len(args) > 0 && args[0] == "-" {
+		fmt.Fprintln(stdout, wd)
 	}
 	return 0
 }
