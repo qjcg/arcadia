@@ -18,3 +18,11 @@ stdout 'b'
 # array auto-promote (non-numeric key)
 terebra -c 'arr[key]=val ; echo ${arr[key]}'
 stdout 'val'
+
+# indexed array access without braces
+terebra -c 'arr=(a b c) ; echo $arr[0]'
+stdout 'a'
+
+# associative array access without braces
+terebra -c 'colors[red]=r ; colors[blue]=b ; echo $colors[red]'
+stdout 'r'

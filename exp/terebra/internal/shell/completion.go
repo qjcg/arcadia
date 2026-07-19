@@ -387,6 +387,22 @@ func (s *Shell) expandVars(input string) string {
 			result.WriteByte('$')
 			continue
 		}
+
+		// Check for $arr[idx] array access (without braces)
+		if i < len(input) && input[i] == '[' {
+			i++ // skip [
+			idxStart := i
+			for i < len(input) && input[i] != ']' {
+				i++
+			}
+			index := input[idxStart:i]
+			if i < len(input) {
+				i++ // skip ]
+			}
+			result.WriteString(s.getArrayVar(name, index))
+			continue
+		}
+
 		result.WriteString(s.getVar(name))
 	}
 
@@ -1298,4 +1314,3 @@ func (s *Shell) builtinReadonly(args []string, stdout, stderr io.Writer) int {
 	}
 	return 0
 }
-
