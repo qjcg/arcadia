@@ -43,6 +43,45 @@ func (s *Shell) ExecutePipeline(pipe *parser.Pipeline) error {
 	return s.executePipedCommands(pipe.Commands)
 }
 
+// ExecuteScript executes a parsed Script, handling &&, ||, ; chaining.
+func (s *Shell) ExecuteScript(script *parser.Script) error {
+	if len(script.Pipelines) == 0 {
+		return nil
+	}
+
+	for i, pipe := range script.Pipelines {
+		var err error
+		// Execute a single pipeline
+		if len(pipe.Commands) == 1 && !pipe.Commands[0].Background &&
+			len(pipe.Connects) == 0 && len(pipe.Commands[0].Redirects) == 0 {
+			// Simple command - use ExecuteCommand directly
+			err = s.ExecuteCommand(pipe.Commands[0], s.Stdin, s.Stdout)
+		} else {
+			err = s.ExecutePipeline(pipe)
+		}
+
+		if i < len(script.Ops) {
+			switch script.Ops[i] {
+			case parser.ChainingThen:
+				// Always continue regardless of exit code
+				continue
+			case parser.ChainingAnd:
+				// Only continue if exit code is 0
+				if s.exitCode != 0 {
+					return nil
+				}
+			case parser.ChainingOr:
+				// Only continue if exit code is non-zero
+				if s.exitCode == 0 && err == nil {
+					return nil
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func (s *Shell) executeAugerPipeline(pipe *parser.Pipeline) error {
 	// For now, support a simple case: cmd1 |> cmd2
 	// Execute cmd1, capture output, parse as CUE, pipe to cmd2
@@ -51,6 +90,11 @@ func (s *Shell) executeAugerPipeline(pipe *parser.Pipeline) error {
 
 	if len(cmds) < 2 {
 		return fmt.Errorf("auger pipe requires at least 2 commands")
+	}
+
+	// If the pipeline has an encoder, run the pipeline and encode the output
+	if pipe.Encoder != "" {
+		return s.executeAugerWithEncoder(pipe)
 	}
 
 	// Execute the first part of the pipeline (before the first auger pipe)
@@ -89,9 +133,98 @@ func (s *Shell) executeAugerPipeline(pipe *parser.Pipeline) error {
 	return s.executePipedCommands(cmds)
 }
 
+// executeAugerWithEncoder runs a pipeline and encodes the final CUE output.
+func (s *Shell) executeAugerWithEncoder(pipe *parser.Pipeline) error {
+	cmds := pipe.Commands
+
+	// Execute the first command, capturing output
+	var buf bytes.Buffer
+	if err := s.ExecuteCommand(cmds[0], s.Stdin, &buf); err != nil {
+		return err
+	}
+
+	// Parse as CUE
+	ctx := cueutil.NewContext()
+	output := strings.TrimSpace(buf.String())
+	if output == "" {
+		return nil
+	}
+
+	v := cueutil.CompileString(ctx, output)
+	if err := cueutil.Err(v); err != nil {
+		// Not valid CUE, output raw
+		fmt.Fprint(s.Stdout, output)
+		return nil
+	}
+
+	// Encode in the requested format
+	switch pipe.Encoder {
+	case "json":
+		jsonBytes, err := cueutil.ToJSON(v)
+		if err != nil {
+			fmt.Fprint(s.Stdout, output)
+			return nil
+		}
+		fmt.Fprintln(s.Stdout, string(jsonBytes))
+	case "yaml":
+		// For YAML, format as CUE then convert
+		formatted, err := cueutil.FormatValue(v)
+		if err != nil {
+			fmt.Fprint(s.Stdout, output)
+			return nil
+		}
+		fmt.Fprintln(s.Stdout, formatted)
+	case "cue":
+		formatted, err := cueutil.FormatValue(v)
+		if err != nil {
+			fmt.Fprint(s.Stdout, output)
+			return nil
+		}
+		fmt.Fprintln(s.Stdout, formatted)
+	}
+
+	return nil
+}
+
 func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.Writer) error {
 	// Run expansion pipeline: brace expansion → variable expansion
 	expandedName, expandedArgs := expand.ExpandCommand(cmd.Name, cmd.Args, s.expandVars)
+
+	// Debug trace
+	if s.debug {
+		var line strings.Builder
+		line.WriteString(expandedName)
+		for _, arg := range expandedArgs {
+			line.WriteString(" " + arg)
+		}
+		fmt.Fprintf(s.Stderr, "+ %s\n", line.String())
+	}
+
+	// --explain flag: dry-run mode
+	if expandedName == "--explain" || (len(expandedArgs) > 0 && expandedArgs[0] == "--explain") {
+		actualName := expandedName
+		if actualName == "--explain" {
+			actualName = expandedArgs[0]
+			expandedArgs = expandedArgs[1:]
+		} else {
+			expandedArgs = expandedArgs[1:]
+		}
+		fmt.Fprintf(s.Stdout, "# would execute: %s", actualName)
+		for _, arg := range expandedArgs {
+			fmt.Fprintf(s.Stdout, " %s", arg)
+		}
+		fmt.Fprintln(s.Stdout)
+		return nil
+	}
+
+	// Expand aliases
+	if alias, ok := s.aliases[expandedName]; ok {
+		aliasParts := strings.Fields(alias)
+		if len(aliasParts) > 0 {
+			expandedName = aliasParts[0]
+			expandedArgs = append(aliasParts[1:], expandedArgs...)
+		}
+	}
 
 	// Check for array assignment: name=(values ...)
 	if s.tryArrayAssignment(expandedName, expandedArgs) {
@@ -102,8 +235,22 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 	if len(expandedArgs) == 0 && strings.Contains(expandedName, "=") && !strings.HasPrefix(expandedName, "-") {
 		parts := strings.SplitN(expandedName, "=", 2)
 		if len(parts) == 2 && isIdent(parts[0]) {
+			// Don't expand $(...) in PS1 — it's evaluated on prompt render
 			s.setVar(parts[0], parts[1])
 			return nil
+		}
+	}
+
+	// Expand $(...) command substitution in name and args
+	// Skip for export/readonly args — variable assignment values should
+	// preserve $(...) for dynamic evaluation (e.g. PS1='$(oh-my-posh ...)')
+	if expandedName == "export" || expandedName == "readonly" {
+		expandedName = s.expandCmdSubst(expandedName)
+		// Don't expand $(...) in the args — they're assignment values
+	} else {
+		expandedName = s.expandCmdSubst(expandedName)
+		for i, arg := range expandedArgs {
+			expandedArgs[i] = s.expandCmdSubst(arg)
 		}
 	}
 
@@ -142,6 +289,10 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 	path, err := exec.LookPath(expandedName)
 	if err != nil {
 		s.exitCode = 127
+		// Suggest similar commands
+		if suggestion := s.suggestCommand(expandedName); suggestion != "" {
+			return fmt.Errorf("command not found: %s (did you mean %s?)", expandedName, suggestion)
+		}
 		return fmt.Errorf("command not found: %s", expandedName)
 	}
 
@@ -216,6 +367,25 @@ func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Wr
 
 		case parser.RedirectStderrToStdout:
 			errOut = stdout
+
+		case parser.RedirectHeredoc, parser.RedirectHeredocDash:
+			// Heredoc: create a pipe with the content
+			content := redir.Content
+			if !redir.Quoted {
+				// Expand variables in heredoc content
+				content = s.expandVars(content)
+			}
+			// Write content to a pipe for stdin
+			r, w, err := os.Pipe()
+			if err != nil {
+				return nil, nil, nil, nil, err
+			}
+			go func() {
+				w.Write([]byte(content))
+				w.Close()
+			}()
+			in = r
+			closers = append(closers, r)
 		}
 	}
 
@@ -279,4 +449,97 @@ func (s *Shell) executePipedCommands(cmds []*parser.Command) error {
 	}
 
 	return firstErr
+}
+
+// levenshtein computes the Levenshtein distance between two strings.
+func levenshtein(a, b string) int {
+	la, lb := len(a), len(b)
+	if la == 0 {
+		return lb
+	}
+	if lb == 0 {
+		return la
+	}
+	row := make([]int, lb+1)
+	for i := range row {
+		row[i] = i
+	}
+	for i := range la {
+		prev := i + 1
+		for j := range lb {
+			cost := 1
+			if a[i] == b[j] {
+				cost = 0
+			}
+			val := min(row[j]+1, min(prev+1, row[j+1]+cost))
+			row[j] = prev
+			prev = val
+		}
+		row[lb] = prev
+	}
+	return row[lb]
+}
+
+// expandCmdSubst expands $(...) command substitutions in s.
+// Each $(cmd) is executed via sh -c and replaced with the command's stdout.
+func (s *Shell) expandCmdSubst(input string) string {
+	if !strings.Contains(input, "$(") {
+		return input
+	}
+	var result strings.Builder
+	i := 0
+	for i < len(input) {
+		if input[i] == '$' && i+1 < len(input) && input[i+1] == '(' {
+			i += 2 // skip $(
+			start := i
+			depth := 1
+			for i < len(input) && depth > 0 {
+				if input[i] == '(' {
+					depth++
+				} else if input[i] == ')' {
+					depth--
+				}
+				if depth > 0 {
+					i++
+				}
+			}
+			cmdStr := input[start:i]
+			if i < len(input) {
+				i++ // skip )
+			}
+			cmd := exec.Command("sh", "-c", cmdStr)
+			output, err := cmd.Output()
+			if err == nil {
+				result.WriteString(strings.TrimRight(string(output), "\n\r"))
+			}
+			continue
+		}
+		result.WriteByte(input[i])
+		i++
+	}
+	return result.String()
+}
+
+// suggestCommand finds the closest matching builtin or PATH command.
+func (s *Shell) suggestCommand(name string) string {
+	best := ""
+	bestDist := 3
+
+	for _, cmd := range s.builtins.Names() {
+		if dist := levenshtein(name, cmd); dist < bestDist && dist <= 2 {
+			bestDist = dist
+			best = cmd
+		}
+	}
+
+	drillSubs := []string{"cue", "fs", "proc", "net"}
+	for _, sub := range drillSubs {
+		full := "drill " + sub
+		if dist := levenshtein(name, full); dist < bestDist {
+			bestDist = dist
+			best = full
+		}
+	}
+
+	return best
 }

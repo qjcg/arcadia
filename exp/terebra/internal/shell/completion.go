@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
 	"unicode"
 
+	"cuelang.org/go/cue"
 	"github.com/chzyer/readline"
 	"github.com/qjcg/arcadia/exp/terebra/internal/cueutil"
 	"github.com/qjcg/arcadia/exp/terebra/internal/parser"
@@ -206,13 +208,32 @@ func (s *Shell) completeFileOrArg(parts []string, lastWord string) []string {
 
 // expandVars replaces $VAR, ${VAR}, $((...)), and $? with their values in the given string.
 func (s *Shell) expandVars(input string) string {
-	if !strings.ContainsRune(input, '$') {
+	if !strings.ContainsRune(input, '$') && !strings.ContainsRune(input, '`') {
 		return input
 	}
 
 	var result strings.Builder
 	i := 0
 	for i < len(input) {
+		// Handle backtick command substitution
+		if input[i] == '`' {
+			i++ // skip opening backtick
+			start := i
+			for i < len(input) && input[i] != '`' {
+				i++
+			}
+			cmdStr := input[start:i]
+			if i < len(input) {
+				i++ // skip closing backtick
+			}
+			// Execute the command and capture output
+			output, err := s.captureCommandOutput(cmdStr)
+			if err == nil {
+				result.WriteString(strings.TrimRight(output, "\n"))
+			}
+			continue
+		}
+
 		if input[i] != '$' {
 			result.WriteByte(input[i])
 			i++
@@ -260,9 +281,6 @@ func (s *Shell) expandVars(input string) string {
 				}
 			}
 			expr := input[start:i]
-			// Don't skip the final ) - it's the last character of the expression
-			// Actually, we need to skip both )). The loop stops at the second ).
-			// So i points to the second ), and we need to skip it.
 			if i < len(input) {
 				i++ // skip the final )
 			}
@@ -812,6 +830,10 @@ func (s *Shell) setArrayElem(name, idx, value string) {
 
 // setVar sets a local shell variable.
 func (s *Shell) setVar(name, value string) {
+	// Check if variable is readonly
+	if s.readonly[name] {
+		return
+	}
 	s.vars[name] = value
 }
 
@@ -871,6 +893,38 @@ func (s *Shell) builtinUnset(args []string, stdout, stderr io.Writer) int {
 
 // builtinSet handles the set builtin with shell awareness.
 func (s *Shell) builtinSet(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 {
+		// Handle set -x (debug mode) and set -o vi/emacs
+		for _, arg := range args {
+			switch arg {
+			case "-x":
+				s.debug = true
+				return 0
+			case "+x":
+				s.debug = false
+				return 0
+			case "-o":
+				// set -o option
+				continue
+			case "vi":
+				if s.rl != nil {
+					s.rl.SetVimMode(true)
+				}
+				return 0
+			case "emacs":
+				if s.rl != nil {
+					s.rl.SetVimMode(false)
+				}
+				return 0
+			default:
+				if strings.HasPrefix(arg, "-") {
+					fmt.Fprintf(stderr, "set: unknown option %s\n", arg)
+					return 1
+				}
+			}
+		}
+		return 0
+	}
 	// List local variables first
 	for _, v := range s.listVars() {
 		fmt.Fprintln(stdout, v)
@@ -884,6 +938,16 @@ func (s *Shell) builtinSet(args []string, stdout, stderr io.Writer) int {
 
 // builtinState exports shell state as CUE.
 func (s *Shell) builtinState(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	// Subcommands: save, load
+	if len(args) > 0 {
+		switch args[0] {
+		case "save":
+			return s.builtinStateSave(args[1:], stdout, stderr)
+		case "load":
+			return s.builtinStateLoad(args[1:], stdout, stderr)
+		}
+	}
+
 	ctx := cueutil.NewContext()
 
 	// Build state as a Go map
@@ -899,6 +963,18 @@ func (s *Shell) builtinState(args []string, stdin io.Reader, stdout, stderr io.W
 		return 1
 	}
 
+	// Add schema annotation
+	stateSchema := `#State: {
+	vars: [string]: string
+	exitCode: int
+	version: "0.1.0"
+}`
+
+	schemaV := cueutil.CompileString(ctx, stateSchema)
+	if err := cueutil.Err(schemaV); err == nil {
+		v = cueutil.Unify(v, schemaV)
+	}
+
 	str, err := cueutil.FormatValue(v)
 	if err != nil {
 		fmt.Fprintf(stderr, "state: %v\n", err)
@@ -906,6 +982,91 @@ func (s *Shell) builtinState(args []string, stdin io.Reader, stdout, stderr io.W
 	}
 
 	fmt.Fprintln(stdout, str)
+	return 0
+}
+
+// builtinStateSave saves shell state to a file.
+func (s *Shell) builtinStateSave(args []string, stdout, stderr io.Writer) int {
+	name := "default"
+	if len(args) > 0 {
+		name = args[0]
+	}
+
+	stateDir := filepath.Join(os.Getenv("HOME"), ".terebra", "states")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		fmt.Fprintf(stderr, "state save: %v\n", err)
+		return 1
+	}
+
+	path := filepath.Join(stateDir, name+".cue")
+	// Generate state as CUE
+	ctx := cueutil.NewContext()
+	state := map[string]any{
+		"vars":     s.vars,
+		"exitCode": s.exitCode,
+		"version":  "0.1.0",
+		"pwd":      os.Getenv("PWD"),
+	}
+
+	v := cueutil.EncodeGo(ctx, state)
+	if err := cueutil.Err(v); err != nil {
+		fmt.Fprintf(stderr, "state save: %v\n", err)
+		return 1
+	}
+
+	str, err := cueutil.FormatValue(v)
+	if err != nil {
+		fmt.Fprintf(stderr, "state save: %v\n", err)
+		return 1
+	}
+
+	if err := os.WriteFile(path, []byte(str+"\n"), 0o644); err != nil {
+		fmt.Fprintf(stderr, "state save: %v\n", err)
+		return 1
+	}
+
+	fmt.Fprintf(stdout, "state saved to %s\n", path)
+	return 0
+}
+
+// builtinStateLoad loads shell state from a file.
+func (s *Shell) builtinStateLoad(args []string, stdout, stderr io.Writer) int {
+	name := "default"
+	if len(args) > 0 {
+		name = args[0]
+	}
+
+	stateDir := filepath.Join(os.Getenv("HOME"), ".terebra", "states")
+	path := filepath.Join(stateDir, name+".cue")
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintf(stderr, "state load: %v\n", err)
+		return 1
+	}
+
+	ctx := cueutil.NewContext()
+	v := cueutil.CompileBytes(ctx, data)
+	if err := cueutil.Err(v); err != nil {
+		fmt.Fprintf(stderr, "state load: %v\n", err)
+		return 1
+	}
+
+	// Extract vars from the state
+	cueutil.WalkFields(v, func(name string, val cue.Value) bool {
+		if name == "vars" {
+			cueutil.WalkFields(val, func(fieldName string, fieldVal cue.Value) bool {
+				raw, err := cueutil.FormatValueRaw(fieldVal)
+				if err == nil && raw != "" {
+					s.setVar(fieldName, strings.TrimSpace(raw))
+				}
+				return true
+			})
+		}
+		return true
+	})
+
+	fmt.Fprintf(stdout, "state loaded from %s\n", path)
 	return 0
 }
 
@@ -953,6 +1114,123 @@ func (s *Shell) builtinSource(args []string, stdin io.Reader, stdout, stderr io.
 	if err := s.interp.ParseAndExec(string(data)); err != nil {
 		fmt.Fprintf(stderr, "source: %v\n", err)
 		return 1
+	}
+	return 0
+}
+
+// captureCommandOutput executes a command string and returns its stdout.
+func (s *Shell) captureCommandOutput(cmdStr string) (string, error) {
+	parts := strings.Fields(cmdStr)
+	if len(parts) == 0 {
+		return "", nil
+	}
+	path, err := exec.LookPath(parts[0])
+	if err != nil {
+		return "", err
+	}
+	cmd := exec.Command(path, parts[1:]...)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
+}
+
+// builtinAlias handles the alias builtin.
+func (s *Shell) builtinAlias(args []string, stdout, stderr io.Writer) int {
+	if len(args) == 0 {
+		// List all aliases
+		names := make([]string, 0, len(s.aliases))
+		for n := range s.aliases {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		for _, n := range names {
+			fmt.Fprintf(stdout, "%s=%s\n", n, s.aliases[n])
+		}
+		return 0
+	}
+	for _, arg := range args {
+		if before, after, ok := strings.Cut(arg, "="); ok {
+			s.aliases[before] = after
+		} else {
+			// Show alias value
+			if val, ok := s.aliases[arg]; ok {
+				fmt.Fprintf(stdout, "%s=%s\n", arg, val)
+			} else {
+				fmt.Fprintf(stderr, "alias: %s: not found\n", arg)
+				return 1
+			}
+		}
+	}
+	return 0
+}
+
+// builtinUnalias handles the unalias builtin.
+func (s *Shell) builtinUnalias(args []string, stdout, stderr io.Writer) int {
+	if len(args) == 0 {
+		fmt.Fprintln(stderr, "unalias: expected alias name")
+		return 1
+	}
+	for _, arg := range args {
+		delete(s.aliases, arg)
+	}
+	return 0
+}
+
+// builtinHistory handles the history builtin.
+func (s *Shell) builtinHistory(args []string, stdout, stderr io.Writer) int {
+	// Read history from the history file
+	home := os.Getenv("HOME")
+	if home == "" {
+		return 0
+	}
+	histPath := filepath.Join(home, historyFile)
+	data, err := os.ReadFile(histPath)
+	if err != nil {
+		return 0
+	}
+	lines := strings.Split(string(data), "\n")
+	// Remove trailing empty line
+	if len(lines) > 0 && lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
+	}
+	n := 0
+	if len(args) > 0 {
+		fmt.Sscanf(args[0], "%d", &n)
+	}
+	start := 0
+	if n > 0 && len(lines) > n {
+		start = len(lines) - n
+	}
+	for i := start; i < len(lines); i++ {
+		fmt.Fprintf(stdout, "%5d  %s\n", i+1, lines[i])
+	}
+	return 0
+}
+
+// builtinReadonly handles the readonly builtin.
+func (s *Shell) builtinReadonly(args []string, stdout, stderr io.Writer) int {
+	if len(args) == 0 {
+		// List all readonly variables
+		names := make([]string, 0, len(s.readonly))
+		for n := range s.readonly {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		for _, n := range names {
+			val := s.getVar(n)
+			fmt.Fprintf(stdout, "%s=%s\n", n, val)
+		}
+		return 0
+	}
+	for _, arg := range args {
+		if before, after, ok := strings.Cut(arg, "="); ok {
+			s.setVar(before, after)
+			s.readonly[before] = true
+		} else {
+			s.readonly[arg] = true
+		}
 	}
 	return 0
 }
