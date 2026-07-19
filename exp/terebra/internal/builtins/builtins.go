@@ -123,7 +123,6 @@ func helpHandler(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fmt.Fprint(stdout, "  cue <sub>      CUE operations (eval, vet, export, def, fmt, trim)\n")
 	fmt.Fprint(stdout, "  plugin         Manage plugins (load, list)\n")
 	fmt.Fprint(stdout, "  state          Export/import shell state as CUE\n")
-	fmt.Fprint(stdout, "  declare        Declare variables and arrays (-A, -a)\n")
 	fmt.Fprint(stdout, "\n")
 	fmt.Fprint(stdout, "Pipes and redirects:\n")
 	fmt.Fprint(stdout, "  cmd1 | cmd2           Pipe stdout to stdin\n")
