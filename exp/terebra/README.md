@@ -93,7 +93,3 @@ go build -o terebra ./cmd/terebra
 ```bash
 go test ./...
 ```
-
-## License
-
-MIT
