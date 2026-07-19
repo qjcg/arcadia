@@ -3,12 +3,18 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 	"strings"
 
 	"github.com/qjcg/arcadia/exp/terebra/internal/shell"
 )
 
-const version = "0.1.0"
+func getVersion() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		return info.Main.Version
+	}
+	return "(devel)"
+}
 
 func main() {
 	if len(os.Args) > 1 {
@@ -29,7 +35,7 @@ func main() {
 			return
 
 		case "--version", "-v":
-			fmt.Printf("terebra %s\n", version)
+			fmt.Printf("terebra %s\n", getVersion())
 			return
 
 		case "--explain":

@@ -4,7 +4,7 @@ stdout 'Terebra -- auger shell'
 
 # --version
 terebra --version
-stdout 'terebra 0.1.0'
+stdout 'terebra'
 
 # --explain
 terebra --explain echo hello
