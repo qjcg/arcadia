@@ -85,18 +85,16 @@ func (s *Shell) ExecuteScript(script *parser.Script) error {
 }
 
 func (s *Shell) executeAugerPipeline(pipe *parser.Pipeline) error {
-	// For now, support a simple case: cmd1 |> cmd2
-	// Execute cmd1, capture output, parse as CUE, pipe to cmd2
+	// If the pipeline has an encoder, run the pipeline and encode the output
+	if pipe.Encoder != "" {
+		return s.executeAugerWithEncoder(pipe)
+	}
+
 	cmds := pipe.Commands
 	connects := pipe.Connects
 
 	if len(cmds) < 2 {
 		return fmt.Errorf("auger pipe requires at least 2 commands")
-	}
-
-	// If the pipeline has an encoder, run the pipeline and encode the output
-	if pipe.Encoder != "" {
-		return s.executeAugerWithEncoder(pipe)
 	}
 
 	// Execute the first part of the pipeline (before the first auger pipe)

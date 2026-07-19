@@ -79,7 +79,7 @@ func parsePipeline(l *Lexer) (*Pipeline, error) {
 						pipe.Encoder = encPeek.Value
 						pipe.Connects = append(pipe.Connects, ConnectAuger)
 						// If encoder is the last pipe, we're done
-						continue
+						return pipe, nil
 					}
 				}
 				pipe.Connects = append(pipe.Connects, ConnectAuger)
