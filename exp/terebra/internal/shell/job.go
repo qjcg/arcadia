@@ -3,7 +3,9 @@ package shell
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
@@ -90,6 +92,9 @@ func (s *Shell) executeBackground(cmd *parser.Command, stdin io.Reader, stdout i
 	extCmd.Stdin = stdin
 	extCmd.Stdout = stdout
 	extCmd.Stderr = s.Stderr
+	extCmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
 
 	in, out, errOut, closeFn, err := s.openRedirects(cmd, stdin, stdout)
 	if err != nil {
@@ -158,15 +163,51 @@ func builtinFg(args []string, stdout, stderr io.Writer, s *Shell) int {
 
 	fmt.Fprintf(stdout, "%s\n", job.Line)
 
-	if job.Cmd.Process != nil && job.State == JobRunning {
-		job.Cmd.Wait()
-		job.State = JobDone
-		s.removeJob(job)
-		return 0
+	if job.Cmd.Process == nil {
+		fmt.Fprintln(stderr, "fg: job not running")
+		return 1
 	}
 
-	fmt.Fprintln(stderr, "fg: job not running")
-	return 1
+	// If the job was stopped, send SIGCONT to resume it
+	if job.State == JobStopped {
+		job.Cmd.Process.Signal(syscall.SIGCONT)
+		job.State = JobRunning
+	}
+
+	// Wait for the job in a goroutine so we can select on its
+	// completion alongside a SIGINT signal from the user.
+	done := make(chan error, 1)
+	go func() {
+		done <- job.Cmd.Wait()
+	}()
+
+	// Set up a temporary SIGINT listener to forward Ctrl+C
+	// to the job's process group.  The readline library also
+	// installs a SIGINT handler via signal.Notify, so our
+	// channel fires alongside theirs.
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT)
+	defer signal.Stop(sig)
+
+	select {
+	case <-done:
+		// Job completed or stopped on its own
+	case <-sig:
+		// Ctrl+C pressed — forward SIGINT to the job's process group
+		pgid := job.Cmd.Process.Pid
+		syscall.Kill(-pgid, syscall.SIGINT)
+		<-done
+		// Drain any remaining signal so readline's handler
+		// doesn't see a stale interrupt on the next Readline.
+		select {
+		case <-sig:
+		default:
+		}
+	}
+
+	job.State = JobDone
+	s.removeJob(job)
+	return 0
 }
 
 // builtinBg implements the bg builtin.
