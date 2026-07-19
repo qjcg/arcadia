@@ -203,6 +203,11 @@ func (s *Shell) Repl() error {
 			continue
 		}
 
+		// Fill in heredoc content from interactive input if needed
+		if s.rl != nil {
+			s.fillHeredocs(pipe)
+		}
+
 		if err := s.ExecuteScript(pipe); err != nil {
 			fmt.Fprintf(s.Stderr, "trb: error: %v\n", err)
 			s.exitCode = 1
@@ -320,6 +325,40 @@ func (s *Shell) loadRc() {
 		return // file doesn't exist or can't be read — skip silently
 	}
 	s.interp.ParseAndExec(string(data))
+}
+
+// fillHeredocs reads heredoc content from the user when it wasn't provided
+// in the input line (e.g. interactive REPL usage).
+func (s *Shell) fillHeredocs(script *parser.Script) {
+	for _, pipe := range script.Pipelines {
+		for _, cmd := range pipe.Commands {
+			for _, redir := range cmd.Redirects {
+				if (redir.Type == parser.RedirectHeredoc || redir.Type == parser.RedirectHeredocDash) && redir.Content == "" {
+					var content strings.Builder
+					delimiter := redir.File
+					for {
+						s.rl.SetPrompt("> ")
+						line, err := s.rl.Readline()
+						if err != nil {
+							break
+						}
+						trimmed := line
+						if redir.Type == parser.RedirectHeredocDash {
+							trimmed = strings.TrimLeft(line, "\t")
+						}
+						if trimmed == delimiter {
+							break
+						}
+						if content.Len() > 0 {
+							content.WriteByte('\n')
+						}
+						content.WriteString(line)
+					}
+					redir.Content = content.String()
+				}
+			}
+		}
+	}
 }
 
 func (s *Shell) prompt() string {
