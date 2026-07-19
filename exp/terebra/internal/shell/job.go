@@ -179,10 +179,12 @@ func builtinFg(args []string, stdout, stderr io.Writer, s *Shell) int {
 		job.State = JobRunning
 	}
 
-	// Set up a temporary SIGINT listener to forward Ctrl+C
-	// to the child process.
+	// Set up a temporary SIGINT/SIGTSTP listener to forward signals
+	// to the child process. The child is in its own process group
+	// (background jobs use Setpgid), so the terminal sends SIGTSTP
+	// to the shell's group — we must catch it here and forward it.
 	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTSTP)
 	defer signal.Stop(sig)
 
 	select {
@@ -198,18 +200,31 @@ func builtinFg(args []string, stdout, stderr io.Writer, s *Shell) int {
 		job.State = JobDone
 		s.removeJob(job)
 
-	case <-sig:
-		// Ctrl+C pressed — forward SIGINT to the child
-		job.Cmd.Process.Signal(syscall.SIGINT)
-		<-job.waitCh
-		// Drain any remaining signal so readline's handler
-		// doesn't see a stale interrupt on the next Readline.
-		select {
-		case <-sig:
-		default:
+	case received := <-sig:
+		switch received {
+		case syscall.SIGINT:
+			// Ctrl+C pressed — forward SIGINT to the child
+			job.Cmd.Process.Signal(syscall.SIGINT)
+			<-job.waitCh
+			// Drain any remaining signal so readline's handler
+			// doesn't see a stale interrupt on the next Readline.
+			select {
+			case <-sig:
+			default:
+			}
+			job.State = JobDone
+			s.removeJob(job)
+
+		case syscall.SIGTSTP:
+			// ^Z pressed — forward SIGSTOP to the child
+			job.Cmd.Process.Signal(syscall.SIGSTOP)
+			job.State = JobStopped
+			fmt.Fprintf(stdout, "\n[%d] stopped  %s\n", job.ID, job.Line)
+			// Don't wait for waitCh — the process was stopped, not
+			// exited. The addJob goroutine's Wait() call will
+			// eventually return when the process is continued and
+			// exits.
 		}
-		job.State = JobDone
-		s.removeJob(job)
 	}
 
 	return 0
