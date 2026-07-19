@@ -8,20 +8,20 @@ A modern shell in Go — long, slender, drills deep.
 
 ```bash
 # REPL mode
-go run ./cmd/terebra
+go run .
 
 # Inline script
-go run ./cmd/terebra -c 'echo hello'
+go run . -c 'echo hello'
 
 # Script mode
-go run ./cmd/terebra script.trb
+go run . script.trb
 
 # Script with shebang
 chmod +x script.trb
 ./script.trb
 
 # Build a script to a standalone binary
-go run ./cmd/terebra build script.trb myapp
+go run . build script.trb myapp
 ./myapp
 ```
 
@@ -85,11 +85,10 @@ go run ./cmd/terebra build script.trb myapp
 ## Project Structure
 
 ```
-cmd/terebra/
-  main.go            # Entry point (REPL, script, build, version, -c)
-  build.go           # Script compilation
-  main_test.go       # Testscript integration tests
-  testdata/          # 16 test suites
+main.go              # Entry point (REPL, script, build, version, -c)
+build.go             # Script compilation
+main_test.go         # Testscript integration tests
+testdata/            # 16 test suites
 internal/
   shell/             # REPL loop + command execution
   parser/            # Shell syntax parser (lexer, parser, AST)
@@ -104,12 +103,12 @@ internal/
 ## Build
 
 ```bash
-go build -o terebra ./cmd/terebra
+go build -o terebra .
 ```
 
 ## Test
 
 ```bash
 go test ./...
-go test ./cmd/terebra/ -run TestTerebra -v
+go test . -run TestTerebra -v
 ```

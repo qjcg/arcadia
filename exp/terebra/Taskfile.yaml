@@ -10,7 +10,7 @@ tasks:
   build:
     desc: Build the terebra binary
     cmds:
-      - CGO_ENABLED=0 go build -ldflags '-s -w' -o {{.BIN}} ./cmd/terebra
+      - CGO_ENABLED=0 go build -ldflags '-s -w' -o {{.BIN}} .
       - upx {{.BIN}}
     sources:
       - '**/*.go'
