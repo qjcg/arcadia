@@ -8,11 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
-- b10cc15a - Update CHANGELOGs
-- 7b1d98c5 - Update mnemosyne CHANGELOG
-- 51f343c6 - Bump go deps
+- f5915ee4 - Bump deps
 
-## [v0.1.0] - 2026-06-30
+## [v0.1.0] - 2026-07-18
 
 ### Added
-- ff07089d - Add mnemosyne scaffolding (idea phase)
+- 6ed9977b - Add terebra
+
+### Changed
+- a49480db - Add missing final newline

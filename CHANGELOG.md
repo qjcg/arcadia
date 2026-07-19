@@ -7,11 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### Changed
+- b10cc15a - Update CHANGELOGs
+- ea8cde3a - Pin trivy version
+
+## [v0.45.0] - 2026-07-18
+
 ### Added
 - 6ed9977b - Add terebra
 
 ### Changed
-- ea8cde3a - Pin trivy version
 - 51f343c6 - Bump go deps
 - 317458fd - Add formatters, unify conventional-commit check
 - 5139f958 - Tweak go.work

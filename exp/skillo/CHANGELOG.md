@@ -7,12 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### Changed
+- b10cc15a - Update CHANGELOGs
+- 51f343c6 - Bump go deps
+
+## [v0.4.0] - 2026-07-05
+
 ### Added
 - d6ca9388 - add vim-style keys and Ctrl-p/n for menu navigation
 - 4949dd07 - add interactive skill selection menu for add and remove
 
 ### Changed
-- 51f343c6 - Bump go deps
 - dfe50743 - Run `go fix`
 - a71db481 - flatten package to exp/skillo root, drop cmd/ subdir
 
