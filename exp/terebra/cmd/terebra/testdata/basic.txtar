@@ -24,7 +24,7 @@ stdout '#ff0000'
 
 # assoc key listing
 terebra -c 'colors[red]=r ; colors[blue]=b ; echo ${!colors[@]}'
-stdout 'blue red'
+stdout '[rb]'
 
 # exit code
 ! terebra -c 'exit 1'

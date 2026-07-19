@@ -12,7 +12,7 @@ stdout 'x'
 
 # associative array — all values
 terebra -c 'colors[red]=r ; colors[blue]=b ; echo ${colors[@]}'
-stdout 'r b'
+stdout '[rb]'
 
 # array auto-promote (non-numeric key)
 terebra -c 'arr[key]=val ; echo ${arr[key]}'

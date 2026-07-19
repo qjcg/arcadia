@@ -98,9 +98,6 @@ func New() *Shell {
 	s.builtins.Register("readonly", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return s.builtinReadonly(args, stdout, stderr)
 	})
-	s.builtins.Register("declare", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return s.builtinDeclare(args, stdout, stderr)
-	})
 	// Load ~/.terebrarc if it exists
 	s.loadRc()
 	return s

@@ -31,7 +31,7 @@ go run ./cmd/terebra build script.trb myapp
 - REPL with readline (history, search, editing, persistent history, fuzzy Ctrl+R search)
 - Built-in commands: `cd`, `pwd`, `echo`, `exit`, `help`, `type`, `which`,
   `export`, `unset`, `set`, `readonly`, `alias`, `unalias`, `history`, `source`,
-  `jobs`, `fg`, `bg`, `drill`, `cue`, `plugin`, `state`, `declare`
+  `jobs`, `fg`, `bg`, `drill`, `cue`, `plugin`, `state`
 - External command execution via `$PATH`
 - Pipes `|`, redirects `>`, `>>`, `<`, `2>`, `2>>`, `2>&1`, heredocs `<<`, `<<-`
 - Command chaining: `&&`, `||`, `;`
