@@ -16,6 +16,18 @@ func main() {
 		case "build":
 			os.Exit(buildCmd(os.Args[2:]))
 
+		case "-c":
+			// Inline script
+			if len(os.Args) < 3 {
+				fmt.Fprintln(os.Stderr, "-c requires a script argument")
+				os.Exit(1)
+			}
+			if err := shell.RunScriptFromString(os.Args[2]); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			return
+
 		case "--version", "-v":
 			fmt.Printf("terebra %s\n", version)
 			return

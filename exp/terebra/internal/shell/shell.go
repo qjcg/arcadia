@@ -133,6 +133,13 @@ func RunScriptFromString(content string) error {
 		}
 	}
 
+	// Try parsing as shell script first (supports ; && || chaining)
+	script, err := parser.ParseScript(content)
+	if err == nil && len(script.Pipelines) > 0 {
+		return sh.ExecuteScript(script)
+	}
+
+	// Fall back to the scripting language interpreter
 	return sh.interp.ParseAndExec(content)
 }
 

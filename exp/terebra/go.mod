@@ -5,6 +5,7 @@ go 1.26.5
 require (
 	cuelang.org/go v0.17.1
 	github.com/chzyer/readline v1.5.1
+	github.com/rogpeppe/go-internal v1.15.0
 )
 
 require (
