@@ -130,6 +130,12 @@ func RunScriptFromString(content string) error {
 		}
 	}
 
+	// If the script spans multiple lines, use the scripting interpreter
+	// (the shell parser treats newlines as whitespace, not as command separators).
+	if strings.Contains(content, "\n") {
+		return sh.interp.ParseAndExec(content)
+	}
+
 	// Try parsing as shell script first (supports ; && || chaining)
 	script, err := parser.ParseScript(content)
 	if err == nil && len(script.Pipelines) > 0 {
