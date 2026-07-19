@@ -56,6 +56,7 @@ func drillCue(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	var extractPath string
 	var validate bool
 	var exportJSON bool
+	var unifyFile string
 	var files []string
 
 	for i := 0; i < len(args); i++ {
@@ -73,6 +74,9 @@ func drillCue(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		case arg == "--export" && i+1 < len(args) && args[i+1] == "json":
 			exportJSON = true
 			i++
+		case arg == "--unify" && i+1 < len(args):
+			i++
+			unifyFile = args[i]
 		case strings.HasPrefix(arg, "-"):
 			fmt.Fprintf(stderr, "drill cue: unknown flag: %s\n", arg)
 			return 1
@@ -92,7 +96,7 @@ func drillCue(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		if src == "" {
 			return 0
 		}
-		return drillCueString(src, extractPath, validate, exportJSON, stdout, stderr)
+		return drillCueString(src, extractPath, validate, exportJSON, unifyFile, stdout, stderr)
 	}
 
 	// Read from files
@@ -106,7 +110,7 @@ func drillCue(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		if src == "" {
 			continue
 		}
-		code := drillCueString(src, extractPath, validate, exportJSON, stdout, stderr)
+		code := drillCueString(src, extractPath, validate, exportJSON, unifyFile, stdout, stderr)
 		if code != 0 {
 			return code
 		}
@@ -114,13 +118,33 @@ func drillCue(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	return 0
 }
 
-func drillCueString(src, extractPath string, validate, exportJSON bool, stdout, stderr io.Writer) int {
+func drillCueString(src, extractPath string, validate, exportJSON bool, unifyFile string, stdout, stderr io.Writer) int {
 	ctx := cueutil.NewContext()
 	v := cueutil.CompileString(ctx, src)
 	if err := cueutil.Err(v); err != nil {
 		fmt.Fprintf(stderr, "drill cue: %v\n", err)
 		return 1
 	}
+
+	// Unify with another file if requested
+	if unifyFile != "" {
+		unifyData, err := os.ReadFile(unifyFile)
+		if err != nil {
+			fmt.Fprintf(stderr, "drill cue: --unify: %v\n", err)
+			return 1
+		}
+		unifyV := cueutil.CompileBytes(ctx, unifyData)
+		if err := cueutil.Err(unifyV); err != nil {
+			fmt.Fprintf(stderr, "drill cue: --unify: %v\n", err)
+			return 1
+		}
+		v = cueutil.Unify(v, unifyV)
+		if err := cueutil.Err(v); err != nil {
+			fmt.Fprintf(stderr, "drill cue: unify: %v\n", err)
+			return 1
+		}
+	}
+
 	return drillCueValue(v, extractPath, validate, exportJSON, stdout, stderr)
 }
 

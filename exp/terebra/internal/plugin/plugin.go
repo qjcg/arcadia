@@ -18,6 +18,31 @@ type PluginHandler interface {
 	Execute(args []string, stdin io.Reader, stdout, stderr io.Writer) int
 }
 
+// Completer is an optional interface plugins can implement to provide tab completions.
+type Completer interface {
+	// Complete returns completion candidates for the given prefix.
+	Complete(prefix string) []string
+}
+
+// PromptFunc is an optional interface plugins can implement to customize the prompt.
+type PromptFunc interface {
+	// Prompt returns a prompt segment to display.
+	Prompt() string
+}
+
+// CUEEncoder is an optional interface plugins can implement to provide CUE encoding.
+type CUEEncoder interface {
+	// Encode converts a CUE value to the plugin's format.
+	// Returns the encoded bytes and the MIME type.
+	Encode(value string) ([]byte, string, error)
+}
+
+// CUEDecoder is an optional interface plugins can implement to provide CUE decoding.
+type CUEDecoder interface {
+	// Decode converts bytes to a CUE string.
+	Decode(data []byte, mimeType string) (string, error)
+}
+
 // Registry manages loaded plugins.
 type Registry struct {
 	plugins map[string]PluginHandler

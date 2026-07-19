@@ -24,7 +24,6 @@ func New() *Registry {
 	r.register("help", helpHandler)
 	r.register("type", typeHandler)
 	r.register("which", whichHandler)
-	r.register("ls", lsHandler)
 	r.register("export", exportHandler)
 	r.register("unset", unsetHandler)
 	r.register("set", setHandler)
@@ -109,7 +108,6 @@ func helpHandler(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fmt.Fprint(stdout, "  help         Show this help\n")
 	fmt.Fprint(stdout, "  type [cmd]   Show how a command would be interpreted\n")
 	fmt.Fprint(stdout, "  which [cmd]  Locate a command in PATH\n")
-	fmt.Fprint(stdout, "  ls [path]    List directory contents\n")
 	fmt.Fprint(stdout, "  export       Set or list environment variables\n")
 	fmt.Fprint(stdout, "  unset        Remove a variable\n")
 	fmt.Fprint(stdout, "  set          List shell variables\n")
@@ -173,34 +171,6 @@ func whichHandler(args []string, stdin io.Reader, stdout, stderr io.Writer) int 
 	return 0
 }
 
-func lsHandler(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-	dir := "."
-	if len(args) > 0 {
-		dir = args[0]
-	}
-
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		fmt.Fprintf(stderr, "ls: %v\n", err)
-		return 1
-	}
-
-	var names []string
-	for _, e := range entries {
-		name := e.Name()
-		if e.IsDir() {
-			name = name + "/"
-		}
-		names = append(names, name)
-	}
-
-	sort.Strings(names)
-	for _, name := range names {
-		fmt.Fprintln(stdout, name)
-	}
-	return 0
-}
-
 func exportHandler(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
 		for _, env := range os.Environ() {
@@ -232,7 +202,7 @@ func setHandler(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 
 func isBuiltin(name string) bool {
 	switch name {
-	case "cd", "pwd", "echo", "exit", "help", "type", "which", "ls",
+	case "cd", "pwd", "echo", "exit", "help", "type", "which",
 		"export", "unset", "set", "jobs", "fg", "bg", "drill":
 		return true
 	}
