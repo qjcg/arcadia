@@ -84,6 +84,7 @@ const (
 	RedirectStderrToStdout
 	RedirectBoth       // &>
 	RedirectBothAppend // &>>
+	RedirectHereString // <<<
 	RedirectHeredoc
 	RedirectHeredocDash // <<- (strip leading tabs)
 )
@@ -106,6 +107,8 @@ func (rt RedirectType) String() string {
 		return "&>"
 	case RedirectBothAppend:
 		return "&>>"
+	case RedirectHereString:
+		return "<<<"
 	case RedirectHeredoc:
 		return "<<"
 	case RedirectHeredocDash:

@@ -155,7 +155,7 @@ func isRedirect(tt TokenType) bool {
 	case TokenRedirectOut, TokenRedirectAppend, TokenRedirectIn,
 		TokenRedirectErr, TokenRedirectErrAppend, TokenRedirectErrOut,
 		TokenRedirectBoth, TokenRedirectBothAppend,
-		TokenRedirectHeredoc, TokenRedirectHeredocDash:
+		TokenRedirectHeredoc, TokenRedirectHeredocDash, TokenRedirectHereString:
 		return true
 	}
 	return false
@@ -183,6 +183,8 @@ func parseRedirect(tok Token, l *Lexer) (*Redirect, error) {
 		r.Type = RedirectBoth
 	case TokenRedirectBothAppend:
 		r.Type = RedirectBothAppend
+	case TokenRedirectHereString:
+		r.Type = RedirectHereString
 	case TokenRedirectHeredoc:
 		r.Type = RedirectHeredoc
 	case TokenRedirectHeredocDash:
@@ -241,6 +243,16 @@ func parseRedirect(tok Token, l *Lexer) (*Redirect, error) {
 			content.WriteByte('\n')
 		}
 		r.Content = content.String()
+		return r, nil
+	}
+
+	// For here-strings, read the next word as the content
+	if r.Type == RedirectHereString {
+		next := l.NextToken()
+		if next.Type != TokenWord {
+			return nil, fmt.Errorf("expected string after <<<, got %s", next)
+		}
+		r.Content = next.Value
 		return r, nil
 	}
 

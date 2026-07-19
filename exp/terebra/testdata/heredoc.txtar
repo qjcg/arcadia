@@ -28,3 +28,7 @@ EOF
 
 terebra heredoc-quoted.trb
 stdout 'hello $NAME'
+
+# here-string
+terebra -c 'cat <<< hello'
+stdout 'hello'

@@ -386,7 +386,7 @@ func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Wr
 			errOut = f
 			closers = append(closers, f)
 
-		case parser.RedirectHeredoc, parser.RedirectHeredocDash:
+		case parser.RedirectHeredoc, parser.RedirectHeredocDash, parser.RedirectHereString:
 			// Heredoc: create a pipe with the content
 			content := redir.Content
 			if !redir.Quoted {

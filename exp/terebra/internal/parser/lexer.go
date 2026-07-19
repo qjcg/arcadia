@@ -23,6 +23,7 @@ const (
 	TokenRedirectBothAppend  // &>>
 	TokenRedirectHeredoc     // <<
 	TokenRedirectHeredocDash // <<-
+	TokenRedirectHereString  // <<<
 	TokenEOF
 	TokenIllegal
 )
@@ -46,6 +47,7 @@ var tokenNames = map[TokenType]string{
 	TokenRedirectBothAppend:  "REDIRECT_BOTH_APPEND",
 	TokenRedirectHeredoc:     "REDIRECT_HEREDOC",
 	TokenRedirectHeredocDash: "REDIRECT_HEREDOC_DASH",
+	TokenRedirectHereString:  "REDIRECT_HERE_STRING",
 	TokenEOF:                 "EOF",
 	TokenIllegal:             "ILLEGAL",
 }
@@ -163,6 +165,11 @@ func (l *Lexer) NextToken() Token {
 	case '<':
 		if l.pos+1 < len(l.input) && l.input[l.pos+1] == '<' {
 			l.pos += 2
+			// Check for <<< (here-string)
+			if l.pos < len(l.input) && l.input[l.pos] == '<' {
+				l.pos++
+				return Token{Type: TokenRedirectHereString, Value: "<<<"}
+			}
 			// Check for <<-
 			if l.pos < len(l.input) && l.input[l.pos] == '-' {
 				l.pos++
