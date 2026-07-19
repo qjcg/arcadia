@@ -187,6 +187,62 @@ func (s *Shell) executeAugerWithEncoder(pipe *parser.Pipeline) error {
 }
 
 func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.Writer) error {
+	// Handle temporary env var assignments: FOO=bar echo $FOO
+	// Scan the command name and leading args for name=value patterns.
+	// When followed by a command, the env vars are set only for that command.
+	var restoreEnv []struct {
+		name    string
+		value   string
+		existed bool
+	}
+	if strings.Contains(cmd.Name, "=") && !strings.HasPrefix(cmd.Name, "-") {
+		parts := strings.SplitN(cmd.Name, "=", 2)
+		if len(parts) == 2 && isIdent(parts[0]) && !strings.HasPrefix(parts[1], "(") {
+			type envPair struct{ name, value string }
+			var envs []envPair
+			envs = append(envs, envPair{parts[0], parts[1]})
+			var remainingArgs []string
+			for _, arg := range cmd.Args {
+				if strings.Contains(arg, "=") && !strings.HasPrefix(arg, "-") {
+					p := strings.SplitN(arg, "=", 2)
+					if len(p) == 2 && isIdent(p[0]) {
+						envs = append(envs, envPair{p[0], p[1]})
+						continue
+					}
+				}
+				remainingArgs = append(remainingArgs, arg)
+			}
+			// Only treat as temporary if there's a command to run
+			if len(remainingArgs) > 0 {
+				for _, e := range envs {
+					oldVal, existed := s.vars[e.name]
+					restoreEnv = append(restoreEnv, struct {
+						name    string
+						value   string
+						existed bool
+					}{e.name, oldVal, existed})
+					s.setVar(e.name, e.value)
+					s.exportVar(e.name)
+				}
+				cmd.Name = remainingArgs[0]
+				cmd.Args = remainingArgs[1:]
+				defer func() {
+					for _, re := range restoreEnv {
+						if re.existed {
+							s.vars[re.name] = re.value
+						} else {
+							delete(s.vars, re.name)
+						}
+						_ = os.Unsetenv(re.name)
+						if re.existed && re.value != "" {
+							os.Setenv(re.name, re.value)
+						}
+					}
+				}()
+			}
+		}
+	}
+
 	// Run expansion pipeline: brace expansion → variable expansion
 	expandedName, expandedArgs := expand.ExpandCommand(cmd.Name, cmd.Args, s.expandVars)
 

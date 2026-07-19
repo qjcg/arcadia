@@ -25,3 +25,20 @@ stdout 'bar'
 # undefined variable
 terebra -c 'echo $UNDEFINED_VAR_XYZ'
 stdout ''
+
+# temporary env var for one command
+terebra -c 'FOO=bar echo $FOO'
+stdout 'bar'
+
+# temporary env var does not persist
+terebra -c 'FOO=bar echo $FOO ; echo $FOO'
+stdout 'bar'
+stdout ''
+
+# multiple temporary env vars
+terebra -c 'FOO=bar BAZ=qux echo $FOO$BAZ'
+stdout 'barqux'
+
+# temporary env var alone (no command) sets persistently
+terebra -c 'FOO=bar ; echo $FOO'
+stdout 'bar'
