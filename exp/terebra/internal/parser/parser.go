@@ -229,6 +229,10 @@ func parseRedirect(tok Token, l *Lexer) (*Redirect, error) {
 			}
 			content.WriteString(line)
 		}
+		// Add trailing newline (the newline before the delimiter)
+		if content.Len() > 0 {
+			content.WriteByte('\n')
+		}
 		r.Content = content.String()
 		return r, nil
 	}

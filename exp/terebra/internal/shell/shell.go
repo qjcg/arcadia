@@ -349,10 +349,8 @@ func (s *Shell) fillHeredocs(script *parser.Script) {
 						if trimmed == delimiter {
 							break
 						}
-						if content.Len() > 0 {
-							content.WriteByte('\n')
-						}
 						content.WriteString(line)
+						content.WriteByte('\n')
 					}
 					redir.Content = content.String()
 				}
