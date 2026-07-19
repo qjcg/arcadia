@@ -5,10 +5,43 @@ import (
 	"strings"
 )
 
-// Parse parses a shell input line into a Pipeline.
+// Parse parses a shell input line into a single Pipeline.
 func Parse(input string) (*Pipeline, error) {
 	l := NewLexer(input)
 	return parsePipeline(l)
+}
+
+// ParseScript parses a shell input line into a Script, supporting &&, ||, ; chaining.
+func ParseScript(input string) (*Script, error) {
+	l := NewLexer(input)
+	return parseScript(l)
+}
+
+func parseScript(l *Lexer) (*Script, error) {
+	script := &Script{}
+
+	for {
+		pipe, err := parsePipeline(l)
+		if err != nil {
+			return nil, err
+		}
+		script.Pipelines = append(script.Pipelines, pipe)
+
+		// Check for chaining operators
+		tok := l.NextToken()
+		switch tok.Type {
+		case TokenSemicolon:
+			script.Ops = append(script.Ops, ChainingThen)
+		case TokenAnd:
+			script.Ops = append(script.Ops, ChainingAnd)
+		case TokenOr:
+			script.Ops = append(script.Ops, ChainingOr)
+		case TokenEOF:
+			return script, nil
+		default:
+			return nil, fmt.Errorf("unexpected token %q after command (expected &&, ||, ;, or newline)", tok)
+		}
+	}
 }
 
 func parsePipeline(l *Lexer) (*Pipeline, error) {
@@ -30,26 +63,34 @@ func parsePipeline(l *Lexer) (*Pipeline, error) {
 		pipe.Commands = append(pipe.Commands, cmd)
 
 		// Check what comes after the command
-		tok := l.NextToken()
-		if tok.Type == TokenPipe {
-			pipe.Connects = append(pipe.Connects, ConnectPipe)
+		peek = l.PeekToken()
+		switch peek.Type {
+		case TokenPipe, TokenAugerPipe:
+			l.NextToken()
+			if peek.Type == TokenPipe {
+				pipe.Connects = append(pipe.Connects, ConnectPipe)
+			} else {
+				// Check for encoder pipe: |>json, |>yaml, |>cue
+				encPeek := l.PeekToken()
+				if encPeek.Type == TokenWord {
+					switch encPeek.Value {
+					case "json", "yaml", "cue":
+						l.NextToken()
+						pipe.Encoder = encPeek.Value
+						pipe.Connects = append(pipe.Connects, ConnectAuger)
+						// If encoder is the last pipe, we're done
+						continue
+					}
+				}
+				pipe.Connects = append(pipe.Connects, ConnectAuger)
+			}
 			continue
+		case TokenEOF, TokenSemicolon, TokenAnd, TokenOr:
+			return pipe, nil
+		default:
+			return nil, fmt.Errorf("unexpected token %q after command", peek)
 		}
-		if tok.Type == TokenAugerPipe {
-			pipe.Connects = append(pipe.Connects, ConnectAuger)
-			continue
-		}
-		if tok.Type == TokenEOF {
-			break
-		}
-		return nil, fmt.Errorf("unexpected token %q after command", tok)
 	}
-
-	if len(pipe.Commands) == 0 {
-		return nil, fmt.Errorf("empty pipeline")
-	}
-
-	return pipe, nil
 }
 
 func parseCommand(l *Lexer) (*Command, error) {
@@ -80,10 +121,10 @@ func parseCommand(l *Lexer) (*Command, error) {
 	}
 	cmd.Name = tok.Value
 
-	// Parse args and redirects, stopping at pipe, &, auger pipe, or eof
+	// Parse args and redirects, stopping at pipe, &, auger pipe, chaining ops, or eof
 	for {
 		peek := l.PeekToken()
-		if peek.Type == TokenEOF || peek.Type == TokenPipe || peek.Type == TokenAugerPipe || peek.Type == TokenAmpersand {
+		if peek.Type == TokenEOF || peek.Type == TokenPipe || peek.Type == TokenAugerPipe || peek.Type == TokenAmpersand || peek.Type == TokenSemicolon || peek.Type == TokenAnd || peek.Type == TokenOr {
 			break
 		}
 		if isRedirect(peek.Type) {
@@ -110,7 +151,8 @@ func parseCommand(l *Lexer) (*Command, error) {
 func isRedirect(tt TokenType) bool {
 	switch tt {
 	case TokenRedirectOut, TokenRedirectAppend, TokenRedirectIn,
-		TokenRedirectErr, TokenRedirectErrAppend, TokenRedirectErrOut:
+		TokenRedirectErr, TokenRedirectErrAppend, TokenRedirectErrOut,
+		TokenRedirectHeredoc, TokenRedirectHeredocDash:
 		return true
 	}
 	return false
@@ -134,8 +176,61 @@ func parseRedirect(tok Token, l *Lexer) (*Redirect, error) {
 		r.Type = RedirectStderrToStdout
 		r.File = "1"
 		return r, nil
+	case TokenRedirectHeredoc:
+		r.Type = RedirectHeredoc
+	case TokenRedirectHeredocDash:
+		r.Type = RedirectHeredocDash
 	default:
 		return nil, fmt.Errorf("internal error: not a redirect token: %s", tok)
+	}
+
+	// For heredocs, read the delimiter and then the heredoc content
+	if r.Type == RedirectHeredoc || r.Type == RedirectHeredocDash {
+		next := l.NextToken()
+		if next.Type != TokenWord {
+			return nil, fmt.Errorf("expected heredoc delimiter after %s, got %s", tok.Type, next)
+		}
+		delimiter := next.Value
+		// Strip quotes from delimiter to determine if expansion is needed
+		quoted := false
+		if (len(delimiter) >= 2 && delimiter[0] == '\'' && delimiter[len(delimiter)-1] == '\'') ||
+			(len(delimiter) >= 2 && delimiter[0] == '"' && delimiter[len(delimiter)-1] == '"') {
+			quoted = true
+			delimiter = delimiter[1 : len(delimiter)-1]
+		}
+		r.Quoted = quoted
+		r.File = delimiter
+		// Read heredoc content from remaining input
+		var content strings.Builder
+		for l.pos < len(l.input) {
+			// Skip to next line
+			for l.pos < len(l.input) && l.input[l.pos] != '\n' {
+				l.pos++
+			}
+			if l.pos < len(l.input) {
+				l.pos++ // skip \n
+			}
+			// Read the next line
+			lineStart := l.pos
+			for l.pos < len(l.input) && l.input[l.pos] != '\n' {
+				l.pos++
+			}
+			line := l.input[lineStart:l.pos]
+			// Check for delimiter
+			trimmed := line
+			if r.Type == RedirectHeredocDash {
+				trimmed = strings.TrimLeft(line, "\t")
+			}
+			if trimmed == delimiter {
+				break
+			}
+			if content.Len() > 0 {
+				content.WriteByte('\n')
+			}
+			content.WriteString(line)
+		}
+		r.Content = content.String()
+		return r, nil
 	}
 
 	next := l.NextToken()

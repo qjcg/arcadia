@@ -2,7 +2,6 @@ package expand
 
 // Pipeline runs the full expansion pipeline on a single word:
 // brace expansion → variable expansion → glob expansion.
-// For now, only brace expansion is implemented.
 // Returns the expanded words. For words without braces, returns [word].
 func Pipeline(word string, expandVar func(string) string) []string {
 	// Step 1: brace expansion
@@ -17,10 +16,13 @@ func Pipeline(word string, expandVar func(string) string) []string {
 		expanded = result
 	}
 
-	// Step 3: glob expansion (placeholder)
-	// TODO: implement glob matching
+	// Step 3: glob expansion
+	var globbed []string
+	for _, w := range expanded {
+		globbed = append(globbed, GlobExpand(w)...)
+	}
 
-	return expanded
+	return globbed
 }
 
 // ExpandCommand expands a command name and args through the expansion pipeline.

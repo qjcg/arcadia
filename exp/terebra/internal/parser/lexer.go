@@ -9,29 +9,39 @@ const (
 	TokenPipe
 	TokenAugerPipe
 	TokenAmpersand
+	TokenAnd
+	TokenOr
+	TokenSemicolon
 	TokenRedirectOut
 	TokenRedirectAppend
 	TokenRedirectIn
 	TokenRedirectErr
 	TokenRedirectErrAppend
 	TokenRedirectErrOut
+	TokenRedirectHeredoc     // <<
+	TokenRedirectHeredocDash // <<-
 	TokenEOF
 	TokenIllegal
 )
 
 var tokenNames = map[TokenType]string{
-	TokenWord:              "WORD",
-	TokenPipe:              "PIPE",
-	TokenAugerPipe:         "AUGER_PIPE",
-	TokenAmpersand:         "AMPERSAND",
-	TokenRedirectOut:       "REDIRECT_OUT",
-	TokenRedirectAppend:    "REDIRECT_APPEND",
-	TokenRedirectIn:        "REDIRECT_IN",
-	TokenRedirectErr:       "REDIRECT_ERR",
-	TokenRedirectErrAppend: "REDIRECT_ERR_APPEND",
-	TokenRedirectErrOut:    "REDIRECT_ERR_OUT",
-	TokenEOF:               "EOF",
-	TokenIllegal:           "ILLEGAL",
+	TokenWord:                "WORD",
+	TokenPipe:                "PIPE",
+	TokenAugerPipe:           "AUGER_PIPE",
+	TokenAmpersand:           "AMPERSAND",
+	TokenAnd:                 "AND",
+	TokenOr:                  "OR",
+	TokenSemicolon:           "SEMICOLON",
+	TokenRedirectOut:         "REDIRECT_OUT",
+	TokenRedirectAppend:      "REDIRECT_APPEND",
+	TokenRedirectIn:          "REDIRECT_IN",
+	TokenRedirectErr:         "REDIRECT_ERR",
+	TokenRedirectErrAppend:   "REDIRECT_ERR_APPEND",
+	TokenRedirectErrOut:      "REDIRECT_ERR_OUT",
+	TokenRedirectHeredoc:     "REDIRECT_HEREDOC",
+	TokenRedirectHeredocDash: "REDIRECT_HEREDOC_DASH",
+	TokenEOF:                 "EOF",
+	TokenIllegal:             "ILLEGAL",
 }
 
 func (tt TokenType) String() string {
@@ -112,9 +122,17 @@ func (l *Lexer) NextToken() Token {
 			l.pos += 2
 			return Token{Type: TokenAugerPipe, Value: "|>"}
 		}
+		if l.pos+1 < len(l.input) && l.input[l.pos+1] == '|' {
+			l.pos += 2
+			return Token{Type: TokenOr, Value: "||"}
+		}
 		l.pos++
 		return Token{Type: TokenPipe, Value: "|"}
 	case '&':
+		if l.pos+1 < len(l.input) && l.input[l.pos+1] == '&' {
+			l.pos += 2
+			return Token{Type: TokenAnd, Value: "&&"}
+		}
 		l.pos++
 		return Token{Type: TokenAmpersand, Value: "&"}
 	case '>':
@@ -125,8 +143,20 @@ func (l *Lexer) NextToken() Token {
 		l.pos++
 		return Token{Type: TokenRedirectOut, Value: ">"}
 	case '<':
+		if l.pos+1 < len(l.input) && l.input[l.pos+1] == '<' {
+			l.pos += 2
+			// Check for <<-
+			if l.pos < len(l.input) && l.input[l.pos] == '-' {
+				l.pos++
+				return Token{Type: TokenRedirectHeredocDash, Value: "<<-"}
+			}
+			return Token{Type: TokenRedirectHeredoc, Value: "<<"}
+		}
 		l.pos++
 		return Token{Type: TokenRedirectIn, Value: "<"}
+	case ';':
+		l.pos++
+		return Token{Type: TokenSemicolon, Value: ";"}
 	case '#':
 		// Comment — skip to end of line
 		for l.pos < len(l.input) && l.input[l.pos] != '\n' {
@@ -230,11 +260,11 @@ func (l *Lexer) readWord() Token {
 		}
 
 		// Operators and whitespace end the word
-		if ch == '|' || ch == '>' || ch == '<' || ch == '&' || ch == '#' || ch == ' ' || ch == '\t' || ch == '\n' {
+		if ch == '|' || ch == '>' || ch == '<' || ch == '&' || ch == ';' || ch == '#' || ch == ' ' || ch == '\t' || ch == '\n' {
 			break
 		}
 
-		// Check for $((...)) arithmetic - don't split on whitespace inside
+		// Check for $((...)) arithmetic or $(...) command substitution - don't split on whitespace inside
 		if ch == '$' && l.pos+1 < len(l.input) && l.input[l.pos+1] == '(' {
 			// Check for $(( (arithmetic)
 			if l.pos+2 < len(l.input) && l.input[l.pos+2] == '(' {
@@ -264,7 +294,28 @@ func (l *Lexer) readWord() Token {
 				}
 				continue
 			}
-			// $() would go here (command substitution)
+			// $(...) command substitution - read until matching )
+			word.WriteByte(ch) // $
+			l.pos++
+			word.WriteByte('(') // (
+			l.pos++
+			depth := 1
+			for l.pos < len(l.input) && depth > 0 {
+				c := l.input[l.pos]
+				if c == '(' {
+					depth++
+				} else if c == ')' {
+					depth--
+					if depth == 0 {
+						word.WriteByte(c)
+						l.pos++
+						break
+					}
+				}
+				word.WriteByte(c)
+				l.pos++
+			}
+			continue
 		}
 
 		// Check for ${...} variable expansion - don't split on whitespace inside
