@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -859,10 +860,24 @@ func isIdent(s string) bool {
 }
 
 func (s *Shell) setArrayElem(name, idx, value string) {
+	// If already an associative array, use it
 	if _, ok := s.assoc[name]; ok {
 		s.assoc[name][idx] = value
 		return
 	}
+
+	// Check if index is numeric — if not, auto-promote to associative array
+	if _, err := strconv.Atoi(idx); err != nil {
+		if _, ok := s.assoc[name]; !ok {
+			s.assoc[name] = make(map[string]string)
+		}
+		// Remove from indexed arrays if present
+		delete(s.arrays, name)
+		s.assoc[name][idx] = value
+		return
+	}
+
+	// Indexed array access
 	arr := s.arrays[name]
 	if arr == nil {
 		arr = make([]string, 0)
