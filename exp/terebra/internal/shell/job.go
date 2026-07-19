@@ -22,20 +22,25 @@ const (
 )
 
 type Job struct {
-	ID    int
-	Cmd   *exec.Cmd
-	State JobState
-	Line  string
+	ID     int
+	Cmd    *exec.Cmd
+	State  JobState
+	Line   string
+	waitCh chan error
 }
 
 func (s *Shell) addJob(cmd *exec.Cmd, line string) *Job {
 	s.jobSeq++
 	job := &Job{
-		ID:    s.jobSeq,
-		Cmd:   cmd,
-		State: JobRunning,
-		Line:  line,
+		ID:     s.jobSeq,
+		Cmd:    cmd,
+		State:  JobRunning,
+		Line:   line,
+		waitCh: make(chan error, 1),
 	}
+	go func() {
+		job.waitCh <- cmd.Wait()
+	}()
 	s.jobs = append(s.jobs, job)
 	return job
 }
@@ -121,7 +126,7 @@ func (s *Shell) executeBackground(cmd *parser.Command, stdin io.Reader, stdout i
 	fmt.Fprintf(s.Stdout, "[%d] %d\n", job.ID, extCmd.Process.Pid)
 
 	go func() {
-		extCmd.Wait()
+		<-job.waitCh
 		job.State = JobDone
 		fmt.Fprintf(s.Stdout, "\n[%d] done  %s\n", job.ID, line.String())
 		s.removeJob(job)
@@ -174,39 +179,39 @@ func builtinFg(args []string, stdout, stderr io.Writer, s *Shell) int {
 		job.State = JobRunning
 	}
 
-	// Wait for the job in a goroutine so we can select on its
-	// completion alongside a SIGINT signal from the user.
-	done := make(chan error, 1)
-	go func() {
-		done <- job.Cmd.Wait()
-	}()
-
 	// Set up a temporary SIGINT listener to forward Ctrl+C
-	// to the job's process group.  The readline library also
-	// installs a SIGINT handler via signal.Notify, so our
-	// channel fires alongside theirs.
+	// to the child process.
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT)
 	defer signal.Stop(sig)
 
 	select {
-	case <-done:
-		// Job completed or stopped on its own
+	case err := <-job.waitCh:
+		// Job completed
+		if err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				fmt.Fprintf(stderr, "command exited with code %d\n", exitErr.ExitCode())
+			} else {
+				fmt.Fprintf(stderr, "fg: %v\n", err)
+			}
+		}
+		job.State = JobDone
+		s.removeJob(job)
+
 	case <-sig:
-		// Ctrl+C pressed — forward SIGINT to the job's process group
-		pgid := job.Cmd.Process.Pid
-		syscall.Kill(-pgid, syscall.SIGINT)
-		<-done
+		// Ctrl+C pressed — forward SIGINT to the child
+		job.Cmd.Process.Signal(syscall.SIGINT)
+		<-job.waitCh
 		// Drain any remaining signal so readline's handler
 		// doesn't see a stale interrupt on the next Readline.
 		select {
 		case <-sig:
 		default:
 		}
+		job.State = JobDone
+		s.removeJob(job)
 	}
 
-	job.State = JobDone
-	s.removeJob(job)
 	return 0
 }
 

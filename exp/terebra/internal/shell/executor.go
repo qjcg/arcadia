@@ -6,8 +6,10 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"slices"
 	"strings"
+	"syscall"
 
 	"github.com/qjcg/arcadia/exp/terebra/internal/cueutil"
 	"github.com/qjcg/arcadia/exp/terebra/internal/expand"
@@ -358,13 +360,99 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 	extCmd.Stdout = out
 	extCmd.Stderr = errOut
 
-	if err := extCmd.Run(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			s.exitCode = exitErr.ExitCode()
-			return fmt.Errorf("command exited with code %d", exitErr.ExitCode())
-		}
+	if err := extCmd.Start(); err != nil {
 		s.exitCode = 1
 		return err
+	}
+
+	// Build the line string for job tracking
+	var line strings.Builder
+	line.WriteString(expandedName)
+	for _, arg := range expandedArgs {
+		line.WriteString(" " + arg)
+	}
+
+	// Wait for the process using wait4 with WUNTRACED so we can detect
+	// when the process is stopped by SIGTSTP (^Z) without reaping it.
+	// The process is in the shell's process group (no Setpgid), so the
+	// shell receives SIGTSTP/SIGINT from the terminal alongside the child.
+	waitCh := make(chan error, 1)
+	stopCh := make(chan struct{}, 1)
+	go func() {
+		var wstatus syscall.WaitStatus
+		_, err := syscall.Wait4(extCmd.Process.Pid, &wstatus, syscall.WUNTRACED, nil)
+		if err == nil && wstatus.StopSignal() == syscall.SIGTSTP {
+			stopCh <- struct{}{}
+			// Don't send to waitCh — the process was stopped, not reaped.
+			// It will be waited on again by fg or the background waiter.
+			return
+		}
+		if err == nil && wstatus.Exited() && wstatus.ExitStatus() != 0 {
+			err = fmt.Errorf("exit status %d", wstatus.ExitStatus())
+		}
+		waitCh <- err
+	}()
+
+	// Set up signal handling for SIGINT and SIGTSTP
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTSTP)
+	defer signal.Stop(sig)
+
+	select {
+	case err := <-waitCh:
+		// Process completed
+		if err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				s.exitCode = exitErr.ExitCode()
+				return fmt.Errorf("command exited with code %d", exitErr.ExitCode())
+			}
+			// Handle syscall.Wait4 exit status errors
+			if strings.HasPrefix(err.Error(), "exit status ") {
+				var code int
+				fmt.Sscanf(err.Error(), "exit status %d", &code)
+				s.exitCode = code
+				return fmt.Errorf("command exited with code %d", code)
+			}
+			s.exitCode = 1
+			return err
+		}
+		s.exitCode = 0
+		return nil
+
+	case <-stopCh:
+		// Process was stopped by SIGTSTP — add it to the job list
+		job := s.addJob(extCmd, line.String())
+		job.State = JobStopped
+		fmt.Fprintf(s.Stderr, "\n[%d] stopped  %s\n", job.ID, line.String())
+		s.exitCode = 0
+		return nil
+
+	case received := <-sig:
+		switch received {
+		case syscall.SIGINT:
+			// Forward SIGINT to the child
+			extCmd.Process.Signal(syscall.SIGINT)
+			// Wait for the child to be killed/exited
+			<-waitCh
+			select {
+			case <-sig:
+			default:
+			}
+			s.exitCode = 130
+			return fmt.Errorf("command interrupted")
+
+		case syscall.SIGTSTP:
+			// Forward SIGSTOP to the child
+			extCmd.Process.Signal(syscall.SIGSTOP)
+			// Wait for the process to actually stop
+			<-stopCh
+			// Add it to the job list
+			job := s.addJob(extCmd, line.String())
+			job.State = JobStopped
+			fmt.Fprintf(s.Stderr, "\n[%d] stopped  %s\n", job.ID, line.String())
+			s.exitCode = 0
+			return nil
+		}
 	}
 
 	s.exitCode = 0
