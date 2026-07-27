@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- e3946493 - Update CHANGELOGs
 - 0996a2a8 - Update CHANGELOGs
 - b10cc15a - Update CHANGELOGs
 - 7b1d98c5 - Update mnemosyne CHANGELOG

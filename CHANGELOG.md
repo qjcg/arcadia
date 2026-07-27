@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- d4208456 - Bump deps
+
+## [v0.46.0] - 2026-07-19
+
+### Added
+- 08b2308d - add fuzzy search TUI with bubbletea v2; fix exit to cleanly propagate
+
+### Changed
+- 6417380f - Update go.sum
+- e3946493 - Update CHANGELOGs
 - 0996a2a8 - Update CHANGELOGs
 - b10cc15a - Update CHANGELOGs
 - ea8cde3a - Pin trivy version

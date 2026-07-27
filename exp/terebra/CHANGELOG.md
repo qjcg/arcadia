@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [unreleased]
+
+### Changed
+- d4208456 - Bump deps
+
+## [v0.5.0] - 2026-07-19
+
+### Added
+- 08b2308d - add fuzzy search TUI with bubbletea v2; fix exit to cleanly propagate
+
+### Fixed
+- 444decd8 - make Ctrl+r immediately enter the TUI; fix setupStdinPipe syntax
+- 71a1eb92 - make Ctrl+r immediately enter the TUI instead of waiting for Enter
+
+## [v0.4.4] - 2026-07-19
+
+### Fixed
+- d3d8a459 - terebra build and multi-line script execution
+
+## [v0.4.3] - 2026-07-19
+
+### Fixed
+- 3e13ca70 - also handle ^Z in fg builtin, not just in foreground commands
+- f6e4f81e - make ^Z (SIGTSTP) stop foreground jobs instead of doing nothing
+
+## [v0.4.2] - 2026-07-19
+
+### Fixed
+- 1d1168d4 - handle Ctrl+C in fg via signal forwarding, no terminal manipulation
+
+## [v0.4.1] - 2026-07-19
+
+### Changed
+- e3946493 - Update CHANGELOGs
+
+### Fixed
+- 23efe68a - enable Ctrl+C and Ctrl+Z in fg'd background jobs
+
 ## [v0.4.0] - 2026-07-19
 
 ### Added
