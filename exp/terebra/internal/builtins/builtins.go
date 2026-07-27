@@ -131,6 +131,7 @@ var builtinHelp = map[string]string{
 	"export":   "  export [name[=value]]  Set or list environment variables\n",
 	"unset":    "  unset <name>   Remove a variable\n",
 	"set":      "  set [-x|+x] [-o vi|emacs]  List vars or toggle debug/options\n",
+	"exec":     "  exec [-a name] <command> [args...]  Replace shell with command\n",
 	"readonly": "  readonly [name=value]  Mark variables as read-only\n",
 	"alias":    "  alias [name=value]  Define or list command aliases\n",
 	"unalias":  "  unalias <name>  Remove an alias\n",
@@ -178,6 +179,7 @@ func helpHandler(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fmt.Fprint(stdout, "  cd [dir]       Change directory (defaults to $HOME)\n")
 	fmt.Fprint(stdout, "  pwd            Print working directory\n")
 	fmt.Fprint(stdout, "  echo [args]    Print arguments\n")
+	fmt.Fprint(stdout, "  exec [-a name] <command> [args]  Replace shell with a command\n")
 	fmt.Fprint(stdout, "  exit [code]    Exit the shell\n")
 	fmt.Fprint(stdout, "  help           Show this help\n")
 	fmt.Fprint(stdout, "  type [cmd]     Show how a command would be interpreted\n")
@@ -328,7 +330,7 @@ func setHandler(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 
 func isBuiltin(name string) bool {
 	switch name {
-	case "cd", "pwd", "echo", "exit", "help", "type", "which",
+	case "cd", "exec", "pwd", "echo", "exit", "help", "type", "which",
 		"export", "unset", "set", "jobs", "fg", "bg", "drill":
 		return true
 	}

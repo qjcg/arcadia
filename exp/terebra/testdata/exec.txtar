@@ -1,0 +1,27 @@
+# exec with no args
+! terebra -c 'exec'
+stderr 'exec: missing command'
+
+# exec -a with no value
+! terebra -c 'exec -a'
+stderr 'exec: option requires an argument'
+
+# exec -a with no command
+! terebra -c 'exec -a myname'
+stderr 'exec: missing command'
+
+# exec nonexistent command
+! terebra -c 'exec nonexistent_cmd_xyz'
+stderr 'not found'
+
+# exec echoes with explicit arg
+terebra -c 'exec echo hello'
+stdout 'hello'
+
+# exec -a sets argv0
+terebra -c 'exec -a myname echo hello'
+stdout 'hello'
+
+# type shows exec as builtin
+terebra -c 'type exec'
+stdout 'exec is a shell builtin'

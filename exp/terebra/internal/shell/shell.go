@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/chzyer/readline"
 	"github.com/qjcg/arcadia/exp/terebra/internal/builtins"
@@ -103,6 +104,9 @@ func New() *Shell {
 	})
 	s.builtins.Register("readonly", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return s.builtinReadonly(args, stdout, stderr)
+	})
+	s.builtins.Register("exec", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+		return s.builtinExec(args, stdout, stderr)
 	})
 	s.builtins.Register("exit", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return s.builtinExit(args, stdout, stderr)
@@ -544,6 +548,56 @@ func (s *Shell) expandPromptCmd(input string) string {
 
 // builtinExit handles the exit builtin. It sets the shell's exit code and
 // returns -1 as a sentinel that the executor interprets as "exit the shell".
+// builtinExec handles the exec builtin. It replaces the current process with
+// the given command using syscall.Exec, which never returns on success.
+func (s *Shell) builtinExec(args []string, stdout, stderr io.Writer) int {
+	if len(args) == 0 {
+		fmt.Fprintln(stderr, "exec: missing command")
+		return 1
+	}
+
+	argv0 := ""
+	cmdArgs := args
+	if args[0] == "-a" {
+		if len(args) < 2 {
+			fmt.Fprintln(stderr, "exec: option requires an argument: -a")
+			return 1
+		}
+		argv0 = args[1]
+		cmdArgs = args[2:]
+	}
+
+	if len(cmdArgs) == 0 {
+		fmt.Fprintln(stderr, "exec: missing command")
+		return 1
+	}
+
+	command := cmdArgs[0]
+	path, err := exec.LookPath(command)
+	if err != nil {
+		s.exitCode = 127
+		fmt.Fprintf(stderr, "exec: %v\n", err)
+		return 127
+	}
+
+	argv := cmdArgs
+	if argv0 != "" {
+		argv = make([]string, len(cmdArgs))
+		argv[0] = argv0
+		copy(argv[1:], cmdArgs[1:])
+	}
+
+	envv := os.Environ()
+
+	if err := syscall.Exec(path, argv, envv); err != nil {
+		s.exitCode = 126
+		fmt.Fprintf(stderr, "exec: %v\n", err)
+		return 126
+	}
+
+	return 0
+}
+
 func (s *Shell) builtinExit(args []string, stdout, stderr io.Writer) int {
 	code := 0
 	if len(args) > 0 {
