@@ -87,12 +87,12 @@ func (s *Shell) ExecuteScript(script *parser.Script) error {
 				continue
 			case parser.ChainingAnd:
 				// Only continue if exit code is 0
-				if s.exitCode != 0 {
+				if s.getExitCode() != 0 {
 					return err
 				}
 			case parser.ChainingOr:
 				// Only continue if exit code is non-zero
-				if s.exitCode == 0 && err == nil {
+				if s.getExitCode() == 0 && err == nil {
 					return nil
 				}
 			}
@@ -345,10 +345,10 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 			return errExitShell
 		}
 		if exitCode != 0 {
-			s.exitCode = exitCode
+			s.setExitCode(exitCode)
 			return fmt.Errorf("command exited with code %d", exitCode)
 		}
-		s.exitCode = 0
+		s.setExitCode(0)
 		return nil
 	}
 
@@ -366,7 +366,7 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 	// Look for external command
 	path, err := exec.LookPath(expandedName)
 	if err != nil {
-		s.exitCode = 127
+		s.setExitCode(127)
 		// Suggest similar commands
 		if suggestion := s.suggestCommand(expandedName); suggestion != "" {
 			return fmt.Errorf("command not found: %s (did you mean %s?)", expandedName, suggestion)
@@ -390,7 +390,7 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 	extCmd.Stdin = in
 
 	if err := extCmd.Start(); err != nil {
-		s.exitCode = 1
+		s.setExitCode(1)
 		return err
 	}
 
@@ -432,20 +432,20 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 		// Process completed
 		if err != nil {
 			if exitErr, ok := err.(*exec.ExitError); ok {
-				s.exitCode = exitErr.ExitCode()
+				s.setExitCode(exitErr.ExitCode())
 				return fmt.Errorf("command exited with code %d", exitErr.ExitCode())
 			}
 			// Handle syscall.Wait4 exit status errors
 			if strings.HasPrefix(err.Error(), "exit status ") {
 				var code int
 				fmt.Sscanf(err.Error(), "exit status %d", &code)
-				s.exitCode = code
+				s.setExitCode(code)
 				return fmt.Errorf("command exited with code %d", code)
 			}
-			s.exitCode = 1
+			s.setExitCode(1)
 			return err
 		}
-		s.exitCode = 0
+		s.setExitCode(0)
 		return nil
 
 	case <-stopCh:
@@ -453,7 +453,7 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 		job := s.addJob(extCmd, line.String())
 		job.State = JobStopped
 		fmt.Fprintf(s.Stderr, "\n[%d] stopped  %s\n", job.ID, line.String())
-		s.exitCode = 0
+		s.setExitCode(0)
 		return nil
 
 	case received := <-sig:
@@ -467,7 +467,7 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 			case <-sig:
 			default:
 			}
-			s.exitCode = 130
+			s.setExitCode(130)
 			return fmt.Errorf("command interrupted")
 
 		case syscall.SIGTSTP:
@@ -479,12 +479,12 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 			job := s.addJob(extCmd, line.String())
 			job.State = JobStopped
 			fmt.Fprintf(s.Stderr, "\n[%d] stopped  %s\n", job.ID, line.String())
-			s.exitCode = 0
+			s.setExitCode(0)
 			return nil
 		}
 	}
 
-	s.exitCode = 0
+	s.setExitCode(0)
 	return nil
 }
 

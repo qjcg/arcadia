@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/chzyer/readline"
@@ -35,6 +36,7 @@ type Shell struct {
 	jobs     []*Job
 	jobSeq   int
 	exitCode int
+	mu       sync.Mutex
 	rl       *readline.Instance
 	interp   *script.Interpreter
 	debug    bool // set -x debug mode
@@ -45,6 +47,18 @@ type Shell struct {
 	stdinW          *os.File // write end of pipe (goroutine writes to this)
 	stdinDone       chan struct{}
 	stdinNeedsReset bool // set when stdin pipe was paused for an external command
+}
+
+func (s *Shell) setExitCode(code int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.exitCode = code
+}
+
+func (s *Shell) getExitCode() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.exitCode
 }
 
 func New() *Shell {
@@ -155,8 +169,8 @@ func RunScriptFromString(content string) error {
 	if err == nil && len(script.Pipelines) > 0 {
 		err = sh.ExecuteScript(script)
 		if errors.Is(err, errExitShell) {
-			if sh.exitCode != 0 {
-				os.Exit(sh.exitCode)
+			if sh.getExitCode() != 0 {
+				os.Exit(sh.getExitCode())
 			}
 			return nil
 		}
