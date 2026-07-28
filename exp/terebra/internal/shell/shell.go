@@ -41,9 +41,10 @@ type Shell struct {
 	fuzzy    bool // Ctrl+R fuzzy search flag
 
 	// stdin pipe for interrupting readline
-	stdinR    *os.File // read end of pipe (readline reads from this)
-	stdinW    *os.File // write end of pipe (goroutine writes to this)
-	stdinDone chan struct{}
+	stdinR          *os.File // read end of pipe (readline reads from this)
+	stdinW          *os.File // write end of pipe (goroutine writes to this)
+	stdinDone       chan struct{}
+	stdinNeedsReset bool // set when stdin pipe was paused for an external command
 }
 
 func New() *Shell {
@@ -260,6 +261,22 @@ func (s *Shell) Repl() error {
 		} else {
 			s.exitCode = 0
 		}
+
+		// If the stdin pipe was paused for an external command, reset it
+		// so readline continues to work on the next iteration.
+		if s.stdinNeedsReset {
+			s.stdinNeedsReset = false
+			rl.Close()
+			s.closeStdinPipe()
+			s.setupStdinPipe()
+			cfg.Stdin = s.stdinR
+			newRL, err := readline.NewEx(cfg)
+			if err != nil {
+				return fmt.Errorf("readline: %v", err)
+			}
+			s.rl = newRL
+			rl = newRL
+		}
 	}
 }
 
@@ -322,6 +339,20 @@ func (s *Shell) setupStdinPipe() {
 			}
 		}
 	}()
+}
+
+// pauseStdinPipe stops the stdin pipe goroutine and restores direct stdin
+// without closing the read end (so readline can be reused after resuming).
+func (s *Shell) pauseStdinPipe() {
+	if s.stdinW != nil {
+		s.stdinW.Close()
+		s.stdinW = nil
+	}
+	if s.stdinDone != nil {
+		<-s.stdinDone
+		s.stdinDone = nil
+	}
+	s.Stdin = os.Stdin
 }
 
 // closeStdinPipe closes the stdin pipe and waits for the copy goroutine

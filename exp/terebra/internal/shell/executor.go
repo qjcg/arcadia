@@ -376,9 +376,18 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 
 	// Build the exec.Cmd
 	extCmd := exec.Command(path, expandedArgs...)
-	extCmd.Stdin = in
 	extCmd.Stdout = out
 	extCmd.Stderr = errOut
+
+	// If stdin is the readline pipe, pause the pipe goroutine so it doesn't
+	// compete with the interactive program for terminal input, and let the
+	// command read directly from the terminal.
+	if in == s.stdinR {
+		s.pauseStdinPipe()
+		in = os.Stdin
+		s.stdinNeedsReset = true
+	}
+	extCmd.Stdin = in
 
 	if err := extCmd.Start(); err != nil {
 		s.exitCode = 1
