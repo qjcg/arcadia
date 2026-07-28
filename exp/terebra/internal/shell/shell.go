@@ -349,8 +349,15 @@ func (s *Shell) pauseStdinPipe() {
 		s.stdinW = nil
 	}
 	if s.stdinDone != nil {
+		// Close stdin to unblock the goroutine's os.Stdin.Read(buf) so it
+		// can exit immediately instead of waiting for the user to type.
+		os.Stdin.Close()
 		<-s.stdinDone
 		s.stdinDone = nil
+		// Reopen stdin from the terminal.
+		if f, err := os.OpenFile("/dev/tty", os.O_RDONLY, 0); err == nil {
+			os.Stdin = f
+		}
 	}
 	s.Stdin = os.Stdin
 }
@@ -362,9 +369,14 @@ func (s *Shell) closeStdinPipe() {
 		s.stdinW.Close()
 	}
 	if s.stdinDone != nil {
-		// Wait for the goroutine to finish (it will exit after
-		// the next read from stdin fails or the write to pipe fails)
+		// Close stdin to unblock the goroutine's os.Stdin.Read(buf) so it
+		// can exit immediately instead of waiting for the user to type.
+		os.Stdin.Close()
 		<-s.stdinDone
+		// Reopen stdin from the terminal.
+		if f, err := os.OpenFile("/dev/tty", os.O_RDONLY, 0); err == nil {
+			os.Stdin = f
+		}
 	}
 	if s.stdinR != nil && s.stdinR != os.Stdin {
 		s.stdinR.Close()
