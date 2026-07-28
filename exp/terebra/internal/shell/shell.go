@@ -190,21 +190,7 @@ func (s *Shell) Repl() error {
 	// Set up stdin pipe so we can interrupt readline on Ctrl+R
 	s.setupStdinPipe()
 
-	cfg := &readline.Config{
-		Prompt:              "", // set below before first Readline
-		HistoryFile:         histPath,
-		HistoryLimit:        1000,
-		AutoComplete:        s.completer(),
-		Stdin:               s.stdinR,
-		Stdout:              os.Stdout,
-		Stderr:              os.Stderr,
-		InterruptPrompt:     "^C\n",
-		EOFPrompt:           "exit\n",
-		HistorySearchFold:   true,
-		FuncFilterInputRune: s.filterInput,
-	}
-
-	rl, err := readline.NewEx(cfg)
+	rl, err := readline.NewEx(s.newReadlineConfig(histPath))
 	if err != nil {
 		return fmt.Errorf("readline: %v", err)
 	}
@@ -220,8 +206,7 @@ func (s *Shell) Repl() error {
 			rl.Close()
 			s.closeStdinPipe()
 			s.setupStdinPipe()
-			cfg.Stdin = s.stdinR
-			newRL, err := readline.NewEx(cfg)
+			newRL, err := readline.NewEx(s.newReadlineConfig(histPath))
 			if err != nil {
 				return fmt.Errorf("readline: %v", err)
 			}
@@ -247,8 +232,7 @@ func (s *Shell) Repl() error {
 
 					// Set up new pipe and readline
 					s.setupStdinPipe()
-					cfg.Stdin = s.stdinR
-					newRL, err := readline.NewEx(cfg)
+					newRL, err := readline.NewEx(s.newReadlineConfig(histPath))
 					if err != nil {
 						return fmt.Errorf("readline: %v", err)
 					}
@@ -306,6 +290,23 @@ func (s *Shell) filterInput(r rune) (rune, bool) {
 		return r, false // consume the key
 	}
 	return r, true
+}
+
+// newReadlineConfig creates a fresh readline.Config for the current stdin pipe.
+func (s *Shell) newReadlineConfig(histPath string) *readline.Config {
+	return &readline.Config{
+		Prompt:              "",
+		HistoryFile:         histPath,
+		HistoryLimit:        1000,
+		AutoComplete:        s.completer(),
+		Stdin:               s.stdinR,
+		Stdout:              os.Stdout,
+		Stderr:              os.Stderr,
+		InterruptPrompt:     "^C\n",
+		EOFPrompt:           "exit\n",
+		HistorySearchFold:   true,
+		FuncFilterInputRune: s.filterInput,
+	}
 }
 
 // setupStdinPipe creates a pipe and starts a goroutine that copies
