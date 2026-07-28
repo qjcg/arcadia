@@ -617,7 +617,13 @@ func (s *Shell) executePipedCommands(cmds []*parser.Command, connects []parser.C
 		}
 
 		go func(idx int, c *parser.Command, in io.Reader, out io.Writer, stderr io.Writer) {
-			errCh <- s.ExecuteCommand(c, in, out, stderr)
+			err := s.ExecuteCommand(c, in, out, stderr)
+			// When |& pipes stderr, write the error message to the pipe
+			// so it flows through to the next command in the pipeline.
+			if err != nil && stderr != nil {
+				fmt.Fprintln(stderr, err)
+			}
+			errCh <- err
 			if idx < n-1 {
 				if w, ok := out.(*os.File); ok {
 					w.Close()
