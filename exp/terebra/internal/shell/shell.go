@@ -212,6 +212,23 @@ func (s *Shell) Repl() error {
 	defer rl.Close()
 
 	for {
+		// If the stdin pipe was paused for an external command, reset it
+		// before the next readline call so readline reads from a fresh
+		// pipe, not the stale (write-end-closed) one.
+		if s.stdinNeedsReset {
+			s.stdinNeedsReset = false
+			rl.Close()
+			s.closeStdinPipe()
+			s.setupStdinPipe()
+			cfg.Stdin = s.stdinR
+			newRL, err := readline.NewEx(cfg)
+			if err != nil {
+				return fmt.Errorf("readline: %v", err)
+			}
+			s.rl = newRL
+			rl = newRL
+		}
+
 		rl.SetPrompt(s.prompt())
 
 		line, err := rl.Readline()
@@ -274,22 +291,6 @@ func (s *Shell) Repl() error {
 			s.exitCode = 1
 		} else {
 			s.exitCode = 0
-		}
-
-		// If the stdin pipe was paused for an external command, reset it
-		// so readline continues to work on the next iteration.
-		if s.stdinNeedsReset {
-			s.stdinNeedsReset = false
-			rl.Close()
-			s.closeStdinPipe()
-			s.setupStdinPipe()
-			cfg.Stdin = s.stdinR
-			newRL, err := readline.NewEx(cfg)
-			if err != nil {
-				return fmt.Errorf("readline: %v", err)
-			}
-			s.rl = newRL
-			rl = newRL
 		}
 	}
 }
