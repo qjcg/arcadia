@@ -45,7 +45,7 @@ func (s *Shell) ExecutePipeline(pipe *parser.Pipeline) error {
 		if cmd.Background {
 			return s.executeBackground(cmd, s.Stdin, s.Stdout)
 		}
-		return s.ExecuteCommand(cmd, s.Stdin, s.Stdout)
+		return s.ExecuteCommand(cmd, s.Stdin, s.Stdout, nil)
 	}
 
 	// Check if the last command in the pipeline is backgrounded
@@ -70,7 +70,7 @@ func (s *Shell) ExecuteScript(script *parser.Script) error {
 		if len(pipe.Commands) == 1 && !pipe.Commands[0].Background &&
 			len(pipe.Connects) == 0 && len(pipe.Commands[0].Redirects) == 0 {
 			// Simple command - use ExecuteCommand directly
-			err = s.ExecuteCommand(pipe.Commands[0], s.Stdin, s.Stdout)
+			err = s.ExecuteCommand(pipe.Commands[0], s.Stdin, s.Stdout, nil)
 		} else {
 			err = s.ExecutePipeline(pipe)
 		}
@@ -120,7 +120,7 @@ func (s *Shell) executeAugerPipeline(pipe *parser.Pipeline) error {
 	var buf bytes.Buffer
 	if len(cmds) == 2 && len(connects) == 1 && connects[0] == parser.ConnectAuger {
 		// Simple case: cmd1 |> cmd2
-		if err := s.ExecuteCommand(cmds[0], s.Stdin, &buf); err != nil {
+		if err := s.ExecuteCommand(cmds[0], s.Stdin, &buf, nil); err != nil {
 			return err
 		}
 
@@ -134,16 +134,16 @@ func (s *Shell) executeAugerPipeline(pipe *parser.Pipeline) error {
 		v := cueutil.CompileString(ctx, output)
 		if err := cueutil.Err(v); err != nil {
 			// Not valid CUE - pass raw output to next command
-			return s.ExecuteCommand(cmds[1], strings.NewReader(output), s.Stdout)
+			return s.ExecuteCommand(cmds[1], strings.NewReader(output), s.Stdout, nil)
 		}
 
 		// Format the CUE value and pipe to the next command
 		formatted, err := cueutil.FormatValue(v)
 		if err != nil {
-			return s.ExecuteCommand(cmds[1], strings.NewReader(output), s.Stdout)
+			return s.ExecuteCommand(cmds[1], strings.NewReader(output), s.Stdout, nil)
 		}
 
-		return s.ExecuteCommand(cmds[1], strings.NewReader(formatted), s.Stdout)
+		return s.ExecuteCommand(cmds[1], strings.NewReader(formatted), s.Stdout, nil)
 	}
 
 	// Complex case: mixed | and |> pipes
@@ -157,7 +157,7 @@ func (s *Shell) executeAugerWithEncoder(pipe *parser.Pipeline) error {
 
 	// Execute the first command, capturing output
 	var buf bytes.Buffer
-	if err := s.ExecuteCommand(cmds[0], s.Stdin, &buf); err != nil {
+	if err := s.ExecuteCommand(cmds[0], s.Stdin, &buf, nil); err != nil {
 		return err
 	}
 
@@ -204,7 +204,7 @@ func (s *Shell) executeAugerWithEncoder(pipe *parser.Pipeline) error {
 	return nil
 }
 
-func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.Writer) error {
+func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
 	// Handle temporary env var assignments: FOO=bar echo $FOO
 	// Scan the command name and leading args for name=value patterns.
 	// When followed by a command, the env vars are set only for that command.
@@ -329,7 +329,7 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 	}
 
 	// Apply redirects to determine actual stdin/stdout/stderr
-	in, out, errOut, closeFn, err := s.openRedirects(cmd, stdin, stdout)
+	in, out, errOut, closeFn, err := s.openRedirects(cmd, stdin, stdout, stderr)
 	if err != nil {
 		return err
 	}
@@ -480,10 +480,13 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 }
 
 // openRedirects applies redirects and returns the effective stdin, stdout, stderr.
-func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Writer) (io.Reader, io.Writer, io.Writer, func(), error) {
+func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Writer, stderrOverride io.Writer) (io.Reader, io.Writer, io.Writer, func(), error) {
 	in := stdin
 	out := stdout
 	errOut := s.Stderr
+	if stderrOverride != nil {
+		errOut = stderrOverride
+	}
 	var closers []io.Closer
 
 	for _, redir := range cmd.Redirects {
@@ -596,6 +599,7 @@ func (s *Shell) executePipedCommands(cmds []*parser.Command, connects []parser.C
 	for i, cmd := range cmds {
 		var stdin io.Reader
 		var stdout io.Writer
+		var stderrForCmd io.Writer
 
 		if i == 0 {
 			stdin = s.Stdin
@@ -607,16 +611,19 @@ func (s *Shell) executePipedCommands(cmds []*parser.Command, connects []parser.C
 			stdout = s.Stdout
 		} else {
 			stdout = pipes[i*2+1]
+			if i < len(connects) && connects[i] == parser.ConnectPipeErr {
+				stderrForCmd = stdout
+			}
 		}
 
-		go func(idx int, c *parser.Command, in io.Reader, out io.Writer) {
-			errCh <- s.ExecuteCommand(c, in, out)
+		go func(idx int, c *parser.Command, in io.Reader, out io.Writer, stderr io.Writer) {
+			errCh <- s.ExecuteCommand(c, in, out, stderr)
 			if idx < n-1 {
 				if w, ok := out.(*os.File); ok {
 					w.Close()
 				}
 			}
-		}(i, cmd, stdin, stdout)
+		}(i, cmd, stdin, stdout, stderrForCmd)
 	}
 
 	var firstErr error

@@ -1157,7 +1157,7 @@ func (s *Shell) RunCommand(name string, args []string, stdin io.Reader, stdout i
 		Name: name,
 		Args: args,
 	}
-	return s.ExecuteCommand(cmd, stdin, stdout)
+	return s.ExecuteCommand(cmd, stdin, stdout, nil)
 }
 
 func (s *Shell) FuncDefs() map[string][]script.Stmt {

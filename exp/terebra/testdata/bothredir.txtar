@@ -10,3 +10,24 @@ stdout 'b'
 # |& pipes both stdout and stderr
 terebra -c 'echo hello |& cat'
 stdout 'hello'
+
+# |& pipes stderr to next command (stderr-only)
+terebra -c 'sh -c "echo err >&2" |& cat'
+stdout 'err'
+
+# |& pipes both stdout and stderr combined
+terebra -c 'sh -c "echo out; echo err >&2" |& sort'
+stdout 'err'
+stdout 'out'
+
+# |& works with multiple pipes
+terebra -c 'echo hello |& cat |& wc -c'
+stdout '6'
+
+# |& does not break stdout-only pipe
+terebra -c 'echo hello |& wc -c'
+stdout '6'
+
+# Regular | does NOT pipe stderr
+terebra -c 'sh -c "echo err >&2" | wc -c'
+stdout '0'

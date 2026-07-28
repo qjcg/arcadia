@@ -101,7 +101,7 @@ func (s *Shell) executeBackground(cmd *parser.Command, stdin io.Reader, stdout i
 		Setpgid: true,
 	}
 
-	in, out, errOut, closeFn, err := s.openRedirects(cmd, stdin, stdout)
+	in, out, errOut, closeFn, err := s.openRedirects(cmd, stdin, stdout, nil)
 	if err != nil {
 		return err
 	}
