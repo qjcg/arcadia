@@ -291,6 +291,7 @@ func (s *Shell) setupStdinPipe() {
 	s.stdinR = r
 	s.stdinW = w
 	s.stdinDone = make(chan struct{})
+	s.Stdin = r // redirect all reads through the pipe so the goroutine is the sole os.Stdin reader
 
 	go func() {
 		defer close(s.stdinDone)
@@ -340,6 +341,7 @@ func (s *Shell) closeStdinPipe() {
 	s.stdinR = nil
 	s.stdinW = nil
 	s.stdinDone = nil
+	s.Stdin = os.Stdin // restore direct stdin after pipe is closed
 }
 
 // readHistory reads the history file and returns all lines.
