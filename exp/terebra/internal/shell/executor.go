@@ -622,6 +622,7 @@ func (s *Shell) executePipedCommands(cmds []*parser.Command, connects []parser.C
 			// so it flows through to the next command in the pipeline.
 			if err != nil && stderr != nil {
 				fmt.Fprintln(stderr, err)
+				err = nil // Error already delivered through the pipe
 			}
 			errCh <- err
 			if idx < n-1 {
