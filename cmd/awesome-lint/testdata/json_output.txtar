@@ -1,10 +1,10 @@
 # Test JSON output format.
-exec awesome-lint -j test_bad.md
+exec awesome-lint -j testbad.md
 stdout '"ruleId": "awesome-badge"'
 stdout '"severity": 0'
-stdout '"filePath": "test_bad.md"'
+stdout '"filePath": "testbad.md"'
 
--- test_bad.md --
+-- testbad.md --
 # Awesome List
 
 ## Contents

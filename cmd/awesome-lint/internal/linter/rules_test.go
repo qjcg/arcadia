@@ -106,6 +106,11 @@ func TestBadgeRule(t *testing.T) {
 			markdown: "# [![Awesome](https://awesome.re/badge-flat.svg)](https://awesome.re)\n\nContent here.\n",
 			wantErr:  false,
 		},
+		{
+			name:     "badge on separate line after heading",
+			markdown: "# Awesome List\n\n[![Awesome](https://awesome.re/badge.svg)](https://github.com/sindresorhus/awesome)\n\nContent here.\n",
+			wantErr:  false,
+		},
 	}
 
 	rule := &badgeRule{}
@@ -541,6 +546,7 @@ func TestIsValidBadgeURL(t *testing.T) {
 	}{
 		{"https://awesome.re", true},
 		{"https://github.com/sindresorhus/awesome", true},
+		{"https://github.com/sindresorhus/awesome#readme", true},
 		{"https://example.com", false},
 		{"", false},
 	}

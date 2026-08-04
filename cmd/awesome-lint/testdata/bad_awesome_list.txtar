@@ -1,12 +1,13 @@
 # Test that a bad awesome list reports errors.
-! exec awesome-lint test_bad.md
+! exec awesome-lint testbad.md
 stdout '✖'
-stdout '3 errors'
+stdout '4 errors'
 stdout 'awesome-badge'
+stdout 'awesome-list-item'
 stdout 'awesome-no-ci-badge'
 stdout 'awesome-license'
 
--- test_bad.md --
+-- testbad.md --
 # Awesome List
 
 ## Contents

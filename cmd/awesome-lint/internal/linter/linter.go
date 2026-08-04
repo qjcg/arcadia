@@ -116,6 +116,18 @@ func (l *Linter) LintFile(path string) (*Results, error) {
 		FilePath: filepath.Base(path),
 	}
 
+	// Check filename for irregular characters
+	base := filepath.Base(path)
+	if strings.Contains(base, "_") {
+		results.Results = append(results.Results, Result{
+			RuleID:   "no-file-name-irregular-characters",
+			Severity: SeverityError,
+			Line:     1,
+			Column:   1,
+			Message:  "Unexpected character _ in file name",
+		})
+	}
+
 	// Parse markdown
 	doc := parseMarkdown(source)
 

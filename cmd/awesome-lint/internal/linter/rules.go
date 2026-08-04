@@ -19,6 +19,8 @@ func defaultRules() []Rule {
 		&noCiBadgeRule{},
 		&doubleLinkRule{},
 		&tocRule{},
+		&spellCheckRule{},
+		&definitionCaseRule{},
 	}
 }
 
@@ -146,35 +148,10 @@ func (r *badgeRule) Check(doc *MarkdownDoc, source []byte) []Result {
 			return ast.WalkContinue
 		}
 
-		hasBadge := false
-		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-			if c.Kind() != ast.KindLink {
-				continue
-			}
-			link := c.(*ast.Link)
-			url := string(link.Destination)
-
-			if !isValidBadgeURL(url) {
-				continue
-			}
-
-			for cc := c.FirstChild(); cc != nil; cc = cc.NextSibling() {
-				if cc.Kind() == ast.KindImage {
-					img := cc.(*ast.Image)
-					imgURL := string(img.Destination)
-					if !isValidBadgeSourceURL(imgURL) {
-						line, col := doc.LineColOf(cc)
-						results = append(results, Result{
-							RuleID:   r.ID(),
-							Severity: SeverityError,
-							Message:  "Invalid badge source",
-							Line:     line,
-							Column:   col,
-						})
-						return ast.WalkContinue
-					}
-					hasBadge = true
-				}
+		hasBadge := r.checkNodeForBadge(n, doc, source, &results)
+		if !hasBadge {
+			if sibling := n.NextSibling(); sibling != nil && sibling.Kind() != ast.KindHeading {
+				hasBadge = r.checkNodeForBadge(sibling, doc, source, &results)
 			}
 		}
 
@@ -195,9 +172,46 @@ func (r *badgeRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	return results
 }
 
+// checkNodeForBadge scans a node's children for a link containing an Awesome badge image.
+func (r *badgeRule) checkNodeForBadge(n ast.Node, doc *MarkdownDoc, source []byte, results *[]Result) bool {
+	hasBadge := false
+	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+		if c.Kind() != ast.KindLink {
+			continue
+		}
+		link := c.(*ast.Link)
+		url := string(link.Destination)
+
+		if !isValidBadgeURL(url) {
+			continue
+		}
+
+		for cc := c.FirstChild(); cc != nil; cc = cc.NextSibling() {
+			if cc.Kind() == ast.KindImage {
+				img := cc.(*ast.Image)
+				imgURL := string(img.Destination)
+				if !isValidBadgeSourceURL(imgURL) {
+					line, col := doc.LineColOf(cc)
+					*results = append(*results, Result{
+						RuleID:   r.ID(),
+						Severity: SeverityError,
+						Message:  "Invalid badge source",
+						Line:     line,
+						Column:   col,
+					})
+					return hasBadge
+				}
+				hasBadge = true
+			}
+		}
+	}
+	return hasBadge
+}
+
 func isValidBadgeURL(url string) bool {
 	return url == "https://awesome.re" ||
-		url == "https://github.com/sindresorhus/awesome"
+		url == "https://github.com/sindresorhus/awesome" ||
+		url == "https://github.com/sindresorhus/awesome#readme"
 }
 
 func isValidBadgeSourceURL(url string) bool {
@@ -242,7 +256,7 @@ func (r *listItemRule) validateListItem(n ast.Node, doc *MarkdownDoc) []Result {
 
 	var para ast.Node
 	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-		if c.Kind() == ast.KindParagraph {
+		if c.Kind() == ast.KindParagraph || c.Kind() == ast.KindTextBlock {
 			para = c
 			break
 		}
@@ -254,11 +268,19 @@ func (r *listItemRule) validateListItem(n ast.Node, doc *MarkdownDoc) []Result {
 	var linkNode ast.Node
 	var descriptionNodes []ast.Node
 	foundDash := false
+	hasContentAfterLink := false
+
+	enDash := "\u2013"
+	emDash := "\u2014"
 
 	for c := para.FirstChild(); c != nil; c = c.NextSibling() {
 		if c.Kind() == ast.KindLink && !foundDash {
 			linkNode = c
 			continue
+		}
+
+		if linkNode != nil {
+			hasContentAfterLink = true
 		}
 
 		if c.Kind() == ast.KindText {
@@ -268,6 +290,17 @@ func (r *listItemRule) validateListItem(n ast.Node, doc *MarkdownDoc) []Result {
 				descriptionNodes = append(descriptionNodes, c)
 				continue
 			}
+			if (strings.HasPrefix(text, " "+enDash+" ") || strings.HasPrefix(text, " "+emDash+" ")) && linkNode != nil {
+				line, col := doc.LineColOf(c)
+				results = append(results, Result{
+					RuleID:   r.ID(),
+					Severity: SeverityError,
+					Message:  "List item link and description separated by invalid en-dash or em-dash",
+					Line:     line,
+					Column:   col,
+				})
+				return results
+			}
 		}
 
 		if foundDash {
@@ -276,6 +309,14 @@ func (r *listItemRule) validateListItem(n ast.Node, doc *MarkdownDoc) []Result {
 	}
 
 	if linkNode == nil {
+		line, col := doc.LineColOf(n)
+		results = append(results, Result{
+			RuleID:   r.ID(),
+			Severity: SeverityError,
+			Message:  "Invalid list item link",
+			Line:     line,
+			Column:   col,
+		})
 		return results
 	}
 
@@ -284,6 +325,18 @@ func (r *listItemRule) validateListItem(n ast.Node, doc *MarkdownDoc) []Result {
 	linkText := doc.TextOf(linkNode)
 
 	if linkURL == "" {
+		line, col := doc.LineColOf(linkNode)
+		results = append(results, Result{
+			RuleID:   r.ID(),
+			Severity: SeverityError,
+			Message:  "Invalid list item link URL",
+			Line:     line,
+			Column:   col,
+		})
+		return results
+	}
+
+	if strings.HasPrefix(linkURL, "#") {
 		line, col := doc.LineColOf(linkNode)
 		results = append(results, Result{
 			RuleID:   r.ID(),
@@ -307,7 +360,7 @@ func (r *listItemRule) validateListItem(n ast.Node, doc *MarkdownDoc) []Result {
 		return results
 	}
 
-	if !foundDash {
+	if !foundDash && hasContentAfterLink {
 		line, col := doc.LineColOf(linkNode)
 		results = append(results, Result{
 			RuleID:   r.ID(),
@@ -484,7 +537,6 @@ type doubleLinkRule struct{}
 func (r *doubleLinkRule) ID() string { return "double-link" }
 
 func (r *doubleLinkRule) Check(doc *MarkdownDoc, source []byte) []Result {
-	_ = source
 	var results []Result
 	linkMap := make(map[string][]ast.Node)
 
@@ -499,7 +551,13 @@ func (r *doubleLinkRule) Check(doc *MarkdownDoc, source []byte) []Result {
 			return ast.WalkContinue
 		}
 
-		linkMap[url] = append(linkMap[url], n)
+		// Skip links that appear inside a list item description (after the " - " separator)
+		if isLinkInDescription(n, source) {
+			return ast.WalkContinue
+		}
+
+		normalized := normalizeURL(url)
+		linkMap[normalized] = append(linkMap[normalized], n)
 		return ast.WalkContinue
 	}))
 
@@ -520,6 +578,59 @@ func (r *doubleLinkRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	}
 
 	return results
+}
+
+// isLinkInDescription checks if a link node is inside a list item description
+// (i.e., after the " - " separator).
+func isLinkInDescription(n ast.Node, source []byte) bool {
+	// Find the inline container (Paragraph or TextBlock) that holds this link
+	parent := n.Parent()
+	if parent.Kind() != ast.KindParagraph && parent.Kind() != ast.KindTextBlock {
+		return false
+	}
+
+	// Check if this container is inside a list item
+	listItem := parent.Parent()
+	if listItem == nil || listItem.Kind() != ast.KindListItem {
+		return false
+	}
+
+	// Walk siblings before this link to find a " - " separator
+	for c := parent.FirstChild(); c != nil; c = c.NextSibling() {
+		if c == n {
+			break
+		}
+		if c.Kind() == ast.KindText {
+			text := string(c.(*ast.Text).Segment.Value(source))
+			if strings.Contains(text, " - ") {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// normalizeURL normalizes a URL for duplicate comparison.
+// It strips protocol, trailing slashes, and common index files.
+func normalizeURL(url string) string {
+	// Strip protocol
+	if strings.HasPrefix(url, "https://") {
+		url = url[len("https://"):]
+	} else if strings.HasPrefix(url, "http://") {
+		url = url[len("http://"):]
+	}
+
+	// Strip trailing slash
+	url = strings.TrimSuffix(url, "/")
+
+	// Strip common index files
+	indexFiles := []string{"/index.html", "/index.htm", "/index.php", "/index.shtml"}
+	for _, idx := range indexFiles {
+		url = strings.TrimSuffix(url, idx)
+	}
+
+	return url
 }
 
 // tocRule validates the Table of Contents.
@@ -603,6 +714,62 @@ func (r *tocRule) Check(doc *MarkdownDoc, source []byte) []Result {
 		})
 	}
 
+	return results
+}
+
+// spellCheckRule checks for common spelling mistakes.
+type spellCheckRule struct{}
+
+func (r *spellCheckRule) ID() string { return "awesome-spell-check" }
+
+func (r *spellCheckRule) Check(doc *MarkdownDoc, source []byte) []Result {
+	var results []Result
+	spellings := map[string]string{
+		"WASM": "WebAssembly",
+	}
+	for lineIdx, line := range strings.Split(string(source), "\n") {
+		for wrong, correct := range spellings {
+			idx := strings.Index(line, wrong)
+			if idx >= 0 {
+				results = append(results, Result{
+					RuleID:   r.ID(),
+					Severity: SeverityWarning,
+					Message:  fmt.Sprintf("Text %q should be written as %q (if referring to the technology)", wrong, correct),
+					Line:     lineIdx + 1,
+					Column:   idx + 1,
+				})
+			}
+		}
+	}
+	return results
+}
+
+// definitionCaseRule checks that definition labels are lowercase.
+type definitionCaseRule struct{}
+
+func (r *definitionCaseRule) ID() string { return "definition-case" }
+
+func (r *definitionCaseRule) Check(doc *MarkdownDoc, source []byte) []Result {
+	var results []Result
+	for lineIdx, line := range strings.Split(string(source), "\n") {
+		// Match [label]: URL
+		if strings.Contains(line, "]:") {
+			start := strings.Index(line, "[")
+			end := strings.Index(line, "]:")
+			if start >= 0 && end > start+1 {
+				label := line[start+1 : end]
+				if label != strings.ToLower(label) {
+					results = append(results, Result{
+						RuleID:   r.ID(),
+						Severity: SeverityError,
+						Message:  "Unexpected uppercase characters in definition label, expected lowercase",
+						Line:     lineIdx + 1,
+						Column:   start + 1,
+					})
+				}
+			}
+		}
+	}
 	return results
 }
 

@@ -1,13 +1,13 @@
 # Test that a well-formed awesome list passes without errors.
-exec awesome-lint test_good.md
+exec awesome-lint testgood.md
 stdout '✔ No issues found'
 
--- test_good.md --
+-- testgood.md --
 # Awesome List [![Awesome](https://awesome.re/badge.svg)](https://awesome.re)
 
 ## Contents
 
-- [Section 1](#section-1)
+- [Section 1](https://example.com/section1)
 
 ## Section 1
 
