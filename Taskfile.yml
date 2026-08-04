@@ -78,6 +78,10 @@ tasks:
     cmds:
       - GOEXPERIMENT=jsonv2 go run github.com/aquasecurity/trivy/cmd/trivy@{{.V_TRIVY}} fs --exit-code 1 --scanners secret .
 
+  lint:crap:
+    desc: Compute the CRAP (Change Risk Anti-Patterns) metric.
+    cmd: go tool go-crap scan {{.CLI_ARGS | default "-t 30 --min 30 --fail-above"}}
+
   lint:fix:
     desc: Fix linter errors that can be fixed automatically.
     cmds:

@@ -231,6 +231,7 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jalaali/go-jalaali v0.0.0-20250521085720-bf793ab67800 // indirect
+	github.com/jedib0t/go-pretty/v6 v6.8.3 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.1-0.20220621161143-b0104c826a24 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
@@ -295,6 +296,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
+	github.com/padiazg/go-crap v0.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pganalyze/pg_query_go/v6 v6.2.2 // indirect
@@ -461,6 +463,7 @@ tool (
 	github.com/cli/cli/v2/cmd/gh
 	github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker
 	github.com/evilmartians/lefthook/v2
+	github.com/padiazg/go-crap
 	github.com/qjcg/arcadia/cmd/sv
 	github.com/rakyll/hey
 	github.com/rogerwelin/cassowary/cmd/cassowary
