@@ -265,6 +265,21 @@ func (r *listItemRule) validateListItem(n ast.Node, doc *MarkdownDoc) []Result {
 		return results
 	}
 
+	linkNode, foundDash, hasContentAfterLink, descriptionNodes, enDashErr := r.findLinkAndDescription(para, doc)
+	if enDashErr != nil {
+		return enDashErr
+	}
+
+	results = append(results, r.validateLinkNode(linkNode, n, doc)...)
+	if len(results) > 0 {
+		return results
+	}
+
+	results = append(results, r.validateDescription(linkNode, descriptionNodes, foundDash, hasContentAfterLink, doc)...)
+	return results
+}
+
+func (r *listItemRule) findLinkAndDescription(para ast.Node, doc *MarkdownDoc) (ast.Node, bool, bool, []ast.Node, []Result) {
 	var linkNode ast.Node
 	var descriptionNodes []ast.Node
 	foundDash := false
@@ -292,14 +307,13 @@ func (r *listItemRule) validateListItem(n ast.Node, doc *MarkdownDoc) []Result {
 			}
 			if (strings.HasPrefix(text, " "+enDash+" ") || strings.HasPrefix(text, " "+emDash+" ")) && linkNode != nil {
 				line, col := doc.LineColOf(c)
-				results = append(results, Result{
+				return linkNode, foundDash, hasContentAfterLink, descriptionNodes, []Result{{
 					RuleID:   r.ID(),
 					Severity: SeverityError,
 					Message:  "List item link and description separated by invalid en-dash or em-dash",
 					Line:     line,
 					Column:   col,
-				})
-				return results
+				}}
 			}
 		}
 
@@ -308,16 +322,19 @@ func (r *listItemRule) validateListItem(n ast.Node, doc *MarkdownDoc) []Result {
 		}
 	}
 
+	return linkNode, foundDash, hasContentAfterLink, descriptionNodes, nil
+}
+
+func (r *listItemRule) validateLinkNode(linkNode ast.Node, n ast.Node, doc *MarkdownDoc) []Result {
 	if linkNode == nil {
 		line, col := doc.LineColOf(n)
-		results = append(results, Result{
+		return []Result{{
 			RuleID:   r.ID(),
 			Severity: SeverityError,
 			Message:  "Invalid list item link",
 			Line:     line,
 			Column:   col,
-		})
-		return results
+		}}
 	}
 
 	link := linkNode.(*ast.Link)
@@ -326,54 +343,56 @@ func (r *listItemRule) validateListItem(n ast.Node, doc *MarkdownDoc) []Result {
 
 	if linkURL == "" {
 		line, col := doc.LineColOf(linkNode)
-		results = append(results, Result{
+		return []Result{{
 			RuleID:   r.ID(),
 			Severity: SeverityError,
 			Message:  "Invalid list item link URL",
 			Line:     line,
 			Column:   col,
-		})
-		return results
+		}}
 	}
 
 	if strings.HasPrefix(linkURL, "#") {
 		line, col := doc.LineColOf(linkNode)
-		results = append(results, Result{
+		return []Result{{
 			RuleID:   r.ID(),
 			Severity: SeverityError,
 			Message:  "Invalid list item link URL",
 			Line:     line,
 			Column:   col,
-		})
-		return results
+		}}
 	}
 
 	if linkText == "" {
 		line, col := doc.LineColOf(linkNode)
-		results = append(results, Result{
+		return []Result{{
 			RuleID:   r.ID(),
 			Severity: SeverityError,
 			Message:  "Invalid list item link text",
 			Line:     line,
 			Column:   col,
-		})
-		return results
+		}}
 	}
+
+	return nil
+}
+
+func (r *listItemRule) validateDescription(linkNode ast.Node, descriptionNodes []ast.Node, foundDash, hasContentAfterLink bool, doc *MarkdownDoc) []Result {
+	var results []Result
 
 	if !foundDash && hasContentAfterLink {
 		line, col := doc.LineColOf(linkNode)
-		results = append(results, Result{
+		return []Result{{
 			RuleID:   r.ID(),
 			Severity: SeverityError,
 			Message:  "List item link and description must be separated with a dash",
 			Line:     line,
 			Column:   col,
-		})
-		return results
+		}}
 	}
 
 	if len(descriptionNodes) == 0 {
-		return results
+		return nil
 	}
 
 	descText := ""
@@ -383,7 +402,7 @@ func (r *listItemRule) validateListItem(n ast.Node, doc *MarkdownDoc) []Result {
 
 	descText = strings.TrimSpace(descText)
 	if descText == "" {
-		return results
+		return nil
 	}
 
 	descContent := strings.TrimPrefix(descText, "- ")
