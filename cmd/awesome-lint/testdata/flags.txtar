@@ -1,0 +1,9 @@
+# Test --help flag.
+exec awesome-lint --help
+stdout 'awesome-lint'
+stdout 'filename'
+stdout 'json'
+
+# Test --version flag.
+exec awesome-lint --version
+stdout '.'

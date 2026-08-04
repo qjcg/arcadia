@@ -1,0 +1,21 @@
+# Test that a bad awesome list reports errors.
+! exec awesome-lint test_bad.md
+stdout '✖'
+stdout '3 errors'
+stdout 'awesome-badge'
+stdout 'awesome-no-ci-badge'
+stdout 'awesome-license'
+
+-- test_bad.md --
+# Awesome List
+
+## Contents
+
+- [Foo](https://example.com) - a description of foo.
+- [Bar](https://example.com/bar)
+
+[![CI](https://travis-ci.org/foo/bar.svg)](https://travis-ci.org/foo/bar)
+
+## License
+
+MIT
