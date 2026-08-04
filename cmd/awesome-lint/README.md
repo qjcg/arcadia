@@ -1,0 +1,67 @@
+# awesome-lint
+
+**Lint an Awesome list for compliance with [awesome.re](https://awesome.re) guidelines.**
+
+A Go port of [sindresorhus/awesome-lint](https://github.com/sindresorhus/awesome-lint). Checks that your awesome list follows the
+[awesome manifesto](https://github.com/sindresorhus/awesome/blob/main/awesome.md) — proper heading structure, a valid badge,
+correctly formatted list items, and more.
+
+## Install
+
+```sh
+go install github.com/qjcg/arcadia/cmd/awesome-lint@latest
+```
+
+## Usage
+
+```sh
+# Lint readme.md in the current directory
+awesome-lint
+
+# Lint a specific file
+awesome-lint my-awesome-list.md
+
+# Output results as JSON
+awesome-lint --json
+
+# Specify a different file
+awesome-lint --filename path/to/readme.md
+```
+
+### Exit codes
+
+| Code | Meaning                                |
+|------|----------------------------------------|
+| 0    | No errors found                        |
+| 1    | Errors were found or an error occurred |
+
+## Rules
+
+| Rule ID                | Description                                                                                                                            |
+|------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| `awesome-heading`      | Main heading must exist, be depth 1, and use title case. Only one level-1 heading allowed.                                             |
+| `awesome-badge`        | Official Awesome badge (`[![Awesome](https://awesome.re/badge.svg)](https://awesome.re)`) must be present next to the main heading.    |
+| `awesome-list-item`    | Each list item must have a valid URL link, a dash separator (` - `), and a description ending with proper punctuation (`.`, `!`, `?`). |
+| `awesome-license`      | License section must not appear in the readme (GitHub handles license detection).                                                      |
+| `awesome-no-ci-badge`  | CI badges (Travis CI, CircleCI) must not appear in the readme.                                                                         |
+| `awesome-contributing` | Checks for a Contributing section in the readme (should be in `contributing.md`).                                                      |
+| `awesome-toc`          | If a Table of Contents exists, it must be the first section and all content headings must be present.                                  |
+| `double-link`          | Duplicate links in the document are flagged.                                                                                           |
+
+## GitHub Actions
+
+```yaml
+name: CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  awesome-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+      - run: go run github.com/qjcg/arcadia/cmd/awesome-lint@latest
+```

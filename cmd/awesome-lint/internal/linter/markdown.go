@@ -16,6 +16,11 @@ type MarkdownDoc struct {
 
 // TextOf returns the text content of a node.
 func (d *MarkdownDoc) TextOf(node ast.Node) string {
+	// Handle leaf text nodes directly
+	if text, ok := node.(*ast.Text); ok {
+		return string(text.Segment.Value(d.Source))
+	}
+
 	var buf bytes.Buffer
 	for c := node.FirstChild(); c != nil; c = c.NextSibling() {
 		switch n := c.(type) {
