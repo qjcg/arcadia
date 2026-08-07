@@ -268,26 +268,43 @@ func (r *listItemRule) Fix(doc *MarkdownDoc, source []byte, results []Result) []
 		if res.RuleID != r.ID() {
 			continue
 		}
+		lines := bytes.Split(source, []byte("\n"))
+		if res.Line-1 >= len(lines) {
+			continue
+		}
+		line := lines[res.Line-1]
+		str := string(line)
+
 		if res.Message == "List item description must start with valid casing" {
-			lines := bytes.Split(source, []byte("\n"))
-			if res.Line-1 < len(lines) {
-				line := lines[res.Line-1]
-				// Find the " - " separator and capitalize the next word
-				str := string(line)
-				if idx := strings.Index(str, " - "); idx >= 0 {
-					descStart := idx + 3
-					rest := str[descStart:]
-					fields := strings.Fields(rest)
-					if len(fields) > 0 {
-						first := fields[0]
-						// Only auto-fix if the first word is all lowercase
-						if strings.ToLower(first) == first && strings.ToUpper(first) != first {
-							capitalized := capitalizeFirst(first)
-							newLine := str[:descStart] + strings.Replace(rest, first, capitalized, 1)
-							lines[res.Line-1] = []byte(newLine)
-							source = bytes.Join(lines, []byte("\n"))
-						}
+			// Find the " - " separator and capitalize the next word
+			if idx := strings.Index(str, " - "); idx >= 0 {
+				descStart := idx + 3
+				rest := str[descStart:]
+				fields := strings.Fields(rest)
+				if len(fields) > 0 {
+					first := fields[0]
+					// Only auto-fix if the first word is all lowercase
+					if strings.ToLower(first) == first && strings.ToUpper(first) != first {
+						capitalized := capitalizeFirst(first)
+						newLine := str[:descStart] + strings.Replace(rest, first, capitalized, 1)
+						lines[res.Line-1] = []byte(newLine)
+						source = bytes.Join(lines, []byte("\n"))
 					}
+				}
+			}
+		}
+
+		if res.Message == "List item description must end with proper punctuation" {
+			// Find the " - " separator and add a period at the end of the description
+			if idx := strings.Index(str, " - "); idx >= 0 {
+				descStart := idx + 3
+				rest := str[descStart:]
+				// Trim trailing whitespace
+				rest = strings.TrimRight(rest, " \t")
+				if rest != "" && !strings.HasSuffix(rest, ".") && !strings.HasSuffix(rest, "!") && !strings.HasSuffix(rest, "?") && !strings.HasSuffix(rest, "...") {
+					newLine := str[:descStart] + rest + "."
+					lines[res.Line-1] = []byte(newLine)
+					source = bytes.Join(lines, []byte("\n"))
 				}
 			}
 		}
