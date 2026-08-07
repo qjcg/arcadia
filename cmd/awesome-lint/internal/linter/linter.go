@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -129,7 +130,7 @@ func (l *Linter) LintFile(path string) (*Results, error) {
 	}
 
 	// Parse markdown
-	doc := parseMarkdown(source)
+	doc := parseMarkdownWithDir(source, filepath.Dir(path))
 
 	// Run each rule
 	for _, rule := range l.rules {
@@ -150,8 +151,36 @@ func (l *Linter) Lint(path string) (*Results, error) {
 	return l.LintFile(path)
 }
 
-func (l *Linter) lintGitHubRepo(_ string) (*Results, error) {
-	return nil, fmt.Errorf("GitHub repository linting is not yet supported; please lint a local file")
+func (l *Linter) lintGitHubRepo(repoURL string) (*Results, error) {
+	// Create a temp directory
+	tmpDir, err := os.MkdirTemp("", "awesome-lint-*")
+	if err != nil {
+		return nil, fmt.Errorf("creating temp directory: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Clone the repo with depth 1 for speed
+	cmd := exec.Command("git", "clone", "--depth", "1", "--", repoURL, tmpDir)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("cloning repository %s: %w\n%s", repoURL, err, string(output))
+	}
+
+	// Find the readme file
+	var readmePath string
+	readmeCandidates := []string{"README.md", "readme.md", "Readme.md"}
+	for _, name := range readmeCandidates {
+		candidate := filepath.Join(tmpDir, name)
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			readmePath = candidate
+			break
+		}
+	}
+
+	if readmePath == "" {
+		return nil, fmt.Errorf("unable to find a valid readme file in %s", repoURL)
+	}
+
+	return l.LintFile(readmePath)
 }
 
 // Rule defines a single lint rule.

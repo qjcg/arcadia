@@ -44,9 +44,12 @@ awesome-lint --filename path/to/readme.md
 | `awesome-list-item`    | Each list item must have a valid URL link, a dash separator (` - `), and a description ending with proper punctuation (`.`, `!`, `?`). |
 | `awesome-license`      | License section must not appear in the readme (GitHub handles license detection).                                                      |
 | `awesome-no-ci-badge`  | CI badges (Travis CI, CircleCI) must not appear in the readme.                                                                         |
-| `awesome-contributing` | Checks for a Contributing section in the readme (should be in `contributing.md`).                                                      |
-| `awesome-toc`          | If a Table of Contents exists, it must be the first section and all content headings must be present.                                  |
+| `awesome-contributing` | `contributing.md` (or `.github/contributing.md`) must exist and be non-empty.                                                          |
+| `awesome-toc`          | If a Table of Contents exists, it must be the first section. ToC links are validated against actual headings.                          |
 | `double-link`          | Duplicate links in the document are flagged.                                                                                           |
+| `awesome-spell-check`  | Checks for common misspellings and incorrect technology names (200+ rules from upstream awesome-lint).                                 |
+| `definition-case`      | Definition labels (`[label]: URL`) must be lowercase.                                                                                  |
+| `no-repeat-item-in-description` | List item descriptions must not start by repeating the item name.                                                             |
 
 ## GitHub Actions
 

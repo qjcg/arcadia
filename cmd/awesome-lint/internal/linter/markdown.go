@@ -12,6 +12,7 @@ import (
 type MarkdownDoc struct {
 	Root   ast.Node
 	Source []byte
+	Dir    string // directory of the source file, if known
 }
 
 // TextOf returns the text content of a node.
@@ -122,11 +123,16 @@ func (d *MarkdownDoc) LineStart(lineIdx int) int {
 }
 
 func parseMarkdown(source []byte) *MarkdownDoc {
+	return parseMarkdownWithDir(source, "")
+}
+
+func parseMarkdownWithDir(source []byte, dir string) *MarkdownDoc {
 	md := goldmark.New()
 	reader := text.NewReader(source)
 	doc := md.Parser().Parse(reader)
 	return &MarkdownDoc{
 		Root:   doc,
 		Source: source,
+		Dir:    dir,
 	}
 }

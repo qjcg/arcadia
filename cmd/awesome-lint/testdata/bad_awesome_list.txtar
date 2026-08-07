@@ -3,9 +3,9 @@
 stdout '✖'
 stdout '4 errors'
 stdout 'awesome-badge'
-stdout 'awesome-list-item'
 stdout 'awesome-no-ci-badge'
 stdout 'awesome-license'
+stdout 'awesome-contributing'
 
 -- testbad.md --
 # Awesome List

@@ -26,7 +26,7 @@ func setupCLI(out, err io.Writer) *cobra.Command {
 		Long: `Lint an Awesome list for compliance with awesome.re guidelines.
 
 If no file is specified, readme.md in the current directory is used.
-Accepts a local file path.`,
+Accepts a local file path or a GitHub repository URL.`,
 		Args:    cobra.MaximumNArgs(1),
 		Version: getVersion(),
 		RunE: func(cmd *cobra.Command, args []string) error {

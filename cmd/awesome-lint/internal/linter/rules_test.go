@@ -1,6 +1,8 @@
 package linter
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -351,45 +353,81 @@ func TestDoubleLinkRule(t *testing.T) {
 }
 
 func TestContributingRule(t *testing.T) {
-	tests := []struct {
-		name     string
-		markdown string
-		wantWarn bool
-	}{
-		{
-			name:     "contributing section found",
-			markdown: "# Awesome List\n\n## Contributing\n\nHow to contribute.\n",
-			wantWarn: true,
-		},
-		{
-			name:     "contributing guidelines found",
-			markdown: "# Awesome List\n\n## Contributing Guidelines\n\nHow to contribute.\n",
-			wantWarn: true,
-		},
-		{
-			name:     "no contributing section",
-			markdown: "# Awesome List\n\n## Section 1\n\nContent.\n",
-			wantWarn: false,
-		},
-	}
+	t.Run("missing contributing.md", func(t *testing.T) {
+		tempDir := t.TempDir()
+		source := []byte("# Awesome List\n\nContent.\n")
+		doc := parseMarkdownWithDir(source, tempDir)
+		rule := &contributingRule{}
+		results := rule.Check(doc, source)
+		hasErr := false
+		for _, r := range results {
+			if r.RuleID == "awesome-contributing" && r.Severity == SeverityError {
+				hasErr = true
+				break
+			}
+		}
+		if !hasErr {
+			t.Errorf("expected error for missing contributing.md, got %+v", results)
+		}
+	})
 
-	rule := &contributingRule{}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			doc := parseMarkdown([]byte(tt.markdown))
-			results := rule.Check(doc, []byte(tt.markdown))
-			hasWarn := false
-			for _, r := range results {
-				if r.RuleID == "awesome-contributing" && r.Severity == SeverityWarning {
-					hasWarn = true
-					break
-				}
+	t.Run("contributing.md exists", func(t *testing.T) {
+		tempDir := t.TempDir()
+		os.WriteFile(filepath.Join(tempDir, "contributing.md"), []byte("Contributions welcome!\n"), 0o644)
+		source := []byte("# Awesome List\n\nContent.\n")
+		doc := parseMarkdownWithDir(source, tempDir)
+		rule := &contributingRule{}
+		results := rule.Check(doc, source)
+		for _, r := range results {
+			if r.RuleID == "awesome-contributing" {
+				t.Errorf("unexpected result: %+v", r)
 			}
-			if hasWarn != tt.wantWarn {
-				t.Errorf("contributingRule.Check() hasWarn = %v, wantWarn = %v; results: %+v", hasWarn, tt.wantWarn, results)
+		}
+	})
+
+	t.Run("contributing.md in .github", func(t *testing.T) {
+		tempDir := t.TempDir()
+		os.MkdirAll(filepath.Join(tempDir, ".github"), 0o755)
+		os.WriteFile(filepath.Join(tempDir, ".github", "contributing.md"), []byte("Contributions welcome!\n"), 0o644)
+		source := []byte("# Awesome List\n\nContent.\n")
+		doc := parseMarkdownWithDir(source, tempDir)
+		rule := &contributingRule{}
+		results := rule.Check(doc, source)
+		for _, r := range results {
+			if r.RuleID == "awesome-contributing" {
+				t.Errorf("unexpected result: %+v", r)
 			}
-		})
-	}
+		}
+	})
+
+	t.Run("contributing.md empty", func(t *testing.T) {
+		tempDir := t.TempDir()
+		os.WriteFile(filepath.Join(tempDir, "contributing.md"), []byte("   \n"), 0o644)
+		source := []byte("# Awesome List\n\nContent.\n")
+		doc := parseMarkdownWithDir(source, tempDir)
+		rule := &contributingRule{}
+		results := rule.Check(doc, source)
+		hasErr := false
+		for _, r := range results {
+			if r.RuleID == "awesome-contributing" && r.Severity == SeverityError {
+				hasErr = true
+				break
+			}
+		}
+		if !hasErr {
+			t.Errorf("expected error for empty contributing.md, got %+v", results)
+		}
+	})
+
+	t.Run("no dir (skip check)", func(t *testing.T) {
+		source := []byte("# Awesome List\n\nContent.\n")
+		doc := parseMarkdown(source)
+		rule := &contributingRule{}
+		results := rule.Check(doc, source)
+		if len(results) > 0 {
+			t.Errorf("expected no results when dir is empty, got %+v", results)
+		}
+	})
 }
 
 func TestLicenseRule(t *testing.T) {
@@ -634,6 +672,10 @@ func TestLinter(t *testing.T) {
 		if err == nil {
 			t.Error("Lint() expected error for GitHub URL")
 		}
+		// Should mention cloning (not "not yet supported")
+		if strings.Contains(err.Error(), "not yet supported") {
+			t.Error("Lint() should attempt to clone, not say unsupported")
+		}
 	})
 
 	t.Run("Lint with file path", func(t *testing.T) {
@@ -696,5 +738,62 @@ func TestWriteJSON(t *testing.T) {
 	}
 	if !strings.Contains(buf.String(), "test.md") {
 		t.Errorf("unexpected output: %s", buf.String())
+	}
+}
+
+func TestNoRepeatItemInDescriptionRule(t *testing.T) {
+	tests := []struct {
+		name     string
+		markdown string
+		wantErr  bool
+	}{
+		{
+			name:     "no repeat",
+			markdown: "- [Foo](https://example.com) - A description of foo.\n",
+			wantErr:  false,
+		},
+		{
+			name:     "repeats item name",
+			markdown: "- [Foo](https://example.com) - Foo is a tool that does things.\n",
+			wantErr:  true,
+		},
+		{
+			name:     "no description",
+			markdown: "- [Foo](https://example.com)\n",
+			wantErr:  false,
+		},
+		{
+			name:     "different case",
+			markdown: "- [Foo](https://example.com) - FOO is a tool.\n",
+			wantErr:  true,
+		},
+		{
+			name:     "item name not at start of description",
+			markdown: "- [Foo](https://example.com) - A foo tool.\n",
+			wantErr:  false,
+		},
+		{
+			name:     "badge link not counted as main link",
+			markdown: "- [![Awesome](https://awesome.re/badge.svg)](https://awesome.re) [Foo](https://example.com) - Foo description.\n",
+			wantErr:  true,
+		},
+	}
+
+	rule := &noRepeatItemInDescriptionRule{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			doc := parseMarkdown([]byte(tt.markdown))
+			results := rule.Check(doc, []byte(tt.markdown))
+			hasErr := false
+			for _, r := range results {
+				if r.RuleID == "no-repeat-item-in-description" && r.Severity == SeverityError {
+					hasErr = true
+					break
+				}
+			}
+			if hasErr != tt.wantErr {
+				t.Errorf("noRepeatItemInDescriptionRule.Check() hasErr = %v, wantErr = %v; results: %+v", hasErr, tt.wantErr, results)
+			}
+		})
 	}
 }

@@ -7,9 +7,11 @@ stdout '✔ No issues found'
 
 ## Contents
 
-- [Section 1](https://example.com/section1)
+- [Section 1](#section-1)
 
 ## Section 1
 
 - [Foo](https://example.com) - A description of foo.
 - [Bar](https://example.com/bar) - Another description.
+-- contributing.md --
+Contributions welcome!

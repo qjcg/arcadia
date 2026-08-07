@@ -1,7 +1,11 @@
 package linter
 
 import (
+	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -20,6 +24,7 @@ func defaultRules() []Rule {
 		&doubleLinkRule{},
 		&tocRule{},
 		&spellCheckRule{},
+		&noRepeatItemInDescriptionRule{},
 		&definitionCaseRule{},
 	}
 }
@@ -148,10 +153,10 @@ func (r *badgeRule) Check(doc *MarkdownDoc, source []byte) []Result {
 			return ast.WalkContinue
 		}
 
-		hasBadge := r.checkNodeForBadge(n, doc, source, &results)
+		hasBadge := r.checkNodeForBadge(n, doc, &results)
 		if !hasBadge {
 			if sibling := n.NextSibling(); sibling != nil && sibling.Kind() != ast.KindHeading {
-				hasBadge = r.checkNodeForBadge(sibling, doc, source, &results)
+				hasBadge = r.checkNodeForBadge(sibling, doc, &results)
 			}
 		}
 
@@ -173,7 +178,7 @@ func (r *badgeRule) Check(doc *MarkdownDoc, source []byte) []Result {
 }
 
 // checkNodeForBadge scans a node's children for a link containing an Awesome badge image.
-func (r *badgeRule) checkNodeForBadge(n ast.Node, doc *MarkdownDoc, source []byte, results *[]Result) bool {
+func (r *badgeRule) checkNodeForBadge(n ast.Node, doc *MarkdownDoc, results *[]Result) bool {
 	hasBadge := false
 	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
 		if c.Kind() != ast.KindLink {
@@ -228,27 +233,90 @@ func (r *listItemRule) ID() string { return "awesome-list-item" }
 func (r *listItemRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	var results []Result
 
-	ast.Walk(doc.Root, walkHelper(func(n ast.Node, entering bool) ast.WalkStatus {
-		if !entering || n.Kind() != ast.KindList {
-			return ast.WalkContinue
-		}
+	// Find lists to validate: skip the ToC list (the first list after Contents heading)
+	lists := r.findListsToValidate(doc)
 
-		list := n.(*ast.List)
-		if list.IsOrdered() {
-			return ast.WalkContinue
-		}
-
-		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+	for _, list := range lists {
+		for c := list.FirstChild(); c != nil; c = c.NextSibling() {
 			if c.Kind() != ast.KindListItem {
 				continue
 			}
 			results = append(results, r.validateListItem(c, doc)...)
 		}
+	}
 
+	return results
+}
+
+func (r *listItemRule) findListsToValidate(doc *MarkdownDoc) []ast.Node {
+	// Find the Contents heading
+	var tocNode ast.Node
+	ast.Walk(doc.Root, walkHelper(func(n ast.Node, entering bool) ast.WalkStatus {
+		if !entering || n.Kind() != ast.KindHeading {
+			return ast.WalkContinue
+		}
+		h := n.(*ast.Heading)
+		if h.Level == 2 {
+			text := strings.TrimSpace(doc.TextOf(n))
+			if strings.EqualFold(text, "contents") {
+				tocNode = n
+				return ast.WalkStop
+			}
+		}
 		return ast.WalkContinue
 	}))
 
-	return results
+	// If there's a ToC, find the first heading after it and validate lists after that
+	var postTOCHeading ast.Node
+	if tocNode != nil {
+		afterTOC := false
+		ast.Walk(doc.Root, walkHelper(func(n ast.Node, entering bool) ast.WalkStatus {
+			if !entering {
+				return ast.WalkContinue
+			}
+			if n == tocNode {
+				afterTOC = true
+				return ast.WalkContinue
+			}
+			if !afterTOC {
+				return ast.WalkContinue
+			}
+			if n.Kind() == ast.KindHeading {
+				postTOCHeading = n
+				return ast.WalkStop
+			}
+			return ast.WalkContinue
+		}))
+	}
+
+	// Collect all lists after the post-TOC heading (or all lists if no ToC)
+	var lists []ast.Node
+	started := tocNode == nil // if no ToC, start from beginning
+	ast.Walk(doc.Root, walkHelper(func(n ast.Node, entering bool) ast.WalkStatus {
+		if !entering {
+			return ast.WalkContinue
+		}
+		if n == tocNode {
+			started = false
+			return ast.WalkContinue
+		}
+		if n == postTOCHeading {
+			started = true
+			return ast.WalkContinue
+		}
+		if !started {
+			return ast.WalkContinue
+		}
+		if n.Kind() == ast.KindList {
+			list := n.(*ast.List)
+			if !list.IsOrdered() {
+				lists = append(lists, n)
+			}
+		}
+		return ast.WalkContinue
+	}))
+
+	return lists
 }
 
 func (r *listItemRule) validateListItem(n ast.Node, doc *MarkdownDoc) []Result {
@@ -262,6 +330,12 @@ func (r *listItemRule) validateListItem(n ast.Node, doc *MarkdownDoc) []Result {
 		}
 	}
 	if para == nil {
+		return results
+	}
+
+	// Skip items where the first child is text (not a link) — not a valid awesome list item
+	firstChild := para.FirstChild()
+	if firstChild != nil && firstChild.Kind() == ast.KindText {
 		return results
 	}
 
@@ -288,9 +362,40 @@ func (r *listItemRule) findLinkAndDescription(para ast.Node, doc *MarkdownDoc) (
 	enDash := "\u2013"
 	emDash := "\u2014"
 
+	// First pass: try to find a link followed by " - " separator
+	var linkIndex int
+	children := make([]ast.Node, 0)
 	for c := para.FirstChild(); c != nil; c = c.NextSibling() {
-		if c.Kind() == ast.KindLink && !foundDash {
+		children = append(children, c)
+	}
+
+	for i, c := range children {
+		isLink := c.Kind() == ast.KindLink
+		if isLink && i < len(children)-1 {
+			next := children[i+1]
+			if next.Kind() == ast.KindText {
+				text := string(next.(*ast.Text).Segment.Value(doc.Source))
+				if strings.HasPrefix(text, " - ") {
+					linkNode = c
+					linkIndex = i
+					foundDash = true
+					descriptionNodes = append(descriptionNodes, next)
+					for j := i + 2; j < len(children); j++ {
+						descriptionNodes = append(descriptionNodes, children[j])
+					}
+					hasContentAfterLink = true
+					return linkNode, foundDash, hasContentAfterLink, descriptionNodes, nil
+				}
+			}
+		}
+	}
+
+	// Second pass: find first link-like node (fallback)
+	for i, c := range children {
+		isLink := c.Kind() == ast.KindLink
+		if isLink && !foundDash {
 			linkNode = c
+			linkIndex = i
 			continue
 		}
 
@@ -303,7 +408,10 @@ func (r *listItemRule) findLinkAndDescription(para ast.Node, doc *MarkdownDoc) (
 			if strings.HasPrefix(text, " - ") && linkNode != nil {
 				foundDash = true
 				descriptionNodes = append(descriptionNodes, c)
-				continue
+				for j := i + 1; j < len(children); j++ {
+					descriptionNodes = append(descriptionNodes, children[j])
+				}
+				return linkNode, foundDash, hasContentAfterLink, descriptionNodes, nil
 			}
 			if (strings.HasPrefix(text, " "+enDash+" ") || strings.HasPrefix(text, " "+emDash+" ")) && linkNode != nil {
 				line, col := doc.LineColOf(c)
@@ -322,6 +430,7 @@ func (r *listItemRule) findLinkAndDescription(para ast.Node, doc *MarkdownDoc) (
 		}
 	}
 
+	_ = linkIndex
 	return linkNode, foundDash, hasContentAfterLink, descriptionNodes, nil
 }
 
@@ -337,41 +446,44 @@ func (r *listItemRule) validateLinkNode(linkNode ast.Node, n ast.Node, doc *Mark
 		}}
 	}
 
-	link := linkNode.(*ast.Link)
-	linkURL := string(link.Destination)
-	linkText := doc.TextOf(linkNode)
+	// Support linkReference nodes (e.g., [foo] style references)
+	if linkNode.Kind() == ast.KindLink {
+		link := linkNode.(*ast.Link)
+		linkURL := string(link.Destination)
+		linkText := doc.TextOf(linkNode)
 
-	if linkURL == "" {
-		line, col := doc.LineColOf(linkNode)
-		return []Result{{
-			RuleID:   r.ID(),
-			Severity: SeverityError,
-			Message:  "Invalid list item link URL",
-			Line:     line,
-			Column:   col,
-		}}
-	}
+		if linkURL == "" {
+			line, col := doc.LineColOf(linkNode)
+			return []Result{{
+				RuleID:   r.ID(),
+				Severity: SeverityError,
+				Message:  "Invalid list item link URL",
+				Line:     line,
+				Column:   col,
+			}}
+		}
 
-	if strings.HasPrefix(linkURL, "#") {
-		line, col := doc.LineColOf(linkNode)
-		return []Result{{
-			RuleID:   r.ID(),
-			Severity: SeverityError,
-			Message:  "Invalid list item link URL",
-			Line:     line,
-			Column:   col,
-		}}
-	}
+		if strings.HasPrefix(linkURL, "#") {
+			line, col := doc.LineColOf(linkNode)
+			return []Result{{
+				RuleID:   r.ID(),
+				Severity: SeverityError,
+				Message:  "Invalid list item link URL",
+				Line:     line,
+				Column:   col,
+			}}
+		}
 
-	if linkText == "" {
-		line, col := doc.LineColOf(linkNode)
-		return []Result{{
-			RuleID:   r.ID(),
-			Severity: SeverityError,
-			Message:  "Invalid list item link text",
-			Line:     line,
-			Column:   col,
-		}}
+		if linkText == "" {
+			line, col := doc.LineColOf(linkNode)
+			return []Result{{
+				RuleID:   r.ID(),
+				Severity: SeverityError,
+				Message:  "Invalid list item link text",
+				Line:     line,
+				Column:   col,
+			}}
+		}
 	}
 
 	return nil
@@ -405,12 +517,32 @@ func (r *listItemRule) validateDescription(linkNode ast.Node, descriptionNodes [
 		return nil
 	}
 
+	// Check for special cases: emoji-only or parenthetical-only descriptions
+	if r.isSpecialCaseDescription(descText) {
+		return nil
+	}
+
+	// Validate description node types
+	for _, dn := range descriptionNodes {
+		if !r.isValidDescriptionNodeType(dn) {
+			line, col := doc.LineColOf(dn)
+			results = append(results, Result{
+				RuleID:   r.ID(),
+				Severity: SeverityError,
+				Message:  "List item description contains invalid markdown",
+				Line:     line,
+				Column:   col,
+			})
+			return results
+		}
+	}
+
 	descContent := strings.TrimPrefix(descText, "- ")
 	descContent = strings.TrimSpace(descContent)
 
 	if descContent != "" {
 		firstWord := strings.Fields(descContent)[0]
-		if !isValidCasing(firstWord) {
+		if !isValidCasing(firstWord) && !r.startsWithSymbolPrefix(firstWord) {
 			line, col := doc.LineColOf(descriptionNodes[0])
 			results = append(results, Result{
 				RuleID:   r.ID(),
@@ -420,6 +552,20 @@ func (r *listItemRule) validateDescription(linkNode ast.Node, descriptionNodes [
 				Column:   col,
 			})
 		}
+	}
+
+	// Validate suffix node type
+	lastNode := descriptionNodes[len(descriptionNodes)-1]
+	if !r.isValidSuffixNodeType(lastNode) {
+		line, col := doc.LineColOf(lastNode)
+		results = append(results, Result{
+			RuleID:   r.ID(),
+			Severity: SeverityError,
+			Message:  "List item description must end with proper punctuation",
+			Line:     line,
+			Column:   col,
+		})
+		return results
 	}
 
 	lastChar := descContent[len(descContent)-1]
@@ -439,7 +585,80 @@ func (r *listItemRule) validateDescription(linkNode ast.Node, descriptionNodes [
 	return results
 }
 
-// contributingRule validates the presence of a contributing.md file.
+func (r *listItemRule) isSpecialCaseDescription(text string) bool {
+	// Emoji-only description: contains only emoji and spaces
+	emojiOnly := regexp.MustCompile(`^[\p{S}\p{P}\s]+$`)
+	if emojiOnly.MatchString(strings.TrimSpace(text)) {
+		// Check if there's at least one symbol character (emoji)
+		hasSymbol := false
+		for _, r := range text {
+			if unicode.Is(unicode.S, r) {
+				hasSymbol = true
+				break
+			}
+		}
+		if hasSymbol {
+			return true
+		}
+	}
+
+	// Parenthetical-only description
+	stripped := strings.TrimSpace(text)
+	stripped = strings.TrimPrefix(stripped, "- ")
+	stripped = strings.TrimSpace(stripped)
+
+	if strings.HasPrefix(stripped, "(") && strings.HasSuffix(stripped, ")") {
+		return true
+	}
+
+	return false
+}
+
+func (r *listItemRule) startsWithSymbolPrefix(word string) bool {
+	if word == "" {
+		return false
+	}
+	first := []rune(word)[0]
+	// Check for common symbol prefixes
+	if strings.ContainsAny(string(first), "/@#$~&%") {
+		return true
+	}
+	// Check for emoji/symbol characters (Unicode Symbol categories)
+	if unicode.Is(unicode.S, first) {
+		return true
+	}
+	return false
+}
+
+func (r *listItemRule) isValidDescriptionNodeType(n ast.Node) bool {
+	switch n.Kind() {
+	case ast.KindText,
+		ast.KindEmphasis,
+		ast.KindCodeSpan,
+		ast.KindLink,
+		ast.KindImage,
+		ast.KindString:
+		return true
+	default:
+		return false
+	}
+}
+
+func (r *listItemRule) isValidSuffixNodeType(n ast.Node) bool {
+	switch n.Kind() {
+	case ast.KindText,
+		ast.KindEmphasis,
+		ast.KindCodeSpan,
+		ast.KindLink,
+		ast.KindImage,
+		ast.KindString:
+		return true
+	default:
+		return false
+	}
+}
+
+// contributingRule checks that contributing.md exists and is not empty.
 type contributingRule struct{}
 
 func (r *contributingRule) ID() string { return "awesome-contributing" }
@@ -448,25 +667,59 @@ func (r *contributingRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	_ = source
 	var results []Result
 
-	ast.Walk(doc.Root, walkHelper(func(n ast.Node, entering bool) ast.WalkStatus {
-		if !entering || n.Kind() != ast.KindHeading {
-			return ast.WalkContinue
-		}
+	if doc.Dir == "" {
+		return results
+	}
 
-		text := strings.ToLower(doc.TextOf(n))
-		if text == "contributing" || text == "contributing guidelines" {
-			line, col := doc.LineColOf(n)
-			results = append(results, Result{
-				RuleID:   r.ID(),
-				Severity: SeverityWarning,
-				Message:  "Contributing section found in readme; should be in contributing.md",
-				Line:     line,
-				Column:   col,
-			})
-		}
+	// Check for contributing.md in root or .github/ directory (case-insensitive)
+	candidates := []struct {
+		dir string
+	}{
+		{doc.Dir},
+		{filepath.Join(doc.Dir, ".github")},
+	}
 
-		return ast.WalkContinue
-	}))
+	var foundFile string
+	for _, c := range candidates {
+		entries, err := os.ReadDir(c.dir)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+			if strings.EqualFold(entry.Name(), "contributing.md") {
+				foundFile = filepath.Join(c.dir, entry.Name())
+				break
+			}
+		}
+		if foundFile != "" {
+			break
+		}
+	}
+
+	if foundFile == "" {
+		results = append(results, Result{
+			RuleID:   r.ID(),
+			Severity: SeverityError,
+			Message:  "Missing file contributing.md",
+			Line:     1,
+			Column:   1,
+		})
+		return results
+	}
+
+	content, err := os.ReadFile(foundFile)
+	if err == nil && len(strings.TrimSpace(string(content))) == 0 {
+		results = append(results, Result{
+			RuleID:   r.ID(),
+			Severity: SeverityError,
+			Message:  "contributing.md file must not be empty",
+			Line:     1,
+			Column:   1,
+		})
+	}
 
 	return results
 }
@@ -701,6 +954,7 @@ func (r *tocRule) Check(doc *MarkdownDoc, source []byte) []Result {
 		})
 	}
 
+	// Collect all headings after ToC
 	var headingsAfter []ast.Node
 	afterTOC := false
 	ast.Walk(doc.Root, walkHelper(func(n ast.Node, entering bool) ast.WalkStatus {
@@ -716,7 +970,7 @@ func (r *tocRule) Check(doc *MarkdownDoc, source []byte) []Result {
 		}
 		if n.Kind() == ast.KindHeading {
 			h := n.(*ast.Heading)
-			if h.Level == 2 {
+			if h.Level >= 2 {
 				headingsAfter = append(headingsAfter, n)
 			}
 		}
@@ -731,9 +985,375 @@ func (r *tocRule) Check(doc *MarkdownDoc, source []byte) []Result {
 			Line:     1,
 			Column:   1,
 		})
+		return results
+	}
+
+	// Build set of heading slugs for validation
+	headingSlugs := make(map[string]ast.Node)
+	headingsUsed := make(map[ast.Node]bool)
+	for _, h := range headingsAfter {
+		text := doc.TextOf(h)
+		slug := gitHubSlug(text)
+		headingSlugs[slug] = h
+	}
+
+	// Find the ToC list (first list after the Contents heading)
+	var tocList ast.Node
+	for c := tocNode.NextSibling(); c != nil; c = c.NextSibling() {
+		if c.Kind() == ast.KindList {
+			tocList = c
+			break
+		}
+	}
+
+	if tocList == nil {
+		return results
+	}
+
+	// Validate ToC list items
+	tocLinks := make(map[string]bool)
+	ast.Walk(tocList, walkHelper(func(n ast.Node, entering bool) ast.WalkStatus {
+		if !entering || n.Kind() != ast.KindLink {
+			return ast.WalkContinue
+		}
+		link := n.(*ast.Link)
+		linkURL := string(link.Destination)
+		linkText := strings.TrimSpace(doc.TextOf(n))
+
+		// Check for duplicate ToC entries
+		if tocLinks[linkURL] {
+			line, col := doc.LineColOf(n)
+			results = append(results, Result{
+				RuleID:   r.ID(),
+				Severity: SeverityError,
+				Message:  fmt.Sprintf("Duplicate ToC entry: %s", linkText),
+				Line:     line,
+				Column:   col,
+			})
+		}
+		tocLinks[linkURL] = true
+
+		// Check if link is an anchor
+		if strings.HasPrefix(linkURL, "#") {
+			slug := linkURL[1:] // strip the #
+			if _, exists := headingSlugs[slug]; !exists {
+				line, col := doc.LineColOf(n)
+				results = append(results, Result{
+					RuleID:   r.ID(),
+					Severity: SeverityError,
+					Message:  fmt.Sprintf("ToC link points to non-existent heading: %s", linkText),
+					Line:     line,
+					Column:   col,
+				})
+			} else {
+				// Mark heading as covered by ToC
+				headingsUsed[headingSlugs[slug]] = true
+			}
+		}
+		return ast.WalkContinue
+	}))
+
+	// Check for missing headings in ToC (only level 2 headings are required)
+	deniedSections := map[string]bool{
+		"contributing": true, "footnotes": true, "related lists": true,
+		"related lists and projects": true, "license": true, "licence": true,
+	}
+	for _, h := range headingsAfter {
+		heading := h.(*ast.Heading)
+		if heading.Level != 2 {
+			continue
+		}
+		if headingsUsed[h] {
+			continue
+		}
+		text := strings.ToLower(strings.TrimSpace(doc.TextOf(h)))
+		if deniedSections[text] {
+			continue
+		}
+		line, col := doc.LineColOf(h)
+		results = append(results, Result{
+			RuleID:   r.ID(),
+			Severity: SeverityError,
+			Message:  fmt.Sprintf("Heading not covered by ToC: %s", doc.TextOf(h)),
+			Line:     line,
+			Column:   col,
+		})
 	}
 
 	return results
+}
+
+// gitHubSlug generates a GitHub-style slug from heading text.
+func gitHubSlug(text string) string {
+	var result strings.Builder
+	text = strings.ToLower(text)
+	text = strings.TrimSpace(text)
+	for _, r := range text {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == ' ' {
+			if r == ' ' {
+				result.WriteRune('-')
+			} else {
+				result.WriteRune(r)
+			}
+		}
+	}
+	slug := strings.TrimRight(result.String(), "-")
+	return slug
+}
+
+// spellCheckEntry defines a single spell-check rule with a compiled regex pattern.
+type spellCheckEntry struct {
+	pattern *regexp.Regexp
+	correct string
+}
+
+// spellCheckRules returns all spell-check rules compiled from the upstream awesome-lint.
+func spellCheckRules() []spellCheckEntry {
+	return []spellCheckEntry{
+		{regexp.MustCompile(`(?i)\bnode\.?js\b`), "Node.js"},
+		{regexp.MustCompile(`(?i)\bjavascript\b`), "JavaScript"},
+		{regexp.MustCompile(`(?i)\btypescript\b`), "TypeScript"},
+		{regexp.MustCompile(`(?i)\bpython\b`), "Python"},
+		{regexp.MustCompile(`(?i)\bc\+\+\b`), "C++"},
+		{regexp.MustCompile(`(?i)\bc#\b`), "C#"},
+		{regexp.MustCompile(`(?i)\bphp\b`), "PHP"},
+		{regexp.MustCompile(`(?i)\bruby\b`), "Ruby"},
+		{regexp.MustCompile(`(?i)\brust\b`), "Rust"},
+		{regexp.MustCompile(`(?i)\bswift\b`), "Swift"},
+		{regexp.MustCompile(`(?i)\bkotlin\b`), "Kotlin"},
+		{regexp.MustCompile(`(?i)\bscala\b`), "Scala"},
+		{regexp.MustCompile(`(?i)\bclojure\b`), "Clojure"},
+		{regexp.MustCompile(`(?i)\bhaskell\b`), "Haskell"},
+		{regexp.MustCompile(`(?i)\bjulia\b`), "Julia"},
+		{regexp.MustCompile(`(?i)\bperl\b`), "Perl"},
+		{regexp.MustCompile(`(?i)\bdart\b`), "Dart"},
+		{regexp.MustCompile(`(?i)\bzig\b`), "Zig"},
+		{regexp.MustCompile(`(?i)\bcrystal\b`), "Crystal"},
+		{regexp.MustCompile(`(?i)\bvue\.?js\b`), "Vue.js"},
+		{regexp.MustCompile(`(?i)\bvuejs\b`), "Vue.js"},
+		{regexp.MustCompile(`(?i)\breact\b`), "React"},
+		{regexp.MustCompile(`(?i)\bangular\b`), "Angular"},
+		{regexp.MustCompile(`(?i)\bnext\.?js\b`), "Next.js"},
+		{regexp.MustCompile(`(?i)\bnextjs\b`), "Next.js"},
+		{regexp.MustCompile(`(?i)\bnuxt\.?js\b`), "Nuxt.js"},
+		{regexp.MustCompile(`(?i)\bnuxtjs\b`), "Nuxt.js"},
+		{regexp.MustCompile(`(?i)\bsvelte\b`), "Svelte"},
+		{regexp.MustCompile(`(?i)\bsveltekit\b`), "SvelteKit"},
+		{regexp.MustCompile(`(?i)\bember\.?js\b`), "Ember.js"},
+		{regexp.MustCompile(`(?i)\bbackbone\.?js\b`), "Backbone.js"},
+		{regexp.MustCompile(`(?i)\bexpress\.?js\b`), "Express.js"},
+		{regexp.MustCompile(`(?i)\bfastify\b`), "Fastify"},
+		{regexp.MustCompile(`(?i)\bkoa\.?js\b`), "Koa.js"},
+		{regexp.MustCompile(`(?i)\bdjango\b`), "Django"},
+		{regexp.MustCompile(`(?i)\bflask\b`), "Flask"},
+		{regexp.MustCompile(`(?i)\bfastapi\b`), "FastAPI"},
+		{regexp.MustCompile(`(?i)\bruby\s?on\s?rails\b`), "Ruby on Rails"},
+		{regexp.MustCompile(`(?i)\brails\b`), "Rails"},
+		{regexp.MustCompile(`(?i)\bspring boot\b`), "Spring Boot"},
+		{regexp.MustCompile(`(?i)\blaravel\b`), "Laravel"},
+		{regexp.MustCompile(`(?i)\bsymfony\b`), "Symfony"},
+		{regexp.MustCompile(`(?i)\bcodeigniter\b`), "CodeIgniter"},
+		{regexp.MustCompile(`(?i)\baspnet\b`), "ASP.NET"},
+		{regexp.MustCompile(`(?i)\b\.net\b`), ".NET"},
+		{regexp.MustCompile(`(?i)\bbootstrap\b`), "Bootstrap"},
+		{regexp.MustCompile(`(?i)\btailwind css\b`), "Tailwind CSS"},
+		{regexp.MustCompile(`(?i)\bmaterial-?ui\b`), "Material-UI"},
+		{regexp.MustCompile(`(?i)\bant design\b`), "Ant Design"},
+		{regexp.MustCompile(`(?i)\bchakra ui\b`), "Chakra UI"},
+		{regexp.MustCompile(`(?i)\bpostgresql?\b`), "PostgreSQL"},
+		{regexp.MustCompile(`(?i)\bmysql\b`), "MySQL"},
+		{regexp.MustCompile(`(?i)\bmongo\s?db\b`), "MongoDB"},
+		{regexp.MustCompile(`(?i)\bmongodb\b`), "MongoDB"},
+		{regexp.MustCompile(`(?i)\bsqlite\b`), "SQLite"},
+		{regexp.MustCompile(`(?i)\bredis\b`), "Redis"},
+		{regexp.MustCompile(`(?i)\belasticsearch\b`), "Elasticsearch"},
+		{regexp.MustCompile(`(?i)\bsolr\b`), "Solr"},
+		{regexp.MustCompile(`(?i)\bcassandra\b`), "Cassandra"},
+		{regexp.MustCompile(`(?i)\bcouchdb\b`), "CouchDB"},
+		{regexp.MustCompile(`(?i)\bneo4j\b`), "Neo4j"},
+		{regexp.MustCompile(`(?i)\binfluxdb\b`), "InfluxDB"},
+		{regexp.MustCompile(`(?i)\bmariadb\b`), "MariaDB"},
+		{regexp.MustCompile(`(?i)\bdynamodb\b`), "DynamoDB"},
+		{regexp.MustCompile(`(?i)\bfirestore\b`), "Firestore"},
+		{regexp.MustCompile(`(?i)\bsupabase\b`), "Supabase"},
+		{regexp.MustCompile(`(?i)\bprisma\b`), "Prisma"},
+		{regexp.MustCompile(`(?i)\bdocker\b`), "Docker"},
+		{regexp.MustCompile(`(?i)\bkubernetes\b`), "Kubernetes"},
+		{regexp.MustCompile(`(?i)\bk8s\b`), "Kubernetes"},
+		{regexp.MustCompile(`(?i)\bterraform\b`), "Terraform"},
+		{regexp.MustCompile(`(?i)\bansible\b`), "Ansible"},
+		{regexp.MustCompile(`(?i)\bjenkins\b`), "Jenkins"},
+		{regexp.MustCompile(`(?i)\bgitlab ci\b`), "GitLab CI"},
+		{regexp.MustCompile(`(?i)\bgithub actions\b`), "GitHub Actions"},
+		{regexp.MustCompile(`(?i)\btravis ci\b`), "Travis CI"},
+		{regexp.MustCompile(`(?i)\bcircleci\b`), "CircleCI"},
+		{regexp.MustCompile(`(?i)\baws\b`), "AWS"},
+		{regexp.MustCompile(`(?i)\bamazon web services\b`), "Amazon Web Services"},
+		{regexp.MustCompile(`(?i)\bmicrosoft azure\b`), "Microsoft Azure"},
+		{regexp.MustCompile(`(?i)\bgoogle cloud\b`), "Google Cloud"},
+		{regexp.MustCompile(`(?i)\bgcp\b`), "GCP"},
+		{regexp.MustCompile(`(?i)\bdigitalocean\b`), "DigitalOcean"},
+		{regexp.MustCompile(`(?i)\blinode\b`), "Linode"},
+		{regexp.MustCompile(`(?i)\bvultr\b`), "Vultr"},
+		{regexp.MustCompile(`(?i)\bheroku\b`), "Heroku"},
+		{regexp.MustCompile(`(?i)\bvercel\b`), "Vercel"},
+		{regexp.MustCompile(`(?i)\bnetlify\b`), "Netlify"},
+		{regexp.MustCompile(`(?i)\bcloudflare\b`), "Cloudflare"},
+		{regexp.MustCompile(`(?i)\bweb\s?assembly\b`), "WebAssembly"},
+		{regexp.MustCompile(`(?i)\bwebassembly\b`), "WebAssembly"},
+		{regexp.MustCompile(`(?i)\bwasm\b`), "WebAssembly"},
+		{regexp.MustCompile(`(?i)\bgraph\s?ql\b`), "GraphQL"},
+		{regexp.MustCompile(`(?i)\bgraphql\b`), "GraphQL"},
+		{regexp.MustCompile(`(?i)\bwebsocket\b`), "WebSocket"},
+		{regexp.MustCompile(`(?i)\bwebrtc\b`), "WebRTC"},
+		{regexp.MustCompile(`(?i)\bpwa\b`), "PWA"},
+		{regexp.MustCompile(`(?i)\bprogressive web app\b`), "Progressive Web App"},
+		{regexp.MustCompile(`(?i)\bservice worker\b`), "Service Worker"},
+		{regexp.MustCompile(`(?i)\bwebgl\b`), "WebGL"},
+		{regexp.MustCompile(`(?i)\bwebgpu\b`), "WebGPU"},
+		{regexp.MustCompile(`(?i)\bwebpack\b`), "Webpack"},
+		{regexp.MustCompile(`(?i)\bvite\b`), "Vite"},
+		{regexp.MustCompile(`(?i)\bparcel\b`), "Parcel"},
+		{regexp.MustCompile(`(?i)\brollup\b`), "Rollup"},
+		{regexp.MustCompile(`(?i)\besbuild\b`), "esbuild"},
+		{regexp.MustCompile(`(?i)\bbabel\b`), "Babel"},
+		{regexp.MustCompile(`(?i)\bswc\b`), "SWC"},
+		{regexp.MustCompile(`(?i)\bturbopack\b`), "Turbopack"},
+		{regexp.MustCompile(`(?i)\bjest\b`), "Jest"},
+		{regexp.MustCompile(`(?i)\bvitest\b`), "Vitest"},
+		{regexp.MustCompile(`(?i)\bmocha\b`), "Mocha"},
+		{regexp.MustCompile(`(?i)\bchai\b`), "Chai"},
+		{regexp.MustCompile(`(?i)\bjasmine\b`), "Jasmine"},
+		{regexp.MustCompile(`(?i)\bcypress\b`), "Cypress"},
+		{regexp.MustCompile(`(?i)\bplaywright\b`), "Playwright"},
+		{regexp.MustCompile(`(?i)\bpuppeteer\b`), "Puppeteer"},
+		{regexp.MustCompile(`(?i)\bselenium\b`), "Selenium"},
+		{regexp.MustCompile(`(?i)\bwebdriver\b`), "WebDriver"},
+		{regexp.MustCompile(`(?i)\bstorybook\b`), "Storybook"},
+		{regexp.MustCompile(`(?i)\btensorflow\b`), "TensorFlow"},
+		{regexp.MustCompile(`(?i)\bpytorch\b`), "PyTorch"},
+		{regexp.MustCompile(`(?i)\bscikit-?learn\b`), "scikit-learn"},
+		{regexp.MustCompile(`(?i)\bkeras\b`), "Keras"},
+		{regexp.MustCompile(`(?i)\bpandas\b`), "Pandas"},
+		{regexp.MustCompile(`(?i)\bnumpy\b`), "NumPy"},
+		{regexp.MustCompile(`(?i)\bscipy\b`), "SciPy"},
+		{regexp.MustCompile(`(?i)\bmatplotlib\b`), "Matplotlib"},
+		{regexp.MustCompile(`(?i)\bseaborn\b`), "Seaborn"},
+		{regexp.MustCompile(`(?i)\bjupyter\b`), "Jupyter"},
+		{regexp.MustCompile(`(?i)\bopenai\b`), "OpenAI"},
+		{regexp.MustCompile(`(?i)\bhugging face\b`), "Hugging Face"},
+		{regexp.MustCompile(`(?i)\blangchain\b`), "LangChain"},
+		{regexp.MustCompile(`(?i)\bllama\b`), "LLaMA"},
+		{regexp.MustCompile(`(?i)\bchatgpt\b`), "ChatGPT"},
+		{regexp.MustCompile(`(?i)\breact native\b`), "React Native"},
+		{regexp.MustCompile(`(?i)\bflutter\b`), "Flutter"},
+		{regexp.MustCompile(`(?i)\bxamarin\b`), "Xamarin"},
+		{regexp.MustCompile(`(?i)\bionic\b`), "Ionic"},
+		{regexp.MustCompile(`(?i)\bcordova\b`), "Cordova"},
+		{regexp.MustCompile(`(?i)\bphonegap\b`), "PhoneGap"},
+		{regexp.MustCompile(`(?i)\bnativescript\b`), "NativeScript"},
+		{regexp.MustCompile(`(?i)\bexpo\b`), "Expo"},
+		{regexp.MustCompile(`(?i)\bbitcoin\b`), "Bitcoin"},
+		{regexp.MustCompile(`(?i)\bethereum\b`), "Ethereum"},
+		{regexp.MustCompile(`(?i)\bblockchain\b`), "Blockchain"},
+		{regexp.MustCompile(`(?i)\bsolidity\b`), "Solidity"},
+		{regexp.MustCompile(`(?i)\bweb3\b`), "Web3"},
+		{regexp.MustCompile(`(?i)\bnft\b`), "NFT"},
+		{regexp.MustCompile(`(?i)\bdefi\b`), "DeFi"},
+		{regexp.MustCompile(`(?i)\bdao\b`), "DAO"},
+		{regexp.MustCompile(`(?i)\bmetamask\b`), "MetaMask"},
+		{regexp.MustCompile(`(?i)\bopenzeppelin\b`), "OpenZeppelin"},
+		{regexp.MustCompile(`(?i)\bunity\b`), "Unity"},
+		{regexp.MustCompile(`(?i)\bunreal engine\b`), "Unreal Engine"},
+		{regexp.MustCompile(`(?i)\bgodot\b`), "Godot"},
+		{regexp.MustCompile(`(?i)\bblender\b`), "Blender"},
+		{regexp.MustCompile(`(?i)\bopengl\b`), "OpenGL"},
+		{regexp.MustCompile(`(?i)\bvulkan\b`), "Vulkan"},
+		{regexp.MustCompile(`(?i)\bdirectx\b`), "DirectX"},
+		{regexp.MustCompile(`(?i)\bffmpeg\b`), "FFmpeg"},
+		{regexp.MustCompile(`(?i)\bimagemagick\b`), "ImageMagick"},
+		{regexp.MustCompile(`(?i)\bgimp\b`), "GIMP"},
+		{regexp.MustCompile(`(?i)\binkscape\b`), "Inkscape"},
+		{regexp.MustCompile(`(?i)\bphotoshop\b`), "Photoshop"},
+		{regexp.MustCompile(`(?i)\billustrator\b`), "Illustrator"},
+		{regexp.MustCompile(`(?i)\bafter effects\b`), "After Effects"},
+		{regexp.MustCompile(`(?i)\bpremiere pro\b`), "Premiere Pro"},
+		{regexp.MustCompile(`(?i)\bfigma\b`), "Figma"},
+		{regexp.MustCompile(`(?i)\bsketch\b`), "Sketch"},
+		{regexp.MustCompile(`(?i)\binvision\b`), "InVision"},
+		{regexp.MustCompile(`(?i)\bcanva\b`), "Canva"},
+		{regexp.MustCompile(`(?i)\bstack overflow\b`), "Stack Overflow"},
+		{regexp.MustCompile(`(?i)\byoutube\b`), "YouTube"},
+		{regexp.MustCompile(`(?i)\bgithub\b`), "GitHub"},
+		{regexp.MustCompile(`(?i)\bgitlab\b`), "GitLab"},
+		{regexp.MustCompile(`(?i)\bbitbucket\b`), "Bitbucket"},
+		{regexp.MustCompile(`(?i)\bsourcetree\b`), "SourceTree"},
+		{regexp.MustCompile(`(?i)\bslack\b`), "Slack"},
+		{regexp.MustCompile(`(?i)\bdiscord\b`), "Discord"},
+		{regexp.MustCompile(`(?i)\bmicrosoft teams\b`), "Microsoft Teams"},
+		{regexp.MustCompile(`(?i)\bzoom\b`), "Zoom"},
+		{regexp.MustCompile(`(?i)\btrello\b`), "Trello"},
+		{regexp.MustCompile(`(?i)\basana\b`), "Asana"},
+		{regexp.MustCompile(`(?i)\bnotion\b`), "Notion"},
+		{regexp.MustCompile(`(?i)\bobsidian\b`), "Obsidian"},
+		{regexp.MustCompile(`(?i)\bevernote\b`), "Evernote"},
+		{regexp.MustCompile(`(?i)\bonenote\b`), "OneNote"},
+		{regexp.MustCompile(`(?i)\bgoogle docs\b`), "Google Docs"},
+		{regexp.MustCompile(`(?i)\bgoogle sheets\b`), "Google Sheets"},
+		{regexp.MustCompile(`(?i)\bgoogle drive\b`), "Google Drive"},
+		{regexp.MustCompile(`(?i)\bmicrosoft office\b`), "Microsoft Office"},
+		{regexp.MustCompile(`(?i)\boffice 365\b`), "Office 365"},
+		{regexp.MustCompile(`(?i)\bsharepoint\b`), "SharePoint"},
+		{regexp.MustCompile(`(?i)\bdropbox\b`), "Dropbox"},
+		{regexp.MustCompile(`(?i)\bicloud\b`), "iCloud"},
+		{regexp.MustCompile(`(?i)\bonedrive\b`), "OneDrive"},
+		{regexp.MustCompile(`(?i)\bmacos\b`), "macOS"},
+		{regexp.MustCompile(`(?i)\bwindows\b`), "Windows"},
+		{regexp.MustCompile(`(?i)\blinux\b`), "Linux"},
+		{regexp.MustCompile(`(?i)\bubuntu\b`), "Ubuntu"},
+		{regexp.MustCompile(`(?i)\bdebian\b`), "Debian"},
+		{regexp.MustCompile(`(?i)\bcentos\b`), "CentOS"},
+		{regexp.MustCompile(`(?i)\bredhat\b`), "RedHat"},
+		{regexp.MustCompile(`(?i)\bfedora\b`), "Fedora"},
+		{regexp.MustCompile(`(?i)\barch linux\b`), "Arch Linux"},
+		{regexp.MustCompile(`(?i)\balpine\b`), "Alpine"},
+		{regexp.MustCompile(`(?i)\bfreebsd\b`), "FreeBSD"},
+		{regexp.MustCompile(`(?i)\bopenbsd\b`), "OpenBSD"},
+		{regexp.MustCompile(`(?i)\bnetbsd\b`), "NetBSD"},
+		{regexp.MustCompile(`(?i)\bios\b`), "iOS"},
+		{regexp.MustCompile(`(?i)\bandroid\b`), "Android"},
+		{regexp.MustCompile(`(?i)\bwatchos\b`), "watchOS"},
+		{regexp.MustCompile(`(?i)\btvos\b`), "tvOS"},
+		{regexp.MustCompile(`(?i)\bipados\b`), "iPadOS"},
+		{regexp.MustCompile(`(?i)\bvscode\b`), "VSCode"},
+		{regexp.MustCompile(`(?i)\bvisual studio code\b`), "Visual Studio Code"},
+		{regexp.MustCompile(`(?i)\bvisual studio\b`), "Visual Studio"},
+		{regexp.MustCompile(`(?i)\bintellij\b`), "IntelliJ"},
+		{regexp.MustCompile(`(?i)\bwebstorm\b`), "WebStorm"},
+		{regexp.MustCompile(`(?i)\bpycharm\b`), "PyCharm"},
+		{regexp.MustCompile(`(?i)\bphpstorm\b`), "PhpStorm"},
+		{regexp.MustCompile(`(?i)\bgoland\b`), "GoLand"},
+		{regexp.MustCompile(`(?i)\brubymine\b`), "RubyMine"},
+		{regexp.MustCompile(`(?i)\bclion\b`), "CLion"},
+		{regexp.MustCompile(`(?i)\brider\b`), "Rider"},
+		{regexp.MustCompile(`(?i)\beclipse\b`), "Eclipse"},
+		{regexp.MustCompile(`(?i)\bnetbeans\b`), "NetBeans"},
+		{regexp.MustCompile(`(?i)\bxcode\b`), "Xcode"},
+		{regexp.MustCompile(`(?i)\bandroid studio\b`), "Android Studio"},
+		{regexp.MustCompile(`(?i)\bsublime text\b`), "Sublime Text"},
+		{regexp.MustCompile(`(?i)\batom\b`), "Atom"},
+		{regexp.MustCompile(`(?i)\bbrackets\b`), "Brackets"},
+		{regexp.MustCompile(`(?i)\bvim\b`), "Vim"},
+		{regexp.MustCompile(`(?i)\bneovim\b`), "Neovim"},
+		{regexp.MustCompile(`(?i)\bemacs\b`), "Emacs"},
+		{regexp.MustCompile(`(?i)\bnano\b`), "Nano"},
+		{regexp.MustCompile(`(?i)\bgit\b`), "Git"},
+		{regexp.MustCompile(`(?i)\bsvn\b`), "SVN"},
+		{regexp.MustCompile(`(?i)\bmercurial\b`), "Mercurial"},
+		{regexp.MustCompile(`(?i)\bpostman\b`), "Postman"},
+		{regexp.MustCompile(`(?i)\binsomnia\b`), "Insomnia"},
+		{regexp.MustCompile(`(?i)\bwireshark\b`), "Wireshark"},
+	}
 }
 
 // spellCheckRule checks for common spelling mistakes.
@@ -743,23 +1363,123 @@ func (r *spellCheckRule) ID() string { return "awesome-spell-check" }
 
 func (r *spellCheckRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	var results []Result
-	spellings := map[string]string{
-		"WASM": "WebAssembly",
+	rules := spellCheckRules()
+
+	for _, entry := range rules {
+		locs := entry.pattern.FindAllIndex(source, -1)
+		for _, loc := range locs {
+			matched := string(source[loc[0]:loc[1]])
+			// Skip if the text is already in the correct form
+			if matched == entry.correct {
+				continue
+			}
+			pos := loc[0]
+			line := bytes.Count(source[:pos], []byte("\n")) + 1
+			col := pos - bytes.LastIndex(source[:pos], []byte("\n"))
+			results = append(results, Result{
+				RuleID:   r.ID(),
+				Severity: SeverityWarning,
+				Message:  fmt.Sprintf("Text %q should be written as %q (if referring to the technology)", matched, entry.correct),
+				Line:     line,
+				Column:   col,
+			})
+		}
 	}
-	for lineIdx, line := range strings.Split(string(source), "\n") {
-		for wrong, correct := range spellings {
-			idx := strings.Index(line, wrong)
-			if idx >= 0 {
+	return results
+}
+
+// noRepeatItemInDescriptionRule checks that list item descriptions don't
+// start by repeating the item name.
+type noRepeatItemInDescriptionRule struct{}
+
+func (r *noRepeatItemInDescriptionRule) ID() string { return "no-repeat-item-in-description" }
+
+func (r *noRepeatItemInDescriptionRule) Check(doc *MarkdownDoc, source []byte) []Result {
+	var results []Result
+
+	ast.Walk(doc.Root, walkHelper(func(n ast.Node, entering bool) ast.WalkStatus {
+		if !entering || n.Kind() != ast.KindListItem {
+			return ast.WalkContinue
+		}
+
+		var para ast.Node
+		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+			if c.Kind() == ast.KindParagraph || c.Kind() == ast.KindTextBlock {
+				para = c
+				break
+			}
+		}
+		if para == nil {
+			return ast.WalkContinue
+		}
+
+		// Find the main link (first link in the paragraph)
+		var mainLink ast.Node
+		var linkIndex int
+		for c := para.FirstChild(); c != nil; c = c.NextSibling() {
+			if c.Kind() == ast.KindLink {
+				// Skip links that contain images (badge links)
+				hasImage := false
+				for cc := c.FirstChild(); cc != nil; cc = cc.NextSibling() {
+					if cc.Kind() == ast.KindImage {
+						hasImage = true
+						break
+					}
+				}
+				if !hasImage {
+					mainLink = c
+					break
+				}
+			}
+			linkIndex++
+		}
+		if mainLink == nil {
+			return ast.WalkContinue
+		}
+
+		itemName := doc.TextOf(mainLink)
+		if itemName == "" {
+			return ast.WalkContinue
+		}
+
+		// Find the description text after the main link
+		var descText string
+		for c := mainLink.NextSibling(); c != nil; c = c.NextSibling() {
+			if c.Kind() == ast.KindText {
+				text := string(c.(*ast.Text).Segment.Value(source))
+				// Look for " - " separator
+				if _, after, ok := strings.Cut(text, " - "); ok {
+					descText += after
+				}
+			}
+		}
+		descText = strings.TrimSpace(descText)
+
+		if descText == "" {
+			return ast.WalkContinue
+		}
+
+		// Check if description starts with item name (case-insensitive)
+		lowerDesc := strings.ToLower(descText)
+		lowerName := strings.ToLower(itemName)
+		if strings.HasPrefix(lowerDesc, lowerName) {
+			afterName := descText[len(lowerName):]
+			// Check for word boundary to avoid false positives
+			if afterName == "" || strings.Contains(" .,!?:-", string(afterName[0])) {
+				line, col := doc.LineColOf(mainLink)
 				results = append(results, Result{
 					RuleID:   r.ID(),
-					Severity: SeverityWarning,
-					Message:  fmt.Sprintf("Text %q should be written as %q (if referring to the technology)", wrong, correct),
-					Line:     lineIdx + 1,
-					Column:   idx + 1,
+					Severity: SeverityError,
+					Message:  fmt.Sprintf("List item description must not start with the item name %q", itemName),
+					Line:     line,
+					Column:   col,
 				})
 			}
 		}
-	}
+
+		return ast.WalkContinue
+	}))
+
 	return results
 }
 
