@@ -1,6 +1,7 @@
 package linter
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -1065,5 +1066,40 @@ func TestSpellCheckRuleFix(t *testing.T) {
 				t.Errorf("Fix() = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestSpellCheckRuleSkipsNonProse(t *testing.T) {
+	r := &spellCheckRule{}
+
+	source := "# Awesome List\n\n- [obsidian-typst](https://github.com/fenjalien/obsidian-typst) - Renders code blocks in Obsidian.\n- [typst.vim](https://github.com/kaarmu/typst.vim) - A Vim plugin.\n\n```go\ngithub badword\n```\n\nURL: https://github.com/example\n\nProse mentions github here.\n"
+
+	doc := parseMarkdown([]byte(source))
+	results := r.Check(doc, []byte(source))
+
+	var prose strings.Builder
+	for _, res := range results {
+		var wrong, correct string
+		if _, err := fmt.Sscanf(res.Message, "Text %q should be written as %q", &wrong, &correct); err == nil {
+			prose.WriteString(wrong + "->" + correct + ";")
+		}
+	}
+
+	// Link labels, URLs, and code blocks must not be flagged.
+	if strings.Contains(prose.String(), "obsidian->") {
+		t.Errorf("link label text flagged: %s", prose.String())
+	}
+	if strings.Contains(prose.String(), "typst.vim->") {
+		t.Errorf("link label text flagged: %s", prose.String())
+	}
+	if strings.Contains(prose.String(), "github.com->") {
+		t.Errorf("URL host flagged: %s", prose.String())
+	}
+	if strings.Contains(prose.String(), "github-bad->") {
+		t.Errorf("code block flagged: %s", prose.String())
+	}
+	// The prose mention (and prose "Obsidian"/"Vim") should be flagged.
+	if !strings.Contains(prose.String(), "github->GitHub") {
+		t.Errorf("prose mention not flagged: %s", prose.String())
 	}
 }

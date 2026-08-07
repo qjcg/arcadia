@@ -1465,6 +1465,37 @@ func (r *spellCheckRule) ID() string { return "awesome-spell-check" }
 
 func (r *spellCheckRule) Fixable() bool { return true }
 
+// shouldSkipSpellFix reports whether a spell-check match at the given 1-based
+// column in line should be left untouched. It mirrors the contexts that Fix
+// deliberately skips: text inside a URL and inside a link definition label.
+// Check must agree so that reported issues are always fixable.
+func shouldSkipSpellFix(lineStr string, col int, wrong string) bool {
+	idx := col - 1
+	if idx < 0 || idx+len(wrong) > len(lineStr) || lineStr[idx:idx+len(wrong)] != wrong {
+		return true // Out of bounds or not at this exact position (nothing to fix)
+	}
+	// Skip if the match is inside a URL (between :// and a space/end)
+	before := lineStr[:idx]
+	if i := strings.LastIndex(before, "://"); i >= 0 {
+		afterProtocol := before[i+3:]
+		if !strings.ContainsAny(afterProtocol, " \t") {
+			return true // Inside a URL, skip
+		}
+	}
+	// Skip if the match is inside a definition label ([label]:)
+	openBracket := strings.LastIndex(before, "[")
+	if openBracket >= 0 {
+		after := lineStr[idx+len(wrong):]
+		if strings.HasPrefix(after, "]:") || strings.HasPrefix(after, "] ") {
+			beforeBracket := before[:openBracket]
+			if !strings.ContainsAny(beforeBracket, "[") {
+				return true // Inside a definition label, skip
+			}
+		}
+	}
+	return false
+}
+
 func (r *spellCheckRule) Fix(_ *MarkdownDoc, source []byte, results []Result) []byte {
 	// Apply fixes in reverse order to preserve positions
 	for i := len(results) - 1; i >= 0; i-- {
@@ -1473,37 +1504,18 @@ func (r *spellCheckRule) Fix(_ *MarkdownDoc, source []byte, results []Result) []
 			continue
 		}
 		lines := bytes.Split(source, []byte("\n"))
-		if res.Line-1 < len(lines) {
-			line := lines[res.Line-1]
-			lineStr := string(line)
-			var wrong, correct string
-			if n, err := fmt.Sscanf(res.Message, "Text %q should be written as %q", &wrong, &correct); n == 2 && err == nil {
-				col := res.Column - 1
-				if col >= 0 && col+len(wrong) <= len(lineStr) && lineStr[col:col+len(wrong)] == wrong {
-					// Skip if the match is inside a URL (between :// and a space/end)
-					before := lineStr[:col]
-					if idx := strings.LastIndex(before, "://"); idx >= 0 {
-						afterProtocol := before[idx+3:]
-						if !strings.ContainsAny(afterProtocol, " \t") {
-							continue // Inside a URL, skip
-						}
-					}
-					// Skip if the match is inside a definition label ([label]:)
-					openBracket := strings.LastIndex(before, "[")
-					if openBracket >= 0 {
-						after := lineStr[col+len(wrong):]
-						if strings.HasPrefix(after, "]:") || strings.HasPrefix(after, "] ") {
-							beforeBracket := before[:openBracket]
-							if !strings.ContainsAny(beforeBracket, "[") {
-								continue // Inside a definition label, skip
-							}
-						}
-					}
-					newLine := lineStr[:col] + correct + lineStr[col+len(wrong):]
-					lines[res.Line-1] = []byte(newLine)
-					source = bytes.Join(lines, []byte("\n"))
-				}
+		if res.Line-1 >= len(lines) {
+			continue
+		}
+		lineStr := string(lines[res.Line-1])
+		var wrong, correct string
+		if n, err := fmt.Sscanf(res.Message, "Text %q should be written as %q", &wrong, &correct); n == 2 && err == nil {
+			if shouldSkipSpellFix(lineStr, res.Column, wrong) {
+				continue
 			}
+			newLine := lineStr[:res.Column-1] + correct + lineStr[res.Column-1+len(wrong):]
+			lines[res.Line-1] = []byte(newLine)
+			source = bytes.Join(lines, []byte("\n"))
 		}
 	}
 	return source
@@ -1513,26 +1525,54 @@ func (r *spellCheckRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	var results []Result
 	rules := spellCheckRules()
 
-	for _, entry := range rules {
-		locs := entry.pattern.FindAllIndex(source, -1)
-		for _, loc := range locs {
-			matched := string(source[loc[0]:loc[1]])
-			// Skip if the text is already in the correct form
-			if matched == entry.correct {
-				continue
-			}
-			pos := loc[0]
-			line := bytes.Count(source[:pos], []byte("\n")) + 1
-			col := pos - bytes.LastIndex(source[:pos], []byte("\n"))
-			results = append(results, Result{
-				RuleID:   r.ID(),
-				Severity: SeverityWarning,
-				Message:  fmt.Sprintf("Text %q should be written as %q (if referring to the technology)", matched, entry.correct),
-				Line:     line,
-				Column:   col,
-			})
+	// Only scan prose text: Direct String/Text content of paragraphs, while
+	// skipping link labels/destinations, code, and raw HTML. This prevents
+	// flagging project names inside links (e.g. [obsidian-typst]) or URL hosts.
+	ast.Walk(doc.Root, walkHelper(func(n ast.Node, entering bool) ast.WalkStatus {
+		if !entering || n.Kind() != ast.KindText {
+			return ast.WalkContinue
 		}
-	}
+		text := n.(*ast.Text)
+		if text.Segment.IsEmpty() {
+			return ast.WalkContinue
+		}
+		// Skip text that lives inside a link, image, or code span, plus any
+		// text directly inside a heading is allowed but code blocks are not.
+		for p := n.Parent(); p != nil; p = p.Parent() {
+			switch p.Kind() {
+			case ast.KindLink, ast.KindImage, ast.KindCodeSpan:
+				return ast.WalkContinue
+			case ast.KindFencedCodeBlock, ast.KindCodeBlock:
+				return ast.WalkContinue
+			}
+		}
+
+		seg := text.Segment
+		segmentStart := seg.Start
+
+		for _, entry := range rules {
+			// Run the pattern against the text node segment only.
+			for _, loc := range entry.pattern.FindAllIndex(source[seg.Start:seg.Stop], -1) {
+				pos := segmentStart + loc[0]
+				matched := string(source[pos : pos+(loc[1]-loc[0])])
+				// Skip if the text is already in the correct form
+				if matched == entry.correct {
+					continue
+				}
+				line := bytes.Count(source[:pos], []byte("\n")) + 1
+				col := pos - bytes.LastIndex(source[:pos], []byte("\n"))
+				results = append(results, Result{
+					RuleID:   r.ID(),
+					Severity: SeverityWarning,
+					Message:  fmt.Sprintf("Text %q should be written as %q (if referring to the technology)", matched, entry.correct),
+					Line:     line,
+					Column:   col,
+				})
+			}
+		}
+		return ast.WalkContinue
+	}))
+
 	return results
 }
 
