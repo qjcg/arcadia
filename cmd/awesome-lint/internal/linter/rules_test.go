@@ -910,3 +910,160 @@ func TestLintWithFix(t *testing.T) {
 		}
 	})
 }
+
+func TestListItemRuleFix(t *testing.T) {
+	r := &listItemRule{}
+
+	tests := []struct {
+		name    string
+		source  string
+		results []Result
+		want    string
+	}{
+		{
+			name:   "capitalize lowercase description",
+			source: "- item - lowercase description\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 1, Message: "List item description must start with valid casing"},
+			},
+			want: "- item - Lowercase description\n",
+		},
+		{
+			name:   "do not touch already-capitalized description",
+			source: "- item - Already capitalized\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 1, Message: "List item description must start with valid casing"},
+			},
+			want: "- item - Already capitalized\n",
+		},
+		{
+			name:   "no separator leave unchanged",
+			source: "- item lowercase description\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 1, Message: "List item description must start with valid casing"},
+			},
+			want: "- item lowercase description\n",
+		},
+		{
+			name:   "add trailing period",
+			source: "- item - description without period\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 1, Message: "List item description must end with proper punctuation"},
+			},
+			want: "- item - description without period.\n",
+		},
+		{
+			name:   "respect existing punctuation",
+			source: "- item - already ended!\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 1, Message: "List item description must end with proper punctuation"},
+			},
+			want: "- item - already ended!\n",
+		},
+		{
+			name:   "ignore other rule ids",
+			source: "- item - lowercase description\n",
+			results: []Result{
+				{RuleID: "other-rule", Line: 1, Message: "List item description must start with valid casing"},
+			},
+			want: "- item - lowercase description\n",
+		},
+		{
+			name:   "line out of range",
+			source: "- item\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 99, Message: "List item description must start with valid casing"},
+			},
+			want: "- item\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			doc := parseMarkdown([]byte(tt.source))
+			got := r.Fix(doc, []byte(tt.source), tt.results)
+			if string(got) != tt.want {
+				t.Errorf("Fix() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSpellCheckRuleFix(t *testing.T) {
+	r := &spellCheckRule{}
+
+	tests := []struct {
+		name    string
+		source  string
+		results []Result
+		want    string
+	}{
+		{
+			name:   "replace misspelled word",
+			source: "## Title\n\nSome Javascript here.\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 3, Column: 6, Message: `Text "Javascript" should be written as "JavaScript"`},
+			},
+			want: "## Title\n\nSome JavaScript here.\n",
+		},
+		{
+			name:   "apply multiple fixes in reverse order",
+			source: "Javascript and other Javascript text\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 1, Column: 1, Message: `Text "Javascript" should be written as "JavaScript"`},
+				{RuleID: r.ID(), Line: 1, Column: 22, Message: `Text "Javascript" should be written as "JavaScript"`},
+			},
+			want: "JavaScript and other JavaScript text\n",
+		},
+		{
+			name:   "skip text inside url",
+			source: "See https://Javascript.org for info\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 1, Column: 11, Message: `Text "Javascript" should be written as "JavaScript"`},
+			},
+			want: "See https://Javascript.org for info\n",
+		},
+		{
+			name:   "skip text inside definition label",
+			source: "[javascript]: https://example.com\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 1, Column: 2, Message: `Text "javascript" should be written as "JavaScript"`},
+			},
+			want: "[javascript]: https://example.com\n",
+		},
+		{
+			name:   "ignore unparsable message",
+			source: "some text\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 1, Column: 1, Message: "unrelated message"},
+			},
+			want: "some text\n",
+		},
+		{
+			name:   "ignore wrong rule id",
+			source: "Javascript text\n",
+			results: []Result{
+				{RuleID: "other-rule", Line: 1, Column: 1, Message: `Text "Javascript" should be written as "JavaScript"`},
+			},
+			want: "Javascript text\n",
+		},
+		{
+			name:   "nothing to fix",
+			source: "plain line\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 1, Column: 99, Message: `Text "Javascript" should be written as "JavaScript"`},
+			},
+			want: "plain line\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			doc := parseMarkdown([]byte(tt.source))
+			got := r.Fix(doc, []byte(tt.source), tt.results)
+			if string(got) != tt.want {
+				t.Errorf("Fix() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
