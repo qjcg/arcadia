@@ -19,6 +19,7 @@ func getVersion() string {
 func setupCLI(out, err io.Writer) *cobra.Command {
 	var filename string
 	var jsonOutput bool
+	var fixMode bool
 
 	rootCmd := &cobra.Command{
 		Use:   "awesome-lint [file]",
@@ -37,7 +38,13 @@ Accepts a local file path or a GitHub repository URL.`,
 
 			r := linter.New()
 
-			results, lintErr := r.Lint(path)
+			var results *linter.Results
+			var lintErr error
+			if fixMode {
+				results, lintErr = r.LintWithFix(path)
+			} else {
+				results, lintErr = r.Lint(path)
+			}
 			if lintErr != nil {
 				return lintErr
 			}
@@ -58,6 +65,7 @@ Accepts a local file path or a GitHub repository URL.`,
 
 	rootCmd.Flags().StringVarP(&filename, "filename", "f", "readme.md", "Path to the markdown file to lint")
 	rootCmd.Flags().BoolVarP(&jsonOutput, "json", "j", false, "Output results as JSON")
+	rootCmd.Flags().BoolVarP(&fixMode, "fix", "x", false, "Auto-fix fixable issues")
 
 	return rootCmd
 }

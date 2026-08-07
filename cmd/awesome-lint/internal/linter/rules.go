@@ -42,6 +42,32 @@ type headingRule struct{}
 
 func (r *headingRule) ID() string { return "awesome-heading" }
 
+func (r *headingRule) Fixable() bool { return true }
+
+func (r *headingRule) Fix(doc *MarkdownDoc, source []byte, results []Result) []byte {
+	_ = doc
+	for _, res := range results {
+		if res.RuleID != r.ID() {
+			continue
+		}
+		if res.Message == "Main heading must be in title case" {
+			// Find the heading line and apply title case
+			lines := bytes.Split(source, []byte("\n"))
+			if res.Line-1 < len(lines) {
+				line := lines[res.Line-1]
+				headingText := strings.TrimPrefix(string(line), "# ")
+				titled := toTitleCase(headingText)
+				if titled != headingText {
+					newLine := "# " + titled
+					lines[res.Line-1] = []byte(newLine)
+					source = bytes.Join(lines, []byte("\n"))
+				}
+			}
+		}
+	}
+	return source
+}
+
 func (r *headingRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	var results []Result
 	headings := 0
@@ -133,6 +159,10 @@ func (r *headingRule) Check(doc *MarkdownDoc, source []byte) []Result {
 type badgeRule struct{}
 
 func (r *badgeRule) ID() string { return "awesome-badge" }
+
+func (r *badgeRule) Fixable() bool { return false }
+
+func (r *badgeRule) Fix(_ *MarkdownDoc, source []byte, _ []Result) []byte { return source }
 
 func (r *badgeRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	var results []Result
@@ -229,6 +259,41 @@ func isValidBadgeSourceURL(url string) bool {
 type listItemRule struct{}
 
 func (r *listItemRule) ID() string { return "awesome-list-item" }
+
+func (r *listItemRule) Fixable() bool { return true }
+
+func (r *listItemRule) Fix(doc *MarkdownDoc, source []byte, results []Result) []byte {
+	_ = doc
+	for _, res := range results {
+		if res.RuleID != r.ID() {
+			continue
+		}
+		if res.Message == "List item description must start with valid casing" {
+			lines := bytes.Split(source, []byte("\n"))
+			if res.Line-1 < len(lines) {
+				line := lines[res.Line-1]
+				// Find the " - " separator and capitalize the next word
+				str := string(line)
+				if idx := strings.Index(str, " - "); idx >= 0 {
+					descStart := idx + 3
+					rest := str[descStart:]
+					fields := strings.Fields(rest)
+					if len(fields) > 0 {
+						first := fields[0]
+						// Only auto-fix if the first word is all lowercase
+						if strings.ToLower(first) == first && strings.ToUpper(first) != first {
+							capitalized := capitalizeFirst(first)
+							newLine := str[:descStart] + strings.Replace(rest, first, capitalized, 1)
+							lines[res.Line-1] = []byte(newLine)
+							source = bytes.Join(lines, []byte("\n"))
+						}
+					}
+				}
+			}
+		}
+	}
+	return source
+}
 
 func (r *listItemRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	var results []Result
@@ -663,6 +728,10 @@ type contributingRule struct{}
 
 func (r *contributingRule) ID() string { return "awesome-contributing" }
 
+func (r *contributingRule) Fixable() bool { return false }
+
+func (r *contributingRule) Fix(_ *MarkdownDoc, source []byte, _ []Result) []byte { return source }
+
 func (r *contributingRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	_ = source
 	var results []Result
@@ -729,6 +798,10 @@ type licenseRule struct{}
 
 func (r *licenseRule) ID() string { return "awesome-license" }
 
+func (r *licenseRule) Fixable() bool { return false }
+
+func (r *licenseRule) Fix(_ *MarkdownDoc, source []byte, _ []Result) []byte { return source }
+
 func (r *licenseRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	_ = source
 	var results []Result
@@ -760,6 +833,10 @@ func (r *licenseRule) Check(doc *MarkdownDoc, source []byte) []Result {
 type noCiBadgeRule struct{}
 
 func (r *noCiBadgeRule) ID() string { return "awesome-no-ci-badge" }
+
+func (r *noCiBadgeRule) Fixable() bool { return false }
+
+func (r *noCiBadgeRule) Fix(_ *MarkdownDoc, source []byte, _ []Result) []byte { return source }
 
 func (r *noCiBadgeRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	_ = source
@@ -807,6 +884,10 @@ func (r *noCiBadgeRule) Check(doc *MarkdownDoc, source []byte) []Result {
 type doubleLinkRule struct{}
 
 func (r *doubleLinkRule) ID() string { return "double-link" }
+
+func (r *doubleLinkRule) Fixable() bool { return false }
+
+func (r *doubleLinkRule) Fix(_ *MarkdownDoc, source []byte, _ []Result) []byte { return source }
 
 func (r *doubleLinkRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	var results []Result
@@ -909,6 +990,10 @@ func normalizeURL(url string) string {
 type tocRule struct{}
 
 func (r *tocRule) ID() string { return "awesome-toc" }
+
+func (r *tocRule) Fixable() bool { return false }
+
+func (r *tocRule) Fix(_ *MarkdownDoc, source []byte, _ []Result) []byte { return source }
 
 func (r *tocRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	_ = source
@@ -1361,6 +1446,52 @@ type spellCheckRule struct{}
 
 func (r *spellCheckRule) ID() string { return "awesome-spell-check" }
 
+func (r *spellCheckRule) Fixable() bool { return true }
+
+func (r *spellCheckRule) Fix(_ *MarkdownDoc, source []byte, results []Result) []byte {
+	// Apply fixes in reverse order to preserve positions
+	for i := len(results) - 1; i >= 0; i-- {
+		res := results[i]
+		if res.RuleID != r.ID() {
+			continue
+		}
+		lines := bytes.Split(source, []byte("\n"))
+		if res.Line-1 < len(lines) {
+			line := lines[res.Line-1]
+			lineStr := string(line)
+			var wrong, correct string
+			if n, err := fmt.Sscanf(res.Message, "Text %q should be written as %q", &wrong, &correct); n == 2 && err == nil {
+				col := res.Column - 1
+				if col >= 0 && col+len(wrong) <= len(lineStr) && lineStr[col:col+len(wrong)] == wrong {
+					// Skip if the match is inside a URL (between :// and a space/end)
+					before := lineStr[:col]
+					if idx := strings.LastIndex(before, "://"); idx >= 0 {
+						afterProtocol := before[idx+3:]
+						if !strings.ContainsAny(afterProtocol, " \t") {
+							continue // Inside a URL, skip
+						}
+					}
+					// Skip if the match is inside a definition label ([label]:)
+					openBracket := strings.LastIndex(before, "[")
+					if openBracket >= 0 {
+						after := lineStr[col+len(wrong):]
+						if strings.HasPrefix(after, "]:") || strings.HasPrefix(after, "] ") {
+							beforeBracket := before[:openBracket]
+							if !strings.ContainsAny(beforeBracket, "[") {
+								continue // Inside a definition label, skip
+							}
+						}
+					}
+					newLine := lineStr[:col] + correct + lineStr[col+len(wrong):]
+					lines[res.Line-1] = []byte(newLine)
+					source = bytes.Join(lines, []byte("\n"))
+				}
+			}
+		}
+	}
+	return source
+}
+
 func (r *spellCheckRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	var results []Result
 	rules := spellCheckRules()
@@ -1393,6 +1524,12 @@ func (r *spellCheckRule) Check(doc *MarkdownDoc, source []byte) []Result {
 type noRepeatItemInDescriptionRule struct{}
 
 func (r *noRepeatItemInDescriptionRule) ID() string { return "no-repeat-item-in-description" }
+
+func (r *noRepeatItemInDescriptionRule) Fixable() bool { return false }
+
+func (r *noRepeatItemInDescriptionRule) Fix(_ *MarkdownDoc, source []byte, _ []Result) []byte {
+	return source
+}
 
 func (r *noRepeatItemInDescriptionRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	var results []Result
@@ -1487,6 +1624,35 @@ func (r *noRepeatItemInDescriptionRule) Check(doc *MarkdownDoc, source []byte) [
 type definitionCaseRule struct{}
 
 func (r *definitionCaseRule) ID() string { return "definition-case" }
+
+func (r *definitionCaseRule) Fixable() bool { return true }
+
+func (r *definitionCaseRule) Fix(doc *MarkdownDoc, source []byte, results []Result) []byte {
+	_ = doc
+	for _, res := range results {
+		if res.RuleID != r.ID() {
+			continue
+		}
+		lines := bytes.Split(source, []byte("\n"))
+		if res.Line-1 < len(lines) {
+			line := lines[res.Line-1]
+			str := string(line)
+			// Find the first [label] pattern
+			if start := strings.Index(str, "["); start >= 0 {
+				if end := strings.Index(str[start:], "]"); end >= 0 {
+					label := str[start+1 : start+end]
+					lower := strings.ToLower(label)
+					if label != lower {
+						newLine := str[:start+1] + lower + str[start+end:]
+						lines[res.Line-1] = []byte(newLine)
+						source = bytes.Join(lines, []byte("\n"))
+					}
+				}
+			}
+		}
+	}
+	return source
+}
 
 func (r *definitionCaseRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	var results []Result

@@ -1,6 +1,7 @@
 package linter
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -108,6 +109,15 @@ func New() *Linter {
 
 // LintFile lints a single markdown file.
 func (l *Linter) LintFile(path string) (*Results, error) {
+	return l.lintFile(path, false)
+}
+
+// LintFileWithFix lints a single markdown file and applies auto-fixes.
+func (l *Linter) LintFileWithFix(path string) (*Results, error) {
+	return l.lintFile(path, true)
+}
+
+func (l *Linter) lintFile(path string, fix bool) (*Results, error) {
 	source, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading file %s: %w", path, err)
@@ -138,16 +148,70 @@ func (l *Linter) LintFile(path string) (*Results, error) {
 		results.Results = append(results.Results, ruleResults...)
 	}
 
+	// Apply fixes if requested — run in a loop until stable
+	if fix {
+		for {
+			anyFix := false
+			for _, rule := range l.rules {
+				if !rule.Fixable() {
+					continue
+				}
+				// Collect results for this rule from current lint
+				var ruleResults []Result
+				for _, res := range results.Results {
+					if res.RuleID == rule.ID() {
+						ruleResults = append(ruleResults, res)
+					}
+				}
+				if len(ruleResults) > 0 {
+					newSource := rule.Fix(doc, source, ruleResults)
+					if !bytes.Equal(newSource, source) {
+						source = newSource
+						anyFix = true
+					}
+				}
+			}
+			if !anyFix {
+				break
+			}
+			// Re-lint after fixes to catch newly introduced errors
+			if err := os.WriteFile(path, source, 0o644); err != nil {
+				return nil, fmt.Errorf("writing fixes to %s: %w", path, err)
+			}
+			doc = parseMarkdownWithDir(source, filepath.Dir(path))
+			results.Results = nil
+			for _, rule := range l.rules {
+				ruleResults := rule.Check(doc, source)
+				results.Results = append(results.Results, ruleResults...)
+			}
+		}
+	}
+
 	return results, nil
 }
 
 // Lint lints a file by path or GitHub URL.
 func (l *Linter) Lint(path string) (*Results, error) {
+	return l.lint(path, false)
+}
+
+// LintWithFix lints a file by path and applies auto-fixes.
+func (l *Linter) LintWithFix(path string) (*Results, error) {
+	return l.lint(path, true)
+}
+
+func (l *Linter) lint(path string, fix bool) (*Results, error) {
 	// Check if it's a GitHub URL
 	if strings.HasPrefix(path, "https://github.com/") || strings.HasPrefix(path, "http://github.com/") {
+		if fix {
+			return nil, fmt.Errorf("fix mode is not supported for GitHub URLs; please lint a local file")
+		}
 		return l.lintGitHubRepo(path)
 	}
 
+	if fix {
+		return l.LintFileWithFix(path)
+	}
 	return l.LintFile(path)
 }
 
@@ -189,4 +253,9 @@ type Rule interface {
 	ID() string
 	// Check runs the rule against the parsed markdown document.
 	Check(doc *MarkdownDoc, source []byte) []Result
+	// Fixable returns true if this rule can auto-fix its findings.
+	Fixable() bool
+	// Fix applies auto-fixes to the source bytes for the given results.
+	// Returns the modified source.
+	Fix(doc *MarkdownDoc, source []byte, results []Result) []byte
 }

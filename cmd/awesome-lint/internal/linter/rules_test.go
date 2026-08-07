@@ -797,3 +797,116 @@ func TestNoRepeatItemInDescriptionRule(t *testing.T) {
 		})
 	}
 }
+
+func TestLintWithFix(t *testing.T) {
+	t.Run("fixes spell-check", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.md")
+		content := "# Awesome List\n\n- [Foo](https://example.com) - A foo.\n\n```\ngithub\n```\n"
+		os.WriteFile(path, []byte(content), 0o644)
+
+		l := New()
+		results, err := l.LintWithFix(path)
+		if err != nil {
+			t.Fatalf("LintWithFix() error = %v", err)
+		}
+		// Should have no spell-check warnings after fix
+		for _, r := range results.Results {
+			if r.RuleID == "awesome-spell-check" {
+				t.Errorf("unexpected spell-check result after fix: %+v", r)
+			}
+		}
+	})
+
+	t.Run("fixes definition-case", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.md")
+		content := "# Awesome List\n\n[Discord]: https://Discord.com\n"
+		os.WriteFile(path, []byte(content), 0o644)
+
+		l := New()
+		results, err := l.LintWithFix(path)
+		if err != nil {
+			t.Fatalf("LintWithFix() error = %v", err)
+		}
+		// Should have no definition-case errors after fix
+		for _, r := range results.Results {
+			if r.RuleID == "definition-case" {
+				t.Errorf("unexpected definition-case result after fix: %+v", r)
+			}
+		}
+		// Verify file was actually modified
+		after, _ := os.ReadFile(path)
+		if !strings.Contains(string(after), "[discord]:") {
+			t.Errorf("file was not fixed, content: %s", string(after))
+		}
+	})
+
+	t.Run("fixes definition-case with URL path", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.md")
+		content := "# Awesome List\n\n[Discord]: https://Discord.com/invite/2uDybryKPe\n"
+		os.WriteFile(path, []byte(content), 0o644)
+
+		l := New()
+		results, err := l.LintWithFix(path)
+		if err != nil {
+			t.Fatalf("LintWithFix() error = %v", err)
+		}
+		for _, r := range results.Results {
+			if r.RuleID == "definition-case" {
+				t.Errorf("unexpected definition-case result after fix: %+v", r)
+			}
+		}
+		after, _ := os.ReadFile(path)
+		if !strings.Contains(string(after), "[discord]:") {
+			t.Errorf("file was not fixed, content: %s", string(after))
+		}
+	})
+
+	t.Run("does not fix non-fixable rules", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.md")
+		content := "# Awesome List\n\n"
+		os.WriteFile(path, []byte(content), 0o644)
+
+		l := New()
+		results, err := l.LintWithFix(path)
+		if err != nil {
+			t.Fatalf("LintWithFix() error = %v", err)
+		}
+		// Should still have badge error (non-fixable)
+		hasBadgeErr := false
+		for _, r := range results.Results {
+			if r.RuleID == "awesome-badge" {
+				hasBadgeErr = true
+				break
+			}
+		}
+		if !hasBadgeErr {
+			t.Error("expected badge error to remain after fix")
+		}
+	})
+
+	t.Run("does not fix text inside URLs", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.md")
+		content := "# Awesome List\n\n[discord]: https://discord.com/invite/test\n"
+		os.WriteFile(path, []byte(content), 0o644)
+
+		l := New()
+		_, err := l.LintWithFix(path)
+		if err != nil {
+			t.Fatalf("LintWithFix() error = %v", err)
+		}
+		after, _ := os.ReadFile(path)
+		// URL should still be lowercase
+		if !strings.Contains(string(after), "discord.com") {
+			t.Errorf("URL was incorrectly modified, content: %s", string(after))
+		}
+		// Label should still be lowercase (definition-case fix)
+		if !strings.Contains(string(after), "[discord]:") {
+			t.Errorf("definition label was incorrectly modified, content: %s", string(after))
+		}
+	})
+}
