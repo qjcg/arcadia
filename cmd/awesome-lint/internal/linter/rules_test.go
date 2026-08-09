@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/qjcg/arcadia/cmd/awesome-lint/internal/linter/locale"
 )
 
 func TestHeadingRule(t *testing.T) {
@@ -253,6 +255,11 @@ func TestTOCRule(t *testing.T) {
 			markdown: "# Awesome List\n\n## Contents\n\nJust a TOC.\n",
 			wantErr:  true,
 		},
+		{
+			name:     "Chinese TOC is recognized",
+			markdown: "# Awesome List\n\n## 目录\n\n- [关于](#关于)\n\n## 关于\n\nContent.\n",
+			wantErr:  false,
+		},
 	}
 
 	rule := &tocRule{}
@@ -269,6 +276,28 @@ func TestTOCRule(t *testing.T) {
 			}
 			if hasErr != tt.wantErr {
 				t.Errorf("tocRule.Check() hasErr = %v, wantErr = %v; results: %+v", hasErr, tt.wantErr, results)
+			}
+		})
+	}
+}
+
+func TestGitHubSlug(t *testing.T) {
+	tests := []struct {
+		name string
+		text string
+		want string
+	}{
+		{"plain", "Section 1", "section-1"},
+		{"punctuation stripped", "CI/CD - Tools", "cicd---tools"},
+		{"cjk kept", "关于 Typst", "关于-typst"},
+		{"cjk only", "目录", "目录"},
+		{"mixed case cjk span", "Awesome Typst 中文版", "awesome-typst-中文版"},
+		{"spaces and slash", "日历 / 课程表", "日历--课程表"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := gitHubSlug(tt.text); got != tt.want {
+				t.Errorf("gitHubSlug(%q) = %q, want %q", tt.text, got, tt.want)
 			}
 		})
 	}
@@ -502,8 +531,8 @@ func TestToTitleCase(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			if got := toTitleCase(tt.input); got != tt.want {
-				t.Errorf("toTitleCase(%q) = %q, want %q", tt.input, got, tt.want)
+			if got := locale.Default().TitleCase(tt.input); got != tt.want {
+				t.Errorf("locale.TitleCase(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
@@ -526,8 +555,8 @@ func TestIsValidCasing(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.word, func(t *testing.T) {
-			if got := isValidCasing(tt.word); got != tt.want {
-				t.Errorf("isValidCasing(%q) = %v, want %v", tt.word, got, tt.want)
+			if got := locale.Default().IsValidCasing(tt.word); got != tt.want {
+				t.Errorf("locale.IsValidCasing(%q) = %v, want %v", tt.word, got, tt.want)
 			}
 		})
 	}
@@ -547,8 +576,8 @@ func TestIsMinorWord(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.word, func(t *testing.T) {
-			if got := isMinorWord(tt.word); got != tt.want {
-				t.Errorf("isMinorWord(%q) = %v, want %v", tt.word, got, tt.want)
+			if got := locale.Default().IsMinorWord(tt.word); got != tt.want {
+				t.Errorf("locale.IsMinorWord(%q) = %v, want %v", tt.word, got, tt.want)
 			}
 		})
 	}
@@ -586,8 +615,8 @@ func TestIsCaseAllowListed(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			if got := isCaseAllowListed(tt.input); got != tt.want {
-				t.Errorf("isCaseAllowListed(%q) = %v, want %v", tt.input, got, tt.want)
+			if got := locale.Default().CaseAllowListed(tt.input); got != tt.want {
+				t.Errorf("locale.CaseAllowListed(%q) = %v, want %v", tt.input, got, tt.want)
 			}
 		})
 	}
@@ -1129,8 +1158,9 @@ func TestSpellCheckRuleSkipsNonProse(t *testing.T) {
 	if strings.Contains(prose.String(), "github-bad->") {
 		t.Errorf("code block flagged: %s", prose.String())
 	}
-	// The prose mention (and prose "Obsidian"/"Vim") should be flagged.
-	if !strings.Contains(prose.String(), "github->GitHub") {
-		t.Errorf("prose mention not flagged: %s", prose.String())
+	// The prose mention (and prose "Obsidian"/"Vim") should be flagged. The
+	// bare prose URL must also be skipped, so only one "github->GitHub" exists.
+	if got := strings.Count(prose.String(), "github->GitHub"); got != 1 {
+		t.Errorf("expected exactly one prose match, got %d: %s", got, prose.String())
 	}
 }

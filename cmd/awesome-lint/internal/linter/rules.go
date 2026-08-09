@@ -9,6 +9,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/qjcg/arcadia/cmd/awesome-lint/internal/linter/locale"
 	"github.com/yuin/goldmark/ast"
 )
 
@@ -45,7 +46,7 @@ func (r *headingRule) ID() string { return "awesome-heading" }
 func (r *headingRule) Fixable() bool { return true }
 
 func (r *headingRule) Fix(doc *MarkdownDoc, source []byte, results []Result) []byte {
-	_ = doc
+	prof := locale.ForDoc(doc.Source)
 	for _, res := range results {
 		if res.RuleID != r.ID() {
 			continue
@@ -56,7 +57,7 @@ func (r *headingRule) Fix(doc *MarkdownDoc, source []byte, results []Result) []b
 			if res.Line-1 < len(lines) {
 				line := lines[res.Line-1]
 				headingText := strings.TrimPrefix(string(line), "# ")
-				titled := toTitleCase(headingText)
+				titled := prof.TitleCase(headingText)
 				if titled != headingText {
 					newLine := "# " + titled
 					lines[res.Line-1] = []byte(newLine)
@@ -69,6 +70,7 @@ func (r *headingRule) Fix(doc *MarkdownDoc, source []byte, results []Result) []b
 }
 
 func (r *headingRule) Check(doc *MarkdownDoc, source []byte) []Result {
+	prof := locale.ForDoc(doc.Source)
 	var results []Result
 	headings := 0
 
@@ -115,8 +117,8 @@ func (r *headingRule) Check(doc *MarkdownDoc, source []byte) []Result {
 		if headings == 1 {
 			text := doc.TextOf(n)
 
-			expected := toTitleCase(text)
-			if text != "" && text != expected && !isCaseAllowListed(text) {
+			expected := prof.TitleCase(text)
+			if prof.AppliesTitleCase() && text != "" && text != expected && !prof.CaseAllowListed(text) {
 				line, col := doc.LineColOf(n)
 				results = append(results, Result{
 					RuleID:   r.ID(),
@@ -263,7 +265,7 @@ func (r *listItemRule) ID() string { return "awesome-list-item" }
 func (r *listItemRule) Fixable() bool { return true }
 
 func (r *listItemRule) Fix(doc *MarkdownDoc, source []byte, results []Result) []byte {
-	_ = doc
+	prof := locale.ForDoc(doc.Source)
 	for _, res := range results {
 		if res.RuleID != r.ID() {
 			continue
@@ -301,9 +303,8 @@ func (r *listItemRule) Fix(doc *MarkdownDoc, source []byte, results []Result) []
 				rest := str[descStart:]
 				// Trim trailing whitespace
 				rest = strings.TrimRight(rest, " \t")
-				chinese := isChinese(doc)
-				if rest != "" && !hasValidEndingSuffix(rest, chinese) {
-					rest = fixEndingPunctuation(rest, chinese)
+				if rest != "" && !prof.HasValidEnding(rest) {
+					rest = prof.FixEndingPunctuation(rest)
 					newLine := str[:descStart] + rest
 					lines[res.Line-1] = []byte(newLine)
 					source = bytes.Join(lines, []byte("\n"))
@@ -333,6 +334,7 @@ func (r *listItemRule) Check(doc *MarkdownDoc, source []byte) []Result {
 }
 
 func (r *listItemRule) findListsToValidate(doc *MarkdownDoc) []ast.Node {
+	prof := locale.ForDoc(doc.Source)
 	// Find the Contents heading
 	var tocNode ast.Node
 	ast.Walk(doc.Root, walkHelper(func(n ast.Node, entering bool) ast.WalkStatus {
@@ -342,7 +344,7 @@ func (r *listItemRule) findListsToValidate(doc *MarkdownDoc) []ast.Node {
 		h := n.(*ast.Heading)
 		if h.Level == 2 {
 			text := strings.TrimSpace(doc.TextOf(n))
-			if strings.EqualFold(text, "contents") {
+			if prof.IsContentsHeading(text) {
 				tocNode = n
 				return ast.WalkStop
 			}
@@ -574,6 +576,7 @@ func (r *listItemRule) validateLinkNode(linkNode ast.Node, n ast.Node, doc *Mark
 }
 
 func (r *listItemRule) validateDescription(linkNode ast.Node, descriptionNodes []ast.Node, foundDash, hasContentAfterLink bool, doc *MarkdownDoc) []Result {
+	prof := locale.ForDoc(doc.Source)
 	var results []Result
 
 	if !foundDash && hasContentAfterLink {
@@ -624,9 +627,9 @@ func (r *listItemRule) validateDescription(linkNode ast.Node, descriptionNodes [
 	descContent := strings.TrimPrefix(descText, "- ")
 	descContent = strings.TrimSpace(descContent)
 
-	if descContent != "" {
+	if descContent != "" && prof.AppliesDescriptionCase() {
 		firstWord := strings.Fields(descContent)[0]
-		if !isValidCasing(firstWord) && !r.startsWithSymbolPrefix(firstWord) {
+		if !prof.IsValidCasing(firstWord) && !r.startsWithSymbolPrefix(firstWord) {
 			line, col := doc.LineColOf(descriptionNodes[0])
 			results = append(results, Result{
 				RuleID:   r.ID(),
@@ -652,7 +655,7 @@ func (r *listItemRule) validateDescription(linkNode ast.Node, descriptionNodes [
 		return results
 	}
 
-	if !hasValidEndingSuffix(descContent, isChinese(doc)) && !strings.HasSuffix(descContent, "...") {
+	if !prof.HasValidEnding(descContent) && !strings.HasSuffix(descContent, "...") {
 		line, col := doc.LineColOf(descriptionNodes[len(descriptionNodes)-1])
 		results = append(results, Result{
 			RuleID:   r.ID(),
@@ -709,62 +712,6 @@ func (r *listItemRule) startsWithSymbolPrefix(word string) bool {
 		return true
 	}
 	return false
-}
-
-// ideographicFullStop is the Chinese full stop (U+3002).
-const ideographicFullStop = '。'
-
-// isChinese reports whether the document contains Han (Chinese) characters.
-func isChinese(doc *MarkdownDoc) bool {
-	for _, r := range string(doc.Source) {
-		if unicode.Is(unicode.Han, r) {
-			return true
-		}
-	}
-	return false
-}
-
-// isValidEnding reports whether r is acceptable end punctuation.
-// For Chinese documents the ideographic full stop (。) and other full-width
-// punctuation (！？…) are required instead of the ASCII forms (.!?).
-func isValidEnding(r rune, chinese bool) bool {
-	if chinese {
-		return r == ideographicFullStop || r == '！' || r == '？' || r == '…'
-	}
-	return r == '.' || r == '!' || r == '?' || r == '…'
-}
-
-// hasValidEndingSuffix reports whether s ends with acceptable punctuation.
-func hasValidEndingSuffix(s string, chinese bool) bool {
-	runes := []rune(s)
-	if len(runes) == 0 {
-		return false
-	}
-	return isValidEnding(runes[len(runes)-1], chinese)
-}
-
-// fixEndingPunctuation returns s with proper end punctuation appended (or the
-// trailing ASCII punctuation replaced) using the ideographic full stop (。)
-// for Chinese documents and '.' for other languages.
-func fixEndingPunctuation(s string, chinese bool) string {
-	if chinese {
-		runes := []rune(s)
-		if len(runes) > 0 {
-			switch runes[len(runes)-1] {
-			case '.':
-				runes[len(runes)-1] = ideographicFullStop
-				return string(runes)
-			case '!':
-				runes[len(runes)-1] = '！'
-				return string(runes)
-			case '?':
-				runes[len(runes)-1] = '？'
-				return string(runes)
-			}
-		}
-		return s + string(ideographicFullStop)
-	}
-	return s + "."
 }
 
 func (r *listItemRule) isValidDescriptionNodeType(n ast.Node) bool {
@@ -1069,6 +1016,7 @@ func (r *tocRule) Fix(_ *MarkdownDoc, source []byte, _ []Result) []byte { return
 
 func (r *tocRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	_ = source
+	prof := locale.ForDoc(doc.Source)
 	var results []Result
 
 	var tocNode ast.Node
@@ -1083,7 +1031,7 @@ func (r *tocRule) Check(doc *MarkdownDoc, source []byte) []Result {
 			h := n.(*ast.Heading)
 			if h.Level == 2 {
 				text := strings.TrimSpace(doc.TextOf(n))
-				if strings.EqualFold(text, "contents") {
+				if prof.IsContentsHeading(text) {
 					tocNode = n
 					beforeTOC = false
 					return ast.WalkContinue
@@ -1145,12 +1093,22 @@ func (r *tocRule) Check(doc *MarkdownDoc, source []byte) []Result {
 		return results
 	}
 
-	// Build set of heading slugs for validation
+	// Build set of heading slugs for validation. Index every heading in the
+	// document (not only those after the ToC) so a ToC may legitimately link to
+	// the page title, an intro section, or the ToC heading itself.
 	headingSlugs := make(map[string]ast.Node)
 	headingsUsed := make(map[ast.Node]bool)
+	ast.Walk(doc.Root, walkHelper(func(n ast.Node, entering bool) ast.WalkStatus {
+		if !entering || n.Kind() != ast.KindHeading {
+			return ast.WalkContinue
+		}
+		h := n.(*ast.Heading)
+		slug := gitHubSlug(doc.TextOf(h))
+		headingSlugs[slug] = h
+		return ast.WalkContinue
+	}))
 	for _, h := range headingsAfter {
-		text := doc.TextOf(h)
-		slug := gitHubSlug(text)
+		slug := gitHubSlug(doc.TextOf(h))
 		headingSlugs[slug] = h
 	}
 
@@ -1241,17 +1199,20 @@ func (r *tocRule) Check(doc *MarkdownDoc, source []byte) []Result {
 }
 
 // gitHubSlug generates a GitHub-style slug from heading text.
+// It preserves letters from any script (including CJK) and digits, lowercases,
+// and turns runs of spaces into dashes, removing other punctuation.
 func gitHubSlug(text string) string {
 	var result strings.Builder
 	text = strings.ToLower(text)
 	text = strings.TrimSpace(text)
 	for _, r := range text {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == ' ' {
-			if r == ' ' {
-				result.WriteRune('-')
-			} else {
-				result.WriteRune(r)
-			}
+		switch {
+		case r == ' ':
+			result.WriteRune('-')
+		case r == '-':
+			result.WriteRune('-')
+		case unicode.IsLetter(r) || unicode.IsDigit(r):
+			result.WriteRune(r)
 		}
 	}
 	slug := strings.TrimRight(result.String(), "-")
@@ -1615,7 +1576,17 @@ func (r *spellCheckRule) Check(doc *MarkdownDoc, source []byte) []Result {
 					continue
 				}
 				line := bytes.Count(source[:pos], []byte("\n")) + 1
-				col := pos - bytes.LastIndex(source[:pos], []byte("\n"))
+				lineStart := bytes.LastIndex(source[:pos], []byte("\n")) + 1
+				lineEnd := len(source)
+				if nl := bytes.Index(source[pos:], []byte("\n")); nl >= 0 {
+					lineEnd = pos + nl
+				}
+				col := pos - lineStart + 1
+				// Skip text inside a URL or link definition label so that a
+				// reported issue is always fixable (mirrors shouldSkipSpellFix).
+				if shouldSkipSpellFix(string(source[lineStart:lineEnd]), col, matched) {
+					continue
+				}
 				results = append(results, Result{
 					RuleID:   r.ID(),
 					Severity: SeverityWarning,
@@ -1790,35 +1761,6 @@ func (r *definitionCaseRule) Check(doc *MarkdownDoc, source []byte) []Result {
 	return results
 }
 
-func toTitleCase(s string) string {
-	if s == "" {
-		return s
-	}
-
-	words := strings.Fields(s)
-	for i, w := range words {
-		if i == 0 || i == len(words)-1 {
-			words[i] = capitalizeFirst(w)
-		} else if isMinorWord(w) {
-			words[i] = strings.ToLower(w)
-		} else {
-			words[i] = capitalizeFirst(w)
-		}
-	}
-	return strings.Join(words, " ")
-}
-
-func isMinorWord(w string) bool {
-	minor := map[string]bool{
-		"a": true, "an": true, "the": true,
-		"and": true, "but": true, "or": true, "for": true, "nor": true,
-		"on": true, "at": true, "to": true, "by": true, "from": true,
-		"in": true, "of": true, "with": true, "as": true, "up": true,
-		"is": true, "it": true, "vs": true,
-	}
-	return minor[strings.ToLower(w)]
-}
-
 func capitalizeFirst(s string) string {
 	if s == "" {
 		return s
@@ -1826,46 +1768,4 @@ func capitalizeFirst(s string) string {
 	r := []rune(s)
 	r[0] = unicode.ToUpper(r[0])
 	return string(r)
-}
-
-func isCaseAllowListed(s string) bool {
-	allowListed := map[string]bool{
-		"title": true, "capital": true,
-	}
-	return allowListed[strings.ToLower(s)]
-}
-
-func isValidCasing(word string) bool {
-	cleaned := strings.Map(func(r rune) rune {
-		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-			return -1
-		}
-		return r
-	}, word)
-
-	if cleaned == "" {
-		return false
-	}
-
-	if strings.ToUpper(cleaned) == cleaned {
-		return true
-	}
-
-	runes := []rune(cleaned)
-	if unicode.IsUpper(runes[0]) {
-		return true
-	}
-
-	hasUpper := false
-	for _, r := range cleaned {
-		if unicode.IsUpper(r) {
-			hasUpper = true
-			break
-		}
-	}
-	if hasUpper {
-		return true
-	}
-
-	return false
 }
