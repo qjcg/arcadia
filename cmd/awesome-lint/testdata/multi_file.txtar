@@ -1,0 +1,44 @@
+# Test that multiple files can be linted in one invocation. Each file's
+# results are reported separately, and the presence of errors yields a
+# non-zero exit.
+! exec awesome-lint testbad.md testbad2.md
+stdout 'testbad.md:'
+stdout 'testbad2.md:'
+
+# Test JSON array output for multiple files.
+exec awesome-lint -j testgood.md testbad.md
+stdout '\['
+stdout '"filePath": "testgood.md"'
+stdout '"filePath": "testbad.md"'
+
+-- testgood.md --
+# Awesome List [![Awesome](https://awesome.re/badge.svg)](https://awesome.re)
+
+## Contents
+
+- [Section 1](#section-1)
+
+## Section 1
+
+- [Foo](https://example.com) - A description of foo.
+- [Bar](https://example.com/bar) - Another description.
+-- testbad.md --
+# Awesome List
+
+## Contents
+
+- [Foo](https://example.com) - A description of foo.
+
+## License
+
+MIT
+-- testbad2.md --
+# Awesome List
+
+## Contents
+
+- [Foo](https://example.com) - A description of foo.
+
+## License
+
+MIT

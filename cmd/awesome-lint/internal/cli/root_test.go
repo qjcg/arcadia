@@ -64,3 +64,13 @@ func TestSetupCLI_JSONOutput(t *testing.T) {
 		t.Fatal("expected error for non-existent file")
 	}
 }
+
+func TestSetupCLI_MultipleFileArgs(t *testing.T) {
+	var out, err bytes.Buffer
+	cmd := setupCLI(&out, &err)
+	cmd.SetArgs([]string{"/nonexistent/a.md", "/nonexistent/b.md"})
+	errOut := cmd.Execute()
+	if errOut == nil {
+		t.Fatal("expected error for non-existent files")
+	}
+}

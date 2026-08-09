@@ -15,7 +15,7 @@ go install github.com/qjcg/arcadia/cmd/awesome-lint@latest
 ## Usage
 
 ```sh
-# Lint readme.md in the current directory
+# Lint README.md in the current directory
 awesome-lint
 
 # Lint a specific file
@@ -25,7 +25,7 @@ awesome-lint my-awesome-list.md
 awesome-lint --json
 
 # Specify a different file
-awesome-lint --filename path/to/readme.md
+awesome-lint --filename path/to/README.md
 ```
 
 ### Exit codes
