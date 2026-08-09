@@ -41,7 +41,7 @@ awesome-lint --filename path/to/README.md
 |------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
 | `awesome-heading`      | Main heading must exist, be depth 1, and use title case. Only one level-1 heading allowed.                                             |
 | `awesome-badge`        | Official Awesome badge (`[![Awesome](https://awesome.re/badge.svg)](https://awesome.re)`) must be present next to the main heading.    |
-| `awesome-list-item`    | Each list item must have a valid URL link, a dash separator (` - `), and a description ending with proper punctuation (`.`, `!`, `?`). |
+| `awesome-list-item`    | Each list item must have a valid URL link, a dash separator (` - `), and a description ending with proper punctuation (`.`, `!`, `?`). For Chinese READMEs the full-width ideographic full stop (`。`, U+3002) is used instead of `.`. |
 | `awesome-license`      | License section must not appear in the readme (GitHub handles license detection).                                                      |
 | `awesome-no-ci-badge`  | CI badges (Travis CI, CircleCI) must not appear in the readme.                                                                         |
 | `awesome-contributing` | `contributing.md` (or `.github/contributing.md`) must exist and be non-empty.                                                          |

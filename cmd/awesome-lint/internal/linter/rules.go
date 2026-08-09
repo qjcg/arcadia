@@ -295,14 +295,16 @@ func (r *listItemRule) Fix(doc *MarkdownDoc, source []byte, results []Result) []
 		}
 
 		if res.Message == "List item description must end with proper punctuation" {
-			// Find the " - " separator and add a period at the end of the description
+			// Find the " - " separator and add proper end punctuation.
 			if idx := strings.Index(str, " - "); idx >= 0 {
 				descStart := idx + 3
 				rest := str[descStart:]
 				// Trim trailing whitespace
 				rest = strings.TrimRight(rest, " \t")
-				if rest != "" && !strings.HasSuffix(rest, ".") && !strings.HasSuffix(rest, "!") && !strings.HasSuffix(rest, "?") && !strings.HasSuffix(rest, "...") {
-					newLine := str[:descStart] + rest + "."
+				chinese := isChinese(doc)
+				if rest != "" && !hasValidEndingSuffix(rest, chinese) {
+					rest = fixEndingPunctuation(rest, chinese)
+					newLine := str[:descStart] + rest
 					lines[res.Line-1] = []byte(newLine)
 					source = bytes.Join(lines, []byte("\n"))
 				}
@@ -650,18 +652,15 @@ func (r *listItemRule) validateDescription(linkNode ast.Node, descriptionNodes [
 		return results
 	}
 
-	lastChar := descContent[len(descContent)-1]
-	if lastChar != '.' && lastChar != '!' && lastChar != '?' {
-		if !strings.HasSuffix(descContent, "...") {
-			line, col := doc.LineColOf(descriptionNodes[len(descriptionNodes)-1])
-			results = append(results, Result{
-				RuleID:   r.ID(),
-				Severity: SeverityError,
-				Message:  "List item description must end with proper punctuation",
-				Line:     line,
-				Column:   col,
-			})
-		}
+	if !hasValidEndingSuffix(descContent, isChinese(doc)) && !strings.HasSuffix(descContent, "...") {
+		line, col := doc.LineColOf(descriptionNodes[len(descriptionNodes)-1])
+		results = append(results, Result{
+			RuleID:   r.ID(),
+			Severity: SeverityError,
+			Message:  "List item description must end with proper punctuation",
+			Line:     line,
+			Column:   col,
+		})
 	}
 
 	return results
@@ -710,6 +709,62 @@ func (r *listItemRule) startsWithSymbolPrefix(word string) bool {
 		return true
 	}
 	return false
+}
+
+// ideographicFullStop is the Chinese full stop (U+3002).
+const ideographicFullStop = '。'
+
+// isChinese reports whether the document contains Han (Chinese) characters.
+func isChinese(doc *MarkdownDoc) bool {
+	for _, r := range string(doc.Source) {
+		if unicode.Is(unicode.Han, r) {
+			return true
+		}
+	}
+	return false
+}
+
+// isValidEnding reports whether r is acceptable end punctuation.
+// For Chinese documents the ideographic full stop (。) and other full-width
+// punctuation (！？…) are required instead of the ASCII forms (.!?).
+func isValidEnding(r rune, chinese bool) bool {
+	if chinese {
+		return r == ideographicFullStop || r == '！' || r == '？' || r == '…'
+	}
+	return r == '.' || r == '!' || r == '?' || r == '…'
+}
+
+// hasValidEndingSuffix reports whether s ends with acceptable punctuation.
+func hasValidEndingSuffix(s string, chinese bool) bool {
+	runes := []rune(s)
+	if len(runes) == 0 {
+		return false
+	}
+	return isValidEnding(runes[len(runes)-1], chinese)
+}
+
+// fixEndingPunctuation returns s with proper end punctuation appended (or the
+// trailing ASCII punctuation replaced) using the ideographic full stop (。)
+// for Chinese documents and '.' for other languages.
+func fixEndingPunctuation(s string, chinese bool) string {
+	if chinese {
+		runes := []rune(s)
+		if len(runes) > 0 {
+			switch runes[len(runes)-1] {
+			case '.':
+				runes[len(runes)-1] = ideographicFullStop
+				return string(runes)
+			case '!':
+				runes[len(runes)-1] = '！'
+				return string(runes)
+			case '?':
+				runes[len(runes)-1] = '？'
+				return string(runes)
+			}
+		}
+		return s + string(ideographicFullStop)
+	}
+	return s + "."
 }
 
 func (r *listItemRule) isValidDescriptionNodeType(n ast.Node) bool {

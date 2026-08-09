@@ -187,6 +187,21 @@ func TestListItemRule(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			name:     "chinese description uses ideographic full stop",
+			markdown: "- [示例](https://example.com) - 这是描述。\n\n  更多内容。\n",
+			wantErr:  false,
+		},
+		{
+			name:     "chinese description with ascii period is invalid",
+			markdown: "- [示例](https://example.com) - 这是描述.\n\n  更多内容。\n",
+			wantErr:  true,
+		},
+		{
+			name:     "chinese description missing punctuation",
+			markdown: "- [示例](https://example.com) - 这是描述\n\n  更多内容。\n",
+			wantErr:  true,
+		},
+		{
 			name:     "all caps acronym in description",
 			markdown: "- [Example](https://example.com) - ACPI is supported.\n\n  More text.\n",
 			wantErr:  false,
@@ -952,6 +967,22 @@ func TestListItemRuleFix(t *testing.T) {
 				{RuleID: r.ID(), Line: 1, Message: "List item description must end with proper punctuation"},
 			},
 			want: "- item - description without period.\n",
+		},
+		{
+			name:   "chinese add ideographic full stop",
+			source: "- item - 这是描述\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 1, Message: "List item description must end with proper punctuation"},
+			},
+			want: "- item - 这是描述。\n",
+		},
+		{
+			name:   "chinese replace ascii period",
+			source: "- item - 这是描述.\n",
+			results: []Result{
+				{RuleID: r.ID(), Line: 1, Message: "List item description must end with proper punctuation"},
+			},
+			want: "- item - 这是描述。\n",
 		},
 		{
 			name:   "respect existing punctuation",
