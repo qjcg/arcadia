@@ -80,7 +80,7 @@ tasks:
 
   lint:crap:
     desc: Compute the CRAP (Change Risk Anti-Patterns) metric.
-    cmd: go tool go-crap scan {{.CLI_ARGS | default "-t 30 --min 30 --fail-above"}}
+    cmd: go tool go-crap scan {{.CLI_ARGS | default "-t 30 --min 30 --fail-above work"}}
 
   lint:fix:
     desc: Fix linter errors that can be fixed automatically.
