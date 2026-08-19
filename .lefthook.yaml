@@ -1,4 +1,8 @@
 # See https://lefthook.dev/configuration/
+#
+# Lefthook is a thin client over the Taskfile: every job delegates to a task.
+# File selection/globbing and stage_fixed remain here; all commands and tool
+# versions live in the Taskfile, which is the single source of truth.
 
 _gofiles: &gofiles
   - "*.go"
@@ -9,7 +13,7 @@ commit-msg:
   parallel: true
   jobs:
     - name: validate-conventional-commit
-      run: go tool sv validate-cc -m 80 -f {1}
+      run: go tool task commit:validate -- {1}
 
 
 pre-commit:
@@ -20,40 +24,40 @@ pre-commit:
         parallel: true
         jobs:
           - name: gofumpt
-            run: go tool gofumpt -w {staged_files}
+            run: go tool task format:gofumpt -- {staged_files}
             glob: "*.go"
             stage_fixed: true
 
           - name: goimports
-            run: go tool goimports -w {staged_files}
+            run: go tool task format:goimports -- {staged_files}
             glob: "*.go"
             stage_fixed: true
 
           - name: cue fmt
-            run: go tool cue fmt --files {staged_files}
+            run: go tool task format:cuefmt -- {staged_files}
             glob: "*.cue"
             stage_fixed: true
 
           - name: editorconfig-checker
-            run: go tool editorconfig-checker {staged_files}
+            run: go tool task lint:editorconfig -- {staged_files}
 
           - name: typstyle
-            run: typstyle {staged_files}
+            run: go tool task format:typstyle -- {staged_files}
             glob: "*.{typ,typst}"
             stage_fixed: true
 
           - name: go fix
-            run: go fix work
+            run: go tool task format:gofix
             glob: "*.go"
             stage_fixed: true
 
           - name: go vet
-            run: go vet -fix work
+            run: go tool task format:govet
             glob: "*.go"
             stage_fixed: true
 
     - name: unit-tests
-      run: go test work
+      run: go tool task test:go:unit
       glob: *gofiles
 
 
@@ -65,28 +69,28 @@ pre-push:
         parallel: true
         jobs:
           - name: govulncheck
-            run: go tool govulncheck work
+            run: go tool task lint:govulncheck
             glob: *gofiles
 
           - name: 'trivy (scanners: secret)'
-            run: GOEXPERIMENT=jsonv2 go run github.com/aquasecurity/trivy/cmd/trivy@v0.72.0 fs --exit-code 1 --scanners secret .
+            run: go tool task lint:trivy
 
     - name: linters
       group:
         parallel: true
         jobs:
           - name: golangci-lint
-            run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run --fix
+            run: go tool task lint:golangci-lint:fix
             glob: *gofiles
             stage_fixed: true
 
           - name: check-links
-            run: go tool xurls {files} | grep -Ev 'localhost|twitter|9p.io|cluster.local|catb.org' | sort -u | go tool xurls -fix
+            run: go tool task lint:check-links -- {files}
             glob:
               - "*.md"
               - "**/*.md"
             stage_fixed: true
 
     - name: integration-tests
-      run: go test -tags integration work
+      run: go tool task test:go:integration
       glob: *gofiles

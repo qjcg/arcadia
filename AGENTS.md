@@ -46,6 +46,9 @@
 - Use `github.com/evilmartians/lefthook` for git hooks.
   - Store multi-line shell commands for hooks in a separate directory.
 - Lint using `github.com/golangci-lint/golangci-lint` via `go run`.
+- The `Taskfile.yaml` is the single authoritative source for tasks.
+  - Lefthook and GitHub Actions are thin clients: they only invoke
+    `task <name>` and never duplicate commands or tool versions inline.
 
 ## Tech Stacks
 

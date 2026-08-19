@@ -13,11 +13,20 @@ tasks:
     deps:
       - githook:pre-commit
 
-  crush: go run github.com/charmbracelet/crush@latest
-
   githook:pre-commit: go tool lefthook run pre-commit --all-files
   githook:pre-push: go tool lefthook run pre-push --all-files
 
+  verify:clients:
+    desc: Verify lefthook delegates to the authoritative tasks.
+    deps:
+      - lint
+    cmds:
+      - go tool lefthook run pre-commit --all-files
+      - go tool lefthook run pre-push --all-files
+
+  commit:validate:
+    desc: Validate a conventional commit message (80 char subject limit).
+    cmd: go tool sv validate-cc -m 80 -f {{.CLI_ARGS}}
 
   build:
     desc: Build all binaries in the workspace.
@@ -30,6 +39,34 @@ tasks:
       - echo TODO
 
   clean: rm -rf bin/
+
+
+  ######################################################################
+  # format (write-mode; invoked by lefthook pre-commit)
+
+  format:gofumpt:
+    desc: Format Go files with gofumpt.
+    cmd: go tool gofumpt -w {{.CLI_ARGS | default "."}}
+
+  format:goimports:
+    desc: Organize Go imports.
+    cmd: go tool goimports -w {{.CLI_ARGS | default "."}}
+
+  format:cuefmt:
+    desc: Format CUE files.
+    cmd: go tool cue fmt --files {{.CLI_ARGS | default "."}}
+
+  format:typstyle:
+    desc: Format Typst files.
+    cmd: typstyle {{.CLI_ARGS | default "."}}
+
+  format:gofix:
+    desc: Apply go fix across the workspace.
+    cmd: go fix work
+
+  format:govet:
+    desc: Run go vet with auto-fix across the workspace.
+    cmd: go vet -fix work
 
 
   ######################################################################
@@ -53,9 +90,9 @@ tasks:
 
   # FIXME: Intermittant failures, can be flaky.
   lint:check-links:
-    cmd: go tool xurls **/*.md | grep -Ev '{{.EXCLUDE}}' | sort -u | go tool xurls -fix >/dev/null
+    cmd: go tool xurls {{.CLI_ARGS | default "**/*.md"}} | grep -Ev '{{.EXCLUDE}}' | sort -u | go tool xurls -fix >/dev/null
     vars:
-      EXCLUDE: localhost|twitter|9p.io|cluster.local
+      EXCLUDE: localhost|twitter|9p.io|cluster.local|catb.org
 
   lint:golangci-lint:
     cmd: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.V_GOLANGCILINT}} run
@@ -63,10 +100,19 @@ tasks:
       GOTOOLCHAIN:
         sh: awk '/^go/ {printf("go%s", $2)}' go.mod
 
+  lint:golangci-lint:fix:
+    desc: Run golangci-lint and apply auto-fixes.
+    cmd: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.V_GOLANGCILINT}} run --fix
+    env:
+      GOTOOLCHAIN:
+        sh: awk '/^go/ {printf("go%s", $2)}' go.mod
+
   lint:govulncheck: go tool govulncheck work
   lint:gofumpt: go tool gofumpt -l .
   lint:goimports: go tool goimports -l .
-  lint:editorconfig: go tool editorconfig-checker .  # FIXME: OOM fail!
+  lint:editorconfig:
+    desc: Check editorconfig conformance on the given files (whole-repo run is disabled due to OOM).
+    cmd: go tool editorconfig-checker {{.CLI_ARGS}}
   lint:cuefmt: go tool cue fmt --files --check .
   lint:go:fix: go fix -diff work
   lint:go:vet: go vet work
@@ -121,26 +167,46 @@ tasks:
   update:
     desc: Update dependencies.
     cmds:
-      - task: update:tool
-      - task: update:work
+      - go get -u tool
+      - go get -u work
       - go mod tidy
       - go work sync
       - task: test
       - task: lint
-
-  update:tool: go get -u tool
-  update:work: go get -u work
 
 
   ######################################################################
   # release
 
   changelogs:
-    docs: Create changelogs for all go modules.
+    desc: Create changelogs for all go modules.
+    env:
+      GOWORK: "off"
     cmds:
       - go tool sv changelog --all --write
 
-  release:
-    desc: GitHub release.
+  release:cache:
+    desc: Pre-download the go tools used by the GHA release job.
+    env:
+      GOWORK: "off"
     cmds:
-      - go tool gh release --help
+      - go tool sv --version
+      - go tool task --version
+
+  release:
+    desc: Tag and create GitHub releases for all modules with version bumps.
+    env:
+      GOWORK: "off"
+    vars:
+      TAGS:
+        sh: go tool sv next --all | grep -E '^(.*/)?v[0-9]+\.[0-9]+\.[0-9]+$' || true
+    cmds:
+      - |
+        set -e
+        if [ -n "{{.TAGS}}" ]; then
+          go tool sv next --all --tag
+          git push origin --tags
+          for tag in {{.TAGS}}; do
+            gh release create "$tag" --generate-notes
+          done
+        fi

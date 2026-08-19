@@ -20,34 +20,19 @@ jobs:
         go-version-file: go.work
 
     - name: Cache sv tool
-      env:
-        GOWORK: "off"
-      run: go tool sv help
+      run: go tool task release:cache
 
-    - name: Compute version bumps
-      id: bumps
-      env:
-        GOWORK: "off"
-      run: |
-        set -o pipefail
-        CHANGES=$(go tool sv next --all)
-        TAGS=$(echo "$CHANGES" | grep -E '^(.*/)?v[0-9]+\.[0-9]+\.[0-9]+$' || true)
-        if [[ -n "$TAGS" ]]; then
-          printf 'tags<<EOF\n%s\nEOF\n' "$TAGS" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Tag and Release
-      if: steps.bumps.outputs.tags != ''
-      env:
-        GOWORK: "off"
-        GH_TOKEN: ${{ github.token }}
+    - name: Configure git identity
       run: |
         git config user.name github-actions
         git config user.email github-actions@github.com
 
-        go tool sv next --all --tag
-        git push origin --tags
+    - name: Tag and Release
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: go tool task release
 
-        while read tag; do
-          gh release create "$tag" --generate-notes
-        done <<< "${{ steps.bumps.outputs.tags }}"
+    - name: Changelogs
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: go tool task changelogs
