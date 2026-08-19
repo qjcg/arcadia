@@ -57,6 +57,19 @@ sv next --tag --dry-run
 sv next --all
 ```
 
+### Excluding modules
+```bash
+# Skip one or more modules when operating on all of them
+sv next --all --exclude exp/roubaix
+
+# Exclude is repeatable and accepts comma-separated values
+sv next --all --exclude exp/roubaix --exclude cmd/sv
+sv current --all --exclude exp/roubaix,cmd/sv
+```
+The `--exclude` flag is available on `next`, `current`, `bump`, and `changelog`. It
+matches the module's repo-relative path (e.g. `.` or `exp/roubaix`) and takes
+precedence over `--path` and `--all`.
+
 ## Documentation
 
 Full documentation is available in the [docs](./docs) directory:

@@ -12,8 +12,9 @@ import (
 )
 
 type bumpParams struct {
-	All  bool     `descr:"Bump all modules"`
-	Path []string `descr:"Explicit module path(s)" optional:"true"`
+	All     bool     `descr:"Bump all modules"`
+	Path    []string `descr:"Explicit module path(s)" optional:"true"`
+	Exclude []string `descr:"Module path(s) to exclude (repeatable or comma-separated)" optional:"true"`
 }
 
 func createBumpCmd(name string, bump semver.Bump, doc string) *cobra.Command {
@@ -32,7 +33,7 @@ func runBumpCmd(p *bumpParams, bump semver.Bump, cmd *cobra.Command) error {
 		return err
 	}
 
-	modules, err := getModules(root, p.Path, p.All)
+	modules, err := getModules(root, p.Path, p.Exclude, p.All)
 	if err != nil {
 		return err
 	}

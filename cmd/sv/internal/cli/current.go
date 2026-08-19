@@ -11,8 +11,9 @@ import (
 )
 
 type currentParams struct {
-	All  bool     `descr:"Show current version for all modules"`
-	Path []string `descr:"Explicit module path(s)" optional:"true"`
+	All     bool     `descr:"Show current version for all modules"`
+	Path    []string `descr:"Explicit module path(s)" optional:"true"`
+	Exclude []string `descr:"Module path(s) to exclude (repeatable or comma-separated)" optional:"true"`
 }
 
 func createCurrentCmd() *cobra.Command {
@@ -31,7 +32,7 @@ func runCurrentCmd(p *currentParams, cmd *cobra.Command) error {
 		return err
 	}
 
-	modules, err := getModules(root, p.Path, p.All)
+	modules, err := getModules(root, p.Path, p.Exclude, p.All)
 	if err != nil {
 		return err
 	}

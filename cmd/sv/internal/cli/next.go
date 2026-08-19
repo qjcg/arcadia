@@ -26,6 +26,7 @@ type tagData struct {
 type nextParams struct {
 	All          bool     `descr:"Calculate next version for all modules"`
 	Path         []string `descr:"Explicit module path(s)" optional:"true"`
+	Exclude      []string `descr:"Module path(s) to exclude (repeatable or comma-separated)" optional:"true"`
 	DefaultPatch bool     `descr:"Default to patch bump for non-feat/fix commits" short:"d"`
 	Tag          bool     `descr:"Create annotated git tag for the new version"`
 	TagFormat    string   `descr:"Go template for the tag message (default: the new version string)" short:"f" optional:"true"`
@@ -53,7 +54,7 @@ func runNextCmd(p *nextParams, cmd *cobra.Command) error {
 		return err
 	}
 
-	modules, err := getModules(root, p.Path, p.All)
+	modules, err := getModules(root, p.Path, p.Exclude, p.All)
 	if err != nil {
 		return err
 	}

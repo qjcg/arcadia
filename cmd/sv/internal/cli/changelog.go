@@ -12,6 +12,7 @@ import (
 type changelogParams struct {
 	All       bool     `descr:"Generate changelog for all modules"`
 	Path      []string `descr:"Explicit module path(s)" optional:"true"`
+	Exclude   []string `descr:"Module path(s) to exclude (repeatable or comma-separated)" optional:"true"`
 	From      string   `descr:"Start version (inclusive), or a date (year like 2025, duration like 8w, or ISO date like 2024-01-15)" optional:"true"`
 	To        string   `descr:"End version (inclusive)" optional:"true"`
 	Dir       string   `descr:"Directory to write individual changelog entry files" short:"d" optional:"true"`
@@ -38,7 +39,7 @@ func runChangelogCmd(p *changelogParams, cmd *cobra.Command) error {
 		return err
 	}
 
-	modules, err := getModules(root, p.Path, p.All)
+	modules, err := getModules(root, p.Path, p.Exclude, p.All)
 	if err != nil {
 		return err
 	}
