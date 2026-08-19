@@ -120,6 +120,7 @@ github.com/MakeNowJust/heredoc v1.0.0 h1:cXCdzVdstXyiTqTvfqk9SDHpKNjxuom+DOlyEeQ
 github.com/MakeNowJust/heredoc v1.0.0/go.mod h1:mG5amYoWBHf8vpLOuehzbGGw0EHxpZZ6lCpQ4fNJ8LE=
 github.com/Masterminds/goutils v1.1.1 h1:5nUrii3FMTL5diU80unEVvNevw1nH4+ZV4DSLVJLSYI=
 github.com/Masterminds/goutils v1.1.1/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
+github.com/Masterminds/semver v1.5.0 h1:H65muMkzWKEuNDnfl9d70GUjFniHKHRbFPGBuZ3QEww=
 github.com/Masterminds/semver/v3 v3.5.0 h1:kQceYJfbupGfZOKZQg0kou0DgAKhzDg2NZPAwZ/2OOE=
 github.com/Masterminds/semver/v3 v3.5.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/Masterminds/sprig/v3 v3.3.0 h1:mQh0Yrg1XPo6vjYXgtf5OtijNAKJRNcTdOOGZe3tPhs=
@@ -855,6 +856,8 @@ github.com/puzpuzpuz/xsync/v4 v4.5.0 h1:vOSWu6b57/emh+L/Cw0BeQfvxa/cogFywXHeGUxQ
 github.com/puzpuzpuz/xsync/v4 v4.5.0/go.mod h1:VJDmTCJMBt8igNxnkQd86r+8KUeN1quSfNKu5bLYFQo=
 github.com/qjcg/arcadia/cmd/sv v1.1.0 h1:oZQibZh1HR0SZWCGvEOLCPjVOA2h284X7n0MelGVX0s=
 github.com/qjcg/arcadia/cmd/sv v1.1.0/go.mod h1:hQJ/Xf5DCP+EDthbqq4DPtalIGqGDkOYGtEuoOQGmAM=
+github.com/qjcg/arcadia/cmd/sv v1.2.0 h1:3zjr80vHWGCYEmedkOW3nUCw7ee9qwkX5uwDSGwogW4=
+github.com/qjcg/arcadia/cmd/sv v1.2.0/go.mod h1:hQJ/Xf5DCP+EDthbqq4DPtalIGqGDkOYGtEuoOQGmAM=
 github.com/rakyll/hey v0.1.5 h1:oc3QhpT8ETXcr5xIE2xgWYNSNA/Z52XA20ku9hWCchY=
 github.com/rakyll/hey v0.1.5/go.mod h1:tLUK++7gal6z92HvVEaP4QfIhEb5cYywEJgrUqmqt7Y=
 github.com/redis/go-redis/extra/rediscmd/v9 v9.5.3 h1:1/BDligzCa40GTllkDnY3Y5DTHuKCONbB2JcRyIfl20=
