@@ -3,7 +3,7 @@
 version: '3'
 
 vars:
-  OMARCHY_VERSION: 3.8.2
+  OMARCHY_VERSION: 4.0.0
   ISO_URL: https://iso.omarchy.org/omarchy-{{.OMARCHY_VERSION}}.iso
   ISO: '{{ base .ISO_URL }}'
   DISK: disk.qcow2
