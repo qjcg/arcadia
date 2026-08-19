@@ -19,13 +19,13 @@ jobs:
       with:
         go-version-file: go.work
 
-    - name: Cache sv tool
-      run: go tool task release:cache
-
     - name: Configure git identity
       run: |
         git config user.name github-actions
         git config user.email github-actions@github.com
+
+    - name: Cache required go tools
+      run: go tool task release:cache
 
     - name: Tag and Release
       env:

@@ -13,7 +13,7 @@ commit-msg:
   parallel: true
   jobs:
     - name: validate-conventional-commit
-      run: go tool task commit:validate -- {1}
+      run: go tool task validate-conventional-commit -- {1}
 
 
 pre-commit:

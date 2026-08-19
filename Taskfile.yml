@@ -16,15 +16,7 @@ tasks:
   githook:pre-commit: go tool lefthook run pre-commit --all-files
   githook:pre-push: go tool lefthook run pre-push --all-files
 
-  verify:clients:
-    desc: Verify lefthook delegates to the authoritative tasks.
-    deps:
-      - lint
-    cmds:
-      - go tool lefthook run pre-commit --all-files
-      - go tool lefthook run pre-push --all-files
-
-  commit:validate:
+  validate-conventional-commit:
     desc: Validate a conventional commit message (80 char subject limit).
     cmd: go tool sv validate-cc -m 80 -f {{.CLI_ARGS}}
 
