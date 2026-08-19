@@ -175,7 +175,7 @@ tasks:
     env:
       GOWORK: "off"
     cmds:
-      - go tool sv changelog --all --write
+      - go tool sv changelog --all --write --exclude skills
 
   release:cache:
     desc: Pre-download the go tools used by the GHA release job.
