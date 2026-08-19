@@ -8,6 +8,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- e6f5cba4 - Bump sv version
+- 183dc16b - Bump sv to latest release
+- 89949d7a - Bump deps
+- 7fb64af2 - Exclude skills dir
+- 77c222ac - Various tweaks
+- ebcbdc1d - make Taskfile the authoritative source for tasks
+- be077bae - Update deps
+
+## [v0.47.1] - 2026-08-18
+
+### Changed
+- 08ab9327 - Bump omarchy version
+- 435d8b55 - Remove .skillo
+- a51e966b - Remove exp/skillo
+- 1766ce66 - Scan complete workspace by default
+- 53b49e27 - Update deps
+
+### Fixed
+- e74bee91 - Bump disk size to allow `omarchy update`
+
+## [v0.47.0] - 2026-08-06
+
+### Added
+- 52d9b671 - add awesome-lint CLI tool for linting awesome lists
+
+### Changed
+- 0d83ccf5 - Bump action versions in sv-release
+- 7c5bb1e1 - Add lint:go-crap task
+- 950f7964 - Update go.work.sum
+- 5b0ca43a - Update CHANGELOGs
 - d4208456 - Bump deps
 
 ## [v0.46.0] - 2026-07-19
@@ -26,6 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - 6ed9977b - Add terebra
+- d6ca9388 - add vim-style keys and Ctrl-p/n for menu navigation
+- 4949dd07 - add interactive skill selection menu for add and remove
 
 ### Changed
 - 51f343c6 - Bump go deps
@@ -36,6 +68,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - d9733a23 - Use tabs in Earthfiles
+- 2d7ab0df - prevent extracted skills from becoming orphaned on partial error
+- aed6f603 - ensure skillo writes JSON files with trailing newline
+- 3c40256d - prevent skillo from showing project skills as stale after install
 
 ## [v0.44.0] - 2026-06-30
 
@@ -49,26 +84,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - daebfcce - Add specs skill
+- 96fe7a3e - add tree view for list command (-t/--tree)
+- 4c772023 - add project-mode skill directories with two-scope architecture
 
 ### Changed
 - 18798705 - Update deps
 - 4f9815c1 - Bump trivy
 - b396bc19 - Remove agent-browser skill
 - 6d6b8415 - Add .agents/skills to .gitignore (favor skillo sync)
+- b8042e1a - Update skillo selections
+- dfe50743 - Run `go fix`
+- a71db481 - flatten package to exp/skillo root, drop cmd/ subdir
+- f937f3c6 - Add .skillo
 - 7a372144 - Update go.work.sum
+- 581727ff - Run `go fix`
 - dafb1370 - Update deps
 - 79771f93 - Update all changelogs
 
 ### Fixed
 - dd5462bd - Quote description to avoid YAML loading error
+- a3987139 - improve list output with headers and reliable version lookup
+- dc2ef76f - skip invalid skills during extraction instead of aborting
+- f1665efa - use go list -m -e -json with module cache fallback
+- 4443f76a - make list respect --user and --project flags
+- d8456369 - fall back to module cache when go list -m fails for module dir
+- 11e02765 - add go mod download before go list -m in add command
 
 ## [v0.42.0] - 2026-06-29
 
 ### Added
 - 8d9efdd2 - add go-gherkin-testing skill
+- a9335c65 - enhance CLI with user/project dirs and rich list output
+- 6c4543b8 - add skilldirs package and version tracking to manifest
 
 ### Changed
 - 5baab1c4 - Update go.sum
+- fafc522e - add BDD feature tests with godog
 - ae73b3c2 - Update all the changelogs
 
 ## [v0.41.0] - 2026-06-28
@@ -164,6 +215,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 486dcb8e - Update typst Taskfile and add *.pdf to .gitignore
 - f8438f1d - Retract v1.0.1
 
+### Fixed
+- 6ed0c4bf - accept string or array for allowed-tools in SKILL.md
+
 ## [v0.36.1] - 2026-06-11
 
 ### Fixed
@@ -231,6 +285,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 991531a9 - Bump go deps & run `go fix`
 - fc94dca9 - Various updates
 - b79367a9 - Tweak Taskfile
+- 8ccb22df - Run `go fix work`
 - ea813144 - Remove .beads
 - 5c7dca44 - Add lint:cuefmt
 - fdef2e59 - Switch to `test:go` prefixes
@@ -366,6 +421,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - fedd806e - Only create semver tags on main branch
+- 877027a4 - Remove outdated warning expectation in get test
 
 ## [v0.31.0] - 2026-04-04
 
@@ -396,6 +452,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 74f3f950 - initialize project with documentation and tools
 
 ### Changed
+- b9925414 - Fix broken URL
 - db1cdcf9 - Go module updates
 - ba35000a - Tweaks
 - d111bcf4 - Bump go deps

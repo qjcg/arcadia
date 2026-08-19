@@ -8,6 +8,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- 53b49e27 - Update deps
+
+## [v0.6.9] - 2026-07-28
+
+### Fixed
+- 11777814 - create fresh readline config on each stdin pipe reset
+
+## [v0.6.8] - 2026-07-28
+
+### Fixed
+- 72c01788 - reset stdin pipe before next readline call to avoid stale pipe reads
+
+## [v0.6.7] - 2026-07-28
+
+### Fixed
+- cd76e9a8 - prevent data race in piped command execution
+
+## [v0.6.6] - 2026-07-28
+
+### Fixed
+- eaa48464 - prevent terebra from hanging when running non-interactive commands
+
+## [v0.6.5] - 2026-07-28
+
+### Fixed
+- 2bc4dbc3 - prevent interactive TUI tools from losing keystrokes in terebra
+
+## [v0.6.4] - 2026-07-28
+
+### Fixed
+- f01b4291 - prevent interactive TUI tools from losing keystrokes in terebra
+
+## [v0.6.3] - 2026-07-27
+
+### Fixed
+- e52ebcd8 - prevent |& from double-printing errors to stderr
+
+## [v0.6.2] - 2026-07-27
+
+### Fixed
+- 0dabb4d6 - pipe pre-execution errors through |&
+
+## [v0.6.1] - 2026-07-27
+
+### Fixed
+- 85a4460c - make |& actually pipe stderr to the next command
+
+## [v0.6.0] - 2026-07-26
+
+### Added
+- ed4855fa - add exec builtin to replace shell process with an external command
+
+### Changed
+- 5b0ca43a - Update CHANGELOGs
 - d4208456 - Bump deps
 
 ## [v0.5.0] - 2026-07-19

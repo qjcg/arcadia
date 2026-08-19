@@ -5,12 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [v1.2.0] - 2026-08-18
 
 ### Added
-- cccad7bf - Add `--exclude` flag to filter modules by directory
+- 0703c0bb - make --exclude prune whole directory subtrees
+
+## [v1.1.0] - 2026-08-18
+
+### Added
+- cccad7bf - add --exclude flag to filter modules by directory
 
 ### Changed
+- e74157d3 - record --exclude flag in changelog
 - 53b49e27 - Update deps
 - 5b0ca43a - Update CHANGELOGs
 - e3946493 - Update CHANGELOGs

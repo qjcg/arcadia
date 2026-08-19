@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- 53b49e27 - Update deps
+
+## [v0.3.0] - 2026-08-06
+
+### Added
+- 52d9b671 - add awesome-lint CLI tool for linting awesome lists
+
+### Changed
+- 5b0ca43a - Update CHANGELOGs
 - e3946493 - Update CHANGELOGs
 - 0996a2a8 - Update CHANGELOGs
 - b10cc15a - Update CHANGELOGs
