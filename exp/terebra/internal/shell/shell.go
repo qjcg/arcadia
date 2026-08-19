@@ -47,6 +47,12 @@ type Shell struct {
 	stdinW          *os.File // write end of pipe (goroutine writes to this)
 	stdinDone       chan struct{}
 	stdinNeedsReset bool // set when stdin pipe was paused for an external command
+
+	// self-pipe used to interrupt the stdin copy goroutine without closing
+	// os.Stdin (closing a terminal fd in raw mode does not unblock a pending
+	// read, which deadlocked pauseStdinPipe/closeStdinPipe).
+	stopR *os.File
+	stopW *os.File
 }
 
 func (s *Shell) setExitCode(code int) {
@@ -198,20 +204,12 @@ func (s *Shell) Repl() error {
 	defer rl.Close()
 
 	for {
-		// If the stdin pipe was paused for an external command, reset it
-		// before the next readline call so readline reads from a fresh
-		// pipe, not the stale (write-end-closed) one.
+		// If the stdin pipe was paused for an external command, resume the
+		// copy goroutine on the same pipe. The pipe is not recreated, so
+		// any input already buffered in it is preserved.
 		if s.stdinNeedsReset {
 			s.stdinNeedsReset = false
-			rl.Close()
-			s.closeStdinPipe()
-			s.setupStdinPipe()
-			newRL, err := readline.NewEx(s.newReadlineConfig(histPath))
-			if err != nil {
-				return fmt.Errorf("readline: %v", err)
-			}
-			s.rl = newRL
-			rl = newRL
+			s.resumeStdinPipe()
 		}
 
 		rl.SetPrompt(s.prompt())
@@ -312,6 +310,11 @@ func (s *Shell) newReadlineConfig(histPath string) *readline.Config {
 // setupStdinPipe creates a pipe and starts a goroutine that copies
 // from os.Stdin into the pipe. Readline reads from the read end of
 // the pipe so we can interrupt it by closing the pipe.
+//
+// The pipe is created once and reused across external commands. The
+// copy goroutine is paused (not the pipe) when an external command
+// needs the terminal, so any input already buffered in the pipe is
+// preserved for the next readline call.
 func (s *Shell) setupStdinPipe() {
 	r, w, err := os.Pipe()
 	if err != nil {
@@ -323,83 +326,126 @@ func (s *Shell) setupStdinPipe() {
 	}
 	s.stdinR = r
 	s.stdinW = w
-	s.stdinDone = make(chan struct{})
 	s.Stdin = r // redirect all reads through the pipe so the goroutine is the sole os.Stdin reader
+	s.startStdinCopier()
+}
+
+// startStdinCopier launches the goroutine that copies os.Stdin into the
+// pipe. It can be stopped via pauseStdinPipe and restarted via
+// resumeStdinPipe without recreating the pipe.
+func (s *Shell) startStdinCopier() {
+	s.stdinDone = make(chan struct{})
+	stopR, stopW, err := os.Pipe()
+	if err != nil {
+		stopR, stopW = nil, nil
+	}
+	s.stopR = stopR
+	s.stopW = stopW
+	w := s.stdinW
 
 	go func() {
 		defer close(s.stdinDone)
 		buf := make([]byte, 4096)
+		stdinFd := int(os.Stdin.Fd())
 		for {
-			// Use a helper goroutine to read so we can detect
-			// when the pipe is closed (via s.stdinDone)
-			type readResult struct {
-				n   int
-				err error
+			// Wait for input on os.Stdin or the stop pipe. We cannot rely
+			// on closing os.Stdin to interrupt a pending read: in raw mode
+			// a terminal fd is not unblocked by close(), which deadlocked
+			// the old pause/close logic. So we select on a self-pipe.
+			rfds := &syscall.FdSet{}
+			FD_SET(stdinFd, rfds)
+			if stopR != nil {
+				FD_SET(int(stopR.Fd()), rfds)
 			}
-			ch := make(chan readResult, 1)
-			go func() {
-				n, err := os.Stdin.Read(buf)
-				ch <- readResult{n, err}
-			}()
-
-			select {
-			case r := <-ch:
-				if r.err != nil {
-					return
+			maxfd := stdinFd
+			if stopR != nil && int(stopR.Fd()) > maxfd {
+				maxfd = int(stopR.Fd())
+			}
+			n, err := syscall.Select(maxfd+1, rfds, nil, nil, nil)
+			if err != nil {
+				if err == syscall.EINTR {
+					continue
 				}
-				if _, err := w.Write(buf[:r.n]); err != nil {
-					return
-				}
-			case <-s.stdinDone:
 				return
+			}
+			if n == 0 {
+				continue
+			}
+			if stopR != nil && FD_ISSET(int(stopR.Fd()), rfds) {
+				return
+			}
+			if FD_ISSET(stdinFd, rfds) {
+				n, err := os.Stdin.Read(buf)
+				if err != nil {
+					return
+				}
+				if _, err := w.Write(buf[:n]); err != nil {
+					return
+				}
 			}
 		}
 	}()
 }
 
-// pauseStdinPipe stops the stdin pipe goroutine and restores direct stdin
-// without closing the read end (so readline can be reused after resuming).
+// FD_SET sets the bit for fd in the fd set.
+func FD_SET(fd int, set *syscall.FdSet) {
+	set.Bits[fd/64] |= 1 << (uint(fd) % 64)
+}
+
+// FD_ISSET reports whether the bit for fd is set.
+func FD_ISSET(fd int, set *syscall.FdSet) bool {
+	return set.Bits[fd/64]&(1<<(uint(fd)%64)) != 0
+}
+
+// pauseStdinPipe stops the stdin copy goroutine and restores direct stdin
+// so an external command can read the terminal. The pipe itself is kept
+// open so any buffered input is preserved.
 func (s *Shell) pauseStdinPipe() {
-	if s.stdinW != nil {
-		s.stdinW.Close()
-		s.stdinW = nil
-	}
 	if s.stdinDone != nil {
-		// Close stdin to unblock the goroutine's os.Stdin.Read(buf) so it
-		// can exit immediately instead of waiting for the user to type.
-		os.Stdin.Close()
+		if s.stopW != nil {
+			s.stopW.Write([]byte{0})
+		}
 		<-s.stdinDone
 		s.stdinDone = nil
-		// Reopen stdin from the terminal.
-		if f, err := os.OpenFile("/dev/tty", os.O_RDONLY, 0); err == nil {
-			os.Stdin = f
-		}
 	}
 	s.Stdin = os.Stdin
+}
+
+// resumeStdinPipe restarts the stdin copy goroutine on the existing pipe.
+func (s *Shell) resumeStdinPipe() {
+	if s.stdinR != nil && s.stdinR != os.Stdin {
+		s.startStdinCopier()
+		s.Stdin = s.stdinR
+	}
 }
 
 // closeStdinPipe closes the stdin pipe and waits for the copy goroutine
 // to exit.
 func (s *Shell) closeStdinPipe() {
+	if s.stdinDone != nil {
+		if s.stopW != nil {
+			s.stopW.Write([]byte{0})
+		}
+		<-s.stdinDone
+		s.stdinDone = nil
+	}
 	if s.stdinW != nil {
 		s.stdinW.Close()
-	}
-	if s.stdinDone != nil {
-		// Close stdin to unblock the goroutine's os.Stdin.Read(buf) so it
-		// can exit immediately instead of waiting for the user to type.
-		os.Stdin.Close()
-		<-s.stdinDone
-		// Reopen stdin from the terminal.
-		if f, err := os.OpenFile("/dev/tty", os.O_RDONLY, 0); err == nil {
-			os.Stdin = f
-		}
 	}
 	if s.stdinR != nil && s.stdinR != os.Stdin {
 		s.stdinR.Close()
 	}
+	if s.stopR != nil {
+		s.stopR.Close()
+	}
+	if s.stopW != nil {
+		s.stopW.Close()
+	}
 	s.stdinR = nil
 	s.stdinW = nil
 	s.stdinDone = nil
+	s.stopR = nil
+	s.stopW = nil
 	s.Stdin = os.Stdin // restore direct stdin after pipe is closed
 }
 
