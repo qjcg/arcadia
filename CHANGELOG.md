@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- 9a048264 - Remove unused .gitattributes
+- 4c193c05 - run changelog generation and version tagging as GitHub Actions
+- 5819007b - Update CHANGELOGs
 - e6f5cba4 - Bump sv version
 - 183dc16b - Bump sv to latest release
 - 89949d7a - Bump deps
