@@ -8,6 +8,7 @@ require (
 	charm.land/lipgloss/v2 v2.0.6
 	cuelang.org/go v0.17.1
 	github.com/chzyer/readline v1.5.1
+	github.com/creack/pty v1.1.24
 	github.com/rogpeppe/go-internal v1.16.0
 )
 
