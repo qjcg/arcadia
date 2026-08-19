@@ -67,7 +67,9 @@ sv next --all --exclude exp/roubaix --exclude cmd/sv
 sv current --all --exclude exp/roubaix,cmd/sv
 ```
 The `--exclude` flag is available on `next`, `current`, `bump`, and `changelog`. It
-matches the module's repo-relative path (e.g. `.` or `exp/roubaix`) and takes
+matches the module's repo-relative path (e.g. `.` or `exp/roubaix`) — either as an
+exact module path or as a directory subtree prefix that prunes every module beneath
+it (e.g. `--exclude skills` excludes all modules under `skills/`). It takes
 precedence over `--path` and `--all`.
 
 ## Documentation

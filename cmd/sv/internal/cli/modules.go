@@ -3,6 +3,7 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/qjcg/arcadia/cmd/sv/internal/discovery"
 )
@@ -40,21 +41,30 @@ func getModules(root string, modulePaths, excludes []string, allModules bool) ([
 	return filterModules(modules, excludes), nil
 }
 
-// filterModules removes any module whose name matches an entry in excludes.
-// Names are matched exactly against the module's repo-relative path (e.g. "." or "exp/foo").
+// filterModules removes modules that match an entry in excludes, either by
+// exact repo-relative path (e.g. "." or "exp/foo") or by directory subtree
+// prefix (e.g. "exp" also prunes "exp/roubaix", "exp/roubaix/internal", ...).
 func filterModules(modules []discovery.Module, excludes []string) []discovery.Module {
 	if len(excludes) == 0 {
 		return modules
 	}
-	excludeSet := make(map[string]bool, len(excludes))
-	for _, e := range excludes {
-		excludeSet[e] = true
-	}
 	filtered := make([]discovery.Module, 0, len(modules))
 	for _, m := range modules {
-		if !excludeSet[m.Name] {
+		if !isExcluded(m.Name, excludes) {
 			filtered = append(filtered, m)
 		}
 	}
 	return filtered
+}
+
+// isExcluded reports whether moduleName falls under any excluded path.
+// An exclude matches the module if the module's repo-relative path equals
+// the exclude, or begins with the exclude followed by a path separator.
+func isExcluded(moduleName string, excludes []string) bool {
+	for _, e := range excludes {
+		if moduleName == e || strings.HasPrefix(moduleName, e+"/") {
+			return true
+		}
+	}
+	return false
 }
