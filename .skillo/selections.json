@@ -1,8 +1,0 @@
-{
-  "github.com/anthropics/skills": [
-    "skill-creator"
-  ],
-  "github.com/vercel-labs/agent-browser": [
-    "agent-browser"
-  ]
-}
