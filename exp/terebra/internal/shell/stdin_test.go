@@ -79,3 +79,93 @@ func TestStdinCopierInterrupt(t *testing.T) {
 		t.Fatal("pauseStdinPipe deadlocked: copier was not interrupted by closing os.Stdin")
 	}
 }
+
+// TestStdinCopierForwardsData verifies the copier reads bytes from os.Stdin
+// and writes them to the stdin pipe.
+func TestStdinCopierForwardsData(t *testing.T) {
+	ptmx, tty, err := openPty()
+	if err != nil {
+		t.Skipf("no pty available: %v", err)
+	}
+	defer ptmx.Close()
+	defer tty.Close()
+
+	oldStdin := os.Stdin
+	os.Stdin = tty
+	defer func() { os.Stdin = oldStdin }()
+
+	if err := makeRaw(tty); err != nil {
+		t.Fatalf("makeRaw: %v", err)
+	}
+
+	s := New()
+	s.setupStdinPipe()
+	defer s.closeStdinPipe()
+
+	// Give the copier a moment to block in select on the pty.
+	time.Sleep(50 * time.Millisecond)
+
+	// Write data to the pty master; the copier should forward it to s.stdinR.
+	go func() {
+		ptmx.Write([]byte("hello"))
+	}()
+
+	// Read from the stdin pipe read end with a timeout.
+	buf := make([]byte, 16)
+	done := make(chan int, 1)
+	go func() {
+		n, _ := s.stdinR.Read(buf)
+		done <- n
+	}()
+	select {
+	case n := <-done:
+		if n == 0 {
+			t.Fatal("expected data forwarded")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("copier did not forward data")
+	}
+}
+
+// TestReplRunsCommand drives Repl with a pty-backed stdin, feeding a command
+// followed by Ctrl+D (EOF). A hard timeout prevents indefinite hangs.
+func TestReplRunsCommand(t *testing.T) {
+	ptmx, tty, err := openPty()
+	if err != nil {
+		t.Skipf("no pty: %v", err)
+	}
+	defer ptmx.Close()
+	defer tty.Close()
+
+	if err := makeRaw(tty); err != nil {
+		t.Fatalf("makeRaw: %v", err)
+	}
+
+	oldIn := os.Stdin
+	os.Stdin = tty
+	defer func() { os.Stdin = oldIn }()
+
+	s := newTestShell()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- s.Repl()
+	}()
+
+	// Feed a command, then Ctrl+D to exit the REPL.
+	go func() {
+		time.Sleep(150 * time.Millisecond)
+		ptmx.Write([]byte("echo hi\n"))
+		time.Sleep(100 * time.Millisecond)
+		ptmx.Write([]byte{0x04})
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("Repl did not exit")
+	}
+}

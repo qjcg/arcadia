@@ -30,9 +30,9 @@ tasks:
       - ./terebra
 
   test:
-    desc: Run all tests
+    desc: Run all tests (with race detector)
     cmds:
-      - go test ./... -v
+      - go test ./... -race
 
   test-parser:
     desc: Run parser tests only
@@ -43,6 +43,15 @@ tasks:
     desc: Run go vet
     cmds:
       - go vet ./...
+
+  crap:
+    desc: Run go-crap scan, fail if any function exceeds CRAP threshold
+    cmd: go tool go-crap scan {{.CLI_ARGS | default "--min 30 -t 30 --fail-above"}}
+
+  crap-baseline:
+    desc: Regenerate the go-crap baseline report
+    cmds:
+      - go tool go-crap scan --min 0 -t 30 -f json -o baseline.json
 
   clean:
     desc: Clean build artifacts

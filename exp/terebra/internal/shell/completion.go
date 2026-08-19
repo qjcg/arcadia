@@ -219,20 +219,7 @@ func (s *Shell) expandVars(input string) string {
 	for i < len(input) {
 		// Handle backtick command substitution
 		if input[i] == '`' {
-			i++ // skip opening backtick
-			start := i
-			for i < len(input) && input[i] != '`' {
-				i++
-			}
-			cmdStr := input[start:i]
-			if i < len(input) {
-				i++ // skip closing backtick
-			}
-			// Execute the command and capture output
-			output, err := s.captureCommandOutput(cmdStr)
-			if err == nil {
-				result.WriteString(strings.TrimRight(output, "\n"))
-			}
+			i = s.expandBacktick(input, i, &result)
 			continue
 		}
 
@@ -267,113 +254,13 @@ func (s *Shell) expandVars(input string) string {
 
 		// $((...)) arithmetic expansion
 		if ch == '(' && i+1 < len(input) && input[i+1] == '(' {
-			i += 2 // skip ((
-			start := i
-			// depth starts at 2 (for the two (( that were skipped)
-			// so we need two )) to close
-			depth := 2
-			for i < len(input) && depth > 0 {
-				if input[i] == '(' {
-					depth++
-				} else if input[i] == ')' {
-					depth--
-				}
-				if depth > 0 {
-					i++
-				}
-			}
-			expr := input[start:i]
-			if i < len(input) {
-				i++ // skip the final )
-			}
-			val := s.evalArithmetic(expr)
-			result.WriteString(fmt.Sprintf("%d", val))
+			i = s.expandArithmetic(input, i, &result)
 			continue
 		}
 
 		// ${VAR} or ${name[idx]} or ${#name[@]}
 		if ch == '{' {
-			i++ // skip {
-			start := i
-
-			// Check for ${#...} (length prefix)
-			isLength := false
-			if i < len(input) && input[i] == '#' {
-				isLength = true
-				i++
-				start = i
-			}
-
-			// Read until matching }
-			depth := 1
-			for i < len(input) && depth > 0 {
-				if input[i] == '{' {
-					depth++
-				} else if input[i] == '}' {
-					depth--
-				}
-				if depth > 0 {
-					i++
-				}
-			}
-			inner := input[start:i]
-			if i < len(input) {
-				i++ // skip }
-			}
-
-			// Parse inner: name[idx] or name or string operations
-			if isLength {
-				// ${#var} - length
-				if strings.HasSuffix(inner, "[@]") || strings.HasSuffix(inner, "[*]") {
-					name := strings.TrimSuffix(strings.TrimSuffix(inner, "[@]"), "[*]")
-					val := s.getArrayVar(name, "#")
-					result.WriteString(val)
-				} else {
-					val := s.getVar(inner)
-					result.WriteString(fmt.Sprintf("%d", len(val)))
-				}
-				continue
-			}
-
-			// String manipulation operations
-			if processed := s.expandStringOp(inner, &result); processed {
-				continue
-			}
-
-			// Array access: name[idx] or !name[idx] (list keys)
-			if before, after, ok := strings.Cut(inner, "["); ok {
-				name := before
-				// Strip ! prefix for key listing
-				listKeys := false
-				if strings.HasPrefix(name, "!") {
-					listKeys = true
-					name = strings.TrimPrefix(name, "!")
-				}
-				rest := after
-				before, _, ok := strings.Cut(rest, "]")
-				if ok {
-					index := before
-					if listKeys {
-						val := s.getArrayVar(name, "!"+index)
-						result.WriteString(val)
-					} else {
-						val := s.getArrayVar(name, index)
-						result.WriteString(val)
-					}
-					continue
-				}
-			}
-
-			// Array name with [@] or [*]
-			if strings.HasSuffix(inner, "[@]") || strings.HasSuffix(inner, "[*]") {
-				name := strings.TrimSuffix(strings.TrimSuffix(inner, "[@]"), "[*]")
-				val := s.getArrayVar(name, "@")
-				result.WriteString(val)
-				continue
-			}
-
-			// Regular variable
-			result.WriteString(s.getVar(inner))
+			i = s.expandBraced(input, i, &result)
 			continue
 		}
 
@@ -409,111 +296,279 @@ func (s *Shell) expandVars(input string) string {
 	return result.String()
 }
 
+// expandBacktick handles a backtick command substitution starting at input[i]
+// (which points at the opening backtick). It returns the new index.
+func (s *Shell) expandBacktick(input string, i int, result *strings.Builder) int {
+	i++ // skip opening backtick
+	start := i
+	for i < len(input) && input[i] != '`' {
+		i++
+	}
+	cmdStr := input[start:i]
+	if i < len(input) {
+		i++ // skip closing backtick
+	}
+	// Execute the command and capture output
+	output, err := s.captureCommandOutput(cmdStr)
+	if err == nil {
+		result.WriteString(strings.TrimRight(output, "\n"))
+	}
+	return i
+}
+
+// expandArithmetic handles a $((...)) arithmetic expansion starting at input[i]
+// (which points at the first '(' of the double paren). It returns the new index.
+func (s *Shell) expandArithmetic(input string, i int, result *strings.Builder) int {
+	i += 2 // skip ((
+	start := i
+	// depth starts at 2 (for the two (( that were skipped)
+	// so we need two )) to close
+	depth := 2
+	for i < len(input) && depth > 0 {
+		if input[i] == '(' {
+			depth++
+		} else if input[i] == ')' {
+			depth--
+		}
+		if depth > 0 {
+			i++
+		}
+	}
+	expr := input[start:i]
+	if i < len(input) {
+		i++ // skip the final )
+	}
+	val := s.evalArithmetic(expr)
+	result.WriteString(fmt.Sprintf("%d", val))
+	return i
+}
+
+// expandBraced handles a ${...} expansion starting at input[i] (which points
+// at the '{'). It returns the new index.
+func (s *Shell) expandBraced(input string, i int, result *strings.Builder) int {
+	i++ // skip {
+	start := i
+
+	// Check for ${#...} (length prefix)
+	isLength := false
+	if i < len(input) && input[i] == '#' {
+		isLength = true
+		i++
+		start = i
+	}
+
+	// Read until matching }
+	depth := 1
+	for i < len(input) && depth > 0 {
+		if input[i] == '{' {
+			depth++
+		} else if input[i] == '}' {
+			depth--
+		}
+		if depth > 0 {
+			i++
+		}
+	}
+	inner := input[start:i]
+	if i < len(input) {
+		i++ // skip }
+	}
+
+	// Parse inner: name[idx] or name or string operations
+	if isLength {
+		// ${#var} - length
+		if strings.HasSuffix(inner, "[@]") || strings.HasSuffix(inner, "[*]") {
+			name := strings.TrimSuffix(strings.TrimSuffix(inner, "[@]"), "[*]")
+			val := s.getArrayVar(name, "#")
+			result.WriteString(val)
+		} else {
+			val := s.getVar(inner)
+			result.WriteString(fmt.Sprintf("%d", len(val)))
+		}
+		return i
+	}
+
+	// String manipulation operations
+	if processed := s.expandStringOp(inner, result); processed {
+		return i
+	}
+
+	// Array access: name[idx] or !name[idx] (list keys)
+	if before, after, ok := strings.Cut(inner, "["); ok {
+		name := before
+		// Strip ! prefix for key listing
+		listKeys := false
+		if strings.HasPrefix(name, "!") {
+			listKeys = true
+			name = strings.TrimPrefix(name, "!")
+		}
+		rest := after
+		before, _, ok := strings.Cut(rest, "]")
+		if ok {
+			index := before
+			if listKeys {
+				result.WriteString(s.getArrayVar(name, "!"+index))
+			} else {
+				result.WriteString(s.getArrayVar(name, index))
+			}
+			return i
+		}
+	}
+
+	// Array name with [@] or [*]
+	if strings.HasSuffix(inner, "[@]") || strings.HasSuffix(inner, "[*]") {
+		name := strings.TrimSuffix(strings.TrimSuffix(inner, "[@]"), "[*]")
+		result.WriteString(s.getArrayVar(name, "@"))
+		return i
+	}
+
+	// Regular variable
+	result.WriteString(s.getVar(inner))
+	return i
+}
+
+// expandStringOp handles string manipulation operations in ${...}.
+// Returns true if the operation was handled.
 // expandStringOp handles string manipulation operations in ${...}.
 // Returns true if the operation was handled.
 func (s *Shell) expandStringOp(inner string, result *strings.Builder) bool {
-	// ${var:offset:length} - substring
-	if before, after, ok := strings.Cut(inner, ":"); ok {
-		// Only if ':' is not part of a valid variable name
-		name := before
-		rest := after
-		val := s.getVar(name)
-		parts := strings.SplitN(rest, ":", 2)
-		offset := 0
-		length := len(val)
-		if len(parts[0]) > 0 {
-			fmt.Sscanf(parts[0], "%d", &offset)
-		}
-		if offset < 0 {
-			offset = len(val) + offset
-		}
-		if offset < 0 {
-			offset = 0
-		}
-		if len(parts) > 1 && len(parts[1]) > 0 {
-			fmt.Sscanf(parts[1], "%d", &length)
-		}
-		if offset >= len(val) {
-			result.WriteString("")
-		} else if offset+length >= len(val) {
-			result.WriteString(val[offset:])
-		} else {
-			result.WriteString(val[offset : offset+length])
-		}
+	if s.expandSubstring(inner, result) {
 		return true
 	}
+	if s.expandRemovePrefix(inner, result) {
+		return true
+	}
+	if s.expandRemoveSuffix(inner, result) {
+		return true
+	}
+	if s.expandReplace(inner, result) {
+		return true
+	}
+	if s.expandCase(inner, result) {
+		return true
+	}
+	return false
+}
 
-	// ${var#pattern} - remove shortest prefix
-	if idx := strings.IndexByte(inner, '#'); idx >= 0 && idx > 0 {
-		if idx+1 < len(inner) && inner[idx+1] == '#' {
-			// ${var##pattern} - remove longest prefix
-			name := inner[:idx]
-			pattern := inner[idx+2:]
-			val := s.getVar(name)
-			for strings.HasPrefix(val, pattern) {
-				val = val[len(pattern):]
-			}
-			result.WriteString(val)
-			return true
-		}
+// expandSubstring handles ${var:offset:length}.
+func (s *Shell) expandSubstring(inner string, result *strings.Builder) bool {
+	before, after, ok := strings.Cut(inner, ":")
+	if !ok {
+		return false
+	}
+	name := before
+	rest := after
+	val := s.getVar(name)
+	parts := strings.SplitN(rest, ":", 2)
+	offset := 0
+	length := len(val)
+	if len(parts[0]) > 0 {
+		fmt.Sscanf(parts[0], "%d", &offset)
+	}
+	if offset < 0 {
+		offset = len(val) + offset
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	if len(parts) > 1 && len(parts[1]) > 0 {
+		fmt.Sscanf(parts[1], "%d", &length)
+	}
+	if offset >= len(val) {
+		result.WriteString("")
+	} else if offset+length >= len(val) {
+		result.WriteString(val[offset:])
+	} else {
+		result.WriteString(val[offset : offset+length])
+	}
+	return true
+}
+
+// expandRemovePrefix handles ${var#pattern} and ${var##pattern}.
+func (s *Shell) expandRemovePrefix(inner string, result *strings.Builder) bool {
+	idx := strings.IndexByte(inner, '#')
+	if idx < 0 || idx == 0 {
+		return false
+	}
+	if idx+1 < len(inner) && inner[idx+1] == '#' {
+		// ${var##pattern} - remove longest prefix
 		name := inner[:idx]
-		pattern := inner[idx+1:]
+		pattern := inner[idx+2:]
 		val := s.getVar(name)
-		if strings.HasPrefix(val, pattern) {
+		for strings.HasPrefix(val, pattern) {
 			val = val[len(pattern):]
 		}
 		result.WriteString(val)
 		return true
 	}
+	name := inner[:idx]
+	pattern := inner[idx+1:]
+	val := s.getVar(name)
+	if strings.HasPrefix(val, pattern) {
+		val = val[len(pattern):]
+	}
+	result.WriteString(val)
+	return true
+}
 
-	// ${var%pattern} - remove shortest suffix
-	if idx := strings.IndexByte(inner, '%'); idx >= 0 && idx > 0 {
-		if idx+1 < len(inner) && inner[idx+1] == '%' {
-			// ${var%%pattern} - remove longest suffix
-			name := inner[:idx]
-			pattern := inner[idx+2:]
-			val := s.getVar(name)
-			for strings.HasSuffix(val, pattern) {
-				val = val[:len(val)-len(pattern)]
-			}
-			result.WriteString(val)
-			return true
-		}
+// expandRemoveSuffix handles ${var%pattern} and ${var%%pattern}.
+func (s *Shell) expandRemoveSuffix(inner string, result *strings.Builder) bool {
+	idx := strings.IndexByte(inner, '%')
+	if idx < 0 || idx == 0 {
+		return false
+	}
+	if idx+1 < len(inner) && inner[idx+1] == '%' {
+		// ${var%%pattern} - remove longest suffix
 		name := inner[:idx]
-		pattern := inner[idx+1:]
+		pattern := inner[idx+2:]
 		val := s.getVar(name)
-		if strings.HasSuffix(val, pattern) {
+		for strings.HasSuffix(val, pattern) {
 			val = val[:len(val)-len(pattern)]
 		}
 		result.WriteString(val)
 		return true
 	}
+	name := inner[:idx]
+	pattern := inner[idx+1:]
+	val := s.getVar(name)
+	if strings.HasSuffix(val, pattern) {
+		val = val[:len(val)-len(pattern)]
+	}
+	result.WriteString(val)
+	return true
+}
 
-	// ${var/pattern/replacement} - replace first
-	if idx := strings.IndexByte(inner, '/'); idx >= 0 && idx > 0 {
-		name := inner[:idx]
-		rest := inner[idx+1:]
-		if len(rest) > 0 && rest[0] == '/' {
-			// ${var//pattern/replacement} - replace all
-			parts := strings.SplitN(rest[1:], "/", 2)
-			if len(parts) == 2 {
-				val := s.getVar(name)
-				val = strings.ReplaceAll(val, parts[0], parts[1])
-				result.WriteString(val)
-				return true
-			}
-		} else {
-			parts := strings.SplitN(rest, "/", 2)
-			if len(parts) == 2 {
-				val := s.getVar(name)
-				val = strings.Replace(val, parts[0], parts[1], 1)
-				result.WriteString(val)
-				return true
-			}
+// expandReplace handles ${var/pattern/replacement} and ${var//pattern/replacement}.
+func (s *Shell) expandReplace(inner string, result *strings.Builder) bool {
+	idx := strings.IndexByte(inner, '/')
+	if idx < 0 || idx == 0 {
+		return false
+	}
+	name := inner[:idx]
+	rest := inner[idx+1:]
+	if len(rest) > 0 && rest[0] == '/' {
+		// ${var//pattern/replacement} - replace all
+		parts := strings.SplitN(rest[1:], "/", 2)
+		if len(parts) == 2 {
+			val := s.getVar(name)
+			val = strings.ReplaceAll(val, parts[0], parts[1])
+			result.WriteString(val)
+			return true
+		}
+	} else {
+		parts := strings.SplitN(rest, "/", 2)
+		if len(parts) == 2 {
+			val := s.getVar(name)
+			val = strings.Replace(val, parts[0], parts[1], 1)
+			result.WriteString(val)
+			return true
 		}
 	}
+	return false
+}
 
-	// ${var^} - uppercase first, ${var^^} - uppercase all
+// expandCase handles ${var^}, ${var^^}, ${var,}, and ${var,,}.
+func (s *Shell) expandCase(inner string, result *strings.Builder) bool {
 	if strings.HasSuffix(inner, "^^") {
 		name := inner[:len(inner)-2]
 		val := s.getVar(name)
@@ -531,8 +586,6 @@ func (s *Shell) expandStringOp(inner string, result *strings.Builder) bool {
 		result.WriteString(val)
 		return true
 	}
-
-	// ${var,} - lowercase first, ${var,,} - lowercase all
 	if strings.HasSuffix(inner, ",,") {
 		name := inner[:len(inner)-2]
 		val := s.getVar(name)
@@ -550,7 +603,6 @@ func (s *Shell) expandStringOp(inner string, result *strings.Builder) bool {
 		result.WriteString(val)
 		return true
 	}
-
 	return false
 }
 
@@ -750,53 +802,7 @@ func (s *Shell) tryArrayAssignment(name string, args []string) bool {
 	// The parser splits "arr=(1 2 3)" into name="arr=(1", args=["2", "3)"]
 	// Also handles arr=([key]=val ...) for associative arrays
 	if strings.Contains(name, "=(") {
-		before, after, _ := strings.Cut(name, "=(")
-		arrName := before
-		if !isIdent(arrName) {
-			return false
-		}
-		// The first value might be part of the name after =(
-		firstVal := after
-		var values []string
-		if firstVal != "" {
-			values = append(values, firstVal)
-		}
-		for _, arg := range args {
-			v := strings.TrimSuffix(arg, ")")
-			values = append(values, v)
-		}
-		// Remove trailing empty string from last element if it ended with )
-		if len(values) > 0 && strings.HasSuffix(args[len(args)-1], ")") {
-			last := values[len(values)-1]
-			if last == "" {
-				values = values[:len(values)-1]
-			}
-		}
-		// Check if values look like [key]=value (associative array)
-		isAssoc := false
-		for _, v := range values {
-			if strings.HasPrefix(v, "[") && strings.Contains(v, "]=") {
-				isAssoc = true
-				break
-			}
-		}
-		if isAssoc {
-			m := make(map[string]string)
-			for _, v := range values {
-				if after0, ok := strings.CutPrefix(v, "["); ok {
-					// [key]=value
-					rest := after0
-					if before, after, ok := strings.Cut(rest, "]="); ok {
-						m[before] = after
-					}
-				}
-			}
-			s.assoc[arrName] = m
-			delete(s.arrays, arrName)
-		} else {
-			s.setArray(arrName, values)
-		}
-		return true
+		return s.parseArrayAssign(name, args)
 	}
 
 	if !isIdent(name) {
@@ -809,31 +815,90 @@ func (s *Shell) tryArrayAssignment(name string, args []string) bool {
 	// Check for arr=( values...) pattern (with space after =()
 	first := args[0]
 	if strings.HasPrefix(first, "=(") {
-		var values []string
-		if first == "=(" {
-			for _, arg := range args[1:] {
-				v := strings.TrimSuffix(arg, ")")
-				values = append(values, v)
-			}
-		} else {
-			val := strings.TrimPrefix(first, "=(")
-			values = append(values, val)
-			for _, arg := range args[1:] {
-				v := strings.TrimSuffix(arg, ")")
-				values = append(values, v)
-			}
-		}
-		if len(values) > 0 && strings.HasSuffix(args[len(args)-1], ")") {
-			last := values[len(values)-1]
-			if last == "" {
-				values = values[:len(values)-1]
-			}
-		}
-		s.setArray(name, values)
-		return true
+		return s.parseArrayAssignSpaced(name, args)
 	}
 
 	return false
+}
+
+// parseArrayAssign handles the arr=(...) pattern where the opening paren is
+// part of the command name (e.g. name="arr=(1", args=["2", "3)"]).
+func (s *Shell) parseArrayAssign(name string, args []string) bool {
+	before, after, _ := strings.Cut(name, "=(")
+	arrName := before
+	if !isIdent(arrName) {
+		return false
+	}
+	// The first value might be part of the name after =(
+	firstVal := after
+	var values []string
+	if firstVal != "" {
+		values = append(values, firstVal)
+	}
+	for _, arg := range args {
+		v := strings.TrimSuffix(arg, ")")
+		values = append(values, v)
+	}
+	// Remove trailing empty string from last element if it ended with )
+	if len(values) > 0 && strings.HasSuffix(args[len(args)-1], ")") {
+		last := values[len(values)-1]
+		if last == "" {
+			values = values[:len(values)-1]
+		}
+	}
+	// Check if values look like [key]=value (associative array)
+	isAssoc := false
+	for _, v := range values {
+		if strings.HasPrefix(v, "[") && strings.Contains(v, "]=") {
+			isAssoc = true
+			break
+		}
+	}
+	if isAssoc {
+		m := make(map[string]string)
+		for _, v := range values {
+			if after0, ok := strings.CutPrefix(v, "["); ok {
+				// [key]=value
+				rest := after0
+				if before, after, ok := strings.Cut(rest, "]="); ok {
+					m[before] = after
+				}
+			}
+		}
+		s.assoc[arrName] = m
+		delete(s.arrays, arrName)
+	} else {
+		s.setArray(arrName, values)
+	}
+	return true
+}
+
+// parseArrayAssignSpaced handles the arr=( values...) pattern where the
+// opening paren is the first argument (e.g. args[0]="=(").
+func (s *Shell) parseArrayAssignSpaced(name string, args []string) bool {
+	first := args[0]
+	var values []string
+	if first == "=(" {
+		for _, arg := range args[1:] {
+			v := strings.TrimSuffix(arg, ")")
+			values = append(values, v)
+		}
+	} else {
+		val := strings.TrimPrefix(first, "=(")
+		values = append(values, val)
+		for _, arg := range args[1:] {
+			v := strings.TrimSuffix(arg, ")")
+			values = append(values, v)
+		}
+	}
+	if len(values) > 0 && strings.HasSuffix(args[len(args)-1], ")") {
+		last := values[len(values)-1]
+		if last == "" {
+			values = values[:len(values)-1]
+		}
+	}
+	s.setArray(name, values)
+	return true
 }
 
 // parseArrayElemAssign parses arr[idx]=value from a command name.

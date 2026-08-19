@@ -108,7 +108,7 @@ func (m fuzzyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyHome:
 			m.query.SetValue("")
 			m.query.SetCursor(0)
-			return m, m.filter()
+			return m.filter()
 
 		case tea.KeyEnd:
 			m.query.SetCursor(len(m.query.Value()))
@@ -119,18 +119,20 @@ func (m fuzzyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var cmd tea.Cmd
 			m.query, cmd = m.query.Update(msg)
 			if cmd != nil {
-				return m, tea.Batch(cmd, m.filter())
+				m, fcmd := m.filter()
+				return m, tea.Batch(cmd, fcmd)
 			}
-			return m, m.filter()
+			return m.filter()
 
 		default:
 			// Let the textinput handle it
 			var cmd tea.Cmd
 			m.query, cmd = m.query.Update(msg)
 			if cmd != nil {
-				return m, tea.Batch(cmd, m.filter())
+				m, fcmd := m.filter()
+				return m, tea.Batch(cmd, fcmd)
 			}
-			return m, m.filter()
+			return m.filter()
 		}
 
 	case tea.InterruptMsg:
@@ -143,15 +145,29 @@ func (m fuzzyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.query, cmd = m.query.Update(msg)
 	if cmd != nil {
-		return m, tea.Batch(cmd, m.filter())
+		m, fcmd := m.filter()
+		return m, tea.Batch(cmd, fcmd)
 	}
-	return m, m.filter()
+	return m.filter()
 }
 
-func (m fuzzyModel) filter() tea.Cmd {
-	q := m.query.Value()
+func (m fuzzyModel) filter() (fuzzyModel, tea.Cmd) {
+	m.filtered = filterEntries(m.entries, m.query.Value())
+	if m.selected >= len(m.filtered) {
+		m.selected = len(m.filtered) - 1
+	}
+	if m.selected < 0 && len(m.filtered) > 0 {
+		m.selected = 0
+	}
+
+	return m, nil
+}
+
+// filterEntries filters and scores entries against a query, returning the
+// best matches sorted by descending score (capped at maxResults).
+func filterEntries(entries []string, q string) []filteredEntry {
 	filtered := make([]filteredEntry, 0, maxResults)
-	for _, entry := range m.entries {
+	for _, entry := range entries {
 		if ok, score := fuzzyMatch(entry, q); ok {
 			filtered = append(filtered, filteredEntry{entry, score})
 		}
@@ -170,15 +186,7 @@ func (m fuzzyModel) filter() tea.Cmd {
 		filtered = filtered[:maxResults]
 	}
 
-	m.filtered = filtered
-	if m.selected >= len(filtered) {
-		m.selected = len(filtered) - 1
-	}
-	if m.selected < 0 && len(filtered) > 0 {
-		m.selected = 0
-	}
-
-	return nil
+	return filtered
 }
 
 func (m fuzzyModel) View() tea.View {

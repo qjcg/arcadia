@@ -195,55 +195,7 @@ func parseRedirect(tok Token, l *Lexer) (*Redirect, error) {
 
 	// For heredocs, read the delimiter and then the heredoc content
 	if r.Type == RedirectHeredoc || r.Type == RedirectHeredocDash {
-		next := l.NextToken()
-		if next.Type != TokenWord {
-			return nil, fmt.Errorf("expected heredoc delimiter after %s, got %s", tok.Type, next)
-		}
-		delimiter := next.Value
-		// Strip quotes from delimiter to determine if expansion is needed
-		quoted := false
-		if (len(delimiter) >= 2 && delimiter[0] == '\'' && delimiter[len(delimiter)-1] == '\'') ||
-			(len(delimiter) >= 2 && delimiter[0] == '"' && delimiter[len(delimiter)-1] == '"') {
-			quoted = true
-			delimiter = delimiter[1 : len(delimiter)-1]
-		}
-		r.Quoted = quoted
-		r.File = delimiter
-		// Read heredoc content from remaining input
-		var content strings.Builder
-		for l.pos < len(l.input) {
-			// Skip to next line
-			for l.pos < len(l.input) && l.input[l.pos] != '\n' {
-				l.pos++
-			}
-			if l.pos < len(l.input) {
-				l.pos++ // skip \n
-			}
-			// Read the next line
-			lineStart := l.pos
-			for l.pos < len(l.input) && l.input[l.pos] != '\n' {
-				l.pos++
-			}
-			line := l.input[lineStart:l.pos]
-			// Check for delimiter
-			trimmed := line
-			if r.Type == RedirectHeredocDash {
-				trimmed = strings.TrimLeft(line, "\t")
-			}
-			if trimmed == delimiter {
-				break
-			}
-			if content.Len() > 0 {
-				content.WriteByte('\n')
-			}
-			content.WriteString(line)
-		}
-		// Add trailing newline (the newline before the delimiter)
-		if content.Len() > 0 {
-			content.WriteByte('\n')
-		}
-		r.Content = content.String()
-		return r, nil
+		return parseHeredoc(r, tok, l)
 	}
 
 	// For here-strings, read the next word as the content
@@ -262,6 +214,59 @@ func parseRedirect(tok Token, l *Lexer) (*Redirect, error) {
 	}
 	r.File = next.Value
 
+	return r, nil
+}
+
+// parseHeredoc reads the delimiter and body of a heredoc redirect.
+func parseHeredoc(r *Redirect, tok Token, l *Lexer) (*Redirect, error) {
+	next := l.NextToken()
+	if next.Type != TokenWord {
+		return nil, fmt.Errorf("expected heredoc delimiter after %s, got %s", tok.Type, next)
+	}
+	delimiter := next.Value
+	// Strip quotes from delimiter to determine if expansion is needed
+	quoted := false
+	if (len(delimiter) >= 2 && delimiter[0] == '\'' && delimiter[len(delimiter)-1] == '\'') ||
+		(len(delimiter) >= 2 && delimiter[0] == '"' && delimiter[len(delimiter)-1] == '"') {
+		quoted = true
+		delimiter = delimiter[1 : len(delimiter)-1]
+	}
+	r.Quoted = quoted
+	r.File = delimiter
+	// Read heredoc content from remaining input
+	var content strings.Builder
+	for l.pos < len(l.input) {
+		// Skip to next line
+		for l.pos < len(l.input) && l.input[l.pos] != '\n' {
+			l.pos++
+		}
+		if l.pos < len(l.input) {
+			l.pos++ // skip \n
+		}
+		// Read the next line
+		lineStart := l.pos
+		for l.pos < len(l.input) && l.input[l.pos] != '\n' {
+			l.pos++
+		}
+		line := l.input[lineStart:l.pos]
+		// Check for delimiter
+		trimmed := line
+		if r.Type == RedirectHeredocDash {
+			trimmed = strings.TrimLeft(line, "\t")
+		}
+		if trimmed == delimiter {
+			break
+		}
+		if content.Len() > 0 {
+			content.WriteByte('\n')
+		}
+		content.WriteString(line)
+	}
+	// Add trailing newline (the newline before the delimiter)
+	if content.Len() > 0 {
+		content.WriteByte('\n')
+	}
+	r.Content = content.String()
 	return r, nil
 }
 

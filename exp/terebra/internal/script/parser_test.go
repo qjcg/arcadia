@@ -201,3 +201,33 @@ func TestParseComments(t *testing.T) {
 		t.Fatalf("expected CommandStmt")
 	}
 }
+
+func TestParseTryCatch(t *testing.T) {
+	input := "try\necho 1\ncatch\necho 2\nend"
+	script, err := Parse(input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(script.Stmts) != 1 {
+		t.Fatalf("expected 1 statement, got %d", len(script.Stmts))
+	}
+	ts, ok := script.Stmts[0].(*TryStmt)
+	if !ok {
+		t.Fatalf("expected TryStmt, got %T", script.Stmts[0])
+	}
+	if len(ts.Try) != 1 || len(ts.Catch) != 1 {
+		t.Fatalf("expected 1 try + 1 catch stmt, got %d + %d", len(ts.Try), len(ts.Catch))
+	}
+}
+
+func TestParseTryNoCatch(t *testing.T) {
+	input := "try\necho 1\nend"
+	script, err := Parse(input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	ts := script.Stmts[0].(*TryStmt)
+	if len(ts.Catch) != 0 {
+		t.Fatalf("expected no catch, got %d", len(ts.Catch))
+	}
+}

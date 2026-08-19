@@ -206,59 +206,8 @@ func (s *Shell) executeAugerWithEncoder(pipe *parser.Pipeline) error {
 
 func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
 	// Handle temporary env var assignments: FOO=bar echo $FOO
-	// Scan the command name and leading args for name=value patterns.
-	// When followed by a command, the env vars are set only for that command.
-	var restoreEnv []struct {
-		name    string
-		value   string
-		existed bool
-	}
-	if strings.Contains(cmd.Name, "=") && !strings.HasPrefix(cmd.Name, "-") {
-		parts := strings.SplitN(cmd.Name, "=", 2)
-		if len(parts) == 2 && isIdent(parts[0]) && !strings.HasPrefix(parts[1], "(") {
-			type envPair struct{ name, value string }
-			var envs []envPair
-			envs = append(envs, envPair{parts[0], parts[1]})
-			var remainingArgs []string
-			for _, arg := range cmd.Args {
-				if strings.Contains(arg, "=") && !strings.HasPrefix(arg, "-") {
-					p := strings.SplitN(arg, "=", 2)
-					if len(p) == 2 && isIdent(p[0]) {
-						envs = append(envs, envPair{p[0], p[1]})
-						continue
-					}
-				}
-				remainingArgs = append(remainingArgs, arg)
-			}
-			// Only treat as temporary if there's a command to run
-			if len(remainingArgs) > 0 {
-				for _, e := range envs {
-					oldVal, existed := s.vars[e.name]
-					restoreEnv = append(restoreEnv, struct {
-						name    string
-						value   string
-						existed bool
-					}{e.name, oldVal, existed})
-					s.setVar(e.name, e.value)
-					s.exportVar(e.name)
-				}
-				cmd.Name = remainingArgs[0]
-				cmd.Args = remainingArgs[1:]
-				defer func() {
-					for _, re := range restoreEnv {
-						if re.existed {
-							s.vars[re.name] = re.value
-						} else {
-							delete(s.vars, re.name)
-						}
-						_ = os.Unsetenv(re.name)
-						if re.existed && re.value != "" {
-							os.Setenv(re.name, re.value)
-						}
-					}
-				}()
-			}
-		}
+	if restore, applied := s.applyTempEnv(cmd); applied {
+		defer restore()
 	}
 
 	// Run expansion pipeline: brace expansion → variable expansion
@@ -275,52 +224,23 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 	}
 
 	// --explain flag: dry-run mode
-	if expandedName == "--explain" || (len(expandedArgs) > 0 && expandedArgs[0] == "--explain") {
-		actualName := expandedName
-		if actualName == "--explain" {
-			actualName = expandedArgs[0]
-			expandedArgs = expandedArgs[1:]
-		} else {
-			expandedArgs = expandedArgs[1:]
-		}
-		fmt.Fprintf(s.Stdout, "# would execute: %s", actualName)
-		for _, arg := range expandedArgs {
-			fmt.Fprintf(s.Stdout, " %s", arg)
-		}
-		fmt.Fprintln(s.Stdout)
+	if s.handleExplain(expandedName, expandedArgs) {
 		return nil
 	}
 
 	// Expand aliases
-	if alias, ok := s.aliases[expandedName]; ok {
-		aliasParts := strings.Fields(alias)
-		if len(aliasParts) > 0 {
-			expandedName = aliasParts[0]
-			expandedArgs = append(aliasParts[1:], expandedArgs...)
-		}
-	}
+	expandedName, expandedArgs = s.expandAlias(expandedName, expandedArgs)
 
-	// Check for array assignment: name=(values ...)
-	if s.tryArrayAssignment(expandedName, expandedArgs) {
+	// Check for array/variable assignment
+	if s.handleAssignment(expandedName, expandedArgs) {
 		return nil
 	}
 
-	// Check for variable assignment: name=value
-	if len(expandedArgs) == 0 && strings.Contains(expandedName, "=") && !strings.HasPrefix(expandedName, "-") {
-		parts := strings.SplitN(expandedName, "=", 2)
-		if len(parts) == 2 && isIdent(parts[0]) {
-			// Don't expand $(...) in PS1 — it's evaluated on prompt render
-			s.setVar(parts[0], parts[1])
-			return nil
-		}
-	}
-
-	// Expand $(...) command substitution in name and args
+	// Expand $(...) command substitution in name and args.
 	// Skip for export/readonly args — variable assignment values should
 	// preserve $(...) for dynamic evaluation (e.g. PS1='$(oh-my-posh ...)')
 	if expandedName == "export" || expandedName == "readonly" {
 		expandedName = s.expandCmdSubst(expandedName)
-		// Don't expand $(...) in the args — they're assignment values
 	} else {
 		expandedName = s.expandCmdSubst(expandedName)
 		for i, arg := range expandedArgs {
@@ -354,7 +274,6 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 
 	// Check user-defined functions
 	if body, ok := s.funcs[expandedName]; ok {
-		// Execute the function body
 		for _, stmt := range body {
 			if err := s.interp.ExecStmt(stmt); err != nil {
 				return err
@@ -363,19 +282,128 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 		return nil
 	}
 
-	// Look for external command
-	path, err := exec.LookPath(expandedName)
+	return s.runExternalCommand(expandedName, expandedArgs, in, out, errOut)
+}
+
+// applyTempEnv handles temporary env var assignments (FOO=bar cmd ...).
+// It rewrites cmd to drop the assignments and returns a restore function
+// plus whether the command was rewritten.
+func (s *Shell) applyTempEnv(cmd *parser.Command) (restore func(), applied bool) {
+	if !strings.Contains(cmd.Name, "=") || strings.HasPrefix(cmd.Name, "-") {
+		return nil, false
+	}
+	parts := strings.SplitN(cmd.Name, "=", 2)
+	if len(parts) != 2 || !isIdent(parts[0]) || strings.HasPrefix(parts[1], "(") {
+		return nil, false
+	}
+	type envPair struct{ name, value string }
+	var envs []envPair
+	envs = append(envs, envPair{parts[0], parts[1]})
+	var remainingArgs []string
+	for _, arg := range cmd.Args {
+		if strings.Contains(arg, "=") && !strings.HasPrefix(arg, "-") {
+			p := strings.SplitN(arg, "=", 2)
+			if len(p) == 2 && isIdent(p[0]) {
+				envs = append(envs, envPair{p[0], p[1]})
+				continue
+			}
+		}
+		remainingArgs = append(remainingArgs, arg)
+	}
+	// Only treat as temporary if there's a command to run
+	if len(remainingArgs) == 0 {
+		return nil, false
+	}
+	type savedEnv struct {
+		name    string
+		value   string
+		existed bool
+	}
+	var saved []savedEnv
+	for _, e := range envs {
+		oldVal, existed := s.vars[e.name]
+		saved = append(saved, savedEnv{e.name, oldVal, existed})
+		s.setVar(e.name, e.value)
+		s.exportVar(e.name)
+	}
+	cmd.Name = remainingArgs[0]
+	cmd.Args = remainingArgs[1:]
+	return func() {
+		for _, re := range saved {
+			if re.existed {
+				s.vars[re.name] = re.value
+			} else {
+				delete(s.vars, re.name)
+			}
+			_ = os.Unsetenv(re.name)
+			if re.existed && re.value != "" {
+				os.Setenv(re.name, re.value)
+			}
+		}
+	}, true
+}
+
+// handleExplain implements the --explain dry-run mode.
+func (s *Shell) handleExplain(name string, args []string) (handled bool) {
+	if name != "--explain" && !(len(args) > 0 && args[0] == "--explain") {
+		return false
+	}
+	actualName := name
+	if actualName == "--explain" {
+		actualName = args[0]
+		args = args[1:]
+	} else {
+		args = args[1:]
+	}
+	fmt.Fprintf(s.Stdout, "# would execute: %s", actualName)
+	for _, arg := range args {
+		fmt.Fprintf(s.Stdout, " %s", arg)
+	}
+	fmt.Fprintln(s.Stdout)
+	return true
+}
+
+// expandAlias expands a command name that matches a user-defined alias.
+func (s *Shell) expandAlias(name string, args []string) (string, []string) {
+	alias, ok := s.aliases[name]
+	if !ok {
+		return name, args
+	}
+	aliasParts := strings.Fields(alias)
+	if len(aliasParts) == 0 {
+		return name, args
+	}
+	return aliasParts[0], append(aliasParts[1:], args...)
+}
+
+// handleAssignment handles array and variable assignments.
+func (s *Shell) handleAssignment(name string, args []string) (handled bool) {
+	if s.tryArrayAssignment(name, args) {
+		return true
+	}
+	if len(args) == 0 && strings.Contains(name, "=") && !strings.HasPrefix(name, "-") {
+		parts := strings.SplitN(name, "=", 2)
+		if len(parts) == 2 && isIdent(parts[0]) {
+			// Don't expand $(...) in PS1 — it's evaluated on prompt render
+			s.setVar(parts[0], parts[1])
+			return true
+		}
+	}
+	return false
+}
+
+// runExternalCommand executes an external binary and waits for it, handling
+func (s *Shell) runExternalCommand(name string, args []string, in io.Reader, out io.Writer, errOut io.Writer) error {
+	path, err := exec.LookPath(name)
 	if err != nil {
 		s.setExitCode(127)
-		// Suggest similar commands
-		if suggestion := s.suggestCommand(expandedName); suggestion != "" {
-			return fmt.Errorf("command not found: %s (did you mean %s?)", expandedName, suggestion)
+		if suggestion := s.suggestCommand(name); suggestion != "" {
+			return fmt.Errorf("command not found: %s (did you mean %s?)", name, suggestion)
 		}
-		return fmt.Errorf("command not found: %s", expandedName)
+		return fmt.Errorf("command not found: %s", name)
 	}
 
-	// Build the exec.Cmd
-	extCmd := exec.Command(path, expandedArgs...)
+	extCmd := exec.Command(path, args...)
 	extCmd.Stdout = out
 	extCmd.Stderr = errOut
 
@@ -396,8 +424,8 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 
 	// Build the line string for job tracking
 	var line strings.Builder
-	line.WriteString(expandedName)
-	for _, arg := range expandedArgs {
+	line.WriteString(name)
+	for _, arg := range args {
 		line.WriteString(" " + arg)
 	}
 
@@ -429,32 +457,10 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 
 	select {
 	case err := <-waitCh:
-		// Process completed
-		if err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				s.setExitCode(exitErr.ExitCode())
-				return fmt.Errorf("command exited with code %d", exitErr.ExitCode())
-			}
-			// Handle syscall.Wait4 exit status errors
-			if strings.HasPrefix(err.Error(), "exit status ") {
-				var code int
-				fmt.Sscanf(err.Error(), "exit status %d", &code)
-				s.setExitCode(code)
-				return fmt.Errorf("command exited with code %d", code)
-			}
-			s.setExitCode(1)
-			return err
-		}
-		s.setExitCode(0)
-		return nil
+		return s.reportWaitResult(err)
 
 	case <-stopCh:
-		// Process was stopped by SIGTSTP — add it to the job list
-		job := s.addJob(extCmd, line.String())
-		job.State = JobStopped
-		fmt.Fprintf(s.Stderr, "\n[%d] stopped  %s\n", job.ID, line.String())
-		s.setExitCode(0)
-		return nil
+		return s.registerStoppedJob(extCmd, line.String())
 
 	case received := <-sig:
 		switch received {
@@ -475,15 +481,41 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 			extCmd.Process.Signal(syscall.SIGSTOP)
 			// Wait for the process to actually stop
 			<-stopCh
-			// Add it to the job list
-			job := s.addJob(extCmd, line.String())
-			job.State = JobStopped
-			fmt.Fprintf(s.Stderr, "\n[%d] stopped  %s\n", job.ID, line.String())
-			s.setExitCode(0)
-			return nil
+			return s.registerStoppedJob(extCmd, line.String())
 		}
 	}
 
+	s.setExitCode(0)
+	return nil
+}
+
+// reportWaitResult maps a completed process's exit status to the shell's
+// exit code and an error.
+func (s *Shell) reportWaitResult(err error) error {
+	if err == nil {
+		s.setExitCode(0)
+		return nil
+	}
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		s.setExitCode(exitErr.ExitCode())
+		return fmt.Errorf("command exited with code %d", exitErr.ExitCode())
+	}
+	// Handle syscall.Wait4 exit status errors
+	if strings.HasPrefix(err.Error(), "exit status ") {
+		var code int
+		fmt.Sscanf(err.Error(), "exit status %d", &code)
+		s.setExitCode(code)
+		return fmt.Errorf("command exited with code %d", code)
+	}
+	s.setExitCode(1)
+	return err
+}
+
+// registerStoppedJob adds a stopped process to the job list and reports it.
+func (s *Shell) registerStoppedJob(extCmd *exec.Cmd, line string) error {
+	job := s.addJob(extCmd, line)
+	job.State = JobStopped
+	fmt.Fprintf(s.Stderr, "\n[%d] stopped  %s\n", job.ID, line)
 	s.setExitCode(0)
 	return nil
 }
@@ -502,7 +534,7 @@ func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Wr
 		file := s.expandVars(redir.File)
 		switch redir.Type {
 		case parser.RedirectStdout:
-			f, err := os.Create(file)
+			f, err := createRedirectFile(file)
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
@@ -510,7 +542,7 @@ func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Wr
 			closers = append(closers, f)
 
 		case parser.RedirectStderr:
-			f, err := os.Create(file)
+			f, err := s.openStderrFile(file, stderrOverride, stdout)
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
@@ -518,7 +550,7 @@ func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Wr
 			closers = append(closers, f)
 
 		case parser.RedirectAppend:
-			f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+			f, err := openAppendFile(file)
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
@@ -526,7 +558,7 @@ func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Wr
 			closers = append(closers, f)
 
 		case parser.RedirectStderrAppend:
-			f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+			f, err := openAppendFile(file)
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
@@ -545,7 +577,7 @@ func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Wr
 			errOut = stdout
 
 		case parser.RedirectBoth:
-			f, err := os.Create(file)
+			f, err := createRedirectFile(file)
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
@@ -554,7 +586,7 @@ func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Wr
 			closers = append(closers, f)
 
 		case parser.RedirectBothAppend:
-			f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+			f, err := openAppendFile(file)
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
@@ -563,23 +595,12 @@ func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Wr
 			closers = append(closers, f)
 
 		case parser.RedirectHeredoc, parser.RedirectHeredocDash, parser.RedirectHereString:
-			// Heredoc: create a pipe with the content
-			content := redir.Content
-			if !redir.Quoted {
-				// Expand variables in heredoc content
-				content = s.expandVars(content)
-			}
-			// Write content to a pipe for stdin
-			r, w, err := os.Pipe()
+			reader, err := s.heredocReader(redir)
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
-			go func() {
-				w.Write([]byte(content))
-				w.Close()
-			}()
-			in = r
-			closers = append(closers, r)
+			in = reader
+			closers = append(closers, reader)
 		}
 	}
 
@@ -589,6 +610,41 @@ func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Wr
 		}
 	}
 	return in, out, errOut, closeFn, nil
+}
+
+// createRedirectFile creates (or truncates) a file for writing.
+func createRedirectFile(file string) (*os.File, error) {
+	return os.Create(file)
+}
+
+// openAppendFile opens a file for appending, creating it if needed.
+func openAppendFile(file string) (*os.File, error) {
+	return os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+}
+
+// openStderrFile opens a file for stderr redirect, returning the given stderr
+// override if provided (used when stderr was already redirected to stdout).
+func (s *Shell) openStderrFile(file string, stderrOverride, stdout io.Writer) (*os.File, error) {
+	return createRedirectFile(file)
+}
+
+// heredocReader creates a pipe reader fed with the heredoc content.
+func (s *Shell) heredocReader(redir *parser.Redirect) (io.ReadCloser, error) {
+	content := redir.Content
+	if !redir.Quoted {
+		// Expand variables in heredoc content
+		content = s.expandVars(content)
+	}
+	// Write content to a pipe for stdin
+	r, w, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		w.Write([]byte(content))
+		w.Close()
+	}()
+	return r, nil
 }
 
 func (s *Shell) executePipedCommands(cmds []*parser.Command, connects []parser.ConnectType) error {
@@ -657,6 +713,7 @@ func (s *Shell) executePipedCommands(cmds []*parser.Command, connects []parser.C
 }
 
 // levenshtein computes the Levenshtein distance between two strings.
+// levenshtein computes the Levenshtein distance between two strings.
 func levenshtein(a, b string) int {
 	la, lb := len(a), len(b)
 	if la == 0 {
@@ -669,18 +726,18 @@ func levenshtein(a, b string) int {
 	for i := range row {
 		row[i] = i
 	}
-	for i := range la {
-		prev := i + 1
-		for j := range lb {
+	for i := 1; i <= la; i++ {
+		prev := row[0]
+		row[0] = i
+		for j := 1; j <= lb; j++ {
+			tmp := row[j]
 			cost := 1
-			if a[i] == b[j] {
+			if a[i-1] == b[j-1] {
 				cost = 0
 			}
-			val := min(row[j]+1, min(prev+1, row[j+1]+cost))
-			row[j] = prev
-			prev = val
+			row[j] = min(row[j]+1, min(row[j-1]+1, prev+cost))
+			prev = tmp
 		}
-		row[lb] = prev
 	}
 	return row[lb]
 }

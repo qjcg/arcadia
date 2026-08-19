@@ -274,3 +274,44 @@ func TestLexerIntegrity(t *testing.T) {
 		}
 	}
 }
+
+func TestLexerQuotedWords(t *testing.T) {
+	l := NewLexer(`"he llo" 'wo rld'`)
+	t1 := l.NextToken()
+	if t1.Type != TokenWord || t1.Value != "he llo" {
+		t.Errorf("expected WORD('he llo'), got %s(%q)", t1.Type, t1.Value)
+	}
+	t2 := l.NextToken()
+	if t2.Type != TokenWord || t2.Value != "wo rld" {
+		t.Errorf("expected WORD('wo rld'), got %s(%q)", t2.Type, t2.Value)
+	}
+}
+
+func TestLexerDoubleQuoteEscapes(t *testing.T) {
+	l := NewLexer(`"a\"b c"`)
+	tok := l.NextToken()
+	if tok.Value != `a"b c` {
+		t.Errorf("expected %q, got %q", `a"b c`, tok.Value)
+	}
+}
+
+func TestLexerVarSubstNotSplit(t *testing.T) {
+	l := NewLexer(`echo ${a b}`)
+	// echo, then the ${...} should be one word
+	tk := l.NextToken()
+	if tk.Value != "echo" {
+		t.Errorf("expected 'echo', got %q", tk.Value)
+	}
+	tk = l.NextToken()
+	if tk.Value != "${a b}" {
+		t.Errorf("expected '${a b}', got %q", tk.Value)
+	}
+}
+
+func TestLexerCmdSubstNested(t *testing.T) {
+	l := NewLexer("$(a $(b c)) rest")
+	tok := l.NextToken()
+	if tok.Value != "$(a $(b c))" {
+		t.Errorf("expected nested cmdsubst, got %q", tok.Value)
+	}
+}

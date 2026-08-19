@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -17,75 +18,82 @@ func getVersion() string {
 }
 
 func main() {
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
-		case "build":
-			os.Exit(buildCmd(os.Args[2:]))
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+}
 
-		case "-c":
-			// Inline script
-			if len(os.Args) < 3 {
-				fmt.Fprintln(os.Stderr, "-c requires a script argument")
-				os.Exit(1)
-			}
-			if err := shell.RunScriptFromString(os.Args[2]); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
-			}
-			return
-
-		case "--version", "-v":
-			fmt.Printf("terebra %s\n", getVersion())
-			return
-
-		case "--explain":
-			// Dry-run: show what the command would do
-			if len(os.Args) < 3 {
-				fmt.Fprintln(os.Stderr, "--explain requires a command")
-				os.Exit(1)
-			}
-			// Build a script that the shell can parse: --explain <cmd> <args>
-			var script strings.Builder
-			script.WriteString("--explain ")
-			script.WriteString(os.Args[2])
-			for _, a := range os.Args[3:] {
-				script.WriteString(" ")
-				script.WriteString(a)
-			}
-			if err := shell.RunScriptFromString(script.String()); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
-			}
-			return
-
-		case "help", "--help", "-h":
-			fmt.Println("Usage: terebra [command] [script]")
-			fmt.Println()
-			fmt.Println("Commands:")
-			fmt.Println("  terebra              Start the interactive REPL")
-			fmt.Println("  terebra <script>     Execute a .trb script")
-			fmt.Println("  terebra build <script> [output]  Compile a .trb script to a binary")
-			fmt.Println("  terebra --version    Show version")
-			fmt.Println("  terebra --help       Show this help")
-			return
-
-		default:
-			// Script mode: execute the given file
-			if !strings.HasPrefix(os.Args[1], "-") {
-				if err := shell.RunScript(os.Args[1]); err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					os.Exit(1)
-				}
-				return
-			}
-			fmt.Fprintf(os.Stderr, "unknown flag: %s\n", os.Args[1])
-			os.Exit(1)
+// run dispatches a CLI invocation with args (excluding argv[0]) to the
+// appropriate subcommand. It returns a process exit code.
+func run(args []string, stdout, stderr io.Writer) int {
+	if len(args) == 0 {
+		// REPL mode
+		if err := shell.Run(); err != nil {
+			fmt.Fprintln(stderr, err)
+			return 1
 		}
+		return 0
 	}
 
-	// REPL mode
-	if err := shell.Run(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	switch args[0] {
+	case "build":
+		return buildCmd(args[1:])
+
+	case "-c":
+		// Inline script
+		if len(args) < 2 {
+			fmt.Fprintln(stderr, "-c requires a script argument")
+			return 1
+		}
+		if err := shell.RunScriptFromString(args[1]); err != nil {
+			fmt.Fprintln(stderr, err)
+			return 1
+		}
+		return 0
+
+	case "--version", "-v":
+		fmt.Fprintf(stdout, "terebra %s\n", getVersion())
+		return 0
+
+	case "--explain":
+		// Dry-run: show what the command would do
+		if len(args) < 2 {
+			fmt.Fprintln(stderr, "--explain requires a command")
+			return 1
+		}
+		// Build a script that the shell can parse: --explain <cmd> <args>
+		var script strings.Builder
+		script.WriteString("--explain ")
+		script.WriteString(args[1])
+		for _, a := range args[2:] {
+			script.WriteString(" ")
+			script.WriteString(a)
+		}
+		if err := shell.RunScriptFromString(script.String()); err != nil {
+			fmt.Fprintln(stderr, err)
+			return 1
+		}
+		return 0
+
+	case "help", "--help", "-h":
+		fmt.Fprintln(stdout, "Usage: terebra [command] [script]")
+		fmt.Fprintln(stdout)
+		fmt.Fprintln(stdout, "Commands:")
+		fmt.Fprintln(stdout, "  terebra              Start the interactive REPL")
+		fmt.Fprintln(stdout, "  terebra <script>     Execute a .trb script")
+		fmt.Fprintln(stdout, "  terebra build <script> [output]  Compile a .trb script to a binary")
+		fmt.Fprintln(stdout, "  terebra --version    Show version")
+		fmt.Fprintln(stdout, "  terebra --help       Show this help")
+		return 0
+
+	default:
+		// Script mode: execute the given file
+		if !strings.HasPrefix(args[0], "-") {
+			if err := shell.RunScript(args[0]); err != nil {
+				fmt.Fprintln(stderr, err)
+				return 1
+			}
+			return 0
+		}
+		fmt.Fprintf(stderr, "unknown flag: %s\n", args[0])
+		return 1
 	}
 }

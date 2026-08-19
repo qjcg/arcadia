@@ -171,3 +171,81 @@ func TestExpandMultipleGroups(t *testing.T) {
 		t.Errorf("Expand(f{1,2}.{txt,md}) = %v, want %v", got, want)
 	}
 }
+
+func TestFindBracesSimple(t *testing.T) {
+	start, end, ok := findBraces("{a,b}")
+	if !ok {
+		t.Fatal("expected brace group found")
+	}
+	if start != 0 || end != 4 {
+		t.Fatalf("expected (0, 4), got (%d, %d)", start, end)
+	}
+}
+
+func TestFindBracesPrefixed(t *testing.T) {
+	start, end, ok := findBraces("pre{a,b}post")
+	if !ok {
+		t.Fatal("expected brace group found")
+	}
+	if start != 3 || end != 7 {
+		t.Fatalf("expected (3, 7), got (%d, %d)", start, end)
+	}
+}
+
+func TestFindBracesNone(t *testing.T) {
+	_, _, ok := findBraces("plain")
+	if ok {
+		t.Fatal("expected no brace group")
+	}
+}
+
+func TestFindBracesSkippedVar(t *testing.T) {
+	_, _, ok := findBraces("${var} plain")
+	if ok {
+		t.Fatal("expected no brace group (var expansion skipped)")
+	}
+}
+
+func TestFindBracesNested(t *testing.T) {
+	start, end, ok := findBraces("{a,{b,c}}")
+	if !ok {
+		t.Fatal("expected nested brace group found")
+	}
+	if start != 0 || end != 8 {
+		t.Fatalf("expected (0, 8), got (%d, %d)", start, end)
+	}
+}
+
+func TestFindBracesNoComma(t *testing.T) {
+	start, end, ok := findBraces("{a}")
+	if !ok {
+		t.Fatal("expected single-element brace group found")
+	}
+	if start != 0 || end != 2 {
+		t.Fatalf("expected (0, 2), got (%d, %d)", start, end)
+	}
+}
+
+func TestFindBracesUnbalanced(t *testing.T) {
+	_, _, ok := findBraces("}{")
+	if ok {
+		t.Fatal("expected no brace group for unbalanced braces")
+	}
+}
+
+func TestIsValidBraceContent(t *testing.T) {
+	cases := map[string]bool{
+		"a,b":      true,
+		"1..5":     true,
+		"{x}":      true,
+		"a..z":     true,
+		"a..1":     false,
+		"":         false,
+		"1..10..2": true,
+	}
+	for in, want := range cases {
+		if got := isValidBraceContent(in); got != want {
+			t.Errorf("isValidBraceContent(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
