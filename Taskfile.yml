@@ -171,11 +171,24 @@ tasks:
   # release
 
   changelogs:
-    desc: Create changelogs for all go modules.
+    desc: Regenerate CHANGELOG.md files for all go modules.
     env:
       GOWORK: "off"
     cmds:
       - go tool sv changelog --all --write --exclude skills
+
+  changelogs:commit:
+    desc: Commit and push regenerated CHANGELOG.md files if any changed.
+    cmds:
+      - |
+        set -e
+        if git status --porcelain | grep -qv '^??'; then
+          git add -A
+          git commit -m "docs: update changelogs for released versions"
+          git push
+        else
+          echo "No changelog changes to commit"
+        fi
 
   release:cache:
     desc: Pre-download the go tools used by the GHA release job.
@@ -186,19 +199,46 @@ tasks:
       - go tool task --version
 
   release:
-    desc: Tag and create GitHub releases for all modules with version bumps.
+    desc: Tag, regenerate, commit, and publish GitHub releases for all modules with version bumps.
     env:
       GOWORK: "off"
     vars:
-      TAGS:
+      NEW_TAGS:
         sh: go tool sv next --all | grep -E '^(.*/)?v[0-9]+\.[0-9]+\.[0-9]+$' || true
     cmds:
       - |
         set -e
-        if [ -n "{{.TAGS}}" ]; then
-          go tool sv next --all --tag
-          git push origin --tags
-          for tag in {{.TAGS}}; do
-            gh release create "$tag" --generate-notes
-          done
+        if [ -z "{{.NEW_TAGS}}" ]; then
+          echo "No version bumps detected"
+          exit 0
         fi
+        # 1. Regenerate CHANGELOG.md files so they include the pending versions.
+        go tool sv changelog --all --write --exclude skills
+        # 2. Commit and push the regenerated changelogs (skip if no changes).
+        if git status --porcelain | grep -qv '^??'; then
+          git add -A
+          git commit -m "docs: update changelogs for released versions"
+          git push
+        fi
+        # 3. Create and push annotated tags for each bumped module
+        #    (tags point at the commit that includes the changelog updates).
+        go tool sv next --all --tag
+        git push origin --tags
+        # 4. Create a GitHub release per module using its generated changelog entry.
+        for tag in {{.NEW_TAGS}}; do
+          # Derive the module path from the tag (root tags have no prefix).
+          if [[ "$tag" == v* ]]; then
+            module="."
+          else
+            module="${tag%/*}"
+          fi
+          version="${tag##*/}"
+          notes_dir=$(mktemp -d)
+          trap 'rm -rf "$notes_dir"' EXIT
+          go tool sv changelog --path "$module" --dir "$notes_dir"
+          if [ -f "$notes_dir/$version.md" ]; then
+            gh release create "$tag" --notes-file "$notes_dir/$version.md"
+          else
+            gh release create "$tag" --generate-notes
+          fi
+        done

@@ -27,12 +27,7 @@ jobs:
     - name: Cache required go tools
       run: go tool task release:cache
 
-    - name: Tag and Release
+    - name: Tag, regenerate changelogs, and create releases
       env:
         GH_TOKEN: ${{ github.token }}
       run: go tool task release
-
-    - name: Changelogs
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: go tool task changelogs
