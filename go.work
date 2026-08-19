@@ -15,7 +15,6 @@ use (
 	./exp/pangrams
 	./exp/pavona
 	./exp/roubaix
-	./exp/skillo
 	./exp/slidesdeck
 	./exp/terebra
 )
