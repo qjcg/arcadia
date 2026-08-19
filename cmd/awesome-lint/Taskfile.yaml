@@ -1,0 +1,15 @@
+version: 3
+
+tasks:
+  default:
+    deps:
+      - lint
+      - test
+
+  lint:
+    desc:
+    cmd: go tool go-crap scan -t 30 --min 30 --fail-above ./...
+
+  test:
+    desc: Run tests.
+    cmd: go test ./...
