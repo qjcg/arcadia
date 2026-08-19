@@ -7,7 +7,7 @@ vars:
   ISO_URL: https://iso.omarchy.org/omarchy-{{.OMARCHY_VERSION}}.iso
   ISO: '{{ base .ISO_URL }}'
   DISK: disk.qcow2
-  DISK_SIZE: 20G
+  DISK_SIZE: 30G
   MEM: 8192
   CPUS:
     sh: nproc
