@@ -1837,6 +1837,7 @@ github.com/ebitengine/debugui v0.2.0 h1:FPAgRRzB8QqsyRnMVlzyiVcZTg5l69BMpHlnHktd
 github.com/ebitengine/debugui v0.2.0/go.mod h1:I9KvQiFgUVO+a3GntY7k+t6QZBESqwKcoegEbYuddw4=
 github.com/ebitengine/oto/v3 v3.4.0 h1:br0PgASsEWaoWn38b2Goe7m1GKFYfNgnsjSd5Gg+/bQ=
 github.com/ebitengine/oto/v3 v3.4.0/go.mod h1:IOleLVD0m+CMak3mRVwsYY8vTctQgOM0iiL6S7Ar7eI=
+github.com/ebitengine/oto/v3 v3.4.1/go.mod h1:IOleLVD0m+CMak3mRVwsYY8vTctQgOM0iiL6S7Ar7eI=
 github.com/eggsampler/acme/v3 v3.6.2/go.mod h1:/qh0rKC/Dh7Jj+p4So7DbWmFNzC4dpcpK53r226Fhuo=
 github.com/elastic/go-sysinfo v1.15.4/go.mod h1:ZBVXmqS368dOn/jvijV/zHLfakWTYHBZPk3G244lHrU=
 github.com/elastic/go-windows v1.0.2/go.mod h1:bGcDpBzXgYSqM0Gx3DM4+UxFj300SZLixie9u9ixLM8=
