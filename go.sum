@@ -853,8 +853,8 @@ github.com/psanford/sqlite3vfs v0.0.0-20260519004904-f9180fa2acc9 h1:9bBMbcwroL4
 github.com/psanford/sqlite3vfs v0.0.0-20260519004904-f9180fa2acc9/go.mod h1:iW4cSew5PAb1sMZiTEkVJAIBNrepaB6jTYjeP47WtI0=
 github.com/puzpuzpuz/xsync/v4 v4.5.0 h1:vOSWu6b57/emh+L/Cw0BeQfvxa/cogFywXHeGUxQxAg=
 github.com/puzpuzpuz/xsync/v4 v4.5.0/go.mod h1:VJDmTCJMBt8igNxnkQd86r+8KUeN1quSfNKu5bLYFQo=
-github.com/qjcg/arcadia/cmd/sv v1.0.1 h1:uGSbc6TEsEiy1LtULVIALAQr2MjuabfIYZgQB//wYHA=
-github.com/qjcg/arcadia/cmd/sv v1.0.1/go.mod h1:loBXsjsoXy+qjwc4w5mlR/C3GH44zJcraQH6V3Wwmj0=
+github.com/qjcg/arcadia/cmd/sv v1.1.0 h1:oZQibZh1HR0SZWCGvEOLCPjVOA2h284X7n0MelGVX0s=
+github.com/qjcg/arcadia/cmd/sv v1.1.0/go.mod h1:hQJ/Xf5DCP+EDthbqq4DPtalIGqGDkOYGtEuoOQGmAM=
 github.com/rakyll/hey v0.1.5 h1:oc3QhpT8ETXcr5xIE2xgWYNSNA/Z52XA20ku9hWCchY=
 github.com/rakyll/hey v0.1.5/go.mod h1:tLUK++7gal6z92HvVEaP4QfIhEb5cYywEJgrUqmqt7Y=
 github.com/redis/go-redis/extra/rediscmd/v9 v9.5.3 h1:1/BDligzCa40GTllkDnY3Y5DTHuKCONbB2JcRyIfl20=
