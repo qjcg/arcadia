@@ -3,6 +3,7 @@ package shell
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -116,6 +117,35 @@ func TestCompleteCommandAfterSpace(t *testing.T) {
 	got := s.completeCommand("cat " + dir + "/fi")
 	if len(got) != 1 || got[0] != dir+"/file.txt" {
 		t.Fatalf("expected file completion, got %v", got)
+	}
+}
+
+func TestCompleteFileOrArgBareTilde(t *testing.T) {
+	s := newTestShell()
+	got := s.completeFileOrArg([]string{"cat"}, "~")
+	if len(got) != 1 || !strings.HasSuffix(got[0], "/") {
+		t.Fatalf("expected home dir with trailing slash, got %v", got)
+	}
+}
+
+func TestCompleteFileOrArgTildeHome(t *testing.T) {
+	home := t.TempDir()
+	os.WriteFile(filepath.Join(home, "alpha.txt"), []byte("x"), 0o644)
+
+	oldHome, hadHome := os.LookupEnv("HOME")
+	os.Setenv("HOME", home)
+	defer func() {
+		if hadHome {
+			os.Setenv("HOME", oldHome)
+		} else {
+			os.Unsetenv("HOME")
+		}
+	}()
+
+	s := newTestShell()
+	got := s.completeFileOrArg([]string{"cat"}, "~/al")
+	if len(got) != 1 || got[0] != filepath.Join(home, "alpha.txt") {
+		t.Fatalf("expected ~/ expansion to %q, got %v", filepath.Join(home, "alpha.txt"), got)
 	}
 }
 

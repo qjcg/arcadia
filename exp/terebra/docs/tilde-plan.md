@@ -111,5 +111,6 @@ expansion. (Low priority; `~` as a command name is rare but harmless.)
 ## Out of Scope
 
 - `~+` / `~-` (PWD/OLDPWD) — optional bash extension, add only if desired.
-- Tilde completion in the REPL (separate concern; completion.go already reads
-  `$HOME`).
+- Tilde completion in the REPL — done in `internal/shell/completion.go`
+  (`completeFileOrArg` expands a leading `~`, `~/`, or `~user` to the real
+  path before reading the directory; a bare `~` completes to `$HOME/`).

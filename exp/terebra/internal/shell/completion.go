@@ -14,6 +14,7 @@ import (
 	"cuelang.org/go/cue"
 	"github.com/chzyer/readline"
 	"github.com/qjcg/arcadia/exp/terebra/internal/cueutil"
+	"github.com/qjcg/arcadia/exp/terebra/internal/expand"
 	"github.com/qjcg/arcadia/exp/terebra/internal/parser"
 	"github.com/qjcg/arcadia/exp/terebra/internal/script"
 )
@@ -164,7 +165,27 @@ func (s *Shell) completeCommandName(prefix string) []string {
 	return unique
 }
 
+// expandLeadingTilde expands a leading unquoted ~ (bare, ~/, or ~user) in p to
+// the corresponding home directory, returning the expanded path. When no
+// expansion applies (empty $HOME or unknown user) p is returned unchanged.
+func (s *Shell) expandLeadingTilde(p string) string {
+	if !strings.HasPrefix(p, "~") {
+		return p
+	}
+	return expand.Tilde(expand.Word{Value: p}).Value
+}
+
 func (s *Shell) completeFileOrArg(parts []string, lastWord string) []string {
+	// A bare ~ completes to the home directory (with trailing slash), matching
+	// bash. ~/ and ~user/... are expanded before directory listing.
+	if lastWord == "~" {
+		if home := s.expandLeadingTilde("~"); home != "~" {
+			return []string{home + "/"}
+		}
+	}
+	// Expand a leading tilde (~, ~/, ~user) to the real path so the directory
+	// can be read and the completed path is directly usable.
+	lastWord = s.expandLeadingTilde(lastWord)
 	dir := "."
 	filePrefix := lastWord
 
