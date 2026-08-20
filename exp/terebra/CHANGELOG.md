@@ -7,7 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### Added
+- 4616ac31 - complete tilde paths in the REPL
+- 04cbef27 - add tilde expansion to the word expansion pipeline
+
 ### Changed
+- d40073c0 - Simplify
+- a8241b4d - Update .gitignore
+- 8ed07c5b - make expansion quote-aware and add glob options
+- 98e76518 - cut CRAP score via refactors and tests
+- dc776d73 - add regression tests for the single-Enter REPL fix
+
+### Fixed
+- f66c4f24 - make tests race-clean for -race runs
+
+## [v0.6.10] - 2026-08-19
+
+### Changed
+- 08199a49 - update changelogs for released versions
 - 5819007b - Update CHANGELOGs
 - 53b49e27 - Update deps
 
