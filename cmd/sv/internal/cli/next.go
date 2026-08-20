@@ -68,49 +68,29 @@ func runNextCmd(p *nextParams, cmd *cobra.Command) error {
 }
 
 func runNext(out, errOut io.Writer, root string, m discovery.Module, allModulesList []discovery.Module, defaultPatch, createTag bool, tagFormat string, dryRun bool) error {
-	tag, warning, err := latestNonRetractedTag(root, m.Name)
+	// Build the list of all module names for submodule exclusion
+	allModuleNames := make([]string, len(allModulesList))
+	for i, mod := range allModulesList {
+		allModuleNames[i] = mod.Name
+	}
+
+	pending, err := semver.PendingRelease(root, m.Name, allModuleNames, defaultPatch)
 	if err != nil {
 		return err
 	}
-
-	if warning != "" && verboseFlag {
-		fmt.Fprintln(errOut, warning)
-	}
-
-	// Build exclude paths: all modules except the current one
-	var excludePaths []string
-	if m.Name == "." {
-		for _, mod := range allModulesList {
-			if mod.Name != "." {
-				excludePaths = append(excludePaths, mod.Name)
-			}
-		}
-	}
-
-	commits, err := git.CommitsSince(root, tag, m.Name, excludePaths)
-	if err != nil {
-		return err
-	}
-
-	// Convert git.CommitInfo to semver.Commit
-	semverCommits := make([]semver.Commit, len(commits))
-	for i, c := range commits {
-		semverCommits[i] = semver.Commit{Message: c.Message, Files: c.Files}
-	}
-	next, err := semver.CalculateNext(tag, m.Name, semverCommits, defaultPatch)
-	if err != nil {
-		return err
-	}
-
-	if next == tag && tag != "" {
+	if pending == nil {
 		return nil // No change
 	}
 
-	fmt.Fprintln(out, next)
+	if pending.Warning != "" && verboseFlag {
+		fmt.Fprintln(errOut, pending.Warning)
+	}
+
+	fmt.Fprintln(out, pending.Version)
 
 	if createTag {
-		if err := createAnnotatedTag(root, m.Name, next, tagFormat, dryRun); err != nil {
-			fmt.Fprintf(errOut, "Warning: failed to create tag for %s: %v\n", next, err)
+		if err := createAnnotatedTag(root, m.Name, pending.Version, tagFormat, dryRun); err != nil {
+			fmt.Fprintf(errOut, "Warning: failed to create tag for %s: %v\n", pending.Version, err)
 		}
 	}
 

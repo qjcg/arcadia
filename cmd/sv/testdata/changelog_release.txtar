@@ -1,0 +1,57 @@
+# Test sv changelog --release --tag: emits the pending version as a dated entry,
+# commits only changelog files, and tags at the changelog commit.
+exec git init -q
+exec git config user.email test@example.com
+exec git config user.name "Test User"
+exec git config commit.gpgsign false
+
+# Root module
+cp root_go_mod go.mod
+exec git add go.mod
+exec git commit -q -m init
+exec git tag v1.0.0
+
+# Submodule with a feature commit after its last tag
+mkdir -p x/mod
+cp sub_go_mod x/mod/go.mod
+exec git add x/mod/go.mod
+exec git commit -q -m init-sub
+exec git tag x/mod/v0.1.0
+cp sub_go_mod_v2 x/mod/go.mod
+exec git add x/mod/go.mod
+exec git commit -q -F feat_msg
+
+# An unrelated dirty file that must NOT be committed by --tag
+cp unrelated_txt unrelated.txt
+
+# --release alone: writes the pending entry, no commit, no tag
+exec sv changelog -p x/mod --release --write
+exists x/mod/CHANGELOG.md
+grep '## \[v0.2.0\]' x/mod/CHANGELOG.md
+! grep '## \[unreleased\]' x/mod/CHANGELOG.md
+! stdout .
+
+# --tag implies --release, commits only changelog files, and tags at HEAD
+exec sv changelog -p x/mod --write --tag
+exec git log --oneline -1
+stdout 'docs: update changelogs for released versions'
+# The unrelated file must remain uncommitted
+exec git status --porcelain
+stdout '\?\? unrelated\.txt'
+# Tag must point at the changelog commit (HEAD)
+exec git rev-parse x/mod/v0.2.0^{commit}
+stdout '^[0-9a-f]{40}$'
+exec git rev-parse HEAD
+stdout '^[0-9a-f]{40}$'
+
+-- root_go_mod --
+module example.com/root
+-- sub_go_mod --
+module example.com/root/x/mod
+-- sub_go_mod_v2 --
+module example.com/root/x/mod
+go 1.21
+-- feat_msg --
+feat: add widget
+-- unrelated_txt --
+dirty

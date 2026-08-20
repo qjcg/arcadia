@@ -54,9 +54,24 @@ type Changelog struct {
 	Entries []Entry
 }
 
+// isMetaCommit reports whether a commit message is a changelog-maintenance
+// commit (e.g. "docs: update changelogs for released versions") that should be
+// excluded from changelog output.
+func isMetaCommit(msg string) bool {
+	lower := strings.ToLower(msg)
+	return strings.Contains(lower, "update changelog")
+}
+
 // categorizeCommit parses a conventional commit message and returns its
 // keepachangelog category, cleaned message body, and whether it should be included.
 func categorizeCommit(msg string) (Category, string, bool) {
+	// Skip changelog-maintenance commits so that a --release run (which happens
+	// before the changelog commit exists) produces byte-identical output to a
+	// later normal regeneration (which would otherwise include that commit).
+	if isMetaCommit(msg) {
+		return "", "", false
+	}
+
 	isBreaking := strings.Contains(msg, "BREAKING CHANGE:") || strings.Contains(msg, "!:")
 
 	commitType := extractType(msg)

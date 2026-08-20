@@ -212,19 +212,14 @@ tasks:
           echo "No version bumps detected"
           exit 0
         fi
-        # 1. Regenerate CHANGELOG.md files so they include the pending versions.
-        go tool sv changelog --all --write --exclude skills
-        # 2. Commit and push the regenerated changelogs (skip if no changes).
-        if git status --porcelain | grep -qv '^??'; then
-          git add -A
-          git commit -m "docs: update changelogs for released versions"
-          git push
-        fi
-        # 3. Create and push annotated tags for each bumped module
-        #    (tags point at the commit that includes the changelog updates).
-        go tool sv next --all --tag
+        # 1. Regenerate CHANGELOG.md files (emitting the pending versions as dated
+        #    entries), commit only the changelog files, and tag at the changelog
+        #    commit so each tag points at a commit that contains its own entry.
+        go tool sv changelog --all --write --tag --ref main --exclude skills
+        # 2. Push the changelog commit and the new tags.
+        git push origin main
         git push origin --tags
-        # 4. Create a GitHub release per module using its generated changelog entry.
+        # 3. Create a GitHub release per module using its generated changelog entry.
         for tag in {{.NEW_TAGS}}; do
           # Derive the module path from the tag (root tags have no prefix).
           if [[ "$tag" == v* ]]; then

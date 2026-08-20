@@ -29,6 +29,54 @@ func Generate(root, modulePath, from, to string) (*Changelog, error) {
 	return generateVersionMode(root, modulePath, from, to)
 }
 
+// GenerateRelease generates a Changelog for the given module where the pending
+// (not-yet-tagged) version is emitted as a dated entry instead of [unreleased].
+// It uses the same next-version computation as `sv next` (semver.PendingRelease)
+// so the pending version and its commits are identical to what a tag would
+// produce. date is the ISO date for the pending entry (e.g. "2026-08-20").
+// Returns nil when there is no pending release (no version bump).
+func GenerateRelease(root, modulePath, date string) (*Changelog, *semver.Pending, error) {
+	allMods, err := discovery.FindModules(root)
+	if err != nil {
+		return nil, nil, err
+	}
+	allModuleNames := make([]string, len(allMods))
+	for i, m := range allMods {
+		allModuleNames[i] = m.Name
+	}
+
+	pending, err := semver.PendingRelease(root, modulePath, allModuleNames, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	if pending == nil {
+		return nil, nil, nil
+	}
+
+	cl, err := Generate(root, modulePath, "", "")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Replace the [unreleased] entry (if any) with the pending release entry.
+	version := stripModulePrefix(pending.Version, modulePath)
+	releaseEntry := buildEntry(version, date, pending.Commits)
+	replaced := false
+	for i, e := range cl.Entries {
+		if e.Version == "unreleased" {
+			cl.Entries[i] = releaseEntry
+			replaced = true
+			break
+		}
+	}
+	if !replaced {
+		// No unreleased entry; prepend the release entry.
+		cl.Entries = append([]Entry{releaseEntry}, cl.Entries...)
+	}
+
+	return cl, pending, nil
+}
+
 func generateDateMode(root, modulePath, fromDate, toDate string) (*Changelog, error) {
 	if fromDate == "" && toDate == "" {
 		// Both are empty — no date filtering, same as version mode with no bounds
@@ -350,9 +398,10 @@ func parseSinceCheck(s string) (string, error) {
 // Each version gets two files: <version>.md and <version>_overview.md.
 // Existing overview files are preserved and their content will be used
 // in subsequent changelog generations if --dir is specified.
-func WriteEntryDir(dir string, cl *Changelog) error {
+// Returns the paths of the written <version>.md files (excluding overviews).
+func WriteEntryDir(dir string, cl *Changelog) ([]string, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return fmt.Errorf("creating directory %s: %w", dir, err)
+		return nil, fmt.Errorf("creating directory %s: %w", dir, err)
 	}
 
 	// Remove stale entry files (from previous runs) while preserving overview files
@@ -370,38 +419,43 @@ func WriteEntryDir(dir string, cl *Changelog) error {
 		}
 	}
 
+	var written []string
 	for _, entry := range cl.Entries {
 		versionFile := filepath.Join(dir, entry.Version+".md")
 		if err := os.MkdirAll(filepath.Dir(versionFile), 0o755); err != nil {
-			return fmt.Errorf("creating directory for %s: %w", versionFile, err)
+			return nil, fmt.Errorf("creating directory for %s: %w", versionFile, err)
 		}
 		content := FormatEntry(entry)
 		if err := os.WriteFile(versionFile, []byte(content), 0o644); err != nil {
-			return fmt.Errorf("writing %s: %w", versionFile, err)
+			return nil, fmt.Errorf("writing %s: %w", versionFile, err)
 		}
+		written = append(written, versionFile)
 
 		// Write or preserve overview file
 		overviewFile := filepath.Join(dir, entry.Version+"_overview.md")
 		if err := os.MkdirAll(filepath.Dir(overviewFile), 0o755); err != nil {
-			return fmt.Errorf("creating directory for %s: %w", overviewFile, err)
+			return nil, fmt.Errorf("creating directory for %s: %w", overviewFile, err)
 		}
 		if _, err := os.Stat(overviewFile); os.IsNotExist(err) {
 			// Create empty overview file so users know they can edit it
 			if err := os.WriteFile(overviewFile, []byte{}, 0o644); err != nil {
-				return fmt.Errorf("writing %s: %w", overviewFile, err)
+				return nil, fmt.Errorf("writing %s: %w", overviewFile, err)
 			}
 		}
 	}
 
-	return nil
+	return written, nil
 }
 
 // WriteChangelogFile writes a CHANGELOG.md file into the given module directory
-// with the full changelog in keepachangelog format.
-func WriteChangelogFile(moduleDir string, cl *Changelog) error {
+// with the full changelog in keepachangelog format. Returns the written path.
+func WriteChangelogFile(moduleDir string, cl *Changelog) (string, error) {
 	path := filepath.Join(moduleDir, "CHANGELOG.md")
 	content := FormatChangelog(cl)
-	return os.WriteFile(path, []byte(content), 0o644)
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		return "", err
+	}
+	return path, nil
 }
 
 // LoadOverviewFiles reads overview files from the directory tree and returns

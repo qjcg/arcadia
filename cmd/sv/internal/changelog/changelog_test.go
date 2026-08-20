@@ -2,11 +2,31 @@ package changelog
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
 	"github.com/qjcg/arcadia/cmd/sv/internal/git"
 )
+
+func TestIsMetaCommit(t *testing.T) {
+	tests := []struct {
+		msg  string
+		want bool
+	}{
+		{"docs: update changelogs for released versions", true},
+		{"docs: Update CHANGELOGs", true},
+		{"chore: Update CHANGELOGs", true},
+		{"feat: add widget", false},
+		{"fix: fix widget", false},
+		{"docs: update readme", false},
+	}
+	for _, tt := range tests {
+		if got := isMetaCommit(tt.msg); got != tt.want {
+			t.Errorf("isMetaCommit(%q) = %v, want %v", tt.msg, got, tt.want)
+		}
+	}
+}
 
 func TestCategorizeCommit(t *testing.T) {
 	tests := []struct {
@@ -345,7 +365,7 @@ func TestWriteEntryDir(t *testing.T) {
 		},
 	}
 
-	if err := WriteEntryDir(dir, cl); err != nil {
+	if _, err := WriteEntryDir(dir, cl); err != nil {
 		t.Fatalf("WriteEntryDir failed: %v", err)
 	}
 
@@ -421,7 +441,7 @@ func TestWriteChangelogFile(t *testing.T) {
 		},
 	}
 
-	if err := WriteChangelogFile(dir, cl); err != nil {
+	if _, err := WriteChangelogFile(dir, cl); err != nil {
 		t.Fatalf("WriteChangelogFile failed: %v", err)
 	}
 
@@ -454,7 +474,7 @@ func TestWriteChangelogFile_EmptyEntries(t *testing.T) {
 
 	cl := &Changelog{}
 
-	if err := WriteChangelogFile(dir, cl); err != nil {
+	if _, err := WriteChangelogFile(dir, cl); err != nil {
 		t.Fatalf("WriteChangelogFile failed: %v", err)
 	}
 
@@ -612,4 +632,98 @@ func indexOf(s, substr string) int {
 		}
 	}
 	return -1
+}
+
+func TestGenerateRelease(t *testing.T) {
+	dir := t.TempDir()
+	runGit(t, dir, "init")
+	runGit(t, dir, "config", "user.email", "test@example.com")
+	runGit(t, dir, "config", "user.name", "Test User")
+	runGit(t, dir, "config", "commit.gpgsign", "false")
+
+	// Root module
+	writeFile(t, dir+"/go.mod", "module example.com/root\n")
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "init")
+	runGit(t, dir, "tag", "v1.0.0")
+
+	// Submodule
+	writeFile(t, dir+"/x/mod/go.mod", "module example.com/root/x/mod\n")
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "init-sub")
+	runGit(t, dir, "tag", "x/mod/v0.1.0")
+
+	// Feature commit
+	writeFile(t, dir+"/x/mod/a.go", "package mod\n")
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "feat: add widget")
+
+	cl, pending, err := GenerateRelease(dir, "x/mod", "2026-08-20")
+	if err != nil {
+		t.Fatalf("GenerateRelease failed: %v", err)
+	}
+	if pending == nil {
+		t.Fatal("expected a pending release")
+	}
+	if pending.Version != "x/mod/v0.2.0" {
+		t.Errorf("pending version = %q, want x/mod/v0.2.0", pending.Version)
+	}
+	if cl == nil {
+		t.Fatal("expected a changelog")
+	}
+	// The pending entry should be present and dated, with no [unreleased].
+	output := FormatChangelog(cl)
+	if !contains(output, "## [v0.2.0] - 2026-08-20") {
+		t.Error("missing pending release entry")
+	}
+	if contains(output, "## [unreleased]") {
+		t.Error("unreleased should be replaced by the pending release")
+	}
+	if !contains(output, "add widget") {
+		t.Error("missing feature item")
+	}
+}
+
+func TestGenerateRelease_NoBump(t *testing.T) {
+	dir := t.TempDir()
+	runGit(t, dir, "init")
+	runGit(t, dir, "config", "user.email", "test@example.com")
+	runGit(t, dir, "config", "user.name", "Test User")
+	runGit(t, dir, "config", "commit.gpgsign", "false")
+
+	writeFile(t, dir+"/go.mod", "module example.com/root\n")
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "init")
+	runGit(t, dir, "tag", "v1.0.0")
+
+	// No commits since the tag -> no pending release.
+	cl, pending, err := GenerateRelease(dir, ".", "2026-08-20")
+	if err != nil {
+		t.Fatalf("GenerateRelease failed: %v", err)
+	}
+	if pending != nil {
+		t.Errorf("expected no pending release, got %v", pending.Version)
+	}
+	if cl != nil {
+		t.Errorf("expected nil changelog, got %v", cl)
+	}
+}
+
+func runGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %v failed: %v\nOutput: %s", args, err, string(out))
+	}
+}
+
+func writeFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
 }

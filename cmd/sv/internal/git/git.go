@@ -515,6 +515,66 @@ func TagAnnotated(root, tagName, message string) error {
 	return nil
 }
 
+// Stage stages the given paths explicitly (never `git add -A`), so only the
+// listed files are added to the index.
+func Stage(root string, paths []string) error {
+	args := append([]string{"add", "--"}, paths...)
+	cmd := exec.Command("git", args...)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to stage paths: %w\n%s", err, string(out))
+	}
+	return nil
+}
+
+// CommitAnnotated creates a commit with the given message.
+func CommitAnnotated(root, message string) error {
+	cmd := exec.Command("git", "commit", "--message", message)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to commit: %w\n%s", err, string(out))
+	}
+	return nil
+}
+
+// HasChanges reports whether any of the given paths have uncommitted changes
+// (staged or unstaged) relative to HEAD.
+func HasChanges(root string, paths []string) (bool, error) {
+	args := append([]string{"status", "--porcelain", "--"}, paths...)
+	cmd := exec.Command("git", args...)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("failed to check status: %w\n%s", err, string(out))
+	}
+	return strings.TrimSpace(string(out)) != "", nil
+}
+
+// ResolveRef resolves a git ref (branch, tag, or commit SHA) to a full commit hash.
+func ResolveRef(root, ref string) (string, error) {
+	cmd := exec.Command("git", "rev-parse", ref)
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("ref %q not found", ref)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// CurrentBranch returns the current branch name, or "" when in detached HEAD.
+func CurrentBranch(root string) (string, error) {
+	cmd := exec.Command("git", "symbolic-ref", "--short", "HEAD")
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		// Detached HEAD: symbolic-ref fails; treat as empty branch.
+		return "", nil
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
 // Root returns the absolute path to the git root
 func Root() (string, error) {
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")

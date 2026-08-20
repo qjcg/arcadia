@@ -1,0 +1,42 @@
+# Test sv changelog --tag guards: --ref mismatch and missing write target.
+exec git init -q
+exec git config user.email test@example.com
+exec git config user.name "Test User"
+exec git config commit.gpgsign false
+
+cp root_go_mod go.mod
+exec git add go.mod
+exec git commit -q -m init
+exec git tag v1.0.0
+
+mkdir -p x/mod
+cp sub_go_mod x/mod/go.mod
+exec git add x/mod/go.mod
+exec git commit -q -m init-sub
+exec git tag x/mod/v0.1.0
+cp sub_go_mod_v2 x/mod/go.mod
+exec git add x/mod/go.mod
+exec git commit -q -F feat_msg
+
+# --tag without --write or --dir must refuse
+! exec sv changelog -p x/mod --tag
+stderr '--tag requires --write and/or --dir'
+
+# --tag with a mismatched --ref must refuse
+! exec sv changelog -p x/mod --write --tag --ref nonexistent-branch
+stderr 'cannot resolve --ref'
+
+# --tag with a matching --ref (HEAD) succeeds
+exec sv changelog -p x/mod --write --tag --ref HEAD
+exec git tag -l
+stdout 'x/mod/v0.2.0'
+
+-- root_go_mod --
+module example.com/root
+-- sub_go_mod --
+module example.com/root/x/mod
+-- sub_go_mod_v2 --
+module example.com/root/x/mod
+go 1.21
+-- feat_msg --
+feat: add widget
