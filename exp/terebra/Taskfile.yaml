@@ -27,22 +27,12 @@ tasks:
     desc: Run the terebra REPL
     deps: [build]
     cmds:
-      - ./terebra
+      - ./{{.BIN}}
 
   test:
     desc: Run all tests (with race detector)
     cmds:
       - go test ./... -race
-
-  test-parser:
-    desc: Run parser tests only
-    cmds:
-      - go test ./internal/parser/ -v
-
-  lint:
-    desc: Run go vet
-    cmds:
-      - go vet ./...
 
   crap:
     desc: Run go-crap scan, fail if any function exceeds CRAP threshold
@@ -56,4 +46,4 @@ tasks:
   clean:
     desc: Clean build artifacts
     cmds:
-      - rm -f terebra
+      - rm -f {{.BIN}}
