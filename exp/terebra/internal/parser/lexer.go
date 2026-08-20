@@ -59,6 +59,9 @@ func (tt TokenType) String() string {
 type Token struct {
 	Type  TokenType
 	Value string
+	// Quoted marks each byte of Value that was single-quoted, double-quoted,
+	// or escaped in the source. nil means every byte is unquoted.
+	Quoted []bool
 }
 
 func (t Token) String() string {
@@ -242,6 +245,7 @@ func (l *Lexer) skipWhitespace() {
 
 func (l *Lexer) readWord() Token {
 	var word strings.Builder
+	var quoted []bool
 	var inSingle, inDouble, escaped bool
 
 	for l.pos < len(l.input) {
@@ -249,6 +253,7 @@ func (l *Lexer) readWord() Token {
 
 		if escaped {
 			word.WriteByte(ch)
+			quoted = append(quoted, true)
 			l.pos++
 			escaped = false
 			continue
@@ -267,12 +272,13 @@ func (l *Lexer) readWord() Token {
 				continue
 			}
 			word.WriteByte(ch)
+			quoted = append(quoted, true)
 			l.pos++
 			continue
 		}
 
 		if inDouble {
-			if l.readDoubleQuoted(&word) {
+			if l.readDoubleQuoted(&word, &quoted) {
 				inDouble = false
 			}
 			continue
@@ -299,30 +305,31 @@ func (l *Lexer) readWord() Token {
 		if ch == '$' && l.pos+1 < len(l.input) && l.input[l.pos+1] == '(' {
 			if l.pos+2 < len(l.input) && l.input[l.pos+2] == '(' {
 				// $((...)) arithmetic
-				l.readBalanced(&word, "$((", 2)
+				l.readBalanced(&word, &quoted, "$((", 2)
 			} else {
 				// $(...) command substitution
-				l.readBalanced(&word, "$(", 1)
+				l.readBalanced(&word, &quoted, "$(", 1)
 			}
 			continue
 		}
 
 		// Check for ${...} variable expansion - don't split on whitespace inside
 		if ch == '$' && l.pos+1 < len(l.input) && l.input[l.pos+1] == '{' {
-			l.readBalanced(&word, "${", 1)
+			l.readBalanced(&word, &quoted, "${", 1)
 			continue
 		}
 
 		word.WriteByte(ch)
+		quoted = append(quoted, false)
 		l.pos++
 	}
 
-	return Token{Type: TokenWord, Value: word.String()}
+	return Token{Type: TokenWord, Value: word.String(), Quoted: quoted}
 }
 
 // readDoubleQuoted consumes one character while inside a double-quoted string.
 // It returns true if the closing quote was consumed (ending the quoted region).
-func (l *Lexer) readDoubleQuoted(word *strings.Builder) bool {
+func (l *Lexer) readDoubleQuoted(word *strings.Builder, quoted *[]bool) bool {
 	ch := l.input[l.pos]
 	if ch == '"' {
 		l.pos++
@@ -335,23 +342,31 @@ func (l *Lexer) readDoubleQuoted(word *strings.Builder) bool {
 			switch next {
 			case '"', '\\', '`', '$', '\n':
 				word.WriteByte(next)
+				*quoted = append(*quoted, true)
 			default:
 				word.WriteByte('\\')
+				*quoted = append(*quoted, true)
 				word.WriteByte(next)
+				*quoted = append(*quoted, true)
 			}
 			l.pos++
 		}
 		return false
 	}
 	word.WriteByte(ch)
+	*quoted = append(*quoted, true)
 	l.pos++
 	return false
 }
 
 // readBalanced writes the given opening sequence to word, then reads until the
 // matching closing delimiters (depth counts the number of open delimiters).
-func (l *Lexer) readBalanced(word *strings.Builder, open string, depth int) {
+// All bytes written are marked unquoted in the mask.
+func (l *Lexer) readBalanced(word *strings.Builder, quoted *[]bool, open string, depth int) {
 	word.WriteString(open)
+	for range open {
+		*quoted = append(*quoted, false)
+	}
 	l.pos += len(open)
 	for l.pos < len(l.input) && depth > 0 {
 		c := l.input[l.pos]
@@ -361,11 +376,13 @@ func (l *Lexer) readBalanced(word *strings.Builder, open string, depth int) {
 			depth--
 			if depth == 0 {
 				word.WriteByte(c)
+				*quoted = append(*quoted, false)
 				l.pos++
 				break
 			}
 		}
 		word.WriteByte(c)
+		*quoted = append(*quoted, false)
 		l.pos++
 	}
 }

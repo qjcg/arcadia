@@ -90,7 +90,7 @@ func (s *Shell) executeBackground(cmd *parser.Command, stdin io.Reader, stdout i
 
 	expandedArgs := make([]string, len(cmd.Args))
 	for i, arg := range cmd.Args {
-		expandedArgs[i] = s.expandVars(arg)
+		expandedArgs[i], _ = s.expandVars(arg, nil)
 	}
 
 	extCmd := exec.Command(path, expandedArgs...)

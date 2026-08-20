@@ -208,31 +208,70 @@ func (s *Shell) completeFileOrArg(parts []string, lastWord string) []string {
 	return candidates
 }
 
-// expandVars replaces $VAR, ${VAR}, $((...)), and $? with their values in the given string.
-func (s *Shell) expandVars(input string) string {
+// maskBuilder builds a string alongside a per-byte quoted mask.
+type maskBuilder struct {
+	str  strings.Builder
+	mask []bool
+}
+
+func (m *maskBuilder) WriteStringQuoted(s string, quoted bool) {
+	m.str.WriteString(s)
+	for range s {
+		m.mask = append(m.mask, quoted)
+	}
+}
+
+func (m *maskBuilder) WriteByteQuoted(b byte, quoted bool) {
+	m.str.WriteByte(b)
+	m.mask = append(m.mask, quoted)
+}
+
+func (m *maskBuilder) String() string { return m.str.String() }
+
+func (m *maskBuilder) Mask() []bool { return m.mask }
+
+func (m *maskBuilder) Reset() {
+	m.str.Reset()
+	m.mask = nil
+}
+
+// maskAt returns the quoted flag for byte i of input, or false if mask is nil
+// or i is out of range.
+func maskAt(mask []bool, i int) bool {
+	if mask == nil || i < 0 || i >= len(mask) {
+		return false
+	}
+	return mask[i]
+}
+
+// expandVars replaces $VAR, ${VAR}, $((...)), and $? with their values in the
+// given string, propagating the quoted mask. Bytes produced by a variable
+// expansion inherit the quotedness of the '$' that introduced them.
+func (s *Shell) expandVars(input string, mask []bool) (string, []bool) {
 	if !strings.ContainsRune(input, '$') && !strings.ContainsRune(input, '`') {
-		return input
+		return input, mask
 	}
 
-	var result strings.Builder
+	var result maskBuilder
 	i := 0
 	for i < len(input) {
 		// Handle backtick command substitution
 		if input[i] == '`' {
-			i = s.expandBacktick(input, i, &result)
+			i = s.expandBacktick(input, i, &result, maskAt(mask, i))
 			continue
 		}
 
 		if input[i] != '$' {
-			result.WriteByte(input[i])
+			result.WriteByteQuoted(input[i], maskAt(mask, i))
 			i++
 			continue
 		}
 
 		i++ // skip $
+		quoted := maskAt(mask, i-1)
 
 		if i >= len(input) {
-			result.WriteByte('$')
+			result.WriteByteQuoted('$', quoted)
 			break
 		}
 
@@ -240,27 +279,27 @@ func (s *Shell) expandVars(input string) string {
 
 		// $$
 		if ch == '$' {
-			result.WriteString(fmt.Sprintf("%d", os.Getpid()))
+			result.WriteStringQuoted(fmt.Sprintf("%d", os.Getpid()), quoted)
 			i++
 			continue
 		}
 
 		// $?
 		if ch == '?' {
-			result.WriteString(fmt.Sprintf("%d", s.exitCode))
+			result.WriteStringQuoted(fmt.Sprintf("%d", s.exitCode), quoted)
 			i++
 			continue
 		}
 
 		// $((...)) arithmetic expansion
 		if ch == '(' && i+1 < len(input) && input[i+1] == '(' {
-			i = s.expandArithmetic(input, i, &result)
+			i = s.expandArithmetic(input, i, &result, quoted)
 			continue
 		}
 
 		// ${VAR} or ${name[idx]} or ${#name[@]}
 		if ch == '{' {
-			i = s.expandBraced(input, i, &result)
+			i = s.expandBraced(input, i, &result, quoted)
 			continue
 		}
 
@@ -271,7 +310,7 @@ func (s *Shell) expandVars(input string) string {
 		}
 		name := input[start:i]
 		if name == "" {
-			result.WriteByte('$')
+			result.WriteByteQuoted('$', quoted)
 			continue
 		}
 
@@ -286,19 +325,19 @@ func (s *Shell) expandVars(input string) string {
 			if i < len(input) {
 				i++ // skip ]
 			}
-			result.WriteString(s.getArrayVar(name, index))
+			result.WriteStringQuoted(s.getArrayVar(name, index), quoted)
 			continue
 		}
 
-		result.WriteString(s.getVar(name))
+		result.WriteStringQuoted(s.getVar(name), quoted)
 	}
 
-	return result.String()
+	return result.String(), result.Mask()
 }
 
 // expandBacktick handles a backtick command substitution starting at input[i]
 // (which points at the opening backtick). It returns the new index.
-func (s *Shell) expandBacktick(input string, i int, result *strings.Builder) int {
+func (s *Shell) expandBacktick(input string, i int, result *maskBuilder, quoted bool) int {
 	i++ // skip opening backtick
 	start := i
 	for i < len(input) && input[i] != '`' {
@@ -311,14 +350,14 @@ func (s *Shell) expandBacktick(input string, i int, result *strings.Builder) int
 	// Execute the command and capture output
 	output, err := s.captureCommandOutput(cmdStr)
 	if err == nil {
-		result.WriteString(strings.TrimRight(output, "\n"))
+		result.WriteStringQuoted(strings.TrimRight(output, "\n"), quoted)
 	}
 	return i
 }
 
 // expandArithmetic handles a $((...)) arithmetic expansion starting at input[i]
 // (which points at the first '(' of the double paren). It returns the new index.
-func (s *Shell) expandArithmetic(input string, i int, result *strings.Builder) int {
+func (s *Shell) expandArithmetic(input string, i int, result *maskBuilder, quoted bool) int {
 	i += 2 // skip ((
 	start := i
 	// depth starts at 2 (for the two (( that were skipped)
@@ -339,13 +378,13 @@ func (s *Shell) expandArithmetic(input string, i int, result *strings.Builder) i
 		i++ // skip the final )
 	}
 	val := s.evalArithmetic(expr)
-	result.WriteString(fmt.Sprintf("%d", val))
+	result.WriteStringQuoted(fmt.Sprintf("%d", val), quoted)
 	return i
 }
 
 // expandBraced handles a ${...} expansion starting at input[i] (which points
 // at the '{'). It returns the new index.
-func (s *Shell) expandBraced(input string, i int, result *strings.Builder) int {
+func (s *Shell) expandBraced(input string, i int, result *maskBuilder, quoted bool) int {
 	i++ // skip {
 	start := i
 
@@ -380,16 +419,16 @@ func (s *Shell) expandBraced(input string, i int, result *strings.Builder) int {
 		if strings.HasSuffix(inner, "[@]") || strings.HasSuffix(inner, "[*]") {
 			name := strings.TrimSuffix(strings.TrimSuffix(inner, "[@]"), "[*]")
 			val := s.getArrayVar(name, "#")
-			result.WriteString(val)
+			result.WriteStringQuoted(val, quoted)
 		} else {
 			val := s.getVar(inner)
-			result.WriteString(fmt.Sprintf("%d", len(val)))
+			result.WriteStringQuoted(fmt.Sprintf("%d", len(val)), quoted)
 		}
 		return i
 	}
 
 	// String manipulation operations
-	if processed := s.expandStringOp(inner, result); processed {
+	if processed := s.expandStringOp(inner, result, quoted); processed {
 		return i
 	}
 
@@ -407,9 +446,9 @@ func (s *Shell) expandBraced(input string, i int, result *strings.Builder) int {
 		if ok {
 			index := before
 			if listKeys {
-				result.WriteString(s.getArrayVar(name, "!"+index))
+				result.WriteStringQuoted(s.getArrayVar(name, "!"+index), quoted)
 			} else {
-				result.WriteString(s.getArrayVar(name, index))
+				result.WriteStringQuoted(s.getArrayVar(name, index), quoted)
 			}
 			return i
 		}
@@ -418,40 +457,38 @@ func (s *Shell) expandBraced(input string, i int, result *strings.Builder) int {
 	// Array name with [@] or [*]
 	if strings.HasSuffix(inner, "[@]") || strings.HasSuffix(inner, "[*]") {
 		name := strings.TrimSuffix(strings.TrimSuffix(inner, "[@]"), "[*]")
-		result.WriteString(s.getArrayVar(name, "@"))
+		result.WriteStringQuoted(s.getArrayVar(name, "@"), quoted)
 		return i
 	}
 
 	// Regular variable
-	result.WriteString(s.getVar(inner))
+	result.WriteStringQuoted(s.getVar(inner), quoted)
 	return i
 }
 
 // expandStringOp handles string manipulation operations in ${...}.
 // Returns true if the operation was handled.
-// expandStringOp handles string manipulation operations in ${...}.
-// Returns true if the operation was handled.
-func (s *Shell) expandStringOp(inner string, result *strings.Builder) bool {
-	if s.expandSubstring(inner, result) {
+func (s *Shell) expandStringOp(inner string, result *maskBuilder, quoted bool) bool {
+	if s.expandSubstring(inner, result, quoted) {
 		return true
 	}
-	if s.expandRemovePrefix(inner, result) {
+	if s.expandRemovePrefix(inner, result, quoted) {
 		return true
 	}
-	if s.expandRemoveSuffix(inner, result) {
+	if s.expandRemoveSuffix(inner, result, quoted) {
 		return true
 	}
-	if s.expandReplace(inner, result) {
+	if s.expandReplace(inner, result, quoted) {
 		return true
 	}
-	if s.expandCase(inner, result) {
+	if s.expandCase(inner, result, quoted) {
 		return true
 	}
 	return false
 }
 
 // expandSubstring handles ${var:offset:length}.
-func (s *Shell) expandSubstring(inner string, result *strings.Builder) bool {
+func (s *Shell) expandSubstring(inner string, result *maskBuilder, quoted bool) bool {
 	before, after, ok := strings.Cut(inner, ":")
 	if !ok {
 		return false
@@ -475,17 +512,17 @@ func (s *Shell) expandSubstring(inner string, result *strings.Builder) bool {
 		fmt.Sscanf(parts[1], "%d", &length)
 	}
 	if offset >= len(val) {
-		result.WriteString("")
+		result.WriteStringQuoted("", quoted)
 	} else if offset+length >= len(val) {
-		result.WriteString(val[offset:])
+		result.WriteStringQuoted(val[offset:], quoted)
 	} else {
-		result.WriteString(val[offset : offset+length])
+		result.WriteStringQuoted(val[offset:offset+length], quoted)
 	}
 	return true
 }
 
 // expandRemovePrefix handles ${var#pattern} and ${var##pattern}.
-func (s *Shell) expandRemovePrefix(inner string, result *strings.Builder) bool {
+func (s *Shell) expandRemovePrefix(inner string, result *maskBuilder, quoted bool) bool {
 	idx := strings.IndexByte(inner, '#')
 	if idx < 0 || idx == 0 {
 		return false
@@ -498,7 +535,7 @@ func (s *Shell) expandRemovePrefix(inner string, result *strings.Builder) bool {
 		for strings.HasPrefix(val, pattern) {
 			val = val[len(pattern):]
 		}
-		result.WriteString(val)
+		result.WriteStringQuoted(val, quoted)
 		return true
 	}
 	name := inner[:idx]
@@ -507,12 +544,12 @@ func (s *Shell) expandRemovePrefix(inner string, result *strings.Builder) bool {
 	if strings.HasPrefix(val, pattern) {
 		val = val[len(pattern):]
 	}
-	result.WriteString(val)
+	result.WriteStringQuoted(val, quoted)
 	return true
 }
 
 // expandRemoveSuffix handles ${var%pattern} and ${var%%pattern}.
-func (s *Shell) expandRemoveSuffix(inner string, result *strings.Builder) bool {
+func (s *Shell) expandRemoveSuffix(inner string, result *maskBuilder, quoted bool) bool {
 	idx := strings.IndexByte(inner, '%')
 	if idx < 0 || idx == 0 {
 		return false
@@ -525,7 +562,7 @@ func (s *Shell) expandRemoveSuffix(inner string, result *strings.Builder) bool {
 		for strings.HasSuffix(val, pattern) {
 			val = val[:len(val)-len(pattern)]
 		}
-		result.WriteString(val)
+		result.WriteStringQuoted(val, quoted)
 		return true
 	}
 	name := inner[:idx]
@@ -534,12 +571,12 @@ func (s *Shell) expandRemoveSuffix(inner string, result *strings.Builder) bool {
 	if strings.HasSuffix(val, pattern) {
 		val = val[:len(val)-len(pattern)]
 	}
-	result.WriteString(val)
+	result.WriteStringQuoted(val, quoted)
 	return true
 }
 
 // expandReplace handles ${var/pattern/replacement} and ${var//pattern/replacement}.
-func (s *Shell) expandReplace(inner string, result *strings.Builder) bool {
+func (s *Shell) expandReplace(inner string, result *maskBuilder, quoted bool) bool {
 	idx := strings.IndexByte(inner, '/')
 	if idx < 0 || idx == 0 {
 		return false
@@ -552,7 +589,7 @@ func (s *Shell) expandReplace(inner string, result *strings.Builder) bool {
 		if len(parts) == 2 {
 			val := s.getVar(name)
 			val = strings.ReplaceAll(val, parts[0], parts[1])
-			result.WriteString(val)
+			result.WriteStringQuoted(val, quoted)
 			return true
 		}
 	} else {
@@ -560,7 +597,7 @@ func (s *Shell) expandReplace(inner string, result *strings.Builder) bool {
 		if len(parts) == 2 {
 			val := s.getVar(name)
 			val = strings.Replace(val, parts[0], parts[1], 1)
-			result.WriteString(val)
+			result.WriteStringQuoted(val, quoted)
 			return true
 		}
 	}
@@ -568,12 +605,12 @@ func (s *Shell) expandReplace(inner string, result *strings.Builder) bool {
 }
 
 // expandCase handles ${var^}, ${var^^}, ${var,}, and ${var,,}.
-func (s *Shell) expandCase(inner string, result *strings.Builder) bool {
+func (s *Shell) expandCase(inner string, result *maskBuilder, quoted bool) bool {
 	if strings.HasSuffix(inner, "^^") {
 		name := inner[:len(inner)-2]
 		val := s.getVar(name)
 		if val != "" {
-			result.WriteString(strings.ToUpper(val))
+			result.WriteStringQuoted(strings.ToUpper(val), quoted)
 		}
 		return true
 	}
@@ -583,14 +620,14 @@ func (s *Shell) expandCase(inner string, result *strings.Builder) bool {
 		if len(val) > 0 {
 			val = strings.ToUpper(val[:1]) + val[1:]
 		}
-		result.WriteString(val)
+		result.WriteStringQuoted(val, quoted)
 		return true
 	}
 	if strings.HasSuffix(inner, ",,") {
 		name := inner[:len(inner)-2]
 		val := s.getVar(name)
 		if val != "" {
-			result.WriteString(strings.ToLower(val))
+			result.WriteStringQuoted(strings.ToLower(val), quoted)
 		}
 		return true
 	}
@@ -600,7 +637,7 @@ func (s *Shell) expandCase(inner string, result *strings.Builder) bool {
 		if len(val) > 0 {
 			val = strings.ToLower(val[:1]) + val[1:]
 		}
-		result.WriteString(val)
+		result.WriteStringQuoted(val, quoted)
 		return true
 	}
 	return false
@@ -1051,6 +1088,21 @@ func (s *Shell) builtinSet(args []string, stdout, stderr io.Writer) int {
 			case "-o":
 				// set -o option
 				continue
+			case "nullglob":
+				s.nullGlob = true
+				return 0
+			case "dotglob":
+				s.dotGlob = true
+				return 0
+			case "+o":
+				// set +o option
+				continue
+			case "no-nullglob":
+				s.nullGlob = false
+				return 0
+			case "no-dotglob":
+				s.dotGlob = false
+				return 0
 			case "vi":
 				if s.rl != nil {
 					s.rl.SetVimMode(true)

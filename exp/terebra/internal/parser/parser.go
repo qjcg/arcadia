@@ -122,6 +122,7 @@ func parseCommand(l *Lexer) (*Command, error) {
 		return nil, fmt.Errorf("expected command name, got %s", tok.Type)
 	}
 	cmd.Name = tok.Value
+	cmd.NameMask = tok.Quoted
 
 	// Parse args and redirects, stopping at pipe, &, auger pipe, chaining ops, or eof
 	for {
@@ -141,6 +142,7 @@ func parseCommand(l *Lexer) (*Command, error) {
 		if peek.Type == TokenWord {
 			tok := l.NextToken()
 			cmd.Args = append(cmd.Args, tok.Value)
+			cmd.ArgsMask = append(cmd.ArgsMask, tok.Quoted)
 			continue
 		}
 

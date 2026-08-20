@@ -66,7 +66,9 @@ func (p *Pipeline) node() {}
 
 type Command struct {
 	Name       string
+	NameMask   []bool // quoted mask for Name; nil = all unquoted
 	Args       []string
+	ArgsMask   [][]bool // quoted mask per arg; nil = all unquoted
 	Redirects  []*Redirect
 	Background bool
 }

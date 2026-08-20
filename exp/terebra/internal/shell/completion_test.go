@@ -1,7 +1,6 @@
 package shell
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -66,8 +65,8 @@ func TestEvalFactorEmpty(t *testing.T) {
 func TestExpandStringOpSubstring(t *testing.T) {
 	s := newTestShell()
 	s.vars["v"] = "hello world"
-	var b strings.Builder
-	if !s.expandStringOp("v:6", &b) {
+	var b maskBuilder
+	if !s.expandStringOp("v:6", &b, false) {
 		t.Fatal("expected substring op handled")
 	}
 	if b.String() != "world" {
@@ -78,8 +77,8 @@ func TestExpandStringOpSubstring(t *testing.T) {
 func TestExpandStringOpSubstringOffsetLength(t *testing.T) {
 	s := newTestShell()
 	s.vars["v"] = "hello world"
-	var b strings.Builder
-	s.expandStringOp("v:0:5", &b)
+	var b maskBuilder
+	s.expandStringOp("v:0:5", &b, false)
 	if b.String() != "hello" {
 		t.Fatalf("expected 'hello', got %q", b.String())
 	}
@@ -88,8 +87,8 @@ func TestExpandStringOpSubstringOffsetLength(t *testing.T) {
 func TestExpandStringOpSubstringNegativeOffset(t *testing.T) {
 	s := newTestShell()
 	s.vars["v"] = "hello"
-	var b strings.Builder
-	s.expandStringOp("v:-3", &b)
+	var b maskBuilder
+	s.expandStringOp("v:-3", &b, false)
 	if b.String() != "llo" {
 		t.Fatalf("expected 'llo', got %q", b.String())
 	}
@@ -98,8 +97,8 @@ func TestExpandStringOpSubstringNegativeOffset(t *testing.T) {
 func TestExpandStringOpSubstringOutOfRange(t *testing.T) {
 	s := newTestShell()
 	s.vars["v"] = "hi"
-	var b strings.Builder
-	s.expandStringOp("v:10", &b)
+	var b maskBuilder
+	s.expandStringOp("v:10", &b, false)
 	if b.String() != "" {
 		t.Fatalf("expected empty, got %q", b.String())
 	}
@@ -108,8 +107,8 @@ func TestExpandStringOpSubstringOutOfRange(t *testing.T) {
 func TestExpandStringOpRemovePrefix(t *testing.T) {
 	s := newTestShell()
 	s.vars["v"] = "foobar"
-	var b strings.Builder
-	s.expandStringOp("v#foo", &b)
+	var b maskBuilder
+	s.expandStringOp("v#foo", &b, false)
 	if b.String() != "bar" {
 		t.Fatalf("expected 'bar', got %q", b.String())
 	}
@@ -118,8 +117,8 @@ func TestExpandStringOpRemovePrefix(t *testing.T) {
 func TestExpandStringOpRemoveLongestPrefix(t *testing.T) {
 	s := newTestShell()
 	s.vars["v"] = "aab"
-	var b strings.Builder
-	s.expandStringOp("v##a", &b)
+	var b maskBuilder
+	s.expandStringOp("v##a", &b, false)
 	if b.String() != "b" {
 		t.Fatalf("expected 'b', got %q", b.String())
 	}
@@ -128,8 +127,8 @@ func TestExpandStringOpRemoveLongestPrefix(t *testing.T) {
 func TestExpandStringOpRemoveSuffix(t *testing.T) {
 	s := newTestShell()
 	s.vars["v"] = "foobar"
-	var b strings.Builder
-	s.expandStringOp("v%bar", &b)
+	var b maskBuilder
+	s.expandStringOp("v%bar", &b, false)
 	if b.String() != "foo" {
 		t.Fatalf("expected 'foo', got %q", b.String())
 	}
@@ -138,8 +137,8 @@ func TestExpandStringOpRemoveSuffix(t *testing.T) {
 func TestExpandStringOpRemoveLongestSuffix(t *testing.T) {
 	s := newTestShell()
 	s.vars["v"] = "abbb"
-	var b strings.Builder
-	s.expandStringOp("v%%b", &b)
+	var b maskBuilder
+	s.expandStringOp("v%%b", &b, false)
 	if b.String() != "a" {
 		t.Fatalf("expected 'a', got %q", b.String())
 	}
@@ -148,8 +147,8 @@ func TestExpandStringOpRemoveLongestSuffix(t *testing.T) {
 func TestExpandStringOpReplaceFirst(t *testing.T) {
 	s := newTestShell()
 	s.vars["v"] = "a-b-a"
-	var b strings.Builder
-	s.expandStringOp("v/a/x", &b)
+	var b maskBuilder
+	s.expandStringOp("v/a/x", &b, false)
 	if b.String() != "x-b-a" {
 		t.Fatalf("expected 'x-b-a', got %q", b.String())
 	}
@@ -158,8 +157,8 @@ func TestExpandStringOpReplaceFirst(t *testing.T) {
 func TestExpandStringOpReplaceAll(t *testing.T) {
 	s := newTestShell()
 	s.vars["v"] = "a-b-a"
-	var b strings.Builder
-	s.expandStringOp("v//a/x", &b)
+	var b maskBuilder
+	s.expandStringOp("v//a/x", &b, false)
 	if b.String() != "x-b-x" {
 		t.Fatalf("expected 'x-b-x', got %q", b.String())
 	}
@@ -168,13 +167,13 @@ func TestExpandStringOpReplaceAll(t *testing.T) {
 func TestExpandStringOpUppercase(t *testing.T) {
 	s := newTestShell()
 	s.vars["v"] = "hello"
-	var b strings.Builder
-	s.expandStringOp("v^", &b)
+	var b maskBuilder
+	s.expandStringOp("v^", &b, false)
 	if b.String() != "Hello" {
 		t.Fatalf("expected 'Hello', got %q", b.String())
 	}
 	b.Reset()
-	s.expandStringOp("v^^", &b)
+	s.expandStringOp("v^^", &b, false)
 	if b.String() != "HELLO" {
 		t.Fatalf("expected 'HELLO', got %q", b.String())
 	}
@@ -183,13 +182,13 @@ func TestExpandStringOpUppercase(t *testing.T) {
 func TestExpandStringOpLowercase(t *testing.T) {
 	s := newTestShell()
 	s.vars["v"] = "HELLO"
-	var b strings.Builder
-	s.expandStringOp("v,", &b)
+	var b maskBuilder
+	s.expandStringOp("v,", &b, false)
 	if b.String() != "hELLO" {
 		t.Fatalf("expected 'hELLO', got %q", b.String())
 	}
 	b.Reset()
-	s.expandStringOp("v,,", &b)
+	s.expandStringOp("v,,", &b, false)
 	if b.String() != "hello" {
 		t.Fatalf("expected 'hello', got %q", b.String())
 	}
@@ -197,8 +196,8 @@ func TestExpandStringOpLowercase(t *testing.T) {
 
 func TestExpandStringOpUnhandled(t *testing.T) {
 	s := newTestShell()
-	var b strings.Builder
-	if s.expandStringOp("plain", &b) {
+	var b maskBuilder
+	if s.expandStringOp("plain", &b, false) {
 		t.Fatal("expected unhandled for plain name")
 	}
 }
@@ -206,8 +205,8 @@ func TestExpandStringOpUnhandled(t *testing.T) {
 func TestExpandBracedRegularVar(t *testing.T) {
 	s := newTestShell()
 	s.vars["name"] = "world"
-	var b strings.Builder
-	i := s.expandBraced("${name}", 1, &b)
+	var b maskBuilder
+	i := s.expandBraced("${name}", 1, &b, false)
 	if b.String() != "world" {
 		t.Fatalf("expected 'world', got %q", b.String())
 	}
@@ -219,8 +218,8 @@ func TestExpandBracedRegularVar(t *testing.T) {
 func TestExpandBracedLength(t *testing.T) {
 	s := newTestShell()
 	s.vars["name"] = "hello"
-	var b strings.Builder
-	s.expandBraced("${#name}", 1, &b)
+	var b maskBuilder
+	s.expandBraced("${#name}", 1, &b, false)
 	if b.String() != "5" {
 		t.Fatalf("expected '5', got %q", b.String())
 	}
@@ -229,8 +228,8 @@ func TestExpandBracedLength(t *testing.T) {
 func TestExpandBracedArrayAccess(t *testing.T) {
 	s := newTestShell()
 	s.setArray("arr", []string{"a", "b"})
-	var b strings.Builder
-	s.expandBraced("${arr[1]}", 1, &b)
+	var b maskBuilder
+	s.expandBraced("${arr[1]}", 1, &b, false)
 	if b.String() != "b" {
 		t.Fatalf("expected 'b', got %q", b.String())
 	}
@@ -239,8 +238,8 @@ func TestExpandBracedArrayAccess(t *testing.T) {
 func TestExpandBracedArrayAll(t *testing.T) {
 	s := newTestShell()
 	s.setArray("arr", []string{"a", "b"})
-	var b strings.Builder
-	s.expandBraced("${arr[@]}", 1, &b)
+	var b maskBuilder
+	s.expandBraced("${arr[@]}", 1, &b, false)
 	if b.String() != "a b" {
 		t.Fatalf("expected 'a b', got %q", b.String())
 	}
@@ -249,8 +248,8 @@ func TestExpandBracedArrayAll(t *testing.T) {
 func TestExpandBracedStringOp(t *testing.T) {
 	s := newTestShell()
 	s.vars["v"] = "hello"
-	var b strings.Builder
-	s.expandBraced("${v^}", 1, &b)
+	var b maskBuilder
+	s.expandBraced("${v^}", 1, &b, false)
 	if b.String() != "Hello" {
 		t.Fatalf("expected 'Hello', got %q", b.String())
 	}
@@ -259,21 +258,21 @@ func TestExpandBracedStringOp(t *testing.T) {
 func TestExpandVarsSimple(t *testing.T) {
 	s := newTestShell()
 	s.vars["x"] = "val"
-	if got := s.expandVars("$x"); got != "val" {
+	if got, _ := s.expandVars("$x", nil); got != "val" {
 		t.Fatalf("expected 'val', got %q", got)
 	}
 }
 
 func TestExpandVarsNoDollar(t *testing.T) {
 	s := newTestShell()
-	if got := s.expandVars("plain"); got != "plain" {
+	if got, _ := s.expandVars("plain", nil); got != "plain" {
 		t.Fatalf("expected 'plain', got %q", got)
 	}
 }
 
 func TestExpandVarsPid(t *testing.T) {
 	s := newTestShell()
-	got := s.expandVars("$$")
+	got, _ := s.expandVars("$$", nil)
 	if got == "$$" {
 		t.Fatal("expected $$ to expand to pid")
 	}
@@ -282,14 +281,14 @@ func TestExpandVarsPid(t *testing.T) {
 func TestExpandVarsExitCode(t *testing.T) {
 	s := newTestShell()
 	s.setExitCode(3)
-	if got := s.expandVars("$?"); got != "3" {
+	if got, _ := s.expandVars("$?", nil); got != "3" {
 		t.Fatalf("expected '3', got %q", got)
 	}
 }
 
 func TestExpandVarsArithmetic(t *testing.T) {
 	s := newTestShell()
-	if got := s.expandVars("$((2+3))"); got != "5" {
+	if got, _ := s.expandVars("$((2+3))", nil); got != "5" {
 		t.Fatalf("expected '5', got %q", got)
 	}
 }
@@ -297,7 +296,7 @@ func TestExpandVarsArithmetic(t *testing.T) {
 func TestExpandVarsArrayNoBrace(t *testing.T) {
 	s := newTestShell()
 	s.setArray("arr", []string{"x", "y"})
-	if got := s.expandVars("$arr[1]"); got != "y" {
+	if got, _ := s.expandVars("$arr[1]", nil); got != "y" {
 		t.Fatalf("expected 'y', got %q", got)
 	}
 }

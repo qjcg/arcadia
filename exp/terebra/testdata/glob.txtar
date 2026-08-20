@@ -45,3 +45,33 @@ stdout 'ac.txt'
 terebra echo [a-z]*.txt
 stdout 'ab.txt'
 stdout 'ac.txt'
+
+# quoted glob does not expand
+terebra echo '*.txt'
+stdout '*.txt'
+
+# double-quoted glob does not expand
+terebra echo "*.txt"
+stdout '*.txt'
+
+# escaped glob does not expand
+terebra echo \*.txt
+stdout '*.txt'
+
+# recursive glob with multiple **
+terebra echo **/**/deep.txt
+stdout 'sub/deep/deep.txt'
+
+# recursive glob mid-path
+terebra echo sub/**/deep.txt
+stdout 'sub/deep/deep.txt'
+
+# nullglob: unmatched glob expands to nothing
+terebra set -o nullglob; echo *.nonexistent
+stdout ''
+
+# dotglob: * matches dotfiles
+-- .hidden --
+hidden
+terebra set -o dotglob; echo *
+stdout '.hidden'

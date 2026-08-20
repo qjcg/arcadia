@@ -211,7 +211,10 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 	}
 
 	// Run expansion pipeline: brace expansion → variable expansion
-	expandedName, expandedArgs := expand.ExpandCommand(cmd.Name, cmd.Args, s.expandVars)
+	expandedName, expandedArgs, err := expand.ExpandCommand(cmd.Name, cmd.NameMask, cmd.Args, cmd.ArgsMask, s.globOptions(), s.expandVars)
+	if err != nil {
+		return err
+	}
 
 	// Debug trace
 	if s.debug {
@@ -531,7 +534,7 @@ func (s *Shell) openRedirects(cmd *parser.Command, stdin io.Reader, stdout io.Wr
 	var closers []io.Closer
 
 	for _, redir := range cmd.Redirects {
-		file := s.expandVars(redir.File)
+		file, _ := s.expandVars(redir.File, nil)
 		switch redir.Type {
 		case parser.RedirectStdout:
 			f, err := createRedirectFile(file)
@@ -633,7 +636,7 @@ func (s *Shell) heredocReader(redir *parser.Redirect) (io.ReadCloser, error) {
 	content := redir.Content
 	if !redir.Quoted {
 		// Expand variables in heredoc content
-		content = s.expandVars(content)
+		content, _ = s.expandVars(content, nil)
 	}
 	// Write content to a pipe for stdin
 	r, w, err := os.Pipe()

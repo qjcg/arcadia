@@ -69,7 +69,8 @@ func TestParseScriptUnexpectedToken(t *testing.T) {
 func TestReadBalanced(t *testing.T) {
 	l := NewLexer("$(echo hi) rest")
 	var word strings.Builder
-	l.readBalanced(&word, "$(", 1)
+	var quoted []bool
+	l.readBalanced(&word, &quoted, "$(", 1)
 	if word.String() != "$(echo hi)" {
 		t.Fatalf("expected '$(echo hi)', got %q", word.String())
 	}
@@ -78,7 +79,8 @@ func TestReadBalanced(t *testing.T) {
 func TestReadBalancedNested(t *testing.T) {
 	l := NewLexer("$(a $(b)) rest")
 	var word strings.Builder
-	l.readBalanced(&word, "$(", 1)
+	var quoted []bool
+	l.readBalanced(&word, &quoted, "$(", 1)
 	if word.String() != "$(a $(b))" {
 		t.Fatalf("expected nested balanced, got %q", word.String())
 	}

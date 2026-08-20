@@ -17,6 +17,79 @@ func Expand(word string) []string {
 	return results
 }
 
+// ExpandMasked performs brace expansion on a word carrying a quoted mask.
+// Brace alternatives are treated as unquoted; surrounding literal text keeps
+// its mask.
+func ExpandMasked(w Word) []Word {
+	results := expandBraceWord(w)
+	if len(results) == 0 {
+		return []Word{w}
+	}
+	return results
+}
+
+// expandBraceWord is the mask-aware counterpart of expandBrace.
+func expandBraceWord(w Word) []Word {
+	start, end, ok := findBraces(w.Value)
+	if !ok {
+		return []Word{w}
+	}
+
+	prefix := w.Value[:start]
+	content := w.Value[start+1 : end]
+	suffix := w.Value[end+1:]
+
+	parts := parseBraceContent(content)
+	if len(parts) == 0 {
+		// {} → literal
+		return []Word{w}
+	}
+
+	prefixMask := maskSlice(w.Mask, 0, start)
+	suffixMask := maskSlice(w.Mask, end+1, len(w.Value))
+
+	var results []Word
+	for _, part := range parts {
+		// Brace alternatives are unquoted.
+		partMask := make([]bool, len(part))
+		expanded := expandBraceWord(Word{Value: part, Mask: partMask})
+		for _, e := range expanded {
+			combined := Word{
+				Value: prefix + e.Value + suffix,
+				Mask:  concatMasks(prefixMask, e.Mask, suffixMask),
+			}
+			for _, r := range expandBraceWord(combined) {
+				results = append(results, r)
+			}
+		}
+	}
+
+	return results
+}
+
+// maskSlice returns m[start:end], or nil if m is nil.
+func maskSlice(m []bool, start, end int) []bool {
+	if m == nil {
+		return nil
+	}
+	return m[start:end]
+}
+
+// concatMasks concatenates several masks into one.
+func concatMasks(ms ...[]bool) []bool {
+	var total int
+	for _, m := range ms {
+		total += len(m)
+	}
+	out := make([]bool, total)
+	pos := 0
+	for _, m := range ms {
+		copy(out[pos:], m)
+		pos += len(m)
+	}
+	return out
+}
+
 // expandBrace recursively expands brace groups in s.
 func expandBrace(s string) []string {
 	start, end, ok := findBraces(s)

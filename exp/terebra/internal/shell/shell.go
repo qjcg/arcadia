@@ -14,6 +14,7 @@ import (
 	"github.com/chzyer/readline"
 	"github.com/qjcg/arcadia/exp/terebra/internal/builtins"
 	"github.com/qjcg/arcadia/exp/terebra/internal/drill"
+	"github.com/qjcg/arcadia/exp/terebra/internal/expand"
 	"github.com/qjcg/arcadia/exp/terebra/internal/parser"
 	"github.com/qjcg/arcadia/exp/terebra/internal/plugin"
 	"github.com/qjcg/arcadia/exp/terebra/internal/script"
@@ -41,6 +42,8 @@ type Shell struct {
 	interp   *script.Interpreter
 	debug    bool // set -x debug mode
 	fuzzy    bool // Ctrl+R fuzzy search flag
+	nullGlob bool // set -o nullglob: unmatched globs expand to nothing
+	dotGlob  bool // set -o dotglob: globs match leading-dot names
 
 	// stdin pipe for interrupting readline
 	stdinR          *os.File // read end of pipe (readline reads from this)
@@ -59,6 +62,11 @@ func (s *Shell) setExitCode(code int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.exitCode = code
+}
+
+// globOptions returns the current glob expansion options.
+func (s *Shell) globOptions() expand.GlobOptions {
+	return expand.GlobOptions{NullGlob: s.nullGlob, DotGlob: s.dotGlob}
 }
 
 func (s *Shell) getExitCode() int {
