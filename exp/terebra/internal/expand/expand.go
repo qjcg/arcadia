@@ -9,11 +9,16 @@ type Word struct {
 }
 
 // Pipeline runs the full expansion pipeline on a single word:
-// brace expansion → variable expansion → glob expansion.
+// brace expansion → tilde expansion → variable expansion → glob expansion.
 // Returns the expanded words. For words without braces, returns [word].
 func Pipeline(word string, mask []bool, opts GlobOptions, expandVar func(string, []bool) (string, []bool)) ([]string, error) {
 	// Step 1: brace expansion
 	expanded := ExpandMasked(Word{Value: word, Mask: mask})
+
+	// Step 1.5: tilde expansion (for each expanded word)
+	for i := range expanded {
+		expanded[i] = Tilde(expanded[i])
+	}
 
 	// Step 2: variable expansion (for each expanded word)
 	if expandVar != nil {
@@ -41,11 +46,11 @@ func Pipeline(word string, mask []bool, opts GlobOptions, expandVar func(string,
 // ExpandCommand expands a command name and args through the expansion pipeline.
 // Returns the expanded name and args. The name is the first expanded word.
 func ExpandCommand(name string, nameMask []bool, args []string, argsMask [][]bool, opts GlobOptions, expandVar func(string, []bool) (string, []bool)) (string, []string, error) {
-	// Expand the command name (brace + var expansion, no globbing)
+	// Expand the command name (brace + tilde + var expansion, no globbing)
 	expandedName := ExpandMasked(Word{Value: name, Mask: nameMask})
 	cmdName := name
 	if len(expandedName) > 0 {
-		cmdName = expandedName[0].Value
+		cmdName = Tilde(expandedName[0]).Value
 	}
 	if expandVar != nil {
 		val, _ := expandVar(cmdName, nameMask)

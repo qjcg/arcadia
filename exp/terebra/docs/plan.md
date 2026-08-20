@@ -11,6 +11,7 @@
 | 1.5 | **`history` builtin** — `history [n]`, `history -c`, `history -d n` wrapping readline | ✅ |
 | 1.6 | **Backtick command substitution** — `` `cmd` `` in lexer → execute + capture stdout | ✅ |
 | 1.7 | **Read-only variables** — `readonly`/`declare -r` flag on vars, reject set attempts | ✅ |
+| 1.8 | **Tilde expansion** — leading unquoted `~` → `$HOME`, `~user` → user home, in the expansion pipeline | ✅ |
 
 ## Phase 2: CUE Expansion ✅
 

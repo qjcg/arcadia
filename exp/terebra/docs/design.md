@@ -36,12 +36,13 @@
 Word expansion happens in a fixed order after parsing, before execution:
 
 ```
-input → parse → brace expand → variable expand → glob → execute
+input → parse → brace expand → tilde expand → variable expand → glob → execute
 ```
 
 1. **Brace expansion** — `{a,b,c}`, `{1..5}` generate multiple words
-2. **Variable expansion** — `$VAR`, `${VAR}`, `$?`, `$$` replaced with values
-3. **Globbing** — `*`, `?`, `[...]` patterns replaced with matching filenames
+2. **Tilde expansion** — leading unquoted `~` → `$HOME`, `~user` → user home
+3. **Variable expansion** — `$VAR`, `${VAR}`, `$?`, `$$` replaced with values
+4. **Globbing** — `*`, `?`, `[...]` patterns replaced with matching filenames
 
 This order ensures `${...}` is never confused with `{...}` and that glob patterns in expanded variables are still expanded.
 
@@ -64,6 +65,24 @@ Brace expansion generates multiple words from `{...}` patterns before variable e
 **Rules:**
 - `{}` with no comma or range → literal `{}`
 - Escaped `\{` or quoted `'{'` → no expansion
+
+### Tilde Expansion
+
+A leading unquoted `~` expands to the home directory, running after brace
+expansion and before variable expansion.
+
+| Pattern         | Result                            |
+|-----------------|-----------------------------------|
+| `~` or `~/...`  | `$HOME` / `$HOME/...`             |
+| `~user`         | that user's home directory        |
+| quoted `~`      | literal `~` (no expansion)        |
+
+**Rules:**
+- A mid-word `~` (`a~b`) never expands.
+- If `$HOME` is unset (bare `~`) or the user is unknown (`~user`), the word is
+  left literal.
+- The inserted home path is treated as quoted, so glob metacharacters inside
+  it are not re-expanded.
 - Invalid ranges like `{1..a}` or overflow → literal
 - Unclosed `{` → literal
 

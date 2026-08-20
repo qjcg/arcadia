@@ -1,0 +1,34 @@
+# tilde expansion
+env HOME=/home/tildeuser
+
+# bare tilde expands to $HOME
+terebra -c 'echo ~'
+stdout '/home/tildeuser'
+
+# tilde with path
+terebra -c 'echo ~/foo'
+stdout '/home/tildeuser/foo'
+
+# tilde mid-word does not expand
+terebra -c 'echo a~b'
+stdout 'a~b'
+
+# quoted tilde does not expand
+terebra -c 'echo ''~'''
+stdout '~'
+
+# double-quoted tilde does not expand
+terebra -c 'echo "~"'
+stdout '~'
+
+# escaped tilde does not expand
+terebra -c 'echo \~'
+stdout '~'
+
+# unknown user stays literal
+terebra -c 'echo ~nosuchuser_xyz'
+stdout '~nosuchuser_xyz'
+
+# tilde in a variable value is not re-expanded
+terebra -c 'x=~; echo $x'
+stdout '~'
