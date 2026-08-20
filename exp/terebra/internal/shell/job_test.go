@@ -2,9 +2,11 @@ package shell
 
 import (
 	"bytes"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/qjcg/arcadia/exp/terebra/internal/parser"
 )
@@ -14,6 +16,56 @@ func newTestShell() *Shell {
 	s.Stdout = &bytes.Buffer{}
 	s.Stderr = &bytes.Buffer{}
 	return s
+}
+
+// redirectStdoutToFile points the shell's stdout at a fresh temp file and
+// returns its path. Subprocess and job goroutines write to the file, which
+// avoids the data races that would come from sharing a bytes.Buffer with the
+// copy goroutine os/exec spawns when a subprocess writes to an io.Writer.
+func redirectStdoutToFile(t *testing.T, s *Shell) string {
+	f, err := os.CreateTemp("", "terebra-out-*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Stdout = f
+	return f.Name()
+}
+
+// redirectStderrToFile points the shell's stderr at a fresh temp file and
+// returns its path, mirroring redirectStdoutToFile.
+func redirectStderrToFile(t *testing.T, s *Shell) string {
+	f, err := os.CreateTemp("", "terebra-err-*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Stderr = f
+	return f.Name()
+}
+
+// readFileWaits reads path, retrying until it contains want or the timeout
+// (in ms) elapses. Since subprocess output is flushed by a goroutine shortly
+// after the child exits, a short poll makes the assertion deterministic.
+func readFileWaits(t *testing.T, path, want string, ms int) string {
+	deadline := time.Now().Add(time.Duration(ms) * time.Millisecond)
+	var data []byte
+	for {
+		var err error
+		data, err = os.ReadFile(path)
+		if err == nil && strings.Contains(string(data), want) {
+			return string(data)
+		}
+		if time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if data != nil {
+		return string(data)
+	}
+	if _, err := os.ReadFile(path); err != nil {
+		t.Fatalf("failed to read output file %s: %v", path, err)
+	}
+	return ""
 }
 
 func TestAddJobAndFindJob(t *testing.T) {
@@ -267,12 +319,12 @@ func TestExecuteBackgroundNotFound(t *testing.T) {
 
 func TestExecuteBackgroundCommand(t *testing.T) {
 	s := newTestShell()
-	var out bytes.Buffer
-	s.Stdout = &out
+	path := redirectStdoutToFile(t, s)
 	cmd := &parser.Command{Name: "true"}
-	if err := s.executeBackground(cmd, strings.NewReader(""), &out); err != nil {
+	if err := s.executeBackground(cmd, strings.NewReader(""), s.Stdout); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	_ = path
 }
 
 func TestBuiltinFgWaitingJob(t *testing.T) {
@@ -294,9 +346,11 @@ func TestBuiltinFgWaitingJob(t *testing.T) {
 
 func TestBuiltinFgJobNotRunning(t *testing.T) {
 	s := newTestShell()
+	// Build the job manually so no addJob goroutine runs on an unstarted command.
 	cmd := exec.Command("true")
-	// Process nil -> not running
-	s.addJob(cmd, "true").Cmd.Process = nil
+	s.jobSeq++
+	job := &Job{ID: s.jobSeq, Cmd: cmd, State: JobRunning, Line: "true"}
+	s.jobs = append(s.jobs, job)
 	var out, errb bytes.Buffer
 	code := builtinFg(nil, &out, &errb, s)
 	if code != 1 {

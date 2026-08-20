@@ -243,8 +243,10 @@ func (s *Shell) Repl() error {
 					continue
 				}
 				fmt.Fprintln(s.Stdout)
+				s.closeStdinPipe()
 				return nil
 			}
+			s.closeStdinPipe()
 			return err
 		}
 

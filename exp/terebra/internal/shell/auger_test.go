@@ -18,13 +18,12 @@ func TestExecuteAugerPipelineSimple(t *testing.T) {
 		},
 		Connects: []parser.ConnectType{parser.ConnectAuger},
 	}
-	var out bytes.Buffer
-	s.Stdout = &out
+	path := redirectStdoutToFile(t, s)
 	if err := s.executeAugerPipeline(pipe); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(out.String(), "a:") {
-		t.Fatalf("expected a: in output, got %q", out.String())
+	if got := readFileWaits(t, path, "a:", 2000); !strings.Contains(got, "a:") {
+		t.Fatalf("expected a: in output, got %q", got)
 	}
 }
 
@@ -48,13 +47,12 @@ func TestExecuteAugerPipelineInvalidCUE(t *testing.T) {
 		},
 		Connects: []parser.ConnectType{parser.ConnectAuger},
 	}
-	var out bytes.Buffer
-	s.Stdout = &out
+	path := redirectStdoutToFile(t, s)
 	if err := s.executeAugerPipeline(pipe); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(out.String(), "not valid cue") {
-		t.Fatalf("expected raw passthrough, got %q", out.String())
+	if got := readFileWaits(t, path, "not valid cue", 2000); !strings.Contains(got, "not valid cue") {
+		t.Fatalf("expected raw passthrough, got %q", got)
 	}
 }
 

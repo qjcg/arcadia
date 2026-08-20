@@ -134,6 +134,8 @@ func TestExecuteScriptEmpty(t *testing.T) {
 
 func TestExecuteScriptChainingAnd(t *testing.T) {
 	s := newTestShell()
+	redirectStdoutToFile(t, s)
+	redirectStderrToFile(t, s)
 	// echo a && echo b — both should run
 	script := &parser.Script{
 		Pipelines: []*parser.Pipeline{
@@ -264,8 +266,7 @@ func TestOpenRedirectsHeredoc(t *testing.T) {
 
 func TestExecutePipedCommands(t *testing.T) {
 	s := newTestShell()
-	var out strings.Builder
-	s.Stdout = &out
+	path := redirectStdoutToFile(t, s)
 	cmds := []*parser.Command{
 		{Name: "echo", Args: []string{"hello"}},
 		{Name: "cat"},
@@ -274,8 +275,8 @@ func TestExecutePipedCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(out.String(), "hello") {
-		t.Fatalf("expected 'hello' in output, got %q", out.String())
+	if got := readFileWaits(t, path, "hello", 2000); !strings.Contains(got, "hello") {
+		t.Fatalf("expected 'hello' in output, got %q", got)
 	}
 }
 
@@ -452,13 +453,14 @@ func TestRunExternalCommandSuccess(t *testing.T) {
 
 func TestRunExternalCommandOutput(t *testing.T) {
 	s := newTestShell()
-	var out bytes.Buffer
-	err := s.runExternalCommand("echo", []string{"hello"}, strings.NewReader(""), &out, &bytes.Buffer{})
+	path := redirectStdoutToFile(t, s)
+	redirectStderrToFile(t, s)
+	err := s.runExternalCommand("echo", []string{"hello"}, strings.NewReader(""), s.Stdout, s.Stderr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(out.String(), "hello") {
-		t.Fatalf("expected 'hello' in output, got %q", out.String())
+	if got := readFileWaits(t, path, "hello", 2000); !strings.Contains(got, "hello") {
+		t.Fatalf("expected 'hello' in output, got %q", got)
 	}
 }
 
