@@ -204,7 +204,7 @@ tasks:
       GOWORK: "off"
     vars:
       NEW_TAGS:
-        sh: go tool sv next --all | grep -E '^(.*/)?v[0-9]+\.[0-9]+\.[0-9]+$' || true
+        sh: go tool sv next --all | grep -E '^(.*/)?v[0-9]+\.[0-9]+\.[0-9]+$' | tr '\n' ' ' || true
     cmds:
       - |
         set -e
