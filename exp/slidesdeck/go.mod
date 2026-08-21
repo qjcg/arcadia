@@ -1,6 +1,6 @@
 module github.com/qjcg/arcadia/exp/slidesdeck
 
-go 1.26.5
+go 1.27
 
 require (
 	github.com/a-h/templ v0.3.977
@@ -46,7 +46,7 @@ require (
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
-	github.com/stretchr/testify v1.12.0 // indirect
+	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/tdewolff/parse/v2 v2.8.5 // indirect
 	github.com/tetratelabs/wazero v1.12.0 // indirect
 	golang.org/x/image v0.45.0 // indirect

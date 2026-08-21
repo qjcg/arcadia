@@ -1,5 +1,5 @@
 module github.com/qjcg/arcadia/exp/jmacs
 
-go 1.26.5
+go 1.27
 
 replace github.com/qjcg/arcadia/exp/elbereth => ../elbereth

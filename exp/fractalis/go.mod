@@ -1,6 +1,6 @@
 module github.com/qjcg/arcadia/exp/fractalis
 
-go 1.26.5
+go 1.27
 
 require (
 	github.com/atotto/clipboard v0.1.4
@@ -56,12 +56,12 @@ require (
 	github.com/rogpeppe/go-internal v1.16.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
-	github.com/stretchr/testify v1.12.0 // indirect
+	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/tdewolff/parse/v2 v2.8.5 // indirect
 	github.com/tetratelabs/wazero v1.12.0 // indirect
 	github.com/xo/terminfo v1.0.0 // indirect
 	github.com/yuin/goldmark v1.8.5 // indirect
-	golang.org/x/exp v0.0.0-20260813180055-c1d0aacb2297 // indirect
+	golang.org/x/exp v0.0.0-20260820142414-ca536658362e // indirect
 	golang.org/x/mod v0.40.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect

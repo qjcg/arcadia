@@ -1,6 +1,8 @@
 package game
 
 import (
+	"slices"
+
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -479,8 +481,8 @@ func (g *Game) tryPickup() {
 	m := g.CurrentMap()
 	px, py := g.player.X, g.player.Y
 	found := false
-	for i := len(m.Items) - 1; i >= 0; i-- {
-		item := m.Items[i]
+	for i, item := range slices.Backward(m.Items) {
+
 		if !item.OnGround {
 			continue
 		}

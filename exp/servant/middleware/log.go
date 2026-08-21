@@ -22,7 +22,7 @@ func Log(next http.Handler) http.Handler {
 		next.ServeHTTP(rw, r)
 
 		// Extract IPv4 addresses.
-		remoteIP := strings.Split(r.RemoteAddr, ":")[0]
+		remoteIP, _, _ := strings.Cut(r.RemoteAddr, ":")
 		// Extract IPv6 addresses.
 		if strings.Contains(r.RemoteAddr, "[") {
 			remoteIP = strings.Split(r.RemoteAddr, "]:")[0][1:]

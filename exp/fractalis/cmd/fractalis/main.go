@@ -1872,9 +1872,11 @@ func main() {
 	// Apply random if requested
 	if *randomMode {
 		// Create temporary model to use random function
-		tempModel := model{config: config}
-		// Initialize the interest calculator (required by applyRandom -> isViewUniform)
-		tempModel.calculator = search.NewInterestCalculator(wrapCalculateFractalFloat64)
+		tempModel := model{
+			config: config,
+			// Initialize the interest calculator (required by applyRandom -> isViewUniform)
+			calculator: search.NewInterestCalculator(wrapCalculateFractalFloat64),
+		}
 		tempModel.applyRandom()
 		config = tempModel.config
 	}
@@ -1917,10 +1919,10 @@ func main() {
 		bookmarksLoadedOk: bookmarksLoadedOk,
 		animationState:    animState,
 		renderer:          renderlib.NewRenderer(config, wrapCalculateFractal),
-	}
 
-	// Initialize the interest calculator
-	m.calculator = search.NewInterestCalculator(wrapCalculateFractalFloat64)
+		// Initialize the interest calculator
+		calculator: search.NewInterestCalculator(wrapCalculateFractalFloat64),
+	}
 
 	// Apply URL-based state if provided
 	if *urlFlag != "" {

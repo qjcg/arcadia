@@ -1,6 +1,6 @@
 module github.com/qjcg/arcadia/exp/fin
 
-go 1.26.5
+go 1.27
 
 require (
 	github.com/GiGurra/boa v1.0.28

@@ -1,6 +1,8 @@
 package types
 
 import (
+	"slices"
+
 	"github.com/qjcg/arcadia/exp/elbereth/internal/ast"
 )
 
@@ -332,8 +334,8 @@ func (c *Checker) setInScope(name string, t Type) {
 }
 
 func (c *Checker) lookup(name string) (Type, bool) {
-	for i := len(c.scopes) - 1; i >= 0; i-- {
-		if t, ok := c.scopes[i][name]; ok {
+	for _, v := range slices.Backward(c.scopes) {
+		if t, ok := v[name]; ok {
 			return t, true
 		}
 	}

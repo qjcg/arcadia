@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -1514,8 +1515,8 @@ func shouldSkipSpellFix(lineStr string, col int, wrong string) bool {
 
 func (r *spellCheckRule) Fix(_ *MarkdownDoc, source []byte, results []Result) []byte {
 	// Apply fixes in reverse order to preserve positions
-	for i := len(results) - 1; i >= 0; i-- {
-		res := results[i]
+	for _, res := range slices.Backward(results) {
+
 		if res.RuleID != r.ID() {
 			continue
 		}

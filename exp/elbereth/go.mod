@@ -1,6 +1,6 @@
 module github.com/qjcg/arcadia/exp/elbereth
 
-go 1.26.5
+go 1.27
 
 require (
 	github.com/chzyer/readline v1.5.1

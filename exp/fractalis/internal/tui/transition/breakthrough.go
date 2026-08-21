@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"slices"
 	"time"
 )
 
@@ -176,8 +177,7 @@ func (b *Breakthrough) generateCrackPatternAndParticles() {
 func (b *Breakthrough) updateParticles() {
 	gravity := 0.1
 
-	for i := len(b.Particles) - 1; i >= 0; i-- {
-		p := b.Particles[i]
+	for i, p := range slices.Backward(b.Particles) {
 
 		// Apply gravity
 		p.VelY += gravity * 0.05
