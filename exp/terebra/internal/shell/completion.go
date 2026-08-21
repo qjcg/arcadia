@@ -183,8 +183,15 @@ func (s *Shell) completeFileOrArg(parts []string, lastWord string) []string {
 			return []string{home + "/"}
 		}
 	}
-	// Expand a leading tilde (~, ~/, ~user) to the real path so the directory
-	// can be read and the completed path is directly usable.
+	// Keep the original (unexpanded) directory prefix so completed paths reuse
+	// the ~ form instead of an absolute home path, preserving a common prefix
+	// with the typed word for readline.
+	origDir := ""
+	if idx := strings.LastIndexByte(lastWord, '/'); idx >= 0 {
+		origDir = lastWord[:idx+1]
+	}
+
+	// Expand a leading tilde so the directory can be read.
 	lastWord = s.expandLeadingTilde(lastWord)
 	dir := "."
 	filePrefix := lastWord
@@ -214,9 +221,9 @@ func (s *Shell) completeFileOrArg(parts []string, lastWord string) []string {
 			if e.IsDir() {
 				name += "/"
 			}
-			// Always include the directory prefix if the original path had one
-			if dir != "." || strings.Contains(lastWord, "/") {
-				name = dir + "/" + name
+			// Always include the original directory prefix if there was one
+			if origDir != "" {
+				name = origDir + name
 			}
 			candidates = append(candidates, name)
 		}

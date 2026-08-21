@@ -144,8 +144,38 @@ func TestCompleteFileOrArgTildeHome(t *testing.T) {
 
 	s := newTestShell()
 	got := s.completeFileOrArg([]string{"cat"}, "~/al")
-	if len(got) != 1 || got[0] != filepath.Join(home, "alpha.txt") {
-		t.Fatalf("expected ~/ expansion to %q, got %v", filepath.Join(home, "alpha.txt"), got)
+	if len(got) != 1 || got[0] != "~/alpha.txt" {
+		t.Fatalf("expected ~/alpha.txt, got %v", got)
+	}
+}
+
+// The completed path must keep the ~ prefix so the common-prefix logic in Do
+// produces ~/alpha.txt rather than the doubled ~//home/... corruption.
+func TestShellCompleterDoTildeHome(t *testing.T) {
+	home := t.TempDir()
+	os.WriteFile(filepath.Join(home, "alpha.txt"), []byte("x"), 0o644)
+
+	oldHome, hadHome := os.LookupEnv("HOME")
+	os.Setenv("HOME", home)
+	defer func() {
+		if hadHome {
+			os.Setenv("HOME", oldHome)
+		} else {
+			os.Unsetenv("HOME")
+		}
+	}()
+
+	s := newTestShell()
+	c := &shellCompleter{shell: s}
+	suffixes, commonLen := c.Do([]rune("~/al"), 4)
+	if len(suffixes) != 1 {
+		t.Fatalf("expected one completion, got %v", suffixes)
+	}
+	if commonLen != 4 {
+		t.Fatalf("expected commonLen 4 (~/al), got %d", commonLen)
+	}
+	if string(suffixes[0]) != "pha.txt" {
+		t.Fatalf("expected suffix pha.txt, got %q", string(suffixes[0]))
 	}
 }
 
