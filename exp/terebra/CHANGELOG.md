@@ -5,7 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [v0.7.1] - 2026-08-21
+
+### Changed
+- 8ecfd11d - Update deps
+- 878b20c2 - Update deps
+
+### Fixed
+- 04236d66 - stop build test polluting the source tree with a script binary
+- f2e26cbc - stop tab completion doubling the home path for ~
+
+## [v0.7.0] - 2026-08-20
 
 ### Added
 - 4616ac31 - complete tilde paths in the REPL
@@ -24,8 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.6.10] - 2026-08-19
 
 ### Changed
-- 08199a49 - update changelogs for released versions
-- 5819007b - Update CHANGELOGs
 - 53b49e27 - Update deps
 
 ### Fixed
@@ -82,7 +90,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ed4855fa - add exec builtin to replace shell process with an external command
 
 ### Changed
-- 5b0ca43a - Update CHANGELOGs
 - d4208456 - Bump deps
 
 ## [v0.5.0] - 2026-07-19
@@ -111,9 +118,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 1d1168d4 - handle Ctrl+C in fg via signal forwarding, no terminal manipulation
 
 ## [v0.4.1] - 2026-07-19
-
-### Changed
-- e3946493 - Update CHANGELOGs
 
 ### Fixed
 - 23efe68a - enable Ctrl+C and Ctrl+Z in fg'd background jobs
@@ -165,7 +169,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - fa150990 - update Taskfile and add implementation plan docs
-- 0996a2a8 - Update CHANGELOGs
 - f5915ee4 - Bump deps
 
 ## [v0.1.0] - 2026-07-18

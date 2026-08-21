@@ -8,8 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
-- 08199a49 - update changelogs for released versions
-- 5819007b - Update CHANGELOGs
+- 878b20c2 - Update deps
 - 53b49e27 - Update deps
 
 ## [v0.3.0] - 2026-08-06
@@ -18,14 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 52d9b671 - add awesome-lint CLI tool for linting awesome lists
 
 ### Changed
-- 5b0ca43a - Update CHANGELOGs
-- e3946493 - Update CHANGELOGs
-- 0996a2a8 - Update CHANGELOGs
-- b10cc15a - Update CHANGELOGs
 - 51f343c6 - Bump go deps
 - 453a8cfc - Update go deps
 - 79771f93 - Update all changelogs
-- 3c164cdf - Update changelog
 - 7596abf0 - Add BDD feature tests with godog
 - fd4726e2 - move built-in templates to top-level templates directory
 

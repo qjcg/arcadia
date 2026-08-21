@@ -5,11 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [v1.3.0] - 2026-08-21
+
+### Added
+- c023d52b - add changelog --tag to release and tag in one step
 
 ### Changed
-- 08199a49 - update changelogs for released versions
-- 5819007b - Update CHANGELOGs
+- 878b20c2 - Update deps
 
 ## [v1.2.0] - 2026-08-18
 
@@ -24,10 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - e74157d3 - record --exclude flag in changelog
 - 53b49e27 - Update deps
-- 5b0ca43a - Update CHANGELOGs
-- e3946493 - Update CHANGELOGs
-- 0996a2a8 - Update CHANGELOGs
-- b10cc15a - Update CHANGELOGs
 - 51f343c6 - Bump go deps
 - 79771f93 - Update all changelogs
 - fab8e0ff - Add newline at end-of-file
@@ -73,8 +71,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - 9e483f97 - Graduate out of exp(erimental) dir to cmd
 - 6731ec0a - Update all changelogs
-- 0638b54a - Update changelogs
-- 63db3549 - Update changelogs
 - 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
 - 49cce786 - Update deps
 - 7b93b891 - Run `go fix work`

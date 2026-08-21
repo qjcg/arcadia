@@ -8,10 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
-- 08199a49 - update changelogs for released versions
+- 26dbee26 - Bump sv to latest release
+
+## [v0.48.0] - 2026-08-21
+
+### Added
+- c023d52b - add changelog --tag to release and tag in one step
+
+### Changed
+- 8ecfd11d - Update deps
+- 878b20c2 - Update deps
 - 9a048264 - Remove unused .gitattributes
 - 4c193c05 - run changelog generation and version tagging as GitHub Actions
-- 5819007b - Update CHANGELOGs
 - e6f5cba4 - Bump sv version
 - 183dc16b - Bump sv to latest release
 - 89949d7a - Bump deps
@@ -19,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 77c222ac - Various tweaks
 - ebcbdc1d - make Taskfile the authoritative source for tasks
 - be077bae - Update deps
+
+### Fixed
+- 577763fd - pin trivy's required Go toolchain and jsonv2
+- 5fde2dd6 - keep release tag loop on a single line
 
 ## [v0.47.1] - 2026-08-18
 
@@ -41,7 +53,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 0d83ccf5 - Bump action versions in sv-release
 - 7c5bb1e1 - Add lint:go-crap task
 - 950f7964 - Update go.work.sum
-- 5b0ca43a - Update CHANGELOGs
 - d4208456 - Bump deps
 
 ## [v0.46.0] - 2026-07-19
@@ -51,9 +62,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - 6417380f - Update go.sum
-- e3946493 - Update CHANGELOGs
-- 0996a2a8 - Update CHANGELOGs
-- b10cc15a - Update CHANGELOGs
 - ea8cde3a - Pin trivy version
 
 ## [v0.45.0] - 2026-07-18
@@ -154,7 +162,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 6b44bd2f - migrate from modernc.org/sqlite to ncruces/go-sqlite3
 - 1770a026 - Various tweaks
 - 5f0ea237 - Bump omarchy version
-- 0638b54a - Update changelogs
 
 ## [v0.38.0] - 2026-06-26
 
@@ -165,7 +172,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - 3db75bd5 - Update deps
-- 63db3549 - Update changelogs
 - be0fb451 - Add `update` task
 - 30ce367e - Bump sv tool version
 - 7cb48abd - Add changelogs for all modules via `sv changelog -aw`

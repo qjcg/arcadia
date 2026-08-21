@@ -8,13 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
-- 08199a49 - update changelogs for released versions
-- 5819007b - Update CHANGELOGs
+- 878b20c2 - Update deps
 - 53b49e27 - Update deps
-- 5b0ca43a - Update CHANGELOGs
-- e3946493 - Update CHANGELOGs
-- 0996a2a8 - Update CHANGELOGs
-- b10cc15a - Update CHANGELOGs
 - 51f343c6 - Bump go deps
 
 ## [v0.2.4] - 2026-07-05
@@ -24,8 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ae73b3c2 - Update all the changelogs
 - c48959a8 - Update all changelogs
 - 6731ec0a - Update all changelogs
-- 0638b54a - Update changelogs
-- 63db3549 - Update changelogs
 - 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
 - 49cce786 - Update deps
 
