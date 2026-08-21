@@ -6,7 +6,7 @@ shopt: [globstar]
 
 vars:
   V_GOLANGCILINT: v2.13.1
-  V_TRIVY: v0.72.0
+  V_TRIVY: v0.74.0
 
 tasks:
   default:
@@ -114,7 +114,10 @@ tasks:
   lint:trivy:
     desc: Run trivy secret scan.
     cmds:
-      - GOEXPERIMENT=jsonv2 go run github.com/aquasecurity/trivy/cmd/trivy@{{.V_TRIVY}} fs --exit-code 1 --scanners secret .
+      - go run github.com/aquasecurity/trivy/cmd/trivy@{{.V_TRIVY}} fs --exit-code 1 --scanners secret .
+    env:
+      GOTOOLCHAIN: go1.26.3
+      GOEXPERIMENT: jsonv2
 
   lint:crap:
     desc: Compute the CRAP (Change Risk Anti-Patterns) metric.
