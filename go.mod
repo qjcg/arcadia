@@ -1,6 +1,6 @@
 module github.com/qjcg/arcadia
 
-go 1.27.0
+go 1.27.1
 
 require (
 	github.com/distatus/battery v0.11.0
