@@ -165,8 +165,27 @@ tasks:
       - go get -u tool work
       - go mod tidy
       - go work sync
+      - task: pin:deps
       - task: test
       - task: lint
+
+  # Re-pin transitive deps that a blanket `go get -u` bumps into breaking
+  # releases. Runs on every `task update` so the workspace stays buildable.
+  pin:deps:
+    desc: Hold known-broken latest deps at the last known-good version.
+    cmds:
+      # gobwas/glob v1.0.0 dropped the pre-1.0 `Glob` API that the pinned
+      # colly and lefthook consumers depend on.
+      - |
+        for d in . examples/go exp/slidesdeck exp/fractalis; do
+          (cd "$d" && go get github.com/gobwas/glob@v0.2.3)
+        done
+      # The k8s v0.37 / helm v4.3 line bundles structured-merge-diff v7 while
+      # apimachinery v0.36-era code still uses v6, so the workspace build
+      # breaks. Hold the k8s stack at v0.36.4.
+      - go get k8s.io/api@v0.36.4 k8s.io/apiextensions-apiserver@v0.36.4 k8s.io/apimachinery@v0.36.4 k8s.io/apiserver@v0.36.4 k8s.io/cli-runtime@v0.36.4 k8s.io/client-go@v0.36.4 k8s.io/component-base@v0.36.4 k8s.io/klog/v2@v2.140.0 k8s.io/kube-openapi@v0.0.0-20260721132016-d427ff9ee9ad k8s.io/kubectl@v0.36.4 k8s.io/utils@v0.0.0-20260707023825-cf1189d6abe3 helm.sh/helm/v4@v4.2.4 sigs.k8s.io/controller-runtime@v0.24.1 sigs.k8s.io/json@v0.0.0-20250730193827-2d320260d730
+      - go work sync
+      - go mod tidy
 
 
   ######################################################################
