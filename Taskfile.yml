@@ -119,6 +119,11 @@ tasks:
       GOTOOLCHAIN: go1.26.3
       GOEXPERIMENT: jsonv2
 
+  lint:betterleaks:
+    desc: Find leaked secrets.
+    cmds:
+      - go run github.com/betterleaks/betterleaks@latest {{.CLI_ARGS | default "dir . --max-target-megabytes 5"}}
+
   lint:crap:
     desc: Compute the CRAP (Change Risk Anti-Patterns) metric.
     cmd: go tool go-crap scan {{.CLI_ARGS | default "-t 30 --min 30 --fail-above work"}}
