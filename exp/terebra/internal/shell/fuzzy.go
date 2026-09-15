@@ -57,6 +57,7 @@ type fuzzyModel struct {
 	filtered []filteredEntry
 	selected int
 	query    textinput.Model
+	focusCmd tea.Cmd
 	width    int
 	height   int
 	done     bool
@@ -69,7 +70,10 @@ type filteredEntry struct {
 }
 
 func (m fuzzyModel) Init() tea.Cmd {
-	return m.query.Focus()
+	// The query is focused when the model is constructed (see runFuzzySearch).
+	// Focusing here would only mutate this value-receiver copy, leaving the
+	// real model's input blurred and unable to accept keystrokes.
+	return m.focusCmd
 }
 
 func (m fuzzyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -288,6 +292,34 @@ var (
 			Foreground(lipgloss.Color("212"))
 )
 
+// newFuzzySearchModel builds the fuzzy search model for the given history
+// entries. The query input is focused here, when the model is constructed,
+// rather than in Init: Init has a value receiver, so focusing there would only
+// mutate a discarded copy and leave the running model's input blurred and
+// unable to accept keystrokes. The focus command it returns is stored so Init
+// can still start the cursor blink.
+func newFuzzySearchModel(entries []string) fuzzyModel {
+	ti := textinput.New()
+	ti.SetWidth(80)
+	ti.Prompt = ""
+	ti.Placeholder = "type to filter..."
+	focusCmd := ti.Focus()
+
+	m := fuzzyModel{
+		entries:  entries,
+		filtered: make([]filteredEntry, 0),
+		selected: 0,
+		query:    ti,
+		focusCmd: focusCmd,
+		width:    80,
+		height:   20,
+	}
+
+	// Do initial filter
+	m.filter()
+	return m
+}
+
 // runFuzzySearch launches the bubbletea TUI fuzzy search with the given history entries.
 // Returns the selected entry, or empty string if cancelled.
 func (s *Shell) runFuzzySearch() string {
@@ -297,22 +329,7 @@ func (s *Shell) runFuzzySearch() string {
 		return ""
 	}
 
-	ti := textinput.New()
-	ti.SetWidth(80)
-	ti.Prompt = ""
-	ti.Placeholder = "type to filter..."
-
-	m := fuzzyModel{
-		entries:  entries,
-		filtered: make([]filteredEntry, 0),
-		selected: 0,
-		query:    ti,
-		width:    80,
-		height:   20,
-	}
-
-	// Do initial filter
-	m.filter()
+	m := newFuzzySearchModel(entries)
 
 	p := tea.NewProgram(m, s.restoreStdin(), tea.WithOutput(s.Stdout))
 	result, err := p.Run()

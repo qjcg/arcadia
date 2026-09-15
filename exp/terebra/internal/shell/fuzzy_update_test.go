@@ -4,29 +4,42 @@ import (
 	"strings"
 	"testing"
 
-	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 )
 
 // newFuzzyModel builds a fuzzyModel with the given entries and an initial query.
 func newFuzzyModel(entries []string, query string) fuzzyModel {
-	ti := textinput.New()
-	ti.SetValue(query)
-	ti.Focus()
-	m := fuzzyModel{
-		entries:  entries,
-		filtered: make([]filteredEntry, 0),
-		selected: 0,
-		query:    ti,
-		width:    80,
-		height:   20,
-	}
+	m := newFuzzySearchModel(entries)
+	m.query.SetValue(query)
+	m.query.SetCursor(len(query))
 	m, _ = m.filter()
 	return m
 }
 
 func keyPress(key rune) tea.Msg {
 	return tea.KeyPressMsg{Code: key, Text: string(key)}
+}
+
+// TestFuzzySearchModelIsFocused guards against regressing Ctrl+R search to a
+// state where the query input is blurred and silently ignores typing.
+func TestFuzzySearchModelIsFocused(t *testing.T) {
+	m := newFuzzySearchModel([]string{"alpha", "beta"})
+	if !m.query.Focused() {
+		t.Fatal("fuzzy search query is not focused; typing would be ignored")
+	}
+	if cmd := m.Init(); cmd == nil {
+		t.Fatal("expected a cursor blink command from Init")
+	}
+
+	nm, _ := m.Update(keyPress('b'))
+	nm, _ = nm.(fuzzyModel).Update(keyPress('e'))
+	fm := nm.(fuzzyModel)
+	if got := fm.query.Value(); got != "be" {
+		t.Fatalf("expected query %q, got %q (typing is not reaching the input)", "be", got)
+	}
+	if len(fm.filtered) != 1 || fm.filtered[0].entry != "beta" {
+		t.Fatalf("expected filtering to narrow to beta, got %+v", fm.filtered)
+	}
 }
 
 func TestFuzzyUpdateEscape(t *testing.T) {
