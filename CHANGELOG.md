@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- 2733f2b3 - Bump deps
+- 4e0fbdce - Bump golangci-lint version
+- d1fe8f38 - Add lint:betterleaks task
+- 348b5218 - keep task update from breaking the build
+- 4ca529e3 - Tweak update task
+- ddad7b68 - Bump omarchy version
+- ff33d42a - Bump go version
 - 26dbee26 - Bump sv to latest release
 
 ## [v0.48.0] - 2026-08-21

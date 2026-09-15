@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- 348b5218 - keep task update from breaking the build
 - 878b20c2 - Update deps
 - be077bae - Update deps
 - b8eceb75 - Add Taskfile
