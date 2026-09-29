@@ -19,7 +19,7 @@ func getVersion() string {
 func main() {
 	boa.CmdT[struct{}]{
 		Use:   "pavona",
-		Short: "A cookiecutter-inspired template engine",
+		Short: "A template engine for Go",
 		Long: lipgloss.NewStyle().Foreground(lipgloss.Color("#FF7F50")).Render(`          .  .  .
        .-' \ | / '-.
       /     \|/     \\

@@ -1,6 +1,6 @@
 # Pavona — Template Engine for Developers
 
-> *Pavona is a **cookiecutter-inspired** template engine for Go. Point it at a
+> *Pavona is a template engine for Go. Point it at a
 > template directory (local or built-in), answer a few questions, and get a
 > fully hydrated project in seconds.*
 
@@ -28,7 +28,7 @@ engine that:
 ## CLI Interface
 
 ```
-pavona new <template> [-o <output-dir>]
+pavona new <template> [name] [-o <output-dir>]
 pavona list
 pavona ls
 ```
@@ -37,16 +37,17 @@ pavona ls
 
 | Command | Description |
 |---------|-------------|
-| `new <template>` | Create a project from a built-in or local template |
+| `new <template> [name]` | Create a project from a built-in or local template |
 | `list` | List available built-in templates |
 | `ls` | Short alias for `list` |
 
-The `new` command accepts `--output` (`-o`), `--name` (`-n`), and `--quiet` (`-q`).
+The optional positional `name` sets the project name and output directory. `--output` (`-o`) and `--name` (`-n`) override their respective positional defaults, and `--quiet` (`-q`) disables prompts.
 
 ### Examples
 
 ```sh
-pavona new tool -o ./my-cli-tool
+pavona new tool my-cli-tool
+pavona new app fooapp
 pavona new /path/to/custom-template
 pavona new tool -o ./my-cli --name my-cli -q
 pavona list

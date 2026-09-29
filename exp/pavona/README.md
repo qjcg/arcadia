@@ -1,6 +1,6 @@
 # Pavona — Template Engine for Developers
 
-> *Pavona is a **cookiecutter-inspired** template engine for Go. Point it at a
+> *Pavona is a template engine for Go. Point it at a
 > template directory (or use a built-in), answer a few questions, and get a
 > fully hydrated project in seconds.*
 
@@ -20,21 +20,21 @@ go install github.com/qjcg/arcadia/exp/pavona@latest
 Create a project from any built-in template:
 
 ```sh
-pavona new tool -o ./my-cli
-pavona new lib -o ./my-lib
-pavona new site -o ./my-site
-pavona new tui -o ./my-tui
-pavona new app -o ./my-app
-pavona new agent -o ./my-agent
-pavona new pavona -o ./my-template
-pavona new monorepo-go -o ./my-monorepo
+pavona new tool my-cli
+pavona new lib my-lib
+pavona new site my-site
+pavona new tui my-tui
+pavona new app my-app
+pavona new agent my-agent
+pavona new pavona my-template
+pavona new monorepo-go my-monorepo
 ```
 
 ### Create a custom template
 
 ```sh
-pavona new pavona -o ./my-template -n my-template -q
-pavona new ./my-template -o ./my-project -n my-project -q
+pavona new pavona my-template -q
+pavona new ./my-template my-project -q
 ```
 
 The generated directory includes a starter `config.cue`.
@@ -42,7 +42,7 @@ The generated directory includes a starter `config.cue`.
 ### Non-interactive mode
 
 ```sh
-pavona new tool -o ./my-cli -n my-cli -q
+pavona new tool my-cli -q
 ```
 
 ### List built-in templates
@@ -55,7 +55,7 @@ pavona ls
 ### Use a custom template
 
 ```sh
-pavona new /path/to/my-template -o ./project
+pavona new /path/to/my-template project
 ```
 
 ---
@@ -64,11 +64,11 @@ pavona new /path/to/my-template -o ./project
 
 | Command | Description |
 |---------|-------------|
-| `pavona new <template>` | Create a project from a built-in or local template |
+| `pavona new <template> [name]` | Create a project from a built-in or local template |
 | `pavona list` | List built-in templates |
 | `pavona ls` | Short alias for `list` |
 
-The `new` command accepts `--output` (`-o`), `--name` (`-n`), and `--quiet` (`-q`).
+The optional positional `name` sets the project name and output directory, so `pavona new app fooapp` creates `fooapp/`. The `new` command also accepts `--output` (`-o`), `--name` (`-n`), and `--quiet` (`-q`).
 
 ---
 
@@ -92,7 +92,7 @@ The `new` command accepts `--output` (`-o`), `--name` (`-n`), and `--quiet` (`-q
 Every template needs a `config.cue` file at its root. Start with the built-in scaffold:
 
 ```sh
-pavona new pavona -o ./my-template -n my-template -q
+pavona new pavona my-template -q
 ```
 
 It generates a starter `config.cue` that you can extend with your own template files.

@@ -56,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - 16baed62 - Update deps
 - 6d714541 - Run go fix
-- 29681f6c - reimagine pavona as a cookiecutter-inspired template engine
+- 29681f6c - reimagine pavona as a template engine
 - 138d51bd - Add README.md for pavona scaffold and framework
 - 6731ec0a - Update all changelogs
 
