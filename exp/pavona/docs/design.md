@@ -246,29 +246,34 @@ When the user passes `<source>` to `pavona new`, pavona resolves the template in
 
 ## Interactive Prompt Flow
 
-Pavona uses **bubbletea v2** (via `charm.land/bubbletea/v2`) with the
-`charm.land/bubbles/v2` component library for interactive prompts:
+Pavona uses **Huh v2** (`charm.land/huh/v2`) for interactive forms, built on
+Bubble Tea. All template variables are placed in one Huh group, so fields are
+shown together on a single page by default rather than prompting one variable
+at a time. Huh manages focus, field navigation, and editing before submission.
 
 1. Read `config.cue` and extract `variables` using the CUE Go API.
-2. For each variable (alphabetically sorted):
-   - **Freeform** (`string` type) — show a `textinput.Model` with the
-     default value pre-filled.
-   - **Choice** (disjunction of string literals) — show a `list.Model`
-     with the default item pre-selected.
-3. User navigates with arrow keys (list) or types text (freeform) and
-   presses Enter to confirm.
-4. Pressing Ctrl+C at any point cancels the wizard.
-5. Assemble the variable map.
+2. Build one form group with fields in alphabetical order:
+   - **Freeform** (`string` type) — an input with the default value pre-filled.
+   - **Choice** (disjunction of string literals) — a select with the default
+     choice selected.
+3. Navigate between fields, move back to previous fields, and edit answers
+   before submitting. Required freeform fields are validated inline.
+4. Pressing Ctrl+C cancels the form.
+5. Assemble the variable map after successful submission.
 6. Walk the template directory, render every `.tmpl` file, copy every other
    file, render directory names.
 
+Huh groups represent pages. Pavona currently uses a single group to keep all
+fields together; groups can be split into multiple pages if the form needs it.
+
 ### Prompt Components
 
-| Component      | Package                      | Used For           |
-|----------------|------------------------------|--------------------|
-| `textinput`    | `charm.land/bubbles/textinput` | Freeform variables |
-| `list`         | `charm.land/bubbles/list`      | Choice variables   |
-| `lipgloss`     | `charm.land/lipgloss/v2`       | Styling            |
+| Component | Package | Used For |
+|-----------|---------|----------|
+| `huh.Form` | `charm.land/huh/v2` | Form and field navigation |
+| `huh.Input` | `charm.land/huh/v2` | Freeform variables |
+| `huh.Select` | `charm.land/huh/v2` | Choice variables |
+| Bubble Tea | `charm.land/bubbletea/v2` | TUI runtime used by Huh |
 
 ---
 
@@ -283,7 +288,7 @@ pavona/
 │   └── scaffold/
 │       ├── scaffold.go          # Template engine: walk, render, copy
 │       ├── config.go            # config.cue parsing (cuelang SDK)
-│       ├── prompt.go            # Interactive prompts via bubbletea
+│       ├── prompt.go            # Interactive forms via Huh
 │       └── templates/           # Built-in templates (embedded)
 │           ├── tool/
 │           │   ├── config.cue
@@ -308,7 +313,7 @@ pavona/
 | `cli/template.go`      | CLI parsing, `-t`/`-o`/`-q` flags                 |
 | `scaffold/scaffold.go` | Walk template dir, render files, manage output    |
 | `scaffold/config.go`   | Load and validate `config.cue`, extract variables |
-| `scaffold/prompt.go`   | Interactive bubbletea prompts for each variable   |
+| `scaffold/prompt.go`   | Interactive Huh form for template variables   |
 
 ### Template Resolution (`scaffold/scaffold.go`)
 
@@ -357,8 +362,7 @@ func ParseConfig(dir string) (*Config, error)
 ### Prompt Flow
 
 ```go
-// PromptForVariables asks the user for each variable interactively
-// using bubbletea (textinput for freeform, list for choices).
+// PromptForVariables presents template variables in an interactive Huh form.
 // In quiet mode (-q), returns defaults for everything.
 func PromptForVariables(vars []Variable, quiet bool) map[string]string
 ```
