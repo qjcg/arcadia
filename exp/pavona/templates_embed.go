@@ -24,6 +24,12 @@ var appTmpls embed.FS
 //go:embed templates/agent
 var agentTmpls embed.FS
 
+//go:embed templates/pavona
+var pavonaTmpls embed.FS
+
+//go:embed all:templates/monorepo-go
+var monorepoGoTmpls embed.FS
+
 func init() {
 	scaffold.RegisterBuiltin(
 		"tool", "A Go CLI tool with cobra subcommands and BDD tests",
@@ -70,5 +76,17 @@ func init() {
 			".gitignore": "/bin/\n",
 		},
 		[]string{"features", "agent", "nats"},
+	)
+	scaffold.RegisterBuiltin(
+		"pavona", "A starter template for creating Pavona templates",
+		pavonaTmpls, "templates/pavona",
+		nil,
+		nil,
+	)
+	scaffold.RegisterBuiltin(
+		"monorepo-go", "A Go workspace monorepo",
+		monorepoGoTmpls, "templates/monorepo-go",
+		nil,
+		[]string{"docs"},
 	)
 }

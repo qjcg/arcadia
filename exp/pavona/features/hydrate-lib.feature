@@ -3,7 +3,7 @@ Feature: Lib template
 
   Scenario: Hydrate lib template
     When I hydrate the "lib" template with name "go-csvstream"
-    Then the output directory should contain "lib.go"
-    And the output directory should contain "lib_test.go"
-    And the output directory should contain "go.mod"
-    And the output directory should contain "Taskfile.yaml"
+    * the output directory should contain "lib.go"
+    * the output directory should contain "lib_test.go"
+    * the output directory should contain "go.mod"
+    * the output directory should contain "Taskfile.yaml"

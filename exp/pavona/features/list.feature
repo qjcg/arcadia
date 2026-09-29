@@ -3,9 +3,11 @@ Feature: List built-in templates
 
   Scenario: List shows all built-in templates
     When I run pavona with "-l"
-    Then the output should contain "tool"
-    And the output should contain "lib"
-    And the output should contain "site"
-    And the output should contain "tui"
-    And the output should contain "app"
-    And the output should contain "agent"
+    * the output should contain "tool"
+    * the output should contain "lib"
+    * the output should contain "site"
+    * the output should contain "tui"
+    * the output should contain "app"
+    * the output should contain "agent"
+    * the output should contain "pavona"
+    * the output should contain "monorepo-go"

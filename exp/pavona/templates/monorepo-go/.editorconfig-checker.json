@@ -1,0 +1,13 @@
+{
+    "Exclude": [
+        ".git",
+        ".beads",
+        "LICENSE",
+        ".dir-locals.el",
+        "vendor",
+        "bun.lockb",
+        "testdata",
+        "charts",
+        "examples/scroll"
+    ]
+}

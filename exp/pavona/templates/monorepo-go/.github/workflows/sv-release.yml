@@ -1,0 +1,33 @@
+name: Release Modules
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-go@v7
+      with:
+        go-version-file: go.work
+
+    - name: Configure git identity
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+
+    - name: Cache required go tools
+      run: go tool task release:cache
+
+    - name: Tag, regenerate changelogs, and create releases
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: go tool task release

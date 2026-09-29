@@ -1,0 +1,12 @@
+package template
+
+name:        {{ printf "%q" .project_name }}
+description: {{ printf "%q" .description }}
+
+variables: {
+	// Project name
+	project_name: string
+
+	// Greeting message
+	greeting?: string | *"Hello, World!"
+}

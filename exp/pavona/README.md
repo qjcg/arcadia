@@ -26,7 +26,18 @@ pavona -t site -o ./my-site        # Static site (markdown or org-mode)
 pavona -t tui -o ./my-tui          # Terminal UI (bubbletea)
 pavona -t app -o ./my-app          # Full-stack web app (templ + HTMX + SQLite)
 pavona -t agent -o ./my-agent      # NATS Agent Protocol service
+pavona -t pavona -o ./my-template  # Create a starter template for Pavona
+pavona -t monorepo-go -o ./my-monorepo  # Go workspace monorepo
 ```
+
+### Create a custom template
+
+```sh
+pavona -t pavona -o ./my-template -n my-template -q
+pavona -t ./my-template -o ./my-project -n my-project -q
+```
+
+The generated directory includes a starter `config.cue`.
 
 ### Non-interactive mode
 
@@ -50,32 +61,40 @@ pavona -t /path/to/my-template -o ./project
 
 ## Flags
 
-| Flag | Short | Description |
-|------|-------|-------------|
-| `--template` | `-t` | Template source: built-in name or path to a template directory |
-| `--output` | `-o` | Output directory (default: derived from project name) |
-| `--name` | `-n` | Project name (pre-fills the name prompt) |
-| `--quiet` | `-q` | Non-interactive mode — use defaults for all variables |
-| `--list` | `-l` | List available built-in templates |
+| Flag         | Short | Description                                                    |
+|--------------|-------|----------------------------------------------------------------|
+| `--template` | `-t`  | Template source: built-in name or path to a template directory |
+| `--output`   | `-o`  | Output directory (default: derived from project name)          |
+| `--name`     | `-n`  | Project name (pre-fills the name prompt)                       |
+| `--quiet`    | `-q`  | Non-interactive mode — use defaults for all variables          |
+| `--list`     | `-l`  | List available built-in templates                              |
 
 ---
 
 ## Built-in Templates
 
-| Name | Description |
-|------|-------------|
-| `tool` | Go CLI tool with cobra subcommands and BDD tests |
-| `lib` | Minimal Go library module with test helpers |
-| `site` | Static site with Markdown or org-mode content |
-| `tui` | Terminal UI app using bubbletea |
-| `app` | Full-stack web app with templ, SQLite, HTMX, Tailwind/DaisyUI |
-| `agent` | NATS Agent Protocol service with JetStream |
+| Name    | Description                                                   |
+|---------|---------------------------------------------------------------|
+| `tool`  | Go CLI tool with cobra subcommands and BDD tests              |
+| `lib`   | Minimal Go library module with test helpers                   |
+| `site`  | Static site with Markdown or org-mode content                 |
+| `tui`   | Terminal UI app using bubbletea                               |
+| `app`   | Full-stack web app with templ, SQLite, HTMX, Tailwind/DaisyUI |
+| `agent`  | NATS Agent Protocol service with JetStream                    |
+| `pavona`      | Starter template for creating Pavona templates                |
+| `monorepo-go` | Go workspace monorepo                                         |
 
 ---
 
 ## Creating Custom Templates
 
-Every template needs a `config.cue` file at its root:
+Every template needs a `config.cue` file at its root. Start with the built-in scaffold:
+
+```sh
+pavona -t pavona -o ./my-template -n my-template -q
+```
+
+It generates a starter `config.cue` that you can extend with your own template files.
 
 ```cue
 package template
@@ -84,16 +103,11 @@ name:        "my-template"
 description: "A custom template"
 
 variables: {
-	project_name: {
-		prompt:    "Project name"
-		default:   ""
-		required:  true
-	}
-	message: {
-		prompt:    "Greeting message"
-		default:   "Hello, World!"
-		required:  false
-	}
+	// Project name
+	project_name: string
+
+	// Greeting message
+	message?: string | *"Hello, World!"
 }
 ```
 

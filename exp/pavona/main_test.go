@@ -40,10 +40,81 @@ func TestListTemplates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("pavona -l failed: %v\n%s", err, out)
 	}
-	for _, name := range []string{"tool", "lib", "site", "tui", "app", "agent"} {
+	for _, name := range []string{"tool", "lib", "site", "tui", "app", "agent", "pavona", "monorepo-go"} {
 		if !strings.Contains(out, name) {
 			t.Errorf("expected built-in template %q in output, got:\n%s", name, out)
 		}
+	}
+}
+
+func TestMonorepoGoTemplate(t *testing.T) {
+	tmp := t.TempDir()
+	bin := buildBinary(t, tmp)
+	outDir := filepath.Join(tmp, "my-monorepo")
+
+	out, err := runPavona(t, bin, "-t", "monorepo-go", "-o", outDir, "-n", "my-monorepo", "-q")
+	if err != nil {
+		t.Fatalf("pavona -t monorepo-go failed: %v\n%s", err, out)
+	}
+
+	for _, path := range []string{
+		"go.work",
+		"Taskfile.yaml",
+		"README.md",
+		"AGENTS.md",
+		".editorconfig",
+		".editorconfig-checker.json",
+		".lefthook.yaml",
+		".github/CODEOWNERS",
+		".github/workflows/sv-release.yml",
+		"docs",
+	} {
+		if _, err := os.Stat(filepath.Join(outDir, path)); err != nil {
+			t.Errorf("expected %q to exist: %v", path, err)
+		}
+	}
+
+	checks := map[string]string{
+		"go.work":                          "go 1.27.1",
+		"Taskfile.yaml":                    "TODO build",
+		".github/workflows/sv-release.yml": "actions/checkout",
+	}
+	for path, expected := range checks {
+		data, err := os.ReadFile(filepath.Join(outDir, path))
+		if err != nil {
+			t.Errorf("reading %q: %v", path, err)
+			continue
+		}
+		if !strings.Contains(string(data), expected) {
+			t.Errorf("expected %q to contain %q, got:\n%s", path, expected, data)
+		}
+	}
+}
+
+func TestPavonaTemplate(t *testing.T) {
+	tmp := t.TempDir()
+	bin := buildBinary(t, tmp)
+	templateDir := filepath.Join(tmp, "my-template")
+
+	out, err := runPavona(t, bin, "-t", "pavona", "-o", templateDir, "-n", "my-template", "-q")
+	if err != nil {
+		t.Fatalf("pavona -t pavona failed: %v\n%s", err, out)
+	}
+
+	if _, err := os.Stat(filepath.Join(templateDir, "config.cue")); err != nil {
+		t.Errorf("expected config.cue to exist: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(templateDir, "main.go.tmpl")); !os.IsNotExist(err) {
+		t.Errorf("expected main.go.tmpl not to exist, got error: %v", err)
+	}
+
+	projectDir := filepath.Join(tmp, "generated-project")
+	out, err = runPavona(t, bin, "-t", templateDir, "-o", projectDir, "-n", "generated-project", "-q")
+	if err != nil {
+		t.Fatalf("hydrating generated template failed: %v\n%s", err, out)
+	}
+	if _, err := os.Stat(filepath.Join(projectDir, "main.go")); !os.IsNotExist(err) {
+		t.Errorf("expected generated main.go not to exist, got error: %v", err)
 	}
 }
 

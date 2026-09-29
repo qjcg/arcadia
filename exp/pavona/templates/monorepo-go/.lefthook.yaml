@@ -1,0 +1,96 @@
+# See https://lefthook.dev/configuration/
+#
+# Lefthook is a thin client over the Taskfile: every job delegates to a task.
+# File selection/globbing and stage_fixed remain here; all commands and tool
+# versions live in the Taskfile, which is the single source of truth.
+
+_gofiles: &gofiles
+  - "*.go"
+  - "go.{mod,sum,work,work.sum}"
+
+
+commit-msg:
+  parallel: true
+  jobs:
+    - name: validate-conventional-commit
+      run: go tool task validate-conventional-commit -- {1}
+
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: formatters
+      group:
+        parallel: true
+        jobs:
+          - name: gofumpt
+            run: go tool task format:gofumpt -- {staged_files}
+            glob: "*.go"
+            stage_fixed: true
+
+          - name: goimports
+            run: go tool task format:goimports -- {staged_files}
+            glob: "*.go"
+            stage_fixed: true
+
+          - name: cue fmt
+            run: go tool task format:cuefmt -- {staged_files}
+            glob: "*.cue"
+            stage_fixed: true
+
+          - name: editorconfig-checker
+            run: go tool task lint:editorconfig -- {staged_files}
+
+          - name: typstyle
+            run: go tool task format:typstyle -- {staged_files}
+            glob: "*.{typ,typst}"
+            stage_fixed: true
+
+          - name: go fix
+            run: go tool task format:gofix
+            glob: "*.go"
+            stage_fixed: true
+
+          - name: go vet
+            run: go tool task format:govet
+            glob: "*.go"
+            stage_fixed: true
+
+    - name: unit-tests
+      run: go tool task test:go:unit
+      glob: *gofiles
+
+
+pre-push:
+  piped: true
+  jobs:
+    - name: security
+      group:
+        parallel: true
+        jobs:
+          - name: govulncheck
+            run: go tool task lint:govulncheck
+            glob: *gofiles
+
+          - name: 'trivy (scanners: secret)'
+            run: go tool task lint:trivy
+
+    - name: linters
+      group:
+        parallel: true
+        jobs:
+          - name: golangci-lint
+            run: go tool task lint:golangci-lint:fix
+            glob: *gofiles
+            stage_fixed: true
+
+          - name: check-links
+            run: go tool task lint:check-links -- {files}
+            glob:
+              - "*.md"
+              - "**/*.md"
+            stage_fixed: true
+
+    - name: integration-tests
+      run: go tool task test:go:integration
+      glob: *gofiles

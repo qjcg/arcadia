@@ -218,9 +218,14 @@ compiled into the binary.
 | `site`  | Static site with Markdown/org-mode content and custom theme |
 | `tui`   | Terminal UI app using bubbletea                             |
 | `app`   | Full-stack web app with templ, SQLite, HTMX, and Tailwind   |
-| `agent` | NATS Agent Protocol service                                 |
+| `agent`  | NATS Agent Protocol service                                 |
+| `pavona`      | Starter template for creating Pavona templates              |
+| `monorepo-go` | Go workspace monorepo                                       |
 
-Each built-in template follows the same `config.cue` + `*.tmpl` structure.
+Each built-in template follows the same `config.cue` + `*.tmpl` structure. The
+`pavona` built-in generates a starter template directory with a rendered
+`config.cue` that can be extended with project-specific template files. The
+`monorepo-go` built-in scaffolds a Go workspace manifest.
 
 ---
 
@@ -288,7 +293,8 @@ pavona/
 │           ├── site/
 │           ├── tui/
 │           ├── app/
-│           └── agent/
+│           ├── agent/
+│           └── pavona/
 ```
 
 ### Package Responsibilities

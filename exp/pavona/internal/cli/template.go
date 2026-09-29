@@ -34,6 +34,8 @@ Built-in templates:
   tui      Terminal UI app using bubbletea
   app      Full-stack web app with templ, SQLite, HTMX, Tailwind
   agent    NATS Agent Protocol service
+  pavona   Starter template for creating Pavona templates
+  monorepo-go  Go workspace monorepo
 
 Examples:
   pavona -t tool -o ./my-cli
