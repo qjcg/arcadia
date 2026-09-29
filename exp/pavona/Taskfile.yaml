@@ -3,44 +3,51 @@ version: "3"
 vars:
   BIN_DIR: bin
   BIN_NAME: pavona
+  BIN_UPX_NAME: '{{.BIN_NAME}}-upx'
   BIN: '{{.BIN_DIR}}/{{.BIN_NAME}}'
-  INSTALLED_BIN: $GOPATH/bin/{{.BIN_NAME}}
+  BIN_UPX: '{{.BIN_DIR}}/{{.BIN_UPX_NAME}}'
+  BIN_INSTALLED: '{{env "GOPATH"}}/bin/{{.BIN_NAME}}'
 
 tasks:
   default:
     deps:
-      - test
+      - build
 
   build:
     desc: Build the pavona CLI
     sources:
       - '**/*.go'
       - '**/go.*'
+      - templates/**
     generates:
       - '{{.BIN}}'
     cmds:
       - go build -o "{{.BIN}}" .
 
-  install:
-    desc: Install pavona to GOBIN
+  upx:
+    desc: Compress built binary with upx
     deps: [build]
     sources:
       - '{{.BIN}}'
     generates:
-      - '{{.INSTALLED_BIN}}'
-    cmds:
-      - cp {{.BIN}} {{.INSTALLED_BIN}}
-      - upx {{.INSTALLED_BIN}} || echo Install upx for smaller binaries.
+      - '{{.BIN_UPX}}'
+    cmd: upx {{.BIN}} -o {{.BIN_UPX}}
+
+  install:
+    desc: Install pavona to GOBIN
+    deps: [upx]
+    sources:
+      - '{{.BIN_UPX}}'
+    generates:
+      - '{{.BIN_INSTALLED}}'
+    cmd: cp {{.BIN_UPX}} {{.BIN_INSTALLED}}
+
+  uninstall: rm -f {{.BIN_INSTALLED}}
 
   test:
     desc: Run all tests (unit + godog BDD scenarios)
     cmds:
       - go test ./...
-
-  test:short:
-    desc: Run tests with short mode
-    cmds:
-      - go test -short ./...
 
   clean:
     desc: Remove build artifacts
