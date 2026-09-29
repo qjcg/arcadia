@@ -5,14 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.8.0] - 2026-09-29
+
+### Added
+- 8dca095 - collect template values in an editable form
+
+### Changed
+- 038a0ec - Update deps
+- 097d3f2 - describe Huh template forms
+
 ## [v0.7.0] - 2026-09-29
 
 ### Added
-- 8147f27 - use positional names for template output
-- c23585f - add coral artwork to CLI help
+- 8147f274 - use positional names for template output
+- c23585fc - add coral artwork to CLI help
 
 ### Changed
-- b6f8b9f - document positional project names
+- b6f8b9f1 - document positional project names
 
 ## [v0.6.0] - 2026-09-29
 

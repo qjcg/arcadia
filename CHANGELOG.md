@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- 038a0ecb - Update deps
 - d5611a9a - establish the design system project home
 - bf3c0f33 - add Lumen design system specification
 - 090a07de - Update go.work.sum
