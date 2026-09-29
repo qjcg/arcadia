@@ -28,26 +28,28 @@ engine that:
 ## CLI Interface
 
 ```
-pavona -t <template> [-o <output-dir>]
+pavona new <template> [-o <output-dir>]
+pavona list
+pavona ls
 ```
 
-### Flags
+### Commands
 
-| Flag         | Short | Description                                                               |
-|--------------|-------|---------------------------------------------------------------------------|
-| `--template` | `-t`  | Template source: a named built-in or a path to a local template directory |
-| `--output`   | `-o`  | Output directory (default: current directory)                             |
-| `--name`     | `-n`  | Project name (skips the first prompt if provided)                         |
-| `--quiet`    | `-q`  | Non-interactive mode — use defaults for all variables                     |
-| `--list`     | `-l`  | List available built-in templates and exit                                |
+| Command | Description |
+|---------|-------------|
+| `new <template>` | Create a project from a built-in or local template |
+| `list` | List available built-in templates |
+| `ls` | Short alias for `list` |
+
+The `new` command accepts `--output` (`-o`), `--name` (`-n`), and `--quiet` (`-q`).
 
 ### Examples
 
 ```sh
-pavona -t tool -o ./my-cli-tool              # built-in "tool" template
-pavona -t /path/to/custom-template            # custom template on disk
-pavona -t tool -o ./my-cli --name my-cli -q   # non-interactive
-pavona --list                                 # show built-in templates
+pavona new tool -o ./my-cli-tool
+pavona new /path/to/custom-template
+pavona new tool -o ./my-cli --name my-cli -q
+pavona list
 ```
 
 ### Exit Codes
@@ -231,7 +233,7 @@ Each built-in template follows the same `config.cue` + `*.tmpl` structure. The
 
 ## Template Resolution Order
 
-When the user passes `-t <source>`, pavona resolves the template in this order:
+When the user passes `<source>` to `pavona new`, pavona resolves the template in this order:
 
 1. **Built-in match** — if `<source>` matches a built-in template name, use it.
 2. **Exact path** — if `<source>` is a directory containing `config.cue`, use it.
@@ -415,15 +417,15 @@ function Hydrate(templateDir, outputDir, vars):
 | Unit         | Config parsing      | Parse sample `config.cue` files, verify variables |
 | Unit         | Template rendering  | Render a `.tmpl` file, verify output              |
 | Unit         | File walking        | Walk a mock template dir, verify callbacks        |
-| Integration  | `pavona -t tool`    | Run the CLI, verify output structure              |
-| Integration  | `pavona -t /custom` | Run with an external template                     |
+| Integration  | `pavona new tool`    | Run the CLI, verify output structure              |
+| Integration  | `pavona new /custom` | Run with an external template                     |
 | Golden files | Full hydration      | Compare hydrated output against golden files      |
 
 ---
 
 ## Future Possibilities
 
-- **Template repositories**: `pavona -t github.com/user/repo`
-- **Template chains**: `pavona -t base,plugin` — layer templates
+- **Template repositories**: `pavona new github.com/user/repo`
+- **Template chains**: `pavona new base,plugin` — layer templates
 - **Post-hydration hooks**: scripts in `config.cue` that run after hydration
 - **Template authoring**: `pavona init-template` to create a template skeleton
