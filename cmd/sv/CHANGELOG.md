@@ -5,10 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [v1.3.1] - 2026-09-29
 
 ### Changed
-- 348b5218 - keep task update from breaking the build
+- 348b521 - keep task update from breaking the build
+
+### Fixed
+- 2a2c52b - isolate Git tests from hook index state
 
 ## [v1.3.0] - 2026-08-21
 

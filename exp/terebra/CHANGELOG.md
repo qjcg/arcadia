@@ -5,14 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [unreleased]
+
+### Changed
+- 1305b2c9 - Update deps
+
 ## [v0.7.2] - 2026-09-15
 
 ### Changed
-- 2733f2b - Bump deps
-- 348b521 - keep task update from breaking the build
+- 2733f2b3 - Bump deps
+- 348b5218 - keep task update from breaking the build
 
 ### Fixed
-- 63e9dd5 - make Ctrl+r fuzzy search accept typed input
+- 63e9dd55 - make Ctrl+r fuzzy search accept typed input
 
 ## [v0.7.1] - 2026-08-21
 

@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- 090a07de - Update go.work.sum
+- 1305b2c9 - Update deps
 - 2733f2b3 - Bump deps
 - 4e0fbdce - Bump golangci-lint version
 - d1fe8f38 - Add lint:betterleaks task
