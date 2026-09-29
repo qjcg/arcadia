@@ -55,6 +55,27 @@ func TestListTemplates(t *testing.T) {
 	}
 }
 
+func TestNewTemplateCompletion(t *testing.T) {
+	bin := buildBinary(t, t.TempDir())
+	out, err := runPavona(t, bin, "__complete", "new", "")
+	if err != nil {
+		t.Fatalf("pavona new completion failed: %v\n%s", err, out)
+	}
+	for _, name := range []string{"tool", "lib", "site", "tui", "app", "agent", "pavona", "monorepo-go"} {
+		if !strings.Contains(out, name) {
+			t.Errorf("expected built-in template %q in completion output, got:\n%s", name, out)
+		}
+	}
+
+	out, err = runPavona(t, bin, "__complete", "new", "mo")
+	if err != nil {
+		t.Fatalf("pavona new filtered completion failed: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "monorepo-go") || strings.Contains(out, "tool\t") {
+		t.Errorf("expected completion filtered by prefix, got:\n%s", out)
+	}
+}
+
 func TestMonorepoGoTemplate(t *testing.T) {
 	tmp := t.TempDir()
 	bin := buildBinary(t, tmp)

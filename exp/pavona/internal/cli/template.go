@@ -25,7 +25,7 @@ type NewParams struct {
 }
 
 func NewCmd() *cobra.Command {
-	return boa.CmdT[NewParams]{
+	cmd := boa.CmdT[NewParams]{
 		Use:   "new <template>",
 		Short: "Create a project from a template",
 		Args:  cobra.ExactArgs(1),
@@ -38,6 +38,20 @@ func NewCmd() *cobra.Command {
 			}, cmd, nil)
 		},
 	}.ToCobra()
+	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) > 0 {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+
+		var matches []string
+		for _, template := range scaffold.ListBuiltin() {
+			if strings.HasPrefix(template.Name, toComplete) {
+				matches = append(matches, fmt.Sprintf("%s\t%s", template.Name, template.Description))
+			}
+		}
+		return matches, cobra.ShellCompDirectiveNoFileComp
+	}
+	return cmd
 }
 
 func ListCmd() *cobra.Command {
