@@ -12,60 +12,59 @@ import (
 )
 
 type TemplateParams struct {
-	Template string `short:"t" descr:"Template source: built-in name or path to template directory" default:"" optional:"true"`
+	Template string
 	Output   string `short:"o" descr:"Output directory (default: current directory)" default:"" optional:"true"`
 	Name     string `short:"n" descr:"Project name (skips the name prompt if provided)" default:"" optional:"true"`
 	Quiet    bool   `short:"q" descr:"Non-interactive mode — use defaults" optional:"true"`
-	List     bool   `short:"l" descr:"List available built-in templates" optional:"true"`
 }
 
-func TemplateCmd() boa.CmdT[TemplateParams] {
-	return boa.CmdT[TemplateParams]{
-		Use:   "pavona",
-		Short: "A cookiecutter-inspired template engine",
-		Long: `Pavona hydrates templates — point it at a template directory
-(or use a built-in), answer a few questions, and get a fully
-rendered project in seconds.
+type NewParams struct {
+	Output string `short:"o" descr:"Output directory (default: derived from project name)" default:"" optional:"true"`
+	Name   string `short:"n" descr:"Project name (skips the name prompt if provided)" default:"" optional:"true"`
+	Quiet  bool   `short:"q" descr:"Non-interactive mode — use defaults" optional:"true"`
+}
 
-Built-in templates:
-  tool     Go CLI tool with cobra subcommands and BDD tests
-  lib      Minimal Go library module with test helpers
-  site     Static site with Markdown or org-mode content
-  tui      Terminal UI app using bubbletea
-  app      Full-stack web app with templ, SQLite, HTMX, Tailwind
-  agent    NATS Agent Protocol service
-  pavona   Starter template for creating Pavona templates
-  monorepo-go  Go workspace monorepo
+func NewCmd() *cobra.Command {
+	return boa.CmdT[NewParams]{
+		Use:   "new <template>",
+		Short: "Create a project from a template",
+		Args:  cobra.ExactArgs(1),
+		RunFunc: func(p *NewParams, cmd *cobra.Command, args []string) {
+			RunTemplate(&TemplateParams{
+				Template: args[0],
+				Output:   p.Output,
+				Name:     p.Name,
+				Quiet:    p.Quiet,
+			}, cmd, nil)
+		},
+	}.ToCobra()
+}
 
-Examples:
-  pavona -t tool -o ./my-cli
-  pavona -t /path/to/template -o ./my-project
-  pavona -t tool -o ./my-cli --name my-cli -q
-  pavona -l`,
-		RunFunc: RunTemplate,
-	}
+func ListCmd() *cobra.Command {
+	return boa.CmdT[struct{}]{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List available templates",
+		Args:    cobra.NoArgs,
+		RunFunc: func(_ *struct{}, _ *cobra.Command, _ []string) {
+			templates := scaffold.ListBuiltin()
+			if len(templates) == 0 {
+				fmt.Fprintln(os.Stderr, "No built-in templates available.")
+				return
+			}
+			fmt.Println("Built-in templates:")
+			for _, t := range templates {
+				desc := t.Description
+				if desc == "" {
+					desc = "(no description)"
+				}
+				fmt.Printf("  %-12s %s\n", t.Name, desc)
+			}
+		},
+	}.ToCobra()
 }
 
 func RunTemplate(p *TemplateParams, cmd *cobra.Command, args []string) {
-	// --list flag
-	if p.List {
-		templates := scaffold.ListBuiltin()
-		if len(templates) == 0 {
-			fmt.Fprintln(os.Stderr, "No built-in templates available.")
-			return
-		}
-		fmt.Println("Built-in templates:")
-		for _, t := range templates {
-			desc := t.Description
-			if desc == "" {
-				desc = "(no description)"
-			}
-			fmt.Printf("  %-8s  %s\n", t.Name, desc)
-		}
-		return
-	}
-
-	// -t is required when not listing
 	if p.Template == "" {
 		cmd.Help()
 		os.Exit(1)

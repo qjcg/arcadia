@@ -124,13 +124,13 @@ func (s *PavonaState) hydrateTemplate(template, name, outputDir string) error {
 		outputDir = filepath.Join(s.tmpDir, name)
 	}
 	s.outputDir = outputDir
-	_, err := s.runPavona("-t", template, "-o", outputDir, "-n", name, "-q")
+	_, err := s.runPavona("new", template, "-o", outputDir, "-n", name, "-q")
 	return err
 }
 
 // hydrateCustomTemplate hydrates the custom template directory.
 func (s *PavonaState) hydrateCustomTemplate(name string) error {
 	s.outputDir = filepath.Join(s.tmpDir, name)
-	_, err := s.runPavona("-t", s.customDir, "-o", s.outputDir, "-n", name, "-q")
+	_, err := s.runPavona("new", s.customDir, "-o", s.outputDir, "-n", name, "-q")
 	return err
 }

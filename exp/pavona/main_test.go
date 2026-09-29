@@ -36,14 +36,22 @@ func TestBuild(t *testing.T) {
 
 func TestListTemplates(t *testing.T) {
 	bin := buildBinary(t, t.TempDir())
-	out, err := runPavona(t, bin, "-l")
+	out, err := runPavona(t, bin, "list")
 	if err != nil {
-		t.Fatalf("pavona -l failed: %v\n%s", err, out)
+		t.Fatalf("pavona list failed: %v\n%s", err, out)
 	}
 	for _, name := range []string{"tool", "lib", "site", "tui", "app", "agent", "pavona", "monorepo-go"} {
 		if !strings.Contains(out, name) {
 			t.Errorf("expected built-in template %q in output, got:\n%s", name, out)
 		}
+	}
+
+	aliasOut, err := runPavona(t, bin, "ls")
+	if err != nil {
+		t.Fatalf("pavona ls failed: %v\n%s", err, aliasOut)
+	}
+	if !strings.Contains(aliasOut, "monorepo-go") {
+		t.Errorf("expected list alias to show built-in templates, got:\n%s", aliasOut)
 	}
 }
 
@@ -52,9 +60,9 @@ func TestMonorepoGoTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "my-monorepo")
 
-	out, err := runPavona(t, bin, "-t", "monorepo-go", "-o", outDir, "-n", "my-monorepo", "-q")
+	out, err := runPavona(t, bin, "new", "monorepo-go", "-o", outDir, "-n", "my-monorepo", "-q")
 	if err != nil {
-		t.Fatalf("pavona -t monorepo-go failed: %v\n%s", err, out)
+		t.Fatalf("pavona new monorepo-go failed: %v\n%s", err, out)
 	}
 
 	for _, path := range []string{
@@ -96,9 +104,9 @@ func TestPavonaTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	templateDir := filepath.Join(tmp, "my-template")
 
-	out, err := runPavona(t, bin, "-t", "pavona", "-o", templateDir, "-n", "my-template", "-q")
+	out, err := runPavona(t, bin, "new", "pavona", "-o", templateDir, "-n", "my-template", "-q")
 	if err != nil {
-		t.Fatalf("pavona -t pavona failed: %v\n%s", err, out)
+		t.Fatalf("pavona new pavona failed: %v\n%s", err, out)
 	}
 
 	if _, err := os.Stat(filepath.Join(templateDir, "config.cue")); err != nil {
@@ -109,7 +117,7 @@ func TestPavonaTemplate(t *testing.T) {
 	}
 
 	projectDir := filepath.Join(tmp, "generated-project")
-	out, err = runPavona(t, bin, "-t", templateDir, "-o", projectDir, "-n", "generated-project", "-q")
+	out, err = runPavona(t, bin, "new", templateDir, "-o", projectDir, "-n", "generated-project", "-q")
 	if err != nil {
 		t.Fatalf("hydrating generated template failed: %v\n%s", err, out)
 	}
@@ -123,9 +131,9 @@ func TestToolTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "my-cli")
 
-	out, err := runPavona(t, bin, "-t", "tool", "-o", outDir, "-n", "my-cli", "-q")
+	out, err := runPavona(t, bin, "new", "tool", "-o", outDir, "-n", "my-cli", "-q")
 	if err != nil {
-		t.Fatalf("pavona -t tool failed: %v\n%s", err, out)
+		t.Fatalf("pavona new tool failed: %v\n%s", err, out)
 	}
 
 	checks := []string{"main.go", "go.mod", "Taskfile.yaml", ".gitignore", "features"}
@@ -151,9 +159,9 @@ func TestLibTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "go-csvstream")
 
-	out, err := runPavona(t, bin, "-t", "lib", "-o", outDir, "-n", "go-csvstream", "-q")
+	out, err := runPavona(t, bin, "new", "lib", "-o", outDir, "-n", "go-csvstream", "-q")
 	if err != nil {
-		t.Fatalf("pavona -t lib failed: %v\n%s", err, out)
+		t.Fatalf("pavona new lib failed: %v\n%s", err, out)
 	}
 
 	for _, f := range []string{"lib.go", "lib_test.go", "go.mod", "Taskfile.yaml", ".gitignore"} {
@@ -169,9 +177,9 @@ func TestSiteTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "blog")
 
-	out, err := runPavona(t, bin, "-t", "site", "-o", outDir, "-n", "blog", "-q")
+	out, err := runPavona(t, bin, "new", "site", "-o", outDir, "-n", "blog", "-q")
 	if err != nil {
-		t.Fatalf("pavona -t site failed: %v\n%s", err, out)
+		t.Fatalf("pavona new site failed: %v\n%s", err, out)
 	}
 
 	if _, err := os.Stat(filepath.Join(outDir, "content/index.md")); os.IsNotExist(err) {
@@ -184,9 +192,9 @@ func TestTuiTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "chatmonitor")
 
-	out, err := runPavona(t, bin, "-t", "tui", "-o", outDir, "-n", "chatmonitor", "-q")
+	out, err := runPavona(t, bin, "new", "tui", "-o", outDir, "-n", "chatmonitor", "-q")
 	if err != nil {
-		t.Fatalf("pavona -t tui failed: %v\n%s", err, out)
+		t.Fatalf("pavona new tui failed: %v\n%s", err, out)
 	}
 
 	for _, f := range []string{"main.go", "go.mod", ".gitignore"} {
@@ -202,9 +210,9 @@ func TestAppTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "acmecorp")
 
-	out, err := runPavona(t, bin, "-t", "app", "-o", outDir, "-n", "acmecorp", "-q")
+	out, err := runPavona(t, bin, "new", "app", "-o", outDir, "-n", "acmecorp", "-q")
 	if err != nil {
-		t.Fatalf("pavona -t app failed: %v\n%s", err, out)
+		t.Fatalf("pavona new app failed: %v\n%s", err, out)
 	}
 
 	for _, f := range []string{"main.go", "main_test.go", "go.mod", "Dockerfile", ".gitignore", "internal/handlers/health.go"} {
@@ -220,9 +228,9 @@ func TestAgentTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "triagebot")
 
-	out, err := runPavona(t, bin, "-t", "agent", "-o", outDir, "-n", "triagebot", "-q")
+	out, err := runPavona(t, bin, "new", "agent", "-o", outDir, "-n", "triagebot", "-q")
 	if err != nil {
-		t.Fatalf("pavona -t agent failed: %v\n%s", err, out)
+		t.Fatalf("pavona new agent failed: %v\n%s", err, out)
 	}
 
 	for _, f := range []string{"main.go", "go.mod", ".gitignore"} {
@@ -277,9 +285,9 @@ func main() {
 	}
 
 	outDir := filepath.Join(tmp, "custom-output")
-	out, err := runPavona(t, bin, "-t", customDir, "-o", outDir, "-n", "custom-test", "-q")
+	out, err := runPavona(t, bin, "new", customDir, "-o", outDir, "-n", "custom-test", "-q")
 	if err != nil {
-		t.Fatalf("pavona -t custom failed: %v\n%s", err, out)
+		t.Fatalf("pavona new custom failed: %v\n%s", err, out)
 	}
 
 	// Verify rendered file
