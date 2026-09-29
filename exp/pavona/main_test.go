@@ -332,9 +332,20 @@ func main() {
 
 func TestHelpFlag(t *testing.T) {
 	bin := buildBinary(t, t.TempDir())
-	out, err := runPavona(t, bin, "--help")
+	out, err := runPavona(t, bin)
+	if err != nil {
+		t.Fatalf("pavona with no arguments failed: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "---|---.") || !strings.Contains(out, "\x1b[38;2;255;127;80m") {
+		t.Errorf("expected no-argument help to show branching coral art in coral color, got:\n%s", out)
+	}
+
+	out, err = runPavona(t, bin, "--help")
 	if err != nil {
 		t.Fatalf("pavona --help failed: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "---|---.") || !strings.Contains(out, "\x1b[38;2;255;127;80m") {
+		t.Errorf("expected --help to show branching coral art in coral color, got:\n%s", out)
 	}
 	if !strings.Contains(out, "template") {
 		t.Errorf("expected --help output to mention templates, got:\n%s", out)
