@@ -5,14 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.7.0] - 2026-09-29
+
+### Added
+- 8147f27 - use positional names for template output
+- c23585f - add coral artwork to CLI help
+
+### Changed
+- b6f8b9f - document positional project names
+
 ## [v0.6.0] - 2026-09-29
 
 ### Added
-- c897178 - complete built-in templates for new projects
+- c897178f - complete built-in templates for new projects
 
 ### Changed
-- 224d377 - Add open:docs task
-- b91e303 - align scenarios with project creation command
+- 224d3779 - Add open:docs task
+- b91e3036 - align scenarios with project creation command
 
 ## [v0.5.0] - 2026-09-29
 
@@ -56,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - 16baed62 - Update deps
 - 6d714541 - Run go fix
-- 29681f6c - reimagine pavona as a template engine
+- 29681f6c - reimagine pavona as a cookiecutter-inspired template engine
 - 138d51bd - Add README.md for pavona scaffold and framework
 - 6731ec0a - Update all changelogs
 
