@@ -8,10 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v1.3.1] - 2026-09-29
 
 ### Changed
-- 348b521 - keep task update from breaking the build
+- 348b5218 - keep task update from breaking the build
 
 ### Fixed
-- 2a2c52b - isolate Git tests from hook index state
+- 2a2c52b9 - isolate Git tests from hook index state
 
 ## [v1.3.0] - 2026-08-21
 

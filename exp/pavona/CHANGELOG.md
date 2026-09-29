@@ -5,18 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.5.0] - 2026-09-29
+
+### Added
+- 33dbeda - add project creation and template list commands
+
+### Changed
+- 07f521a - document project and template commands
+
 ## [v0.4.0] - 2026-09-29
 
 ### Added
-- 976588c - add template authoring and Go monorepo scaffolds
+- 976588c8 - add template authoring and Go monorepo scaffolds
 
 ### Changed
-- 545a5d6 - remove obsolete watch task
-- 1305b2c - Update deps
-- 2733f2b - Bump deps
-- 348b521 - keep task update from breaking the build
-- 878b20c - Update deps
-- 53b49e2 - Update deps
+- 545a5d69 - remove obsolete watch task
+- 1305b2c9 - Update deps
+- 2733f2b3 - Bump deps
+- 348b5218 - keep task update from breaking the build
+- 878b20c2 - Update deps
+- 53b49e27 - Update deps
 
 ## [v0.3.0] - 2026-08-06
 
