@@ -5,13 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.6.0] - 2026-09-29
+
+### Added
+- c897178 - complete built-in templates for new projects
+
+### Changed
+- 224d377 - Add open:docs task
+- b91e303 - align scenarios with project creation command
+
 ## [v0.5.0] - 2026-09-29
 
 ### Added
-- 33dbeda - add project creation and template list commands
+- 33dbeda6 - add project creation and template list commands
 
 ### Changed
-- 07f521a - document project and template commands
+- 07f521a9 - document project and template commands
 
 ## [v0.4.0] - 2026-09-29
 
