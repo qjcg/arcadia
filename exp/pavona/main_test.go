@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -8,16 +9,28 @@ import (
 	"testing"
 )
 
-func buildBinary(t *testing.T, dir string) string {
-	t.Helper()
-	bin := filepath.Join(dir, "pavona")
-	cmd := exec.Command("go", "build", "-o", bin, ".")
+var testBinary string
+
+func TestMain(m *testing.M) {
+	dir, err := os.MkdirTemp("", "pavona-test-")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "creating test directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	testBinary = filepath.Join(dir, "pavona")
+	cmd := exec.Command("go", "build", "-o", testBinary, ".")
 	cmd.Env = append(os.Environ(), "GOWORK=off")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("building pavona: %v\n%s", err, out)
+		fmt.Fprintf(os.Stderr, "building pavona: %v\n%s", err, out)
+		_ = os.RemoveAll(dir)
+		os.Exit(1)
 	}
-	return bin
+
+	exitCode := m.Run()
+	_ = os.RemoveAll(dir)
+	os.Exit(exitCode)
 }
 
 func runPavona(t *testing.T, bin string, args ...string) (string, error) {
@@ -36,14 +49,13 @@ func runPavonaInDir(t *testing.T, bin, dir string, args ...string) (string, erro
 }
 
 func TestBuild(t *testing.T) {
-	bin := buildBinary(t, t.TempDir())
-	if _, err := os.Stat(bin); err != nil {
+	if _, err := os.Stat(testBinary); err != nil {
 		t.Fatalf("binary not found: %v", err)
 	}
 }
 
 func TestListTemplates(t *testing.T) {
-	bin := buildBinary(t, t.TempDir())
+	bin := testBinary
 	out, err := runPavona(t, bin, "list")
 	if err != nil {
 		t.Fatalf("pavona list failed: %v\n%s", err, out)
@@ -64,7 +76,7 @@ func TestListTemplates(t *testing.T) {
 }
 
 func TestNewTemplateCompletion(t *testing.T) {
-	bin := buildBinary(t, t.TempDir())
+	bin := testBinary
 	out, err := runPavona(t, bin, "__complete", "new", "")
 	if err != nil {
 		t.Fatalf("pavona new completion failed: %v\n%s", err, out)
@@ -86,7 +98,7 @@ func TestNewTemplateCompletion(t *testing.T) {
 
 func TestMonorepoGoTemplate(t *testing.T) {
 	tmp := t.TempDir()
-	bin := buildBinary(t, tmp)
+	bin := testBinary
 	outDir := filepath.Join(tmp, "my-monorepo")
 
 	out, err := runPavonaInDir(t, bin, tmp, "new", "monorepo-go", "my-monorepo", "-q")
@@ -130,7 +142,7 @@ func TestMonorepoGoTemplate(t *testing.T) {
 
 func TestPavonaTemplate(t *testing.T) {
 	tmp := t.TempDir()
-	bin := buildBinary(t, tmp)
+	bin := testBinary
 	templateDir := filepath.Join(tmp, "my-template")
 
 	out, err := runPavonaInDir(t, bin, tmp, "new", "pavona", "my-template", "-q")
@@ -157,7 +169,7 @@ func TestPavonaTemplate(t *testing.T) {
 
 func TestToolTemplate(t *testing.T) {
 	tmp := t.TempDir()
-	bin := buildBinary(t, tmp)
+	bin := testBinary
 	outDir := filepath.Join(tmp, "my-cli")
 
 	out, err := runPavonaInDir(t, bin, tmp, "new", "tool", "my-cli", "-q")
@@ -185,7 +197,7 @@ func TestToolTemplate(t *testing.T) {
 
 func TestLibTemplate(t *testing.T) {
 	tmp := t.TempDir()
-	bin := buildBinary(t, tmp)
+	bin := testBinary
 	outDir := filepath.Join(tmp, "go-csvstream")
 
 	out, err := runPavonaInDir(t, bin, tmp, "new", "lib", "go-csvstream", "-q")
@@ -203,7 +215,7 @@ func TestLibTemplate(t *testing.T) {
 
 func TestSiteTemplate(t *testing.T) {
 	tmp := t.TempDir()
-	bin := buildBinary(t, tmp)
+	bin := testBinary
 	outDir := filepath.Join(tmp, "blog")
 
 	out, err := runPavonaInDir(t, bin, tmp, "new", "site", "blog", "-q")
@@ -218,7 +230,7 @@ func TestSiteTemplate(t *testing.T) {
 
 func TestTuiTemplate(t *testing.T) {
 	tmp := t.TempDir()
-	bin := buildBinary(t, tmp)
+	bin := testBinary
 	outDir := filepath.Join(tmp, "chatmonitor")
 
 	out, err := runPavonaInDir(t, bin, tmp, "new", "tui", "chatmonitor", "-q")
@@ -236,7 +248,7 @@ func TestTuiTemplate(t *testing.T) {
 
 func TestAppTemplate(t *testing.T) {
 	tmp := t.TempDir()
-	bin := buildBinary(t, tmp)
+	bin := testBinary
 	outDir := filepath.Join(tmp, "acmecorp")
 
 	out, err := runPavonaInDir(t, bin, tmp, "new", "app", "acmecorp", "-q")
@@ -254,7 +266,7 @@ func TestAppTemplate(t *testing.T) {
 
 func TestAgentTemplate(t *testing.T) {
 	tmp := t.TempDir()
-	bin := buildBinary(t, tmp)
+	bin := testBinary
 	outDir := filepath.Join(tmp, "triagebot")
 
 	out, err := runPavonaInDir(t, bin, tmp, "new", "agent", "triagebot", "-q")
@@ -272,7 +284,7 @@ func TestAgentTemplate(t *testing.T) {
 
 func TestCustomTemplate(t *testing.T) {
 	tmp := t.TempDir()
-	bin := buildBinary(t, tmp)
+	bin := testBinary
 
 	customDir := filepath.Join(tmp, "custom-tmpl")
 	if err := os.MkdirAll(customDir, 0o755); err != nil {
@@ -339,7 +351,7 @@ func main() {
 }
 
 func TestHelpFlag(t *testing.T) {
-	bin := buildBinary(t, t.TempDir())
+	bin := testBinary
 	out, err := runPavona(t, bin)
 	if err != nil {
 		t.Fatalf("pavona with no arguments failed: %v\n%s", err, out)
