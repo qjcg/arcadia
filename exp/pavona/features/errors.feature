@@ -7,5 +7,5 @@ Feature: Error handling
 
   Scenario: Output directory exists and is not empty
     Given an existing non-empty output directory
-    When I hydrate the "tool" template into that directory
+    When I create a project from the "tool" template into that directory
     Then the output should contain "exists and is not empty"

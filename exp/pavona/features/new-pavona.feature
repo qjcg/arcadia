@@ -1,8 +1,8 @@
 Feature: Pavona template
-  The pavona template creates a starter template that can be hydrated in turn.
+  The pavona template creates a starter template for generating projects.
 
-  Scenario: Hydrate pavona template
-    When I hydrate the "pavona" template with name "my-template"
+  Scenario: Create pavona template
+    When I create a project from the "pavona" template with name "my-template"
     Then the output directory should contain "config.cue"
     And "config.cue" should contain "my-template"
     And "config.cue" should contain "project_name: string"

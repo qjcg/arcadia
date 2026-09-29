@@ -119,7 +119,7 @@ func TestPavonaTemplate(t *testing.T) {
 	projectDir := filepath.Join(tmp, "generated-project")
 	out, err = runPavona(t, bin, "new", templateDir, "-o", projectDir, "-n", "generated-project", "-q")
 	if err != nil {
-		t.Fatalf("hydrating generated template failed: %v\n%s", err, out)
+		t.Fatalf("creating project from generated template failed: %v\n%s", err, out)
 	}
 	if _, err := os.Stat(filepath.Join(projectDir, "main.go")); !os.IsNotExist(err) {
 		t.Errorf("expected generated main.go not to exist, got error: %v", err)

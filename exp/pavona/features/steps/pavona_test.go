@@ -31,7 +31,7 @@ func TestFeatures(t *testing.T) {
 			})
 
 			RegisterListSteps(ctx, state)
-			RegisterHydrateSteps(ctx, state)
+			RegisterNewSteps(ctx, state)
 			RegisterCustomSteps(ctx, state)
 			RegisterErrorSteps(ctx, state)
 			RegisterVersionSteps(ctx, state)

@@ -1,8 +1,8 @@
 Feature: Go monorepo template
   The monorepo-go template generates a Go workspace with repository tooling and release automation.
 
-  Scenario: Hydrate monorepo-go template
-    When I hydrate the "monorepo-go" template with name "my-monorepo"
+  Scenario: Create monorepo-go project
+    When I create a project from the "monorepo-go" template with name "my-monorepo"
     Then the output directory should contain "go.work"
     And the output directory should contain "Taskfile.yaml"
     And the output directory should contain "README.md"

@@ -15,12 +15,12 @@ func RegisterListSteps(ctx *godog.ScenarioContext, state *PavonaState) {
 	})
 }
 
-func RegisterHydrateSteps(ctx *godog.ScenarioContext, state *PavonaState) {
-	ctx.Step(`^I hydrate the "([^"]+)" template with name "([^"]+)"$`, func(template, name string) error {
-		return state.hydrateTemplate(template, name, "")
+func RegisterNewSteps(ctx *godog.ScenarioContext, state *PavonaState) {
+	ctx.Step(`^I create a project from the "([^"]+)" template with name "([^"]+)"$`, func(template, name string) error {
+		return state.newTemplate(template, name, "")
 	})
-	ctx.Step(`^I hydrate the "([^"]+)" template into that directory$`, func(template string) error {
-		return state.hydrateTemplate(template, "test-project", state.existingDir)
+	ctx.Step(`^I create a project from the "([^"]+)" template into that directory$`, func(template string) error {
+		return state.newTemplate(template, "test-project", state.existingDir)
 	})
 	ctx.Step(`^the output directory should contain "([^"]+)"$`, func(path string) error {
 		return state.outputDirShouldContain(path)
@@ -34,8 +34,8 @@ func RegisterCustomSteps(ctx *godog.ScenarioContext, state *PavonaState) {
 	ctx.Step(`^a custom template with config\.cue and main\.go\.tmpl$`, func() error {
 		return state.createCustomTemplate()
 	})
-	ctx.Step(`^I hydrate the custom template with name "([^"]+)"$`, func(name string) error {
-		return state.hydrateCustomTemplate(name)
+	ctx.Step(`^I create a project from the custom template with name "([^"]+)"$`, func(name string) error {
+		return state.newCustomTemplate(name)
 	})
 }
 
@@ -118,8 +118,8 @@ func (s *PavonaState) fileShouldContain(filePath, expected string) error {
 	return containsStr(content, expected)
 }
 
-// hydrateTemplate runs pavona to hydrate a built-in template with quiet mode.
-func (s *PavonaState) hydrateTemplate(template, name, outputDir string) error {
+// newTemplate runs pavona to create a project from a built-in template with quiet mode.
+func (s *PavonaState) newTemplate(template, name, outputDir string) error {
 	if outputDir == "" {
 		outputDir = filepath.Join(s.tmpDir, name)
 	}
@@ -128,8 +128,8 @@ func (s *PavonaState) hydrateTemplate(template, name, outputDir string) error {
 	return err
 }
 
-// hydrateCustomTemplate hydrates the custom template directory.
-func (s *PavonaState) hydrateCustomTemplate(name string) error {
+// newCustomTemplate creates a project from the custom template directory.
+func (s *PavonaState) newCustomTemplate(name string) error {
 	s.outputDir = filepath.Join(s.tmpDir, name)
 	_, err := s.runPavona("new", s.customDir, "-o", s.outputDir, "-n", name, "-q")
 	return err

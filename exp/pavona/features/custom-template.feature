@@ -1,8 +1,8 @@
 Feature: Custom template
-  Pavona can hydrate a custom template from a local directory.
+  Pavona can create a project from a custom template in a local directory.
 
-  Scenario: Hydrate custom template
+  Scenario: Create project from custom template
     Given a custom template with config.cue and main.go.tmpl
-    When I hydrate the custom template with name "my-custom"
+    When I create a project from the custom template with name "my-custom"
     Then the output directory should contain "main.go"
     And "main.go" should contain "Hello, World!"

@@ -33,7 +33,7 @@ type PavonaState struct {
 	tmpDir       string // temp dir for test outputs
 	lastOutput   string // last stdout/stderr from running pavona
 	lastExitCode int    // last exit code
-	outputDir    string // output directory for hydrate scenarios
+	outputDir    string // output directory for new scenarios
 	customDir    string // path to custom template testdata
 	existingDir  string // pre-created directory for error scenarios
 }

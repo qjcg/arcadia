@@ -1,8 +1,8 @@
 Feature: App template
   The app template generates a full-stack web app.
 
-  Scenario: Hydrate app template
-    When I hydrate the "app" template with name "acmecorp"
+  Scenario: Create app project
+    When I create a project from the "app" template with name "acmecorp"
     Then the output directory should contain "main.go"
     And the output directory should contain "main_test.go"
     And the output directory should contain "go.mod"
