@@ -58,6 +58,7 @@ func (s *PavonaState) buildBinary() error {
 // runPavona executes the pavona binary with the given arguments.
 func (s *PavonaState) runPavona(args ...string) (string, error) {
 	cmd := exec.Command(s.binPath, args...)
+	cmd.Dir = s.tmpDir
 	out, err := cmd.CombinedOutput()
 	output := string(out)
 	s.lastOutput = output

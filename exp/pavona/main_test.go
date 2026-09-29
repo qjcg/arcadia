@@ -27,6 +27,14 @@ func runPavona(t *testing.T, bin string, args ...string) (string, error) {
 	return string(out), err
 }
 
+func runPavonaInDir(t *testing.T, bin, dir string, args ...string) (string, error) {
+	t.Helper()
+	cmd := exec.Command(bin, args...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
 func TestBuild(t *testing.T) {
 	bin := buildBinary(t, t.TempDir())
 	if _, err := os.Stat(bin); err != nil {
@@ -81,7 +89,7 @@ func TestMonorepoGoTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "my-monorepo")
 
-	out, err := runPavona(t, bin, "new", "monorepo-go", "-o", outDir, "-n", "my-monorepo", "-q")
+	out, err := runPavonaInDir(t, bin, tmp, "new", "monorepo-go", "my-monorepo", "-q")
 	if err != nil {
 		t.Fatalf("pavona new monorepo-go failed: %v\n%s", err, out)
 	}
@@ -125,7 +133,7 @@ func TestPavonaTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	templateDir := filepath.Join(tmp, "my-template")
 
-	out, err := runPavona(t, bin, "new", "pavona", "-o", templateDir, "-n", "my-template", "-q")
+	out, err := runPavonaInDir(t, bin, tmp, "new", "pavona", "my-template", "-q")
 	if err != nil {
 		t.Fatalf("pavona new pavona failed: %v\n%s", err, out)
 	}
@@ -138,7 +146,7 @@ func TestPavonaTemplate(t *testing.T) {
 	}
 
 	projectDir := filepath.Join(tmp, "generated-project")
-	out, err = runPavona(t, bin, "new", templateDir, "-o", projectDir, "-n", "generated-project", "-q")
+	out, err = runPavonaInDir(t, bin, tmp, "new", templateDir, "generated-project", "-q")
 	if err != nil {
 		t.Fatalf("creating project from generated template failed: %v\n%s", err, out)
 	}
@@ -152,7 +160,7 @@ func TestToolTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "my-cli")
 
-	out, err := runPavona(t, bin, "new", "tool", "-o", outDir, "-n", "my-cli", "-q")
+	out, err := runPavonaInDir(t, bin, tmp, "new", "tool", "my-cli", "-q")
 	if err != nil {
 		t.Fatalf("pavona new tool failed: %v\n%s", err, out)
 	}
@@ -180,7 +188,7 @@ func TestLibTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "go-csvstream")
 
-	out, err := runPavona(t, bin, "new", "lib", "-o", outDir, "-n", "go-csvstream", "-q")
+	out, err := runPavonaInDir(t, bin, tmp, "new", "lib", "go-csvstream", "-q")
 	if err != nil {
 		t.Fatalf("pavona new lib failed: %v\n%s", err, out)
 	}
@@ -198,7 +206,7 @@ func TestSiteTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "blog")
 
-	out, err := runPavona(t, bin, "new", "site", "-o", outDir, "-n", "blog", "-q")
+	out, err := runPavonaInDir(t, bin, tmp, "new", "site", "blog", "-q")
 	if err != nil {
 		t.Fatalf("pavona new site failed: %v\n%s", err, out)
 	}
@@ -213,7 +221,7 @@ func TestTuiTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "chatmonitor")
 
-	out, err := runPavona(t, bin, "new", "tui", "-o", outDir, "-n", "chatmonitor", "-q")
+	out, err := runPavonaInDir(t, bin, tmp, "new", "tui", "chatmonitor", "-q")
 	if err != nil {
 		t.Fatalf("pavona new tui failed: %v\n%s", err, out)
 	}
@@ -231,7 +239,7 @@ func TestAppTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "acmecorp")
 
-	out, err := runPavona(t, bin, "new", "app", "-o", outDir, "-n", "acmecorp", "-q")
+	out, err := runPavonaInDir(t, bin, tmp, "new", "app", "acmecorp", "-q")
 	if err != nil {
 		t.Fatalf("pavona new app failed: %v\n%s", err, out)
 	}
@@ -249,7 +257,7 @@ func TestAgentTemplate(t *testing.T) {
 	bin := buildBinary(t, tmp)
 	outDir := filepath.Join(tmp, "triagebot")
 
-	out, err := runPavona(t, bin, "new", "agent", "-o", outDir, "-n", "triagebot", "-q")
+	out, err := runPavonaInDir(t, bin, tmp, "new", "agent", "triagebot", "-q")
 	if err != nil {
 		t.Fatalf("pavona new agent failed: %v\n%s", err, out)
 	}
@@ -305,8 +313,8 @@ func main() {
 		t.Fatal(err)
 	}
 
-	outDir := filepath.Join(tmp, "custom-output")
-	out, err := runPavona(t, bin, "new", customDir, "-o", outDir, "-n", "custom-test", "-q")
+	outDir := filepath.Join(tmp, "custom-test")
+	out, err := runPavonaInDir(t, bin, tmp, "new", customDir, "custom-test", "-q")
 	if err != nil {
 		t.Fatalf("pavona new custom failed: %v\n%s", err, out)
 	}

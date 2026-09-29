@@ -121,7 +121,9 @@ func (s *PavonaState) fileShouldContain(filePath, expected string) error {
 // newTemplate runs pavona to create a project from a built-in template with quiet mode.
 func (s *PavonaState) newTemplate(template, name, outputDir string) error {
 	if outputDir == "" {
-		outputDir = filepath.Join(s.tmpDir, name)
+		s.outputDir = filepath.Join(s.tmpDir, name)
+		_, err := s.runPavona("new", template, name, "-q")
+		return err
 	}
 	s.outputDir = outputDir
 	_, err := s.runPavona("new", template, "-o", outputDir, "-n", name, "-q")
@@ -131,6 +133,6 @@ func (s *PavonaState) newTemplate(template, name, outputDir string) error {
 // newCustomTemplate creates a project from the custom template directory.
 func (s *PavonaState) newCustomTemplate(name string) error {
 	s.outputDir = filepath.Join(s.tmpDir, name)
-	_, err := s.runPavona("new", s.customDir, "-o", s.outputDir, "-n", name, "-q")
+	_, err := s.runPavona("new", s.customDir, name, "-q")
 	return err
 }

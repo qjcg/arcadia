@@ -26,16 +26,25 @@ type NewParams struct {
 
 func NewCmd() *cobra.Command {
 	cmd := boa.CmdT[NewParams]{
-		Use:   "new <template>",
+		Use:   "new <template> [name]",
 		Short: "Create a project from a template",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.RangeArgs(1, 2),
 		RunFunc: func(p *NewParams, cmd *cobra.Command, args []string) {
-			RunTemplate(&TemplateParams{
+			params := &TemplateParams{
 				Template: args[0],
 				Output:   p.Output,
 				Name:     p.Name,
 				Quiet:    p.Quiet,
-			}, cmd, nil)
+			}
+			if len(args) == 2 {
+				if params.Output == "" {
+					params.Output = args[1]
+				}
+				if params.Name == "" {
+					params.Name = args[1]
+				}
+			}
+			RunTemplate(params, cmd, nil)
 		},
 	}.ToCobra()
 	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
