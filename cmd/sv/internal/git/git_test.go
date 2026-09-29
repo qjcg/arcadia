@@ -1,10 +1,27 @@
 package git
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	localEnvVars, err := exec.Command("git", "rev-parse", "--local-env-vars").Output()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	for name := range strings.FieldsSeq(string(localEnvVars)) {
+		if err := os.Unsetenv(name); err != nil {
+			fmt.Fprintf(os.Stderr, "unset %s: %v\n", name, err)
+			os.Exit(1)
+		}
+	}
+	os.Exit(m.Run())
+}
 
 func runGit(t *testing.T, dir string, args ...string) {
 	cmd := exec.Command("git", args...)

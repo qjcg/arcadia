@@ -1,13 +1,30 @@
 package changelog
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/qjcg/arcadia/cmd/sv/internal/git"
 )
+
+func TestMain(m *testing.M) {
+	localEnvVars, err := exec.Command("git", "rev-parse", "--local-env-vars").Output()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	for name := range strings.FieldsSeq(string(localEnvVars)) {
+		if err := os.Unsetenv(name); err != nil {
+			fmt.Fprintf(os.Stderr, "unset %s: %v\n", name, err)
+			os.Exit(1)
+		}
+	}
+	os.Exit(m.Run())
+}
 
 func TestIsMetaCommit(t *testing.T) {
 	tests := []struct {
