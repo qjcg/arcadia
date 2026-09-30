@@ -3,5 +3,6 @@ Feature: TUI template
 
   Scenario: Create TUI project
     When I create a project from the "tui" template with name "chatmonitor"
-    Then the output directory should contain "main.go"
-    And the output directory should contain "go.mod"
+    Then the output directory should contain:
+    | main.go |
+    | go.mod  |

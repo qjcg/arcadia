@@ -3,5 +3,6 @@ Feature: Agent template
 
   Scenario: Create agent project
     When I create a project from the "agent" template with name "triagebot"
-    Then the output directory should contain "main.go"
-    And the output directory should contain "go.mod"
+    Then the output directory should contain:
+    | main.go |
+    | go.mod  |

@@ -5,6 +5,6 @@ Feature: Pavona template
     When I create a project from the "pavona" template with name "my-template"
     Then the output directory should contain "config.cue"
     And "config.cue" should contain:
-      | my-template |
-      | project_name: string |
-      | greeting?: string |
+    | my-template          |
+    | project_name: string |
+    | greeting?: string    |

@@ -4,8 +4,8 @@ Feature: App template
   Scenario: Create app project
     When I create a project from the "app" template with name "acmecorp"
     Then the output directory should contain:
-      | main.go |
-      | main_test.go |
-      | go.mod |
-      | Dockerfile |
+      | main.go                     |
+      | main_test.go                |
+      | go.mod                      |
+      | Dockerfile                  |
       | internal/handlers/health.go |
