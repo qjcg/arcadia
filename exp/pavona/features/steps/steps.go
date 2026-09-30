@@ -13,6 +13,9 @@ func RegisterListSteps(ctx *godog.ScenarioContext, state *PavonaState) {
 	ctx.Step(`^the output should contain "([^"]+)"$`, func(expected string) error {
 		return state.outputShouldContain(expected)
 	})
+	ctx.Step(`^the output should contain:$`, func(table *godog.Table) error {
+		return checkTable(table, state.outputShouldContain)
+	})
 }
 
 func RegisterNewSteps(ctx *godog.ScenarioContext, state *PavonaState) {
@@ -25,8 +28,16 @@ func RegisterNewSteps(ctx *godog.ScenarioContext, state *PavonaState) {
 	ctx.Step(`^the output directory should contain "([^"]+)"$`, func(path string) error {
 		return state.outputDirShouldContain(path)
 	})
+	ctx.Step(`^the output directory should contain:$`, func(table *godog.Table) error {
+		return checkTable(table, state.outputDirShouldContain)
+	})
 	ctx.Step(`^"([^"]+)" should contain "([^"]+)"$`, func(filePath, expected string) error {
 		return state.fileShouldContain(filePath, expected)
+	})
+	ctx.Step(`^"([^"]+)" should contain:$`, func(filePath string, table *godog.Table) error {
+		return checkTable(table, func(expected string) error {
+			return state.fileShouldContain(filePath, expected)
+		})
 	})
 }
 
@@ -68,6 +79,18 @@ func (s *PavonaState) runPavonaWithFlags(flags string) error {
 	args := parseArgs(flags)
 	_, err := s.runPavona(args...)
 	return err
+}
+
+func checkTable(table *godog.Table, check func(string) error) error {
+	for _, row := range table.Rows {
+		if len(row.Cells) != 1 {
+			return errf("expected a one-column table, got %d columns", len(row.Cells))
+		}
+		if err := check(row.Cells[0].Value); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // parseArgs splits a string into arguments, respecting double-quoted tokens.
