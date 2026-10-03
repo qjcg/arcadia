@@ -31,7 +31,7 @@ tasks:
       - '{{.BIN}}'
     generates:
       - '{{.BIN_UPX}}'
-    cmd: upx {{.BIN}} -o {{.BIN_UPX}}
+    cmd: upx {{.BIN}} -o {{.BIN_UPX}} --force-overwrite
 
   install:
     desc: Install pavona to GOBIN
