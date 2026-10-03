@@ -5,7 +5,7 @@ version: '3'
 shopt: [globstar]
 
 vars:
-  V_GOLANGCILINT: v2.13.2
+  V_GOLANGCILINT: v2.14.0
   V_TRIVY: v0.74.0
 
 tasks:
