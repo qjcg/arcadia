@@ -25,7 +25,7 @@ require (
 	github.com/cli/browser v1.3.0 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
-	github.com/dlclark/regexp2/v2 v2.8.2 // indirect
+	github.com/dlclark/regexp2/v2 v2.8.3 // indirect
 	github.com/evanw/esbuild v0.27.3 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
