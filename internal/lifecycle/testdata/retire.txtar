@@ -1,0 +1,41 @@
+# Retirement deletes the experiment, drops it from go.work, and lands one
+# commit. No tags, no ceremony.
+
+exec git init -q
+exec git config user.email test@example.com
+exec git config user.name test
+exec git add -A
+exec git commit -q -m 'feat: add foo'
+
+exec sh $LIFECYCLE/retire.sh foo
+stdout 'retire: retired exp/foo'
+! exists exp/foo
+! grep '\./exp/foo' go.work
+
+exec git log -1 --pretty=%s
+stdout 'chore: retire exp/foo'
+exec git tag -l
+! stdout .
+
+-- go.work --
+go 1.27.1
+
+use (
+	.
+	./exp/foo
+)
+
+-- go.mod --
+module github.com/qjcg/arcadia
+
+go 1.27.1
+
+-- exp/foo/go.mod --
+module github.com/qjcg/arcadia/exp/foo
+
+go 1.27.1
+
+-- exp/foo/main.go --
+package main
+
+func main() {}

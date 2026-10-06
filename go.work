@@ -2,20 +2,28 @@ go 1.27.1
 
 use (
 	.
-	./cmd/ap
-	./cmd/awesome-lint
-	./cmd/horeb
 	./cmd/sv
 	./examples/go
+	./exp/4d
+	./exp/ap
+	./exp/awesome-lint
+	./exp/barr
 	./exp/diplomat
+	./exp/dude
 	./exp/elbereth
 	./exp/fin
 	./exp/fractalis
+	./exp/goast
+	./exp/horeb
 	./exp/jmacs
 	./exp/mnemosyne
+	./exp/mtlcam
 	./exp/pangrams
 	./exp/pavona
 	./exp/roubaix
+	./exp/rps
+	./exp/servant
+	./exp/sliders
 	./exp/slidesdeck
 	./exp/terebra
 )

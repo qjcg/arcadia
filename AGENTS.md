@@ -124,3 +124,7 @@ Default five-role vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `
 ### Domain docs
 
 Single-context: `GLOSSARY.md` at the repo root and ADRs under `docs/adrs/`. See `docs/agents/domain.md`.
+
+### Command lifecycle
+
+New Go commands start as independent modules under `exp/` and enter `cmd/` only by promotion to v1.0.0. See `docs/agents/command-lifecycle.md` and [ADR 0002](docs/adrs/0002-command-lifecycle-exp-to-cmd.md).

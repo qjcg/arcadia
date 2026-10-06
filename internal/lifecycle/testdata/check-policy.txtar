@@ -1,0 +1,81 @@
+# The policy check catches all three violations: an exp dir that is not a
+# module, pre-1.0 commands sitting in cmd/, and stable code importing exp.
+
+exec git init -q
+exec git config user.email test@example.com
+exec git config user.name test
+exec git add -A
+exec git commit -q -m 'feat: initial'
+exec git tag -a cmd/stable/v0.1.0 -m 'v0.1.0'
+
+! exec sh $LIFECYCLE/check.sh
+stderr 'exp/raw/ holds Go sources but no go.mod'
+stderr 'cmd/stable latest tag cmd/stable/v0.1.0 is below v1.0.0'
+stderr 'cmd/tagless has no version tags'
+stderr 'stable Go source imports exp/ packages'
+stderr 'Go modules outside exp/ require an exp/ module'
+stderr 'exp/other/go.mod depends on another experiment module'
+stderr 'policy check FAILED'
+
+-- go.work --
+go 1.27.1
+
+use (
+	.
+	./exp/mod1
+	./exp/other
+	./cmd/stable
+	./cmd/tagless
+)
+
+-- go.mod --
+module github.com/qjcg/arcadia
+
+go 1.27.1
+
+require github.com/qjcg/arcadia/exp/mod1 v0.1.0
+
+-- stable.go --
+package stable
+
+import _ "github.com/qjcg/arcadia/exp/mod1/pkg"
+
+-- exp/mod1/go.mod --
+module github.com/qjcg/arcadia/exp/mod1
+
+go 1.27.1
+
+-- exp/mod1/pkg/pkg.go --
+package pkg
+
+-- exp/other/go.mod --
+module github.com/qjcg/arcadia/exp/other
+
+go 1.27.1
+
+require github.com/qjcg/arcadia/exp/mod1 v0.1.0
+
+-- exp/raw/main.go --
+package main
+
+func main() {}
+
+-- cmd/stable/go.mod --
+module github.com/qjcg/arcadia/cmd/stable
+
+go 1.27.1
+
+-- cmd/stable/main.go --
+package main
+
+func main() {}
+
+-- cmd/tagless/go.mod --
+module github.com/qjcg/arcadia/cmd/tagless
+
+go 1.27.1
+
+-- cmd/tagless/main.go --
+package main
+
+func main() {}
