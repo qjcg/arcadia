@@ -1,0 +1,30 @@
+# Sync spec for arcadia's first-party skills, packaged as an Agent Plugin.
+# Regenerate with: task plugins:sync
+# Policy: docs/adrs/0001-organize-agent-artifacts-under-agents.md
+name: arcadia-skills
+version: "0.1.0"
+description: >-
+  Arcadia's first-party agent skills: CLI design, Gherkin testing with godog,
+  pyramid summaries, specs, and unit testing principles.
+author:
+  name: qjcg
+  url: https://github.com/qjcg
+repository: https://github.com/qjcg/arcadia
+license: GPL-3.0-only
+keywords:
+  - skills
+  - go
+  - cli
+  - testing
+  - specs
+source:
+  type: local
+  path: .
+  skills:
+    - agents/skills/cli-design
+    - agents/skills/go-gherkin-testing
+    - agents/skills/pyramid
+    - agents/skills/specs
+    - agents/skills/testing
+  copy-root:
+    - LICENSE

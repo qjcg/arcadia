@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "arcadia-skills",
+  "version": "0.1.0",
+  "description": "Arcadia's first-party agent skills: CLI design, Gherkin testing with godog, pyramid summaries, specs, and unit testing principles.",
+  "author": {
+    "name": "qjcg",
+    "url": "https://github.com/qjcg"
+  },
+  "repository": "https://github.com/qjcg/arcadia",
+  "license": "GPL-3.0-only",
+  "keywords": [
+    "skills",
+    "go",
+    "cli",
+    "testing",
+    "specs"
+  ]
+}

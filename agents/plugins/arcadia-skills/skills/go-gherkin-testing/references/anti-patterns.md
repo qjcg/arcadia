@@ -1,0 +1,124 @@
+---
+description: Common Gherkin anti-patterns — feature-coupled step definitions and conjunction steps — and how to avoid them.
+source: https://cucumber.io/docs/guides/anti-patterns/
+source_raw: https://raw.githubusercontent.com/cucumber/website/5af617a1434e7bfd577f1f9d68fae5e64d74fbe6/docs/guides/anti-patterns.mdx
+---
+
+# Anti-patterns
+
+There are several anti-patterns, which we will describe here. We will also give you hints on how to avoid them!
+
+## Feature-coupled step definitions
+
+Feature-coupled step definitions are step definitions that **can't be reused** across features or scenarios.
+
+This may lead to an explosion of step definitions, code duplication, and high maintenance costs.
+
+### Example
+
+An imaginary résumé application could have the following feature and step definition files:
+
+```
+features/
++--edit_work_experience.feature
++--edit_languages.feature
++--edit_education.feature
++--steps/
+   +--edit_work_experience_steps.java
+   +--edit_languages_steps.java
+   +--edit_education_steps.java
+```
+
+The `edit_work_experience.feature` could have the following scenario:
+
+```gherkin
+Scenario: add description
+  Given I have a CV and I'm on the edit description page
+  And I fill in "Description" with "Cucumber BDD tool"
+  When I press "Save"
+  Then I should see "Cucumber BDD tool" under "Descriptions"
+```
+
+**Java** — `edit_work_experience_steps.java` could be implemented like this:
+
+```java
+@Given("I have a CV and I'm on the edit description page")
+public void I_have_a_CV_and_Im_on_the_edit_description_page() {
+    Employee employee = new Employee("Sally");
+    employee.createCV();
+}
+```
+
+**Kotlin** — `edit_work_experience_steps.kt` could be implemented like this:
+
+```kotlin
+@Given("I have a CV and I'm on the edit description page")
+fun I_have_a_CV_and_Im_on_the_edit_description_page() {
+    val employee = Employee("Sally")
+    employee.createCV()
+}
+```
+
+**JavaScript** — `edit_work_experience_steps.js` could be implemented like this:
+
+```javascript
+var { Given } = require('cucumber');
+
+Given(/^I have a CV and I'm on the edit description page$/, function () {
+  this.employee = new Employee('Sally');
+  this.employee.createCV();
+});
+```
+
+**Ruby** — `edit_work_experience_steps.rb` could be implemented like this:
+
+```ruby
+Given /I have a CV and I'm on the edit description page/ do
+  @employee = Employee.create!(name: 'Sally')
+  @employee.create_cv
+  visits("/employees/#{@employee.id}/descriptions/new")
+end
+```
+
+### How to decouple steps and step definitions
+
+- Organise your steps by domain concept.
+- Use domain-related names (rather than feature- or scenario-related names) for your step and step definition files.
+
+## Conjunction steps
+
+From the online Merriam-Webster dictionary:
+
+> **con·junc·tion**: an uninflected linguistic form that joins together sentences, clauses, phrases, or words.
+
+Don't use steps that combine a bunch of different things. This makes steps too specialised, and hard to reuse.
+Cucumber has built-in support for conjunctions (`And`, `But`) for a reason!
+
+**Example**
+
+```gherkin
+Given I have shades and a brand new Mustang
+```
+
+### How to split conjunction steps
+
+```gherkin
+Given I have shades
+And I have a brand new Mustang
+```
+
+### Support for conjunction steps
+
+Sometimes you may want to combine several steps into one, to make your scenarios easier to read.
+For instance, if you need to set up several preconditions in your `Given` state.
+
+> **Support in Cucumber-Ruby:** While it is possible to call steps from step definitions in Cucumber-Ruby, this is not recommended.
+
+The best way to achieve composition and reuse, is to use the features of your programming language. If you want to combine
+several actions into one step, extract individual (helper) methods and call these methods from your step definition.
+
+You want to strive to keep your steps atomic as much as possible.
+
+## More information
+
+For more information on anti-patterns, see [Cucumber Anti-Patterns (blog post)](http://www.thinkcode.se/blog/2016/06/22/cucumber-antipatterns).
