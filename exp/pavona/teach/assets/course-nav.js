@@ -12,6 +12,10 @@
     ["0007-capstone-pavona-workflow.html", "A Repeatable Pavona Workflow"]
   ];
 
+  const currentLessonIndex = lessons.findIndex(function (lesson) {
+    return window.location.pathname.endsWith("/" + lesson[0]);
+  });
+
   const sidebar = document.createElement("aside");
   sidebar.className = "course-sidebar";
   sidebar.id = "course-sidebar";
@@ -43,7 +47,7 @@
     title.textContent = lesson[1];
     link.append(number, title);
 
-    if (new URL(link.href, window.location.href).pathname === window.location.pathname) {
+    if (index === currentLessonIndex) {
       link.setAttribute("aria-current", "page");
     }
 
@@ -75,7 +79,9 @@
 
   const footer = document.createElement("p");
   footer.className = "course-sidebar-footer";
-  footer.textContent = "Seven short lessons · Learn by building and checking.";
+  footer.textContent = currentLessonIndex >= 0
+    ? "← / p previous · → / n next"
+    : "Seven short lessons · Learn by building and checking.";
   sidebar.appendChild(footer);
 
   const toggle = document.createElement("button");
@@ -158,7 +164,27 @@
         event.preventDefault();
         first.focus();
       }
+      return;
     }
+
+    if (currentLessonIndex < 0 || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) {
+      return;
+    }
+
+    const target = event.target;
+    if (target.isContentEditable || target.closest("input, textarea, select, button, a, [role='button'], [role='link']")) {
+      return;
+    }
+
+    const key = event.key.toLowerCase();
+    const direction = event.key === "ArrowRight" || key === "n" ? 1
+      : event.key === "ArrowLeft" || key === "p" ? -1
+      : 0;
+    const destination = lessons[currentLessonIndex + direction];
+    if (direction === 0 || !destination) return;
+
+    event.preventDefault();
+    window.location.href = rootPrefix + "/lessons/" + destination[0];
   });
   if (mobile.addEventListener) mobile.addEventListener("change", syncViewport);
   else mobile.addListener(syncViewport);
