@@ -86,7 +86,7 @@ into `cmd/` at v1.0.0**. The lifecycle is normative in
   `exp/<name>/v0.x.y` annotated tags at the migration commit. `cmd/sv` remains in
   place because it is already v1.0.0 or later.
 * Give the existing root-module Go commands under `exp/` their own `go.mod` and
-  `go.work` entries. This removes experimental code from the root module's v1
+  `go.work` entries. This removes experimental code from the root module's
   release line and makes each command independently taggable.
 
 ### Consequences
@@ -124,8 +124,8 @@ into `cmd/` at v1.0.0**. The lifecycle is normative in
 ### Mixed module and root-package experiments
 
 * Good, because tiny experiments need no module setup.
-* Bad, because they share the root module's v1 tags and cannot be independently
-  versioned; this is already the source of ambiguous history.
+* Bad, because they share the root module's release line and cannot be
+  independently versioned; this is already the source of ambiguous history.
 
 ### Carry the exp version number forward at promotion
 
