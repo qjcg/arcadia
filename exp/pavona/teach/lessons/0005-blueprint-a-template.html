@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 5 — Blueprint a Pavona Template</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+
+<p class="eyebrow">Lesson 05 · From repetition to a template</p>
+<h1>Blueprint Before You Template</h1>
+<p class="subtitle">Find the stable core and the true variation points before adding prompts.</p>
+<figure class="lesson-artwork">
+  <img src="../assets/images/lesson-05-blueprint.jpg" width="1600" height="600" alt="Blue architectural elevation drawings on an aged blueprint." decoding="async">
+  <figcaption>Image: <a href="https://unsplash.com/photos/a-blueprint-of-a-building-with-a-bunch-of-windows-URnyBZCnlIs" target="_blank" rel="noopener noreferrer">Historic blueprint via Unsplash</a>.</figcaption>
+</figure>
+
+<div class="win">
+<h3>Today's win</h3>
+<p>You'll turn a repeated project setup into a file-by-file plan: what to render, what to copy,
+what to ask, and when to split a variant into a separate template. Use the worked Go starter below,
+then repeat the same pass on a setup of your own.</p>
+</div>
+
+<h2>Start with files, not variables</h2>
+<p>It is tempting to begin by inventing prompt fields. Instead, list the files that repeat in your
+starter, then ask what changes <em>inside each file</em> and whether users truly need to choose it.</p>
+
+<table>
+  <tr><th>Example file</th><th>What varies?</th><th>Pavona treatment</th></tr>
+  <tr><td><code>go.mod</code></td><td>module path / project slug</td><td><code>go.mod.tmpl</code> with <code>{{.project_name}}</code></td></tr>
+  <tr><td><code>README.md</code></td><td>project name and one-line description</td><td><code>README.md.tmpl</code>; use existing fields, don't ask twice</td></tr>
+  <tr><td><code>LICENSE</code></td><td>nothing, if the same license text always applies</td><td>copy verbatim (no <code>.tmpl</code>)</td></tr>
+  <tr><td><code>Taskfile.yaml</code></td><td>nothing, if tasks are standard across projects</td><td>copy verbatim; template only the parts that really vary</td></tr>
+  <tr><td><code>cmd/</code>, <code>internal/</code></td><td>directory layout stays stable</td><td>keep the directory names literal</td></tr>
+</table>
+
+<p>This keeps the prompt small: ask for a project name once, derive its other representations in
+files, and leave standard boilerplate alone.</p>
+
+<h2>Four decisions for each file</h2>
+<ol>
+  <li><strong>Does the file belong in every generated project?</strong> If not, check whether the variation is truly a content choice or a different project shape.</li>
+  <li><strong>Is its content identical every time?</strong> Copy it verbatim.</li>
+  <li><strong>Does some content change predictably from an existing variable?</strong> Rename it <code>*.tmpl</code> and render the variable; avoid asking the user to repeat a derivable value.</li>
+  <li><strong>Is there a small, real user decision?</strong> Add a choice/default to <code>config.cue</code>, then render that value where needed.</li>
+</ol>
+
+<div class="note">
+<p><strong>Structural variants are the boundary.</strong> Pavona renders every file it walks; a
+<code>{{if}}</code> in a file can change that file's contents, but it does not omit the file from
+the generated tree. If two project types need substantially different file trees, give them two
+focused templates instead of one template with a pretend file switch.</p>
+</div>
+
+<h2>Your blueprint</h2>
+<p>Take one project setup you have repeated at least twice. List 5–10 files and fill this table
+in your notes—or reply with it when you're ready. You don't need to paste private source code;
+file names and descriptions of what varies are enough.</p>
+
+<table>
+  <tr><th>File / directory</th><th>What changes between projects?</th><th>Copy / render / choice / split?</th></tr>
+  <tr><td><em>e.g. README.md</em></td><td><em>name and purpose</em></td><td><em>render from existing inputs</em></td></tr>
+  <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+  <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+  <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+  <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+</table>
+
+<p>At the end, count your proposed prompt variables. For each, finish this sentence:
+<strong>“The user needs to choose this because…”</strong> If the honest answer is “they don't,”
+use a fixed value or a sensible default instead.</p>
+
+<h2>Retrieval practice</h2>
+<p>Answer from memory before clicking. One attempt each.</p>
+
+<div class="quiz">
+  <div class="quiz-q">
+    <p class="prompt">1. A standard <code>LICENSE</code> file is identical for every project. What do you do?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Copy the file verbatim</button>
+      <button class="quiz-option">Render the file always</button>
+      <button class="quiz-option">Ask user for content</button>
+      <button class="quiz-option">Create a separate template</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>Stable content should remain a plain file; Pavona copies it byte-for-byte.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">2. A README needs the project name and description already collected. Best treatment?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Render the README with variables</button>
+      <button class="quiz-option">Copy the README exactly as-is</button>
+      <button class="quiz-option">Make README a required choice</button>
+      <button class="quiz-option">Store README under XDG path</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>Use a <code>.tmpl</code> file and reference the existing data; don't prompt again for known values.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">3. Two project variants need substantially different file trees. What is the cleanest plan?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Create a second focused template</button>
+      <button class="quiz-option">Hide files using a choice</button>
+      <button class="quiz-option">Add more optional config variables</button>
+      <button class="quiz-option">Render every file with conditionals</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>Pavona doesn't conditionally omit files. Separate templates make distinct structures explicit and easier to maintain.</div>
+  </div>
+</div>
+
+<div class="primary-source">
+<p class="eyebrow">Primary sources to read</p>
+<p>Compare the worked examples in <a href="../../templates/"><code>exp/pavona/templates/</code></a>
+with <a href="../../docs/design.md">the design doc's Template Directory Structure and
+Hydration Algorithm</a>. The examples show which files render and which are copied unchanged.</p>
+</div>
+
+<h2>What's next</h2>
+<p>Next you'll make the blueprint robust: deliberately trigger a misspelled variable and trace
+which layer reports it, then practice recovering without clobbering good work.</p>
+
+<p>Quick lookups: <a href="../reference/template-cheatsheet.html">template cheat sheet</a> ·
+<a href="../reference/template-review-checklist.html">template review checklist</a> ·
+<a href="0004-one-input-multiple-representations.html">Lesson 4</a></p>
+
+<div class="ask">
+<p class="eyebrow">Your teacher is here</p>
+<p>Ask about any classification that feels debatable. If you share your blueprint (just paths and
+what changes), I'll help sharpen it before the failure-testing lesson.</p>
+</div>
+
+<footer class="lesson-nav">
+  <a href="0004-one-input-multiple-representations.html">← Lesson 4</a>
+  <a href="0006-diagnose-template-failures.html">Lesson 6 →</a>
+</footer>
+
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/course-nav.js" defer></script>
+</body>
+</html>

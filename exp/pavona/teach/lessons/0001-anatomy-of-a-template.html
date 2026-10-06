@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1 — Anatomy of a Template</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+
+<p class="eyebrow">Lesson 01 · Pavona from the ground up</p>
+<h1>Anatomy of a Template</h1>
+<p class="subtitle">One mental model: a template is a directory with a <code>config.cue</code> brain.</p>
+<figure class="lesson-artwork">
+  <img src="../assets/images/lesson-01-coral.jpg" width="1600" height="600" alt="Sculptural red coral branches lit against a deep black background." decoding="async">
+  <figcaption>Image: <a href="https://unsplash.com/photos/a-group-of-red-corals-against-a-black-background-DibTyzxfPYc" target="_blank" rel="noopener noreferrer">Yassine Ait Tahit on Unsplash</a>.</figcaption>
+</figure>
+
+<div class="win">
+<h3>Today's win</h3>
+<p>By the end you will have built a working custom template <em>from scratch</em> — two files —
+generated a project from it, and be able to predict exactly which files land in the output
+and what's in them. That prediction skill is the whole foundation for maintaining templates later.</p>
+</div>
+
+<h2>The mental model</h2>
+
+<p><code>pavona new</code> runs a three-stage pipeline
+(<a href="../../docs/design.md">design.md</a> § Architecture):</p>
+
+<ol>
+  <li><strong>Resolve</strong> — find the template directory: built-in name → path with
+    <code>config.cue</code> → <code>~/.local/share/pavona/templates/&lt;name&gt;/</code>.</li>
+  <li><strong>Prompt</strong> — parse <code>config.cue</code> and build one form with a field
+    per variable (skip the form with <code>-q</code>: every variable becomes its default).</li>
+  <li><strong>Hydrate</strong> — walk the directory and write the output project.</li>
+</ol>
+
+<p>Everything you need to remember lives in step 3's <strong>three file rules</strong>:</p>
+
+<table>
+  <tr><th>In the template…</th><th>lands in the project as…</th></tr>
+  <tr><td><code>README.md.tmpl</code></td><td><code>README.md</code> — rendered via Go <code>text/template</code>, variables filled in</td></tr>
+  <tr><td><code>Makefile</code> (no <code>.tmpl</code>)</td><td><code>Makefile</code> — copied byte-for-byte</td></tr>
+  <tr><td><code>config.cue</code></td><td>— (consumed by Pavona, never written)</td></tr>
+</table>
+
+<div class="note">
+<p><strong>Variables are the data context.</strong> If <code>config.cue</code> declares
+<code>project_name</code> and <code>greeting</code>, your templates reference them as
+<code>{{.project_name}}</code> and <code>{{.greeting}}</code>. Nothing more magic than that.</p>
+</div>
+
+<h2>Hands-on: your first template</h2>
+
+<ol class="steps">
+  <li><strong>Create the template directory</strong> with a <code>config.cue</code> brain:
+<pre><code>mkdir -p my-first-template
+cat &gt; my-first-template/config.cue &lt;&lt;'EOF'
+package template
+
+name:        "my-first-template"
+description: "Greets the world from a new project"
+
+variables: {
+	// Name of the new project
+	project_name: string
+
+	// Greeting message
+	greeting?: string | *"Hello, World!"
+}
+EOF</code></pre>
+    Note: <code>project_name</code> has no <code>?</code> → required. <code>greeting</code>
+    is optional with a default. The doc comment above each field becomes its prompt.</li>
+
+  <li><strong>Add one rendered file and one verbatim file:</strong>
+<pre><code>cat &gt; my-first-template/README.md.tmpl &lt;&lt;'EOF'
+# {{.project_name}}
+
+{{.greeting}}
+EOF
+cat &gt; my-first-template/Makefile &lt;&lt;'EOF'
+.PHONY: greet
+greet:
+	@echo "make says hi"
+EOF</code></pre>
+  </li>
+
+  <li><strong>Generate a project.</strong> The positional name sets both the output
+    directory and the <code>project_name</code> variable:
+<pre><code>pavona new ./my-first-template demo-greeting</code></pre>
+    Pavona shows all variables together in one form, sorted alphabetically. <code>project_name</code>
+    is pre-filled with <code>demo-greeting</code>; <code>greeting</code> starts with its default.
+    Confirm the form to accept them, or navigate to change either value.</li>
+
+  <li><strong>Verify the prediction:</strong>
+<pre><code>cat demo-greeting/README.md   # rendered: name + greeting filled in
+cat demo-greeting/Makefile    # verbatim: exactly what you wrote</code></pre>
+  </li>
+</ol>
+
+<div class="warn">
+<p><strong>Quiet mode gotcha.</strong> <code>pavona new ./my-first-template -q</code>
+skips prompts and uses defaults — but <code>project_name</code> has no default, so it comes
+out empty and Pavona exits with <code>required values missing</code>. Fix: pass the name
+positionally (which pre-fills it) or add a default.</p>
+</div>
+
+<h2>Retrieval practice</h2>
+<p>Answer from memory before clicking. Single attempt — the struggle is the point.</p>
+
+<div class="quiz">
+
+  <div class="quiz-q">
+    <p class="prompt">1. Which file never appears in the generated project?</p>
+    <div class="quiz-options">
+      <button class="quiz-option">notes.txt</button>
+      <button class="quiz-option">Makefile</button>
+      <button class="quiz-option" data-correct>config.cue</button>
+      <button class="quiz-option">README.md</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span><code>config.cue</code> is consumed by Pavona as the template's definition and is never copied to the output.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">2. A template file named <code>hello.txt.tmpl</code> appears in the output as…</p>
+    <div class="quiz-options">
+      <button class="quiz-option">hello.txt.tmpl</button>
+      <button class="quiz-option">hello.tmpl.txt</button>
+      <button class="quiz-option" data-correct>hello.txt</button>
+      <button class="quiz-option">hello.out.txt</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>Files ending in <code>.tmpl</code> are rendered through Go <code>text/template</code> and written <em>without</em> the <code>.tmpl</code> suffix.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">3. How do you mark a <code>config.cue</code> variable optional?</p>
+    <div class="quiz-options">
+      <button class="quiz-option">Add ! after the field</button>
+      <button class="quiz-option" data-correct>Add ? after the field</button>
+      <button class="quiz-option">Add # before the field</button>
+      <button class="quiz-option">Add * before the field</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>Optional fields use CUE's <code>?</code> suffix: <code>greeting?: string</code>. (A <code>*</code> marks a <em>default</em>, a different thing.)</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">4. In <code>-q</code> mode, a required variable with no default causes…</p>
+    <div class="quiz-options">
+      <button class="quiz-option">Pavona prompts the user</button>
+      <button class="quiz-option">Pavona skips that variable</button>
+      <button class="quiz-option" data-correct>Pavona errors and stops</button>
+      <button class="quiz-option">Pavona uses empty value</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>Quiet mode fills every variable with its default; a required variable left empty then fails validation with <code>required values missing</code> and the run aborts.</div>
+  </div>
+
+</div>
+
+<div class="primary-source">
+<p class="eyebrow">Primary source to read</p>
+<p><a href="../../docs/design.md">exp/pavona/docs/design.md</a> — read the sections
+<strong>Template Directory Structure</strong>, <strong><code>config.cue</code> Format</strong>,
+and <strong>How CUE Types Map to Prompts</strong>. It is the authoritative description of
+everything in this lesson, with more detail on prompt types.</p>
+</div>
+
+<h2>What's next</h2>
+<p>When this feels automatic, the next lesson is <strong>Variable power</strong>: choice
+variables (select menus), defaults as pre-fills, and designing a template's questions well.
+Skim the <a href="../reference/template-cheatsheet.html">template cheat sheet</a> in the
+meantime — it covers everything from this lesson in one page.</p>
+
+<div class="ask">
+<p class="eyebrow">Your teacher is here</p>
+<p>Confused by anything — CUE syntax, what "rendered" means, why quiet mode behaves that way?
+Just ask. Follow-up questions are how lessons get tuned to you.</p>
+</div>
+
+<footer class="lesson-nav">
+  <a href="../reference/template-cheatsheet.html">Cheat sheet →</a>
+  <a href="../MISSION.html">Mission</a>
+</footer>
+
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/course-nav.js" defer></script>
+</body>
+</html>

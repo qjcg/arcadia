@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3 — Install and Maintain a Personal Template</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+
+<p class="eyebrow">Lesson 03 · Pavona from the ground up</p>
+<h1>Your Template, Available by Name</h1>
+<p class="subtitle">Put a template where Pavona can find it, version it, and evolve it safely.</p>
+<figure class="lesson-artwork">
+  <img src="../assets/images/lesson-03-staircase.jpg" width="1600" height="600" alt="Angular concrete architecture crossed by a stripe of warm sunlight." decoding="async">
+  <figcaption>Image: <a href="https://unsplash.com/photos/concrete-staircase-with-light-and-shadow-jHEcgLUfxxQ" target="_blank" rel="noopener noreferrer">Declan Sun on Unsplash</a>.</figcaption>
+</figure>
+
+<div class="win">
+<h3>Today's win</h3>
+<p>You'll install your greeting template into an isolated XDG template home, invoke it by name
+from outside its directory, then change the template and prove that new projects get the change
+while an already-generated project stays untouched.</p>
+</div>
+
+<h2>Two places, two jobs</h2>
+
+<p>A <strong>template</strong> is the source recipe. A <strong>generated project</strong> is its
+own output. Pavona doesn't keep them linked: changing the recipe affects the next scaffold,
+not projects you already made.</p>
+
+<table>
+  <tr><th>Place</th><th>What belongs there</th></tr>
+  <tr><td><code>$XDG_DATA_HOME/pavona/templates/&lt;name&gt;/</code></td><td>Reusable custom templates; default is <code>~/.local/share/pavona/templates/&lt;name&gt;/</code></td></tr>
+  <tr><td>Any separate output directory</td><td>A generated project — an independent starting point, not a live view of its template</td></tr>
+</table>
+
+<p>When you run <code>pavona new &lt;name&gt;</code>, resolution checks <strong>built-in names
+first</strong>, then an exact directory path, then the XDG template path. So:</p>
+<ul>
+  <li>Choose a distinctive custom name; an XDG template named <code>tool</code> loses to the built-in <code>tool</code>.</li>
+  <li><code>pavona list</code> lists built-ins only, not your personal XDG templates. (You can still invoke one by name.)</li>
+  <li><code>XDG_DATA_HOME</code>, if set, replaces the default data root.</li>
+</ul>
+
+<h2>Hands-on: test in an isolated template home</h2>
+
+<p>Use the <code>my-first-template</code> directory from Lessons 1–2. Open a terminal in its
+<strong>parent directory</strong> (the directory that contains it). These commands set a temporary
+XDG root, so they won't change your personal template collection:</p>
+
+<ol class="steps">
+  <li><strong>Copy the template into the XDG layout.</strong>
+<pre><code>export XDG_DATA_HOME="$(mktemp -d)"
+mkdir -p "$XDG_DATA_HOME/pavona/templates"
+cp -a my-first-template "$XDG_DATA_HOME/pavona/templates/my-first-template"
+TEMPLATE="$XDG_DATA_HOME/pavona/templates/my-first-template"
+</code></pre>
+    Pavona looks for <code>$XDG_DATA_HOME/pavona/templates/&lt;name&gt;/config.cue</code>,
+    so the final directory name is the invocation name.</li>
+
+  <li><strong>Scaffold by name, not by path.</strong> Use a fresh output name:
+<pre><code>pavona new my-first-template xdg-demo -q
+cat xdg-demo/README.md</code></pre>
+    This proves name resolution worked: the command did not mention the template's path.
+    <code>-q</code> uses defaults; the positional <code>xdg-demo</code> supplies
+    <code>project_name</code>.</li>
+
+  <li><strong>Put the recipe under version control.</strong>
+<pre><code>git -C "$TEMPLATE" init
+git -C "$TEMPLATE" status --short</code></pre>
+    Review the listed template files. Commit a known-good starting point when ready
+    (<code>git add .</code>, then <code>git commit</code>); if Git asks, configure your author
+    name/email first. Generated projects are outside this template repository.</li>
+
+  <li><strong>Change the recipe; generate a second project.</strong>
+<pre><code>printf '\nGenerated from my personal Pavona template.\n' &gt;&gt; "$TEMPLATE/README.md.tmpl"
+pavona new my-first-template xdg-demo-v2 -q
+grep 'personal Pavona template' xdg-demo-v2/README.md
+grep 'personal Pavona template' xdg-demo/README.md || echo 'old project is unchanged'</code></pre>
+    The new project contains the added line; the first one does not. Use a fresh output
+    directory for each run.</li>
+</ol>
+
+<div class="warn">
+<p><strong>Pavona scaffolds; it does not sync.</strong> Hydration refuses to write into a
+non-empty output directory. It will not overwrite, merge, or upgrade an existing project.
+That is a safety feature: generated output becomes yours to change. If you want the latest
+template, scaffold a new project and migrate your own changes deliberately.</p>
+</div>
+
+<h2>Make it a personal template</h2>
+<p>The isolated XDG root was for practice. For regular use, keep the template in a Git repository
+at:</p>
+<pre><code>${XDG_DATA_HOME:-$HOME/.local/share}/pavona/templates/my-first-template/</code></pre>
+<p>Use a distinctive directory/name, keep <code>config.cue</code> at its root, and invoke it
+from any working directory with:</p>
+<pre><code>pavona new my-first-template my-new-project</code></pre>
+<p>If you already set <code>XDG_DATA_HOME</code>, Pavona uses that root instead of
+<code>~/.local/share</code>. The template source can itself be a Git repository: commit a
+known-good version before changing it, review diffs, and try the new version by generating a
+fresh project.</p>
+
+<h2>Retrieval practice</h2>
+<p>Answer from memory before clicking. One attempt each.</p>
+
+<div class="quiz">
+  <div class="quiz-q">
+    <p class="prompt">1. An XDG template is named <code>tool</code>. What does <code>pavona new tool</code> resolve?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Built-in name match takes priority</button>
+      <button class="quiz-option">Exact paths beat built-ins first</button>
+      <button class="quiz-option">XDG templates resolve before built-ins</button>
+      <button class="quiz-option">Newest template version gets selected</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>Built-in lookup happens before exact paths and XDG templates; use a distinctive name for personal templates.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">2. What does <code>pavona list</code> show?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Only built-ins appear in list</button>
+      <button class="quiz-option">Built-ins plus XDG entries appear</button>
+      <button class="quiz-option">Only custom templates appear listed</button>
+      <button class="quiz-option">Path templates show in list</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>The command delegates to <code>ListBuiltin</code>; XDG templates remain directly invokable but are not listed.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">3. What if the output directory already contains files?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Refuses the non-empty output directory</button>
+      <button class="quiz-option">Overwrites files already in directory</button>
+      <button class="quiz-option">Merges template into existing files</button>
+      <button class="quiz-option">Updates the rendered template files</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>Hydration accepts an absent or empty output directory. Pavona is a scaffold generator, not a project sync or upgrade tool.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">4. What happens to an existing project when its template changes?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Existing generated projects remain unchanged</button>
+      <button class="quiz-option">Projects update on next run</button>
+      <button class="quiz-option">Empty projects update on rerun</button>
+      <button class="quiz-option">Template edits rewrite output snapshots</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>A generated project is an independent copy. Re-run into a fresh output directory to see the updated template.</div>
+  </div>
+</div>
+
+<div class="primary-source">
+<p class="eyebrow">Primary source to read</p>
+<p><a href="../../docs/design.md">exp/pavona/docs/design.md</a> — <strong>Template Resolution
+Order</strong> and <strong>Hydration Algorithm</strong>. For the exact implementation, see
+<a href="../../internal/scaffold/scaffold.go">internal/scaffold/scaffold.go</a>:
+<code>Resolve</code> and <code>Hydrate</code>.</p>
+</div>
+
+<h2>What's next</h2>
+<p>You've now used built-in templates, created a custom one, designed prompts, and made it
+available by name. Next: turn a personal setup into a useful template library — choose what to
+parameterize, what to keep verbatim, and how to structure multiple project variants without
+copy-paste drift.</p>
+
+<p>Quick lookups: <a href="../reference/template-cheatsheet.html">template cheat sheet</a> ·
+<a href="0001-anatomy-of-a-template.html">Lesson 1</a> ·
+<a href="0002-design-pavona-variables.html">Lesson 2</a></p>
+
+<div class="ask">
+<p class="eyebrow">Your teacher is here</p>
+<p>Ask if the XDG path, template naming, Git setup, or “scaffold, not sync” distinction is
+unclear. If you completed the exercise, tell me how the quiz went so I can tune the next lesson.</p>
+</div>
+
+<footer class="lesson-nav">
+  <a href="0002-design-pavona-variables.html">← Lesson 2</a>
+  <a href="../reference/template-cheatsheet.html">Cheat sheet →</a>
+</footer>
+
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/course-nav.js" defer></script>
+</body>
+</html>

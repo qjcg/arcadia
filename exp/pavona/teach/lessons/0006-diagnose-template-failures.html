@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 6 — Diagnose Pavona Template Failures</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+
+<p class="eyebrow">Lesson 06 · Reliability</p>
+<h1>Diagnose by Layer</h1>
+<p class="subtitle">Find which stage failed before changing the template at random.</p>
+<figure class="lesson-artwork">
+  <img src="../assets/images/lesson-06-circuit.jpg" width="1600" height="600" alt="Close-up of densely packed circuit-board components, with part of the board out of focus." decoding="async">
+  <figcaption>Image: <a href="https://unsplash.com/photos/macro-photography-of-black-circuit-board-FO7JIlwjOtU" target="_blank" rel="noopener noreferrer">Circuit-board study on Unsplash</a>.</figcaption>
+</figure>
+
+<div class="win">
+<h3>Today's win</h3>
+<p>You'll introduce one deliberate typo into a throwaway template, recognize the missing-key
+error, fix it, and recover into a fresh output directory. Then use the same short diagnostic
+ladder for the other common Pavona failures.</p>
+</div>
+
+<h2>The diagnostic ladder</h2>
+<p>Read the first useful error, then look at the corresponding layer:</p>
+
+<table>
+  <tr><th>Symptom</th><th>Layer</th><th>First check</th></tr>
+  <tr><td><code>template "x" not found</code></td><td>Resolve</td><td>Built-in name → exact directory with <code>config.cue</code> → XDG path. Built-ins win name collisions.</td></tr>
+  <tr><td>CUE/config error</td><td>Parse</td><td>Valid CUE syntax and required top-level fields: <code>name</code>, <code>description</code>, <code>variables</code>.</td></tr>
+  <tr><td><code>required values missing</code></td><td>Prompt / validate</td><td>In <code>-q</code>, every variable gets its default. A required field without one stays empty; <code>--name</code> only pre-fills <code>project_name</code>.</td></tr>
+  <tr><td>Missing map key during render</td><td>Hydrate</td><td>Compare every <code>{{.key}}</code> with names in <code>config.cue</code>. Pavona uses <code>missingkey=error</code> for content and paths.</td></tr>
+  <tr><td>Undefined function in a path</td><td>Hydrate path</td><td>Path rendering has no custom functions; <code>sanitize</code> is only registered for rendered file content.</td></tr>
+  <tr><td>Output directory exists and is not empty</td><td>Write output</td><td>Use a new or empty directory. Pavona doesn't merge or upgrade projects.</td></tr>
+</table>
+
+<h2>Hands-on: make one failure, then recover</h2>
+<p>Use <code>my-lib-template</code> from Lesson 4. Keep this experiment separate from the
+working template:</p>
+
+<ol class="steps">
+  <li><strong>Copy it and add a misspelled key.</strong> Choose a fresh test template/output name
+    if these already exist.
+<pre><code>cp -a my-lib-template my-broken-template
+printf '\n// {{.descripton}}\n' &gt;&gt; my-broken-template/lib.go.tmpl</code></pre>
+    The template defines <code>project_name</code>, not <code>descripton</code>.</li>
+
+  <li><strong>Run the throwaway scaffold:</strong>
+<pre><code>pavona new ./my-broken-template broken-output -q</code></pre>
+    It should fail with a template execution error mentioning the missing key. The exact wording
+    depends on Go's template error, but the important fact is that Pavona did not silently replace
+    the typo with blank text.</li>
+
+  <li><strong>Repair the source and try a fresh output path.</strong> Edit
+    <code>my-broken-template/lib.go.tmpl</code>, changing <code>.descripton</code> to
+    <code>.project_name</code>. Then run:
+<pre><code>pavona new ./my-broken-template repaired-output -q
+grep '^package ' repaired-output/lib.go</code></pre>
+    A failed hydration can leave partial files behind. Don't retry into
+    <code>broken-output</code>; Pavona will correctly reject that now-non-empty directory.</li>
+</ol>
+
+<div class="warn">
+<p><strong>Protect real work.</strong> The lesson's <code>broken-output</code> is disposable.
+If a render fails in a real workflow, inspect the directory before deleting or moving it; only
+clean up when you have confirmed it contains just generated test output. Always retry to a fresh
+path.</p>
+</div>
+
+<h2>Make the common cases boring</h2>
+<ul>
+  <li><strong>Before <code>-q</code>:</strong> ensure each required variable has a value source. The CLI name only fills the variable literally named <code>project_name</code>.</li>
+  <li><strong>Before rendering:</strong> search <code>*.tmpl</code> files and templated paths for <code>{{.</code>; verify every key is declared.</li>
+  <li><strong>Before a test run:</strong> choose a fresh output directory; don't treat Pavona as an update command.</li>
+  <li><strong>After a successful run:</strong> inspect the generated tree, check rendered values, and run the generated project's formatter/tests/build.</li>
+</ul>
+
+<h2>Retrieval practice</h2>
+<p>Answer from memory before clicking. One attempt each.</p>
+
+<div class="quiz">
+  <div class="quiz-q">
+    <p class="prompt">1. A required <code>project_name</code> has no default. What if you use <code>-q</code> without a name?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Pavona rejects the missing value</button>
+      <button class="quiz-option">Pavona prompts during quiet mode</button>
+      <button class="quiz-option">Pavona invents a name automatically</button>
+      <button class="quiz-option">Pavona skips required validation entirely</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>Quiet mode uses the empty default; required-value validation then stops the run. Supply a name or a default.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">2. A <code>.tmpl</code> references an undeclared variable. What happens?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Rendering fails on missing key</button>
+      <button class="quiz-option">Unknown placeholders are copied unchanged</button>
+      <button class="quiz-option">Blank values are substituted silently</button>
+      <button class="quiz-option">CUE fills unknown variable values</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span><code>missingkey=error</code> catches the absent key during template rendering.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">3. What does Pavona do with a non-empty output directory?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Hydration refuses to write there</button>
+      <button class="quiz-option">Pavona updates matching files only</button>
+      <button class="quiz-option">Pavona replaces the full directory</button>
+      <button class="quiz-option">Output gets silently merged together</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>Use a new or empty destination; generated projects are not upgraded in place.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">4. A render failed and left files in its test output. How should you retry?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Use a fresh output directory</button>
+      <button class="quiz-option">Retry into the same directory</button>
+      <button class="quiz-option">Switch the template name only</button>
+      <button class="quiz-option">Run with quiet mode again</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>First inspect the partial directory; after confirming it's disposable, retry using a fresh path.</div>
+  </div>
+</div>
+
+<div class="primary-source">
+<p class="eyebrow">Primary sources to read</p>
+<p>See <a href="../../internal/scaffold/config.go"><code>internal/scaffold/config.go</code></a>
+for required config fields, and
+<a href="../../internal/scaffold/scaffold.go"><code>internal/scaffold/scaffold.go</code></a>
+for missing-key behavior, hydration, and output-directory checks. The
+<a href="../reference/template-review-checklist.html">template review checklist</a> compresses
+the recovery steps.</p>
+</div>
+
+<h2>Next: capstone</h2>
+<p>Use the checklist on one template end-to-end: select a built-in when it fits, maintain a
+custom template when it doesn't, and prove both output modes work.</p>
+
+<p>Related: <a href="0005-blueprint-a-template.html">Lesson 5</a> ·
+<a href="0007-capstone-pavona-workflow.html">Lesson 7: Capstone</a> ·
+<a href="../reference/template-cheatsheet.html">template cheat sheet</a></p>
+
+<div class="ask">
+<p class="eyebrow">Your teacher is here</p>
+<p>Ask about any error string or diagnosis step. If you run the deliberate failure, share the
+error and what files appeared in <code>broken-output</code>—that is useful evidence about how the
+engine behaves on your setup.</p>
+</div>
+
+<footer class="lesson-nav">
+  <a href="0005-blueprint-a-template.html">← Lesson 5</a>
+  <a href="0007-capstone-pavona-workflow.html">Lesson 7 →</a>
+</footer>
+
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/course-nav.js" defer></script>
+</body>
+</html>

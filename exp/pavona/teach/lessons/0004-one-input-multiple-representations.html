@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4 — One Input, Multiple Representations</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+
+<p class="eyebrow">Lesson 04 · Pavona from the ground up</p>
+<h1>One Input, Multiple Representations</h1>
+<p class="subtitle">A good template reuses a user's answer — but transforms it only where the target format requires it.</p>
+<figure class="lesson-artwork">
+  <img src="../assets/images/lesson-04-prism.jpg" width="1600" height="600" alt="Transparent glass prisms splitting a narrow band of light into color against a dark background." decoding="async">
+  <figcaption>Image: <a href="https://unsplash.com/photos/glass-prisms-with-rainbow-light-refraction-_FmGHfedNZ4" target="_blank" rel="noopener noreferrer">Mavis Hopper on Unsplash</a>.</figcaption>
+</figure>
+
+<div class="win">
+<h3>Today's win</h3>
+<p>You'll scaffold the built-in Go library with a hyphenated project name, see why its module
+path keeps the hyphens while its Go package name changes them to underscores, then use the same
+pattern in a tiny custom template.</p>
+</div>
+
+<h2>The design problem</h2>
+<p>One project name can have different jobs:</p>
+<ul>
+  <li><strong>Module path:</strong> a repository-style path can contain hyphens — e.g. <code>github.com/go-csvstream</code>.</li>
+  <li><strong>Go package clause:</strong> needs an identifier-style name — e.g. <code>go_csvstream</code>.</li>
+  <li><strong>Human-facing text:</strong> should usually preserve what the user typed — e.g. <code>go-csvstream</code>.</li>
+</ul>
+<p>Don't ask for three values when one source value plus a targeted transformation is enough.
+The built-in <code>lib</code> template is a working example:</p>
+
+<pre><code>go.mod.tmpl:  module github.com/{{.project_name}}
+lib.go.tmpl:  package {{.project_name | sanitize}}
+              return "Hello from {{.project_name}}"</code></pre>
+
+<p>The built-in Pavona helper <code>sanitize</code> lowercases letters, changes hyphens and
+underscores to underscores, and removes other non-letter/digit characters. It is useful for a
+conventional slug like <code>go-csvstream</code>; it is <strong>not a universal validator</strong>
+(for example, it doesn't ensure the result starts with a letter).</p>
+
+<h2>See it in a built-in</h2>
+<ol class="steps">
+  <li><strong>Generate a library.</strong> Use a fresh output name:
+<pre><code>pavona new lib go-csvstream-built-in -q</code></pre>
+  </li>
+  <li><strong>Inspect the two representations:</strong>
+<pre><code>grep '^module ' go-csvstream-built-in/go.mod
+grep '^package ' go-csvstream-built-in/lib.go
+grep 'Hello from' go-csvstream-built-in/lib.go</code></pre>
+    Expect the module path and greeting to preserve hyphens; the package clause uses
+    underscores. The source is in <a href="../../templates/lib/go.mod.tmpl"><code>templates/lib/go.mod.tmpl</code></a>
+    and <a href="../../templates/lib/lib.go.tmpl"><code>templates/lib/lib.go.tmpl</code></a>.</li>
+</ol>
+
+<h2>Carry the pattern into your template</h2>
+<p>Create a tiny custom library template. These three files are enough to demonstrate the seam:
+raw value for the module, transformed value for the package.</p>
+
+<ol class="steps">
+  <li><strong>Define one input:</strong>
+<pre><code>mkdir -p my-lib-template
+cat &gt; my-lib-template/config.cue &lt;&lt;'EOF'
+package template
+
+name:        "my-lib-template"
+description: "A minimal custom Go library"
+
+variables: {
+	// Go module suffix (use a slug, e.g. go-csvstream)
+	project_name: string
+}
+EOF</code></pre>
+  </li>
+  <li><strong>Render that input in two forms:</strong>
+<pre><code>cat &gt; my-lib-template/go.mod.tmpl &lt;&lt;'EOF'
+module github.com/{{.project_name}}
+EOF
+cat &gt; my-lib-template/lib.go.tmpl &lt;&lt;'EOF'
+package {{.project_name | sanitize}}
+
+// ModuleName returns the module suffix.
+func ModuleName() string {
+	return {{printf "%q" .project_name}}
+}
+EOF</code></pre>
+    <code>printf "%q"</code> is Go's <code>text/template</code> built-in; here it safely quotes the
+    value as a Go string literal.</li>
+  <li><strong>Generate and inspect:</strong>
+<pre><code>pavona new ./my-lib-template go-csvstream-custom -q
+grep '^module ' go-csvstream-custom/go.mod
+grep '^package ' go-csvstream-custom/lib.go</code></pre>
+    Expect <code>github.com/go-csvstream-custom</code> in <code>go.mod</code> and
+    <code>package go_csvstream_custom</code> in <code>lib.go</code>.</li>
+</ol>
+
+<div class="note">
+<p><strong>Keep transforms in rendered file contents.</strong> <code>sanitize</code> is registered
+for <code>*.tmpl</code> file content. Pavona also renders directory and file names, but its path
+renderer does <em>not</em> register <code>sanitize</code>; using it there fails with an undefined
+function error. If a value becomes a path, design that input to already be path-safe.</p>
+</div>
+
+<h2>A reusable design rule</h2>
+<table>
+  <tr><th>Output needs…</th><th>Template it as…</th></tr>
+  <tr><td>The user's exact project slug</td><td><code>{{.project_name}}</code></td></tr>
+  <tr><td>A Go package-style form</td><td><code>{{.project_name | sanitize}}</code> in a rendered file</td></tr>
+  <tr><td>Stable boilerplate, unchanged everywhere</td><td>A verbatim file — no <code>.tmpl</code></td></tr>
+  <tr><td>A choice that actually varies between projects</td><td>A separate <code>config.cue</code> variable, with a default if sensible</td></tr>
+</table>
+<p>Make a variable only when users need to choose a genuinely different value. Derive predictable
+representations in the template; keep stable files verbatim. That is how a reusable template
+stays small instead of becoming a second programming language.</p>
+
+<h2>Retrieval practice</h2>
+<p>Answer from memory before clicking. One attempt each.</p>
+
+<div class="quiz">
+  <div class="quiz-q">
+    <p class="prompt">1. Why does the built-in <code>lib</code> sanitize <code>project_name</code> in the package clause?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Go packages require valid identifiers</button>
+      <button class="quiz-option">Module paths allow hyphens as-is</button>
+      <button class="quiz-option">Greeting text needs lowercase underscores</button>
+      <button class="quiz-option">CUE variables need sanitized identifiers</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>A Go package clause uses an identifier; the raw slug with hyphens is preserved where that format allows it, such as the module path.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">2. What does <code>sanitize("go-csvstream")</code> produce?</p>
+    <div class="quiz-options">
+      <button class="quiz-option">go-csvstream</button>
+      <button class="quiz-option" data-correct>go_csvstream</button>
+      <button class="quiz-option">GOCsvStream</button>
+      <button class="quiz-option">csvstream</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>Hyphens become underscores and letters are lowercased: <code>go_csvstream</code>.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">3. Where is Pavona's <code>sanitize</code> function available?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Rendered file contents</button>
+      <button class="quiz-option">Templated path names</button>
+      <button class="quiz-option">Raw copied files</button>
+      <button class="quiz-option">CUE variable prompts</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>The file renderer registers <code>sanitize</code>; the separate path renderer does not.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">4. What happens if a path uses <code>{{.project_name | sanitize}}</code>?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Unknown path function causes error</button>
+      <button class="quiz-option">The path gets lowercase automatically</button>
+      <button class="quiz-option">Literal helper text copies unchanged</button>
+      <button class="quiz-option">Path preserves literal helper text</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>The path renderer doesn't register <code>sanitize</code>; the path fails to parse with an undefined-function error.</div>
+  </div>
+</div>
+
+<div class="primary-source">
+<p class="eyebrow">Primary sources to read</p>
+<p>The real-world pattern is in <a href="../../templates/lib/lib.go.tmpl">the built-in library's
+<code>lib.go.tmpl</code></a>. The helper and its scope are implemented in
+<a href="../../internal/scaffold/scaffold.go"><code>internal/scaffold/scaffold.go</code></a>
+(<code>sanitize</code>, <code>renderPath</code>, and <code>renderFile</code>).</p>
+</div>
+
+<h2>What's next</h2>
+<p>Next: <a href="0005-blueprint-a-template.html">Lesson 5 — Blueprint Before You Template</a>:
+take a real repeated project setup and decide what belongs in its template — a focused exercise
+in finding the stable core, the true variation points, and the files that should remain verbatim.</p>
+
+<p>Quick lookups: <a href="../reference/template-cheatsheet.html">template cheat sheet</a> ·
+<a href="0001-anatomy-of-a-template.html">Lesson 1</a> ·
+<a href="0002-design-pavona-variables.html">Lesson 2</a> ·
+<a href="0003-install-and-maintain-a-template.html">Lesson 3</a></p>
+
+<div class="ask">
+<p class="eyebrow">Your teacher is here</p>
+<p>Ask if the Go module/package distinction, <code>sanitize</code>, or the “transform only where
+needed” rule is unclear. Tell me how the quiz went before we shape the next lesson around your
+real project patterns.</p>
+</div>
+
+<footer class="lesson-nav">
+  <a href="0003-install-and-maintain-a-template.html">← Lesson 3</a>
+  <a href="../reference/template-cheatsheet.html">Cheat sheet →</a>
+</footer>
+
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/course-nav.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 7 — Pavona Capstone</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+
+<p class="eyebrow">Lesson 07 · Capstone</p>
+<h1>A Repeatable Pavona Workflow</h1>
+<p class="subtitle">Choose a starting point, install a custom recipe, and prove both can generate clean projects.</p>
+<figure class="lesson-artwork">
+  <img src="../assets/images/lesson-07-fog-path.jpg" width="1600" height="600" alt="A solitary stone path fading into thick fog across an open hillside." decoding="async">
+  <figcaption>Image: <a href="https://unsplash.com/photos/stone-path-disappearing-into-thick-fog-on-a-hill-acZRiMdCJ28" target="_blank" rel="noopener noreferrer">Kristina Latypova on Unsplash</a>.</figcaption>
+</figure>
+
+<div class="win">
+<h3>Today's win</h3>
+<p>Complete one end-to-end run: select the right built-in or your custom template, keep the
+custom recipe under version control, invoke it by XDG name, test quiet and interactive paths,
+and verify the output without risking an existing project.</p>
+</div>
+
+<h2>Part 1: pick the starting point</h2>
+<p>Use a built-in when it already matches the shape. Use a custom template when you repeatedly
+make the same personal choices or need a starter shape the built-ins do not provide.</p>
+
+<table>
+  <tr><th>Need</th><th>Starting point</th></tr>
+  <tr><td>Go CLI</td><td><code>tool</code></td></tr>
+  <tr><td>Reusable Go package</td><td><code>lib</code></td></tr>
+  <tr><td>Static site</td><td><code>site</code></td></tr>
+  <tr><td>Terminal UI</td><td><code>tui</code></td></tr>
+  <tr><td>Full-stack web app</td><td><code>app</code></td></tr>
+  <tr><td>NATS Agent Protocol service</td><td><code>agent</code></td></tr>
+  <tr><td>New Pavona template</td><td><code>pavona</code></td></tr>
+  <tr><td>Go workspace monorepo</td><td><code>monorepo-go</code></td></tr>
+</table>
+<p>Run <code>pavona list</code> to refresh the catalog. A custom template installed under XDG is
+invoked by name but does not appear in that list.</p>
+
+<h2>Part 2: make a versioned custom template</h2>
+<p>Use the personal setup blueprint from Lesson 5. If you have not applied it to a real setup yet,
+use <code>my-lib-template</code> from Lesson 4. Before installing, check that its root contains
+<code>config.cue</code>, and that you have classified each file as rendered, verbatim, or a
+separate template variant.</p>
+
+<p>Set the intended XDG data root first. If you are still in the temporary environment from Lesson
+3 and want a lasting install, unset that temporary value or set <code>XDG_DATA_HOME</code> to your
+chosen persistent data directory.</p>
+
+<pre><code>NAME=my-lib-template
+XDG_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}"
+TEMPLATE_ROOT="$XDG_ROOT/pavona/templates/$NAME"
+mkdir -p "$XDG_ROOT/pavona/templates"
+if [ -e "$TEMPLATE_ROOT" ]; then
+  echo "Template path already exists; inspect it before reusing" >&2
+else
+  cp -a "./$NAME" "$TEMPLATE_ROOT"
+fi
+</code></pre>
+
+<p>If you use a different template name, keep the directory name and invocation name aligned,
+and update <code>name:</code> in <code>config.cue</code> for clarity. The destination must be new;
+don't copy over a template you already maintain there.</p>
+
+<p>Make the installed recipe itself your maintained source, under Git:</p>
+<pre><code>git -C "$TEMPLATE_ROOT" init
+git -C "$TEMPLATE_ROOT" status --short</code></pre>
+<p>If it is already a Git repository, skip <code>git init</code>. Commit a known-good version when
+ready. Record the initial <code>git status --short</code> so you can compare it after generation.
+Keep generated project directories <em>outside</em> <code>$TEMPLATE_ROOT</code>.</p>
+
+<h2>Part 3: prove both modes</h2>
+<ol class="steps">
+  <li><strong>Quiet run:</strong> use a fresh output name; this proves defaults and
+    <code>project_name</code> work without prompts.
+<pre><code>pavona new "$NAME" capstone-quiet -q</code></pre>
+  </li>
+  <li><strong>Interactive run:</strong> again use a fresh output name; inspect and confirm the
+    pre-filled project name, then change one value if the template offers a meaningful choice.
+<pre><code>pavona new "$NAME" capstone-interactive</code></pre>
+  </li>
+  <li><strong>Inspect output and source status:</strong>
+<pre><code>find capstone-quiet -maxdepth 3 -type f | sort
+grep '^module ' capstone-quiet/go.mod
+grep '^package ' capstone-quiet/lib.go
+git -C "$TEMPLATE_ROOT" status --short</code></pre>
+    Adapt the file checks to your template. Confirm there is no <code>config.cue</code> or
+    unexpected <code>.tmpl</code> suffix in the generated tree. Rendering should not dirty the
+    template repository.</li>
+  <li><strong>Change one template file</strong> and generate a third project into a fresh output
+    directory. Verify the new project reflects the change and the first project does not.</li>
+</ol>
+
+<div class="note">
+<p><strong>For a real personal library:</strong> run the generated project's formatter and tests
+from inside its directory (for the Lesson 4 sample, <code>cd capstone-quiet &amp;&amp; go test ./...</code>).
+For another project shape, use that project's normal build/test command.</p>
+</div>
+
+<h2>Acceptance check</h2>
+<p>You can do this without the lesson open when you can:</p>
+<ul>
+  <li>Choose a built-in that fits—or explain why a custom template is justified.</li>
+  <li>Point to one verbatim file, one rendered file, and each genuine user choice.</li>
+  <li>Install and invoke the template by name from outside its source directory.</li>
+  <li>Run quiet and interactive scaffolds into fresh directories and inspect both.</li>
+  <li>Explain why updating the template does not update old generated projects.</li>
+  <li>Diagnose a missing template, missing required value, render key error, or non-empty output error by layer.</li>
+</ul>
+
+<h2>Retrieval practice: built-in selector</h2>
+<p>Pick the best fit from memory before clicking. One attempt each.</p>
+
+<div class="quiz">
+  <div class="quiz-q">
+    <p class="prompt">1. You are starting a reusable Go API package.</p>
+    <div class="quiz-options">
+      <button class="quiz-option">tool</button>
+      <button class="quiz-option" data-correct>lib</button>
+      <button class="quiz-option">site</button>
+      <button class="quiz-option">agent</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span><code>lib</code> is the built-in for a reusable Go library/package.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">2. You are starting a terminal user interface.</p>
+    <div class="quiz-options">
+      <button class="quiz-option">tool</button>
+      <button class="quiz-option">site</button>
+      <button class="quiz-option" data-correct>tui</button>
+      <button class="quiz-option">app</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span><code>tui</code> is the Bubble Tea terminal UI starter.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">3. You need a full-stack web application starter.</p>
+    <div class="quiz-options">
+      <button class="quiz-option">site</button>
+      <button class="quiz-option" data-correct>app</button>
+      <button class="quiz-option">lib</button>
+      <button class="quiz-option">monorepo-go</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span><code>app</code> is the full-stack web app template; <code>site</code> is for static sites.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">4. You want a starter for authoring a new Pavona template.</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>pavona</button>
+      <button class="quiz-option">agent</button>
+      <button class="quiz-option">tool</button>
+      <button class="quiz-option">monorepo-go</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span><code>pavona</code> scaffolds the starter template directory and its <code>config.cue</code>.</div>
+  </div>
+</div>
+
+<div class="primary-source">
+<p class="eyebrow">Primary sources to read</p>
+<p><a href="../../README.md">Pavona README</a> for the built-in catalog and commands;
+<a href="../../docs/design.md">design doc</a> for template structure and hydration; and
+<a href="../reference/template-review-checklist.html">the review checklist</a> for a compact
+preflight and smoke-test routine.</p>
+</div>
+
+<div class="ask">
+<p class="eyebrow">Close the loop with your teacher</p>
+<p>Tell me how the quiz went and whether you reached the acceptance check. If you used a real
+project blueprint, share its file classifications (paths and descriptions only); I can help
+review the template design before you rely on it.</p>
+</div>
+
+<footer class="lesson-nav">
+  <a href="0006-diagnose-template-failures.html">← Lesson 6</a>
+  <a href="../reference/template-review-checklist.html">Review checklist →</a>
+</footer>
+
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/course-nav.js" defer></script>
+</body>
+</html>

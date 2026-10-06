@@ -1,0 +1,387 @@
+/* course.css — shared stylesheet for the Pavona teaching workspace.
+   Every lesson links this file so the course looks like one consistent set.
+   Palette nods to Pavona (leaf coral): warm paper, deep teal ink, coral accent. */
+
+:root {
+  --paper: #faf7f2;
+  --ink: #1f2a2e;
+  --ink-soft: #4a585e;
+  --accent: #c9603f;        /* coral */
+  --accent-soft: #f3e0d7;
+  --teal: #20645e;
+  --rule: #e4ddd2;
+  --code-bg: #f1ece3;
+  --ok: #2e7d4f;
+  --ok-bg: #e2f0e6;
+  --bad: #a83a2c;
+  --bad-bg: #f6e2de;
+  --measure: 46rem;
+  --sidebar-width: 17rem;
+
+* { box-sizing: border-box; }
+
+html { font-size: 17px; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  line-height: 1.65;
+}
+
+main {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 3rem 1.5rem 6rem;
+}
+
+/* ---------- headings ---------- */
+
+h1, h2, h3 {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--teal);
+}
+
+h1 { font-size: 2.1rem; margin: 0.2rem 0 0.4rem; }
+h2 { font-size: 1.45rem; margin: 2.6rem 0 0.8rem; border-bottom: 1px solid var(--rule); padding-bottom: 0.35rem; }
+h3 { font-size: 1.12rem; margin: 1.8rem 0 0.5rem; }
+
+.eyebrow {
+  font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.subtitle { color: var(--ink-soft); font-style: italic; margin-top: 0; }
+
+/* One consistent, editorial-width image directly under each lesson subtitle. */
+.lesson-artwork { margin: 1.25rem 0 1.55rem; }
+.lesson-artwork img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 8 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--code-bg);
+}
+.lesson-artwork figcaption {
+  margin-top: 0.4rem;
+  color: var(--ink-soft);
+  font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+.lesson-artwork figcaption a { color: inherit; }
+
+p { margin: 0.85rem 0; }
+
+a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { color: var(--accent); }
+
+ul, ol { padding-left: 1.4rem; }
+li { margin: 0.35rem 0; }
+
+/* ---------- code ---------- */
+
+code, kbd {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  background: var(--code-bg);
+  border-radius: 4px;
+  padding: 0.12em 0.35em;
+}
+
+pre {
+  background: var(--code-bg);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 0.9rem 1.1rem;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+pre code { background: none; padding: 0; font-size: 0.82rem; }
+
+/* ---------- callouts ---------- */
+
+.win, .note, .warn, .primary-source, .ask {
+  border-radius: 8px;
+  padding: 0.9rem 1.2rem;
+  margin: 1.4rem 0;
+}
+
+.win  { background: var(--accent-soft); border-left: 4px solid var(--accent); }
+.note { background: var(--code-bg); border-left: 4px solid var(--teal); }
+.warn { background: var(--bad-bg); border-left: 4px solid var(--bad); }
+
+.win h3, .note h3, .warn h3 { margin-top: 0.2rem; }
+
+.primary-source {
+  border: 1px dashed var(--teal);
+  background: transparent;
+}
+.primary-source .eyebrow { color: var(--teal); }
+
+.ask {
+  background: var(--teal);
+  color: var(--paper);
+}
+.ask a { color: var(--accent-soft); }
+.ask .eyebrow { color: var(--accent-soft); }
+
+/* ---------- tables ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2rem 0;
+  font-size: 0.92rem;
+}
+th {
+  text-align: left;
+  font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-bottom: 2px solid var(--rule);
+  padding: 0.5rem 0.6rem;
+}
+td { border-bottom: 1px solid var(--rule); padding: 0.55rem 0.6rem; vertical-align: top; }
+
+/* ---------- steps ---------- */
+
+ol.steps { counter-reset: step; list-style: none; padding-left: 0; }
+ol.steps > li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 2.6rem;
+  margin: 1.1rem 0;
+}
+ol.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0; top: 0.1em;
+  width: 1.8rem; height: 1.8rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--paper);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem;
+}
+
+/* ---------- quiz (see assets/quiz.js) ---------- */
+
+.quiz { margin: 1.5rem 0; }
+.quiz-q { margin: 1.6rem 0; }
+.quiz-q .prompt { font-weight: 600; margin-bottom: 0.6rem; }
+.quiz-options { display: grid; gap: 0.5rem; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+.quiz-option {
+  font: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+  padding: 0.55rem 0.9rem;
+  border: 1.5px solid var(--rule);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  text-align: center;
+}
+.quiz-option:hover { border-color: var(--teal); }
+.quiz-option.correct { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); font-weight: 600; }
+.quiz-option.wrong   { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+.quiz-option:disabled { cursor: default; opacity: 0.9; }
+.quiz-feedback {
+  display: none;
+  margin-top: 0.7rem;
+  padding: 0.7rem 1rem;
+  border-radius: 6px;
+  background: var(--code-bg);
+  font-size: 0.92rem;
+}
+.quiz-feedback.show { display: block; }
+.quiz-feedback .verdict { font-weight: 700; }
+
+/* ---------- footer nav ---------- */
+
+footer.lesson-nav {
+  margin-top: 3.5rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--rule);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.88rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ---------- responsive course navigation ---------- */
+
+body.course-has-nav {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  grid-template-areas: "course-nav course-main";
+  min-height: 100vh;
+}
+
+body.course-has-nav > main {
+  grid-area: course-main;
+  width: min(100%, var(--measure));
+  margin: 0 auto;
+}
+
+.course-sidebar {
+  grid-area: course-nav;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  padding: 1.35rem 1rem 2rem;
+  background: #203b3b;
+  color: var(--paper);
+  z-index: 10;
+  scrollbar-color: #66817b #203b3b;
+}
+
+.course-sidebar a { color: #f5eee3; text-decoration: none; }
+.course-sidebar a:hover { color: #ffd1bd; }
+.course-sidebar-brand {
+  display: block;
+  margin: 0.1rem 0 1.8rem;
+  color: #ffd1bd;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+.course-sidebar-heading {
+  margin: 1.2rem 0 0.45rem;
+  color: #b8c9c2;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.course-sidebar ol, .course-sidebar ul { list-style: none; margin: 0; padding: 0; }
+.course-sidebar li { margin: 0.18rem 0; }
+.course-sidebar .course-lesson-link {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0.35rem;
+  align-items: start;
+  padding: 0.48rem 0.55rem;
+  border-radius: 6px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+.course-sidebar .course-lesson-number {
+  color: #b8c9c2;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  padding-top: 0.05rem;
+}
+.course-sidebar .course-lesson-link[aria-current="page"] {
+  background: #315b55;
+  box-shadow: inset 3px 0 var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+.course-sidebar .course-lesson-link[aria-current="page"] .course-lesson-number { color: #ffd1bd; }
+.course-sidebar .course-reference-link {
+  display: block;
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.82rem;
+}
+.course-sidebar .course-reference-link:hover,
+.course-sidebar .course-lesson-link:hover { background: #2b4b48; }
+.course-sidebar .course-sidebar-footer {
+  margin-top: 1.5rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #49615d;
+  color: #c1d0ca;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+.course-nav-toggle, .course-nav-backdrop { display: none; }
+
+@media (max-width: 800px) {
+  body.course-has-nav { display: block; }
+  body.course-has-nav > main { padding-top: 4.75rem; }
+
+  .course-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(86vw, 19rem);
+    height: 100vh;
+    height: 100dvh;
+    transform: translateX(-105%);
+    transition: transform 180ms ease;
+    box-shadow: 12px 0 32px rgb(0 0 0 / 18%);
+    z-index: 1001;
+  }
+  .course-sidebar.is-open { transform: translateX(0); }
+
+  .course-nav-toggle {
+    display: block;
+    position: fixed;
+    top: 0.7rem;
+    left: 0.7rem;
+    z-index: 1003;
+    border: 1px solid #315b55;
+    border-radius: 7px;
+    padding: 0.55rem 0.8rem;
+    background: #203b3b;
+    color: #fff;
+    font: 600 0.84rem ui-sans-serif, system-ui, sans-serif;
+    box-shadow: 0 2px 9px rgb(0 0 0 / 14%);
+    cursor: pointer;
+  }
+  .course-nav-toggle:focus-visible,
+  .course-sidebar a:focus-visible,
+  .course-nav-backdrop:focus-visible {
+    outline: 3px solid #e99a77;
+    outline-offset: 2px;
+  }
+
+  .course-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    border: 0;
+    background: rgb(17 28 29 / 58%);
+  }
+  body.course-nav-open .course-nav-backdrop { display: block; }
+  body.course-nav-open { overflow: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .course-sidebar { transition: none; }
+}
+
+/* ---------- print ---------- */
+
+@media print {
+  body { background: #fff; }
+  main { max-width: none; padding: 0; }
+  .quiz-option { border-color: #999; }
+  .ask { background: #eee; color: var(--ink); }
+  .ask a { color: var(--teal); }
+  pre { white-space: pre-wrap; }
+}

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2 — Design Pavona Variables</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+
+<p class="eyebrow">Lesson 02 · Pavona from the ground up</p>
+<h1>Design Variables That Help</h1>
+<p class="subtitle">Freeform for open questions. Choices for bounded ones. Defaults for sensible paths.</p>
+<figure class="lesson-artwork">
+  <img src="../assets/images/lesson-02-river-delta.jpg" width="1600" height="600" alt="Aerial pattern of branching stream channels through a rocky landscape." decoding="async">
+  <figcaption>Image: <a href="https://unsplash.com/photos/aerial-view-of-a-river-delta-with-branching-streams-2Mt6dVvoLLs" target="_blank" rel="noopener noreferrer">Cosmin Andrei Buzamat on Unsplash</a>.</figcaption>
+</figure>
+
+<div class="win">
+<h3>Today's win</h3>
+<p>You'll extend your custom template with a license selector, then generate two projects:
+one where you choose a license interactively, and one where <code>-q</code> selects the default.
+You will see how a small <code>config.cue</code> design decision changes the user's whole experience.</p>
+</div>
+
+<h2>Choose the right prompt shape</h2>
+
+<table>
+  <tr><th>Use when…</th><th>CUE shape</th><th>What Pavona shows</th></tr>
+  <tr><td>Answers are open-ended: name, description</td><td><code>field: string</code></td><td>Text input; required unless <code>?</code></td></tr>
+  <tr><td>Answers come from a known, finite set</td><td><code>field: "a" | "b"</code></td><td>Select menu; required unless <code>?</code></td></tr>
+  <tr><td>There is a good standard answer</td><td><code>*"default"</code></td><td>Pre-filled input or pre-selected choice</td></tr>
+</table>
+
+<p>The field's doc comment becomes its prompt label. Pavona currently puts every variable in
+<strong>one form, sorted alphabetically</strong> — not one page per variable. You can navigate
+between fields and change pre-filled answers before submitting.
+[<a href="../../docs/design.md">Source: Interactive Prompt Flow</a>]</p>
+
+<h2>Make a license selector</h2>
+
+<p>In Lesson 1 you made <code>my-first-template</code>. Keep using it. A license has a short,
+known set of valid answers — it is a choice, not freeform text. Add this inside its
+<code>variables: { ... }</code> block:</p>
+
+<pre><code>	// License identifier for the project
+	license?: "MIT" | *"Apache-2.0" | "BSD-3-Clause"</code></pre>
+
+<p>Read the syntax aloud:</p>
+<ul>
+  <li><code>license?</code> — optional. Pavona won't require an answer; if you render it, an unanswered value is empty.</li>
+  <li><code>"MIT" | ... | "BSD-3-Clause"</code> — finite choices → select menu.</li>
+  <li><code>*"Apache-2.0"</code> — pre-selected default. The default must be one of the choices.</li>
+  <li><code>// License identifier ...</code> — the label shown to the user.</li>
+</ul>
+
+<p>Now add a line to <code>README.md.tmpl</code>, below the greeting:</p>
+<pre><code>License: {{.license}}</code></pre>
+
+<h2>See both paths</h2>
+
+<ol class="steps">
+  <li><strong>Interactive: choose a different value.</strong>
+<pre><code>pavona new ./my-first-template license-demo</code></pre>
+    All three fields appear together, alphabetically. <code>project_name</code> is pre-filled
+    with <code>license-demo</code> (it remains visible); <code>greeting</code> and
+    <code>license</code> start at their defaults. Navigate to License, choose <code>MIT</code>,
+    then submit. Check <code>license-demo/README.md</code>.</li>
+
+  <li><strong>Non-interactive: accept all defaults.</strong>
+<pre><code>pavona new ./my-first-template quiet-demo -q
+cat quiet-demo/README.md</code></pre>
+    This time the README should say <code>Apache-2.0</code>. Quiet mode takes the declared
+    default for each variable; the positional name pre-fills <code>project_name</code> too.</li>
+</ol>
+
+<div class="note">
+<p><strong>Default must be a valid choice.</strong> Pavona selects the default choice when
+it exists in the list. If the configured default isn't one of the choices, the implementation
+falls back to the <em>first listed choice</em>. Don't rely on that fallback: keep the default
+inside the disjunction so the prompt and <code>-q</code> agree.</p>
+</div>
+
+<h2>One design test</h2>
+<p>For each variable in a template, ask:</p>
+<ol>
+  <li><strong>Can users reasonably type many different answers?</strong> Use a freeform <code>string</code>.</li>
+  <li><strong>Are valid answers a small, known set?</strong> Use a choice so typos and invalid values are impossible.</li>
+  <li><strong>Can most users safely accept one answer?</strong> Give it a default; that is what <code>-q</code> uses.</li>
+  <li><strong>Must every generated project have a value?</strong> Make it required. A required field without a default will fail in <code>-q</code> unless supplied with <code>--name</code> (for <code>project_name</code>) or otherwise given a default.</li>
+</ol>
+
+<h2>Retrieval practice</h2>
+<p>Answer from memory before clicking. One attempt each.</p>
+
+<div class="quiz">
+  <div class="quiz-q">
+    <p class="prompt">1. What does <code>license: "MIT" | "Apache-2.0"</code> define?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>A required select with no default</button>
+      <button class="quiz-option">An optional input with a default</button>
+      <button class="quiz-option">A required input with a default</button>
+      <button class="quiz-option">An optional select with no default</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>No <code>?</code> means required; the literal disjunction means select; no <code>*</code> means no default.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">2. What if a choice default is not in its choices?</p>
+    <div class="quiz-options">
+      <button class="quiz-option" data-correct>Use the first listed choice</button>
+      <button class="quiz-option">Return an empty choice value</button>
+      <button class="quiz-option">Stop with a validation error</button>
+      <button class="quiz-option">Ask user to choose again</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>The current implementation falls back to the first listed choice. Still, declare a valid default so interactive and quiet runs are predictable.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">3. How does Pavona present multiple variables?</p>
+    <div class="quiz-options">
+      <button class="quiz-option">Separate pages in alphabetical order</button>
+      <button class="quiz-option" data-correct>One form in alphabetical order</button>
+      <button class="quiz-option">One form in declaration order</button>
+      <button class="quiz-option">Separate pages in declaration order</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>All fields are in one Huh form group, in alphabetical order; users can navigate and edit before submitting.</div>
+  </div>
+
+  <div class="quiz-q">
+    <p class="prompt">4. What does <code>pavona new ... --name demo</code> do to <code>project_name</code>?</p>
+    <div class="quiz-options">
+      <button class="quiz-option">Skips the project_name field entirely</button>
+      <button class="quiz-option">Changes the template description value</button>
+      <button class="quiz-option" data-correct>Pre-fills project_name but remains visible</button>
+      <button class="quiz-option">Changes output, leaves variables unchanged</button>
+    </div>
+    <div class="quiz-feedback"><span class="verdict"></span>It sets the variable's default before prompting. The field remains part of the form (the CLI help currently says it skips the prompt, but the implementation still displays it pre-filled).</div>
+  </div>
+</div>
+
+<div class="primary-source">
+<p class="eyebrow">Primary source to read</p>
+<p><a href="../../docs/design.md">exp/pavona/docs/design.md</a> — <strong>How CUE Types Map to
+Prompts</strong> and <strong>Interactive Prompt Flow</strong>. The first is the concise mapping
+table; the second describes form ordering and validation.</p>
+</div>
+
+<h2>Transfer: pick a built-in</h2>
+<p>Your other mission goal is using built-ins. Run <code>pavona list</code>, then choose a
+starting point:</p>
+<table>
+  <tr><th>Template</th><th>Good starting point for…</th></tr>
+  <tr><td><code>tool</code></td><td>Go CLI</td></tr>
+  <tr><td><code>lib</code></td><td>reusable Go package</td></tr>
+  <tr><td><code>site</code></td><td>static site</td></tr>
+  <tr><td><code>tui</code></td><td>terminal UI</td></tr>
+  <tr><td><code>app</code></td><td>full-stack web app</td></tr>
+  <tr><td><code>agent</code></td><td>NATS Agent Protocol service</td></tr>
+  <tr><td><code>pavona</code></td><td>starter for a custom template</td></tr>
+  <tr><td><code>monorepo-go</code></td><td>Go workspace monorepo</td></tr>
+</table>
+<p>If you have Pavona installed, try one safely in a new directory:
+<code>pavona new lib pavona-lesson-lib -q</code>. The full catalog and command details are in
+the <a href="../../README.md">Pavona README</a>.</p>
+
+<h2>What's next</h2>
+<p>Next: make your template reusable by name — install it in Pavona's XDG template directory,
+track it in git, and understand what changes do (and don't do) to projects already generated.</p>
+
+<p>For a quick lookup meanwhile, see the <a href="../reference/template-cheatsheet.html">template
+cheat sheet</a> or revisit <a href="0001-anatomy-of-a-template.html">Lesson 1: Anatomy of a Template</a>.</p>
+
+<div class="ask">
+<p class="eyebrow">Your teacher is here</p>
+<p>Ask about any part of the exercise or quiz — especially if the choice/default behavior felt
+surprising. You can also paste a <code>config.cue</code> and I'll help design its prompts.</p>
+</div>
+
+<footer class="lesson-nav">
+  <a href="0001-anatomy-of-a-template.html">← Lesson 1</a>
+  <a href="../reference/template-cheatsheet.html">Cheat sheet →</a>
+</footer>
+
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/course-nav.js" defer></script>
+</body>
+</html>

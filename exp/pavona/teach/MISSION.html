@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mission — Learn Pavona</title>
+<link rel="stylesheet" href="assets/course.css">
+</head>
+<body>
+<main>
+
+<p class="eyebrow">Pavona · course compass</p>
+<h1>Mission: Pavona for Real Projects</h1>
+<p class="subtitle">The reason for this course—and the standard we’ll use to decide what to learn next.</p>
+
+<div class="win">
+<h3>Why</h3>
+<p>Use Pavona’s built-in templates to scaffold personal Go projects quickly, and build and
+maintain custom Pavona templates so personal project setups stop being manual repetition.
+Scaffolding should take seconds and stay consistent as projects evolve.</p>
+</div>
+
+<h2>Success looks like</h2>
+<ul>
+  <li>Scaffold a personal project from a built-in template (<code>tool</code>, <code>app</code>, <code>tui</code>, …) without consulting the README, and know which template fits which project shape.</li>
+  <li>Create a custom template from scratch: <code>config.cue</code> variables, rendered <code>.tmpl</code> files, verbatim files, and templated directory names.</li>
+  <li>Maintain a custom template over time: change variables, add files, version it, and generate new projects without breaking existing ones.</li>
+  <li>Diagnose common failures—template not found, CUE validation errors, quiet-mode defaults—unaided.</li>
+</ul>
+
+<h2>Constraints</h2>
+<ul>
+  <li>The learning workspace is <code>exp/pavona/teach/</code> inside the arcadia repository.</li>
+  <li>The learner is an experienced Go developer; no need to teach Go, <code>text/template</code>, or basic CLI usage.</li>
+  <li>Prefer short, hands-on lessons over long theory.</li>
+</ul>
+
+<h2>Out of scope for now</h2>
+<ul>
+  <li>Contributing to or modifying Pavona engine internals—this course is about using the tool.</li>
+  <li>A deep dive into CUE beyond the subset needed to author <code>config.cue</code>.</li>
+</ul>
+
+<h2>Course map</h2>
+<p>Seven short lessons move from first use to independent maintenance:</p>
+<ol>
+  <li><a href="lessons/0001-anatomy-of-a-template.html">Anatomy of a Template</a></li>
+  <li><a href="lessons/0002-design-pavona-variables.html">Design Variables That Help</a></li>
+  <li><a href="lessons/0003-install-and-maintain-a-template.html">Your Template, Available by Name</a></li>
+  <li><a href="lessons/0004-one-input-multiple-representations.html">One Input, Multiple Representations</a></li>
+  <li><a href="lessons/0005-blueprint-a-template.html">Blueprint Before You Template</a></li>
+  <li><a href="lessons/0006-diagnose-template-failures.html">Diagnose by Layer</a></li>
+  <li><a href="lessons/0007-capstone-pavona-workflow.html">A Repeatable Pavona Workflow</a></li>
+</ol>
+
+<p>Keep the <a href="reference/template-cheatsheet.html">template cheat sheet</a> nearby while
+practising; use the <a href="reference/template-review-checklist.html">review checklist</a>
+before relying on a template.</p>
+
+<div class="note">
+<p><strong>Source document:</strong> This rendered page reflects the workspace’s
+<a href="MISSION.md">plain-text <code>MISSION.md</code></a>, which remains the editable mission
+record used by the teaching workflow.</p>
+</div>
+
+<footer class="lesson-nav">
+  <a href="lessons/0001-anatomy-of-a-template.html">Start with Lesson 1 →</a>
+  <a href="reference/template-review-checklist.html">Review checklist →</a>
+</footer>
+
+</main>
+<script src="assets/course-nav.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pavona — Template Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+
+<p class="eyebrow">Reference · quick lookup</p>
+<h1>Pavona Template Cheat Sheet</h1>
+<p class="subtitle">The compressed essence of template authoring. Print-friendly.</p>
+
+<h2>Commands</h2>
+<pre><code>pavona list                        # show built-in templates (alias: ls)
+pavona new tool my-cli             # scaffold from a built-in template
+pavona new ./my-template my-proj   # scaffold from a local template dir
+pavona new tool my-cli -q          # non-interactive: every variable = its default
+pavona new tool my-cli -o outdir   # output dir override
+pavona new tool my-cli -n my-cli   # pre-fill the project_name variable</code></pre>
+
+<table>
+  <tr><th>Input</th><th>Effect</th></tr>
+  <tr><td><code>new &lt;template&gt; [name]</code></td><td>positional <code>name</code> sets the output dir and, when defined, pre-fills the <code>project_name</code> variable</td></tr>
+  <tr><td><code>-n</code> / <code>--name</code></td><td>pre-fills <code>project_name</code>; the field remains visible in the interactive form</td></tr>
+  <tr><td><code>-o</code> / <code>--output</code></td><td>output directory (default: <code>project_name</code>, then <code>output</code>)</td></tr>
+  <tr><td><code>-q</code> / <code>--quiet</code></td><td>no prompts; every variable takes its declared default</td></tr>
+</table>
+
+<h2>Template resolution order</h2>
+<ol>
+  <li><strong>Built-in</strong> — name matches a built-in template (<code>tool</code>, <code>lib</code>, <code>site</code>, <code>tui</code>, <code>app</code>, <code>agent</code>, <code>pavona</code>, <code>monorepo-go</code>); this check wins before all other sources</li>
+  <li><strong>Exact path</strong> — argument is a directory containing <code>config.cue</code></li>
+  <li><strong>XDG data</strong> — <code>$XDG_DATA_HOME/pavona/templates/&lt;name&gt;/</code> (default <code>~/.local/share</code>); these templates are invoked by name but do not appear in <code>pavona list</code></li>
+  <li><strong>Error</strong> — exit code 1</li>
+</ol>
+
+<h2>Template anatomy</h2>
+<pre><code>my-template/
+├── config.cue          # consumed by Pavona — never written to output
+├── README.md.tmpl      # rendered via text/template → README.md
+├── Makefile            # copied byte-for-byte
+└── {{.project_name}}/  # directory names render too
+    └── main.go.tmpl</code></pre>
+
+<table>
+  <tr><th>File</th><th>Behavior</th></tr>
+  <tr><td><code>*.tmpl</code></td><td>rendered with the variables map as data context; suffix dropped</td></tr>
+  <tr><td>everything else</td><td>copied byte-for-byte</td></tr>
+  <tr><td><code>config.cue</code></td><td>consumed by Pavona; never in output</td></tr>
+  <tr><td>dirs named <code>{{...}}</code></td><td>directory name is rendered as a template</td></tr>
+</table>
+
+<h2><code>config.cue</code> patterns</h2>
+<pre><code>package template
+
+name:        "my-template"        // required, string
+description: "A custom template"  // required, string
+
+variables: {
+	// Doc comment = the prompt shown to the user
+	project_name: string                  // required, freeform text
+
+	greeting?: string | *"Hello, World!"  // optional, freeform, default
+	license?: "MIT" | "Apache-2.0"        // optional, select menu (choice)
+}</code></pre>
+
+<table>
+  <tr><th>CUE pattern</th><th>Prompt behavior</th></tr>
+  <tr><td><code>field: string</code></td><td>required freeform input (blank rejected)</td></tr>
+  <tr><td><code>field?: string</code></td><td>optional freeform input</td></tr>
+  <tr><td><code>*"default"</code></td><td>default value (pre-filled; used by <code>-q</code>)</td></tr>
+  <tr><td><code>"a" | "b"</code></td><td>select menu over the literals</td></tr>
+  <tr><td>doc comment above field</td><td>becomes the prompt title</td></tr>
+</table>
+
+<p class="note">Only <code>string</code>-kind variables are meaningfully supported: defaults are read as strings and prompts are text/select inputs. Pavona shows all variables together in one form, sorted alphabetically. A name supplied positionally (or with <code>-n</code>) pre-fills <code>project_name</code> but does not remove the field from that form. If a choice variable's default is not one of its choices, Pavona selects the first listed choice instead.</p>
+
+<h2>Inside <code>*.tmpl</code> files</h2>
+<pre><code># {{.project_name}}
+
+{{.greeting}}
+
+{{ if .license }}License: {{.license}}{{ end }}</code></pre>
+<ul>
+  <li>Data context is the variables map — keys are the <code>config.cue</code> variable names.</li>
+  <li>Full <a href="https://pkg.go.dev/text/template">Go <code>text/template</code></a> syntax: <code>{{if}}</code>, <code>{{range}}</code>, pipelines, etc.</li>
+  <li>Pavona's <code>sanitize</code> helper is available only in rendered file contents: <code>{{.project_name | sanitize}}</code>. It lowercases, maps hyphen/underscore to underscore, and strips other characters; it is not a full validator and is unavailable in rendered paths.</li>
+</ul>
+
+<h2>Failure modes</h2>
+<table>
+  <tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+  <tr><td><code>template "x" not found</code> (exit 1)</td><td>no built-in, path, or XDG match</td><td>check spelling; ensure dir has <code>config.cue</code></td></tr>
+  <tr><td><code>directory "x" exists but has no config.cue</code></td><td>path matched but not a template</td><td>add <code>config.cue</code> at the dir root</td></tr>
+  <tr><td><code>Error parsing config.cue: …</code></td><td>CUE validation failed</td><td><code>name</code>, <code>description</code>, <code>variables</code> must all exist; CUE must be valid</td></tr>
+  <tr><td><code>required values missing: …</code></td><td>required var empty (typical in <code>-q</code> without <code>-n</code>)</td><td>pass <code>-n</code>/<code>--name</code> or drop <code>-q</code></td></tr>
+</table>
+
+<h2>Versioning a template</h2>
+<ul>
+  <li>A template is just a directory: track it in git to maintain it.</li>
+  <li>Changing template files affects <em>new</em> scaffolds only — existing generated projects are snapshots and are never touched.</li>
+  <li>Output must be absent or empty; Pavona rejects a non-empty output directory instead of merging or overwriting it.</li>
+  <li>For personal cross-project use, install under <code>${XDG_DATA_HOME:-$HOME/.local/share}/pavona/templates/&lt;name&gt;/</code>. Choose a name distinct from built-ins because those resolve first.</li>
+</ul>
+
+<footer class="lesson-nav">
+  <a href="../lessons/0001-anatomy-of-a-template.html">← Lesson 1: Anatomy of a Template</a>
+  <a href="../lessons/0004-one-input-multiple-representations.html">Lesson 4: One Input, Multiple Representations →</a>
+  <a href="../MISSION.html">Mission</a>
+</footer>
+
+</main>
+<script src="../assets/course-nav.js" defer></script>
+</body>
+</html>

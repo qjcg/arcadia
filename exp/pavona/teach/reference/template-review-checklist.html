@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pavona — Template Review Checklist</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+
+<p class="eyebrow">Reference · design, smoke-test, maintain</p>
+<h1>Template Review Checklist</h1>
+<p class="subtitle">A compact pass before you trust a reusable Pavona template.</p>
+
+<h2>1. Design the seam</h2>
+<table>
+  <tr><th>Question</th><th>Template treatment</th></tr>
+  <tr><td>Does this value change between projects?</td><td>Make it a <code>config.cue</code> variable only if the user should choose it.</td></tr>
+  <tr><td>Is there a safe, common answer?</td><td>Declare a default; <code>-q</code> uses defaults.</td></tr>
+  <tr><td>Is it a small, closed set?</td><td>Use a choice variable, and ensure the default is one of its choices.</td></tr>
+  <tr><td>Is the file stable for every project?</td><td>Copy it verbatim (no <code>.tmpl</code> suffix).</td></tr>
+  <tr><td>Does a value need formatting?</td><td>Transform it where used in a rendered file; don't create duplicate prompts for derivable forms.</td></tr>
+  <tr><td>Does the variant require a different file tree?</td><td>Use a separate template. Pavona renders file contents and paths but does not conditionally omit files.</td></tr>
+</table>
+
+<h2>2. Check the template definition</h2>
+<ul>
+  <li><code>config.cue</code> is at the template root and defines string <code>name</code>, <code>description</code>, and <code>variables</code>.</li>
+  <li>Each variable's doc comment is a clear prompt label.</li>
+  <li>Every required variable has a plan for non-interactive use. A required value without a default must be supplied; <code>--name</code> only pre-fills <code>project_name</code>.</li>
+  <li>Optional variables render sensibly when left empty.</li>
+  <li>Choice defaults are members of their choice set.</li>
+  <li>Names rendered into paths are path-safe. The <code>sanitize</code> helper is only available in rendered file content, not path rendering.</li>
+</ul>
+
+<h2>3. Run a minimal smoke test</h2>
+<ol class="steps">
+  <li>Use a fresh output directory (or an existing empty one).</li>
+  <li>Run a quiet scaffold with an explicit name, e.g. <code>pavona new my-template smoke-quiet -q</code>.</li>
+  <li>Run an interactive scaffold and deliberately change one non-default answer.</li>
+  <li>Check the output tree: expected names, no <code>config.cue</code>, no leftover <code>.tmpl</code> suffixes.</li>
+  <li>Check rendered contents: every placeholder resolves; stable files match their sources byte-for-byte.</li>
+  <li>Run the generated project's own formatter, tests, or build where applicable.</li>
+  <li>After editing the template, generate into a <em>new</em> output directory and compare. Existing generated projects are independent snapshots.</li>
+</ol>
+
+<h2>4. Diagnose by layer</h2>
+<table>
+  <tr><th>Symptom</th><th>First check</th></tr>
+  <tr><td>Template not found</td><td>Resolution order: built-in → exact path with <code>config.cue</code> → XDG. Check custom-name collisions with built-ins.</td></tr>
+  <tr><td>CUE/config error</td><td>Syntax, then required top-level fields: <code>name</code>, <code>description</code>, <code>variables</code>.</td></tr>
+  <tr><td>Required value missing</td><td>In <code>-q</code>, the variable's default is empty; supply it or define a sensible default.</td></tr>
+  <tr><td>Missing map key during render</td><td>Compare every <code>{{.key}}</code> in file contents and paths with declared variable names.</td></tr>
+  <tr><td>Output already exists</td><td>Use a new/empty output directory. Pavona scaffolds; it does not merge or update.</td></tr>
+</table>
+
+<div class="warn">
+<p><strong>Failed render recovery:</strong> a template execution error can leave a partially written throwaway output directory. Inspect it; remove or move it only if you are certain it contains just that failed test output, then retry into a fresh path.</p>
+</div>
+
+<p class="note">Custom templates installed by name live at <code>${XDG_DATA_HOME:-$HOME/.local/share}/pavona/templates/&lt;name&gt;/</code>. Keep the template source under Git and separate from generated project directories.</p>
+
+<footer class="lesson-nav">
+  <a href="../lessons/0005-blueprint-a-template.html">Lesson 5: Blueprint →</a>
+  <a href="../lessons/0006-diagnose-template-failures.html">Lesson 6: Diagnose →</a>
+  <a href="../lessons/0007-capstone-pavona-workflow.html">Lesson 7: Capstone →</a>
+</footer>
+
+</main>
+<script src="../assets/course-nav.js" defer></script>
+</body>
+</html>
