@@ -104,6 +104,98 @@
   document.body.insertBefore(toggle, backdrop.nextSibling);
   document.body.classList.add("course-has-nav");
 
+  const themeControl = document.createElement("div");
+  themeControl.className = "course-theme-control";
+
+  const themeToggle = document.createElement("button");
+  themeToggle.type = "button";
+  themeToggle.className = "course-theme-toggle";
+  themeToggle.setAttribute("aria-controls", "course-theme-menu");
+  themeToggle.setAttribute("aria-expanded", "false");
+  const themeIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  themeIcon.setAttribute("viewBox", "0 0 24 24");
+  themeIcon.setAttribute("aria-hidden", "true");
+  themeIcon.setAttribute("focusable", "false");
+  themeToggle.appendChild(themeIcon);
+
+  const themeMenu = document.createElement("div");
+  themeMenu.className = "course-theme-menu";
+  themeMenu.id = "course-theme-menu";
+  themeMenu.setAttribute("role", "group");
+  themeMenu.setAttribute("aria-label", "Color theme");
+  themeMenu.hidden = true;
+
+  const themeOptions = [];
+  [
+    ["light", "Light Mode"],
+    ["dark", "Dark Mode"],
+    ["system", "System"]
+  ].forEach(function (entry) {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = "course-theme-option";
+    option.textContent = entry[1];
+    option.dataset.themeOption = entry[0];
+    themeMenu.appendChild(option);
+    themeOptions.push(option);
+  });
+
+  function updateThemeControl() {
+    const mode = window.courseTheme.getMode();
+    const labels = { light: "Light Mode", dark: "Dark Mode", system: "System" };
+    const shapes = {
+      light: [
+        ["circle", { cx: "12", cy: "12", r: "3.5" }],
+        ["path", { d: "M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" }]
+      ],
+      dark: [["path", { d: "M20.3 15.1A8.5 8.5 0 0 1 8.9 3.7 8.5 8.5 0 1 0 20.3 15.1Z" }]],
+      system: [
+        ["rect", { x: "3", y: "4", width: "18", height: "13", rx: "2" }],
+        ["path", { d: "M8 21h8m-4-4v4" }]
+      ]
+    };
+    const label = "Color theme: " + labels[mode];
+    themeToggle.setAttribute("aria-label", label);
+    themeToggle.title = label;
+    themeIcon.replaceChildren();
+    shapes[mode].forEach(function (shape) {
+      const element = document.createElementNS("http://www.w3.org/2000/svg", shape[0]);
+      Object.keys(shape[1]).forEach(function (attribute) {
+        element.setAttribute(attribute, shape[1][attribute]);
+      });
+      themeIcon.appendChild(element);
+    });
+    themeOptions.forEach(function (option) {
+      option.setAttribute("aria-pressed", String(option.dataset.themeOption === mode));
+    });
+  }
+
+  function closeThemeMenu(restoreFocus) {
+    themeMenu.hidden = true;
+    themeToggle.setAttribute("aria-expanded", "false");
+    if (restoreFocus) themeToggle.focus();
+  }
+
+  themeToggle.addEventListener("click", function () {
+    const isOpen = !themeMenu.hidden;
+    themeMenu.hidden = isOpen;
+    themeToggle.setAttribute("aria-expanded", String(!isOpen));
+    if (!isOpen) {
+      const selected = themeMenu.querySelector('[aria-pressed="true"]');
+      (selected || themeOptions[0]).focus();
+    }
+  });
+  themeMenu.addEventListener("click", function (event) {
+    const option = event.target.closest("[data-theme-option]");
+    if (!option) return;
+    window.courseTheme.setMode(option.dataset.themeOption);
+    updateThemeControl();
+    closeThemeMenu(true);
+  });
+  document.body.appendChild(themeControl);
+  themeControl.append(themeToggle, themeMenu);
+  updateThemeControl();
+
   const mobile = window.matchMedia("(max-width: 800px)");
   let open = false;
 
@@ -149,6 +241,10 @@
     if (event.target.closest("a") && mobile.matches) setOpen(false, false);
   });
   document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && !themeMenu.hidden) {
+      closeThemeMenu(true);
+      return;
+    }
     if (event.key === "Escape" && open) {
       setOpen(false, true);
       return;
@@ -185,6 +281,11 @@
 
     event.preventDefault();
     window.location.href = rootPrefix + "/lessons/" + destination[0];
+  });
+  document.addEventListener("click", function (event) {
+    if (!themeMenu.hidden && !themeControl.contains(event.target)) {
+      closeThemeMenu(false);
+    }
   });
   if (mobile.addEventListener) mobile.addEventListener("change", syncViewport);
   else mobile.addListener(syncViewport);

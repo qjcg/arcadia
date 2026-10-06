@@ -4,6 +4,7 @@
 
 :root {
   --paper: #faf7f2;
+  --surface: #fff;
   --ink: #1f2a2e;
   --ink-soft: #4a585e;
   --accent: #c9603f;        /* coral */
@@ -17,6 +18,44 @@
   --bad-bg: #f6e2de;
   --measure: 46rem;
   --sidebar-width: 17rem;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #171d1f;
+  --surface: #20282b;
+  --ink: #e6e2d9;
+  --ink-soft: #b5c0be;
+  --accent: #e58a6b;
+  --accent-soft: #3b2925;
+  --teal: #83c7bb;
+  --rule: #394649;
+  --code-bg: #252e31;
+  --ok: #83c99a;
+  --ok-bg: #24372c;
+  --bad: #f08f80;
+  --bad-bg: #3b2827;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #171d1f;
+    --surface: #20282b;
+    --ink: #e6e2d9;
+    --ink-soft: #b5c0be;
+    --accent: #e58a6b;
+    --accent-soft: #3b2925;
+    --teal: #83c7bb;
+    --rule: #394649;
+    --code-bg: #252e31;
+    --ok: #83c99a;
+    --ok-bg: #24372c;
+    --bad: #f08f80;
+    --bad-bg: #3b2827;
+    color-scheme: dark;
+  }
+}
 
 * { box-sizing: border-box; }
 
@@ -191,7 +230,7 @@ ol.steps > li::before {
   padding: 0.55rem 0.9rem;
   border: 1.5px solid var(--rule);
   border-radius: 6px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   text-align: center;
 }
@@ -222,6 +261,78 @@ footer.lesson-nav {
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
+}
+
+/* ---------- theme control ---------- */
+
+.course-theme-control {
+  position: fixed;
+  top: 0.7rem;
+  right: 0.8rem;
+  z-index: 1004;
+  font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+}
+.course-theme-toggle {
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 2px 9px rgb(0 0 0 / 12%);
+  font: 600 0.8rem ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+}
+.course-theme-toggle:hover { border-color: var(--teal); }
+.course-theme-toggle svg {
+  display: block;
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+.course-theme-toggle:focus-visible,
+.course-theme-option:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.course-theme-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  display: grid;
+  min-width: 10rem;
+  gap: 0.2rem;
+  padding: 0.35rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+.course-theme-menu[hidden] { display: none; }
+.course-theme-option {
+  border: 0;
+  border-radius: 5px;
+  padding: 0.55rem 0.65rem;
+  background: transparent;
+  color: var(--ink);
+  font: 500 0.82rem ui-sans-serif, system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+.course-theme-option:hover,
+.course-theme-option[aria-pressed="true"] { background: var(--code-bg); }
+.course-theme-option[aria-pressed="true"]::after {
+  content: "✓";
+  float: right;
+  color: var(--teal);
+  font-weight: 700;
 }
 
 /* ---------- responsive course navigation ---------- */
@@ -325,6 +436,8 @@ body.course-has-nav > main {
   body.course-has-nav { display: block; }
   body.course-has-nav > main { padding-top: 4.75rem; }
 
+  .course-theme-control { top: 0.7rem; right: 0.7rem; }
+
   .course-sidebar {
     position: fixed;
     inset: 0 auto 0 0;
@@ -378,7 +491,24 @@ body.course-has-nav > main {
 /* ---------- print ---------- */
 
 @media print {
-  body { background: #fff; }
+  :root, :root[data-theme] {
+    --paper: #fff;
+    --surface: #fff;
+    --ink: #1f2a2e;
+    --ink-soft: #4a585e;
+    --accent: #c9603f;
+    --accent-soft: #f3e0d7;
+    --teal: #20645e;
+    --rule: #e4ddd2;
+    --code-bg: #f1ece3;
+    --ok: #2e7d4f;
+    --ok-bg: #e2f0e6;
+    --bad: #a83a2c;
+    --bad-bg: #f6e2de;
+    color-scheme: light;
+  }
+  body { background: #fff; color: #1f2a2e; }
+  .course-theme-control, .course-nav-toggle, .course-nav-backdrop { display: none !important; }
   main { max-width: none; padding: 0; }
   .quiz-option { border-color: #999; }
   .ask { background: #eee; color: var(--ink); }
