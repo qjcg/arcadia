@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/GiGurra/boa v1.0.31
 	github.com/rogpeppe/go-internal v1.16.0
-	github.com/shopspring/decimal v1.4.0
+	github.com/shopspring/decimal v1.5.0
 	github.com/spf13/cobra v1.10.2
 	gopkg.in/yaml.v3 v3.0.1
 )
