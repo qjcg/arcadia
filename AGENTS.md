@@ -110,3 +110,17 @@ func TestCLI(t *testing.T) {
 
 ### Testing
 Refer to the `tester` skill for comprehensive guidance on writing high-quality tests.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live as GitHub issues in `qjcg/arcadia`, operated via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` at the repo root and ADRs under `docs/adrs/`. See `docs/agents/domain.md`.
