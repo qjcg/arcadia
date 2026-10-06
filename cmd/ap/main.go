@@ -39,14 +39,14 @@ func execute() int {
 				return fmt.Errorf("no sync specs found in %s", specsDir)
 			}
 			for _, s := range specs {
-				cmd.Printf("syncing %s from %s\n", s.Name, sync.String(s))
+				fmt.Fprintf(cmd.OutOrStdout(), "syncing %s from %s\n", s.Name, sync.String(s))
 			}
 			roots, err := sync.Run(specs, ".", outDir)
 			if err != nil {
 				return err
 			}
 			for _, root := range roots {
-				cmd.Printf("wrote %s\n", root)
+				fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", root)
 			}
 			return nil
 		},
@@ -68,12 +68,12 @@ func execute() int {
 					return err
 				}
 				if len(errs) == 0 {
-					cmd.Printf("ok      %s\n", path)
+					fmt.Fprintf(cmd.OutOrStdout(), "ok      %s\n", path)
 					continue
 				}
 				failed = true
 				for _, e := range errs {
-					cmd.Printf("invalid %v\n", e)
+					fmt.Fprintf(cmd.OutOrStdout(), "invalid %v\n", e)
 				}
 			}
 			if failed {
