@@ -402,7 +402,6 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0 // indirect
 	go.opentelemetry.io/otel v1.47.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.44.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.44.0 // indirect
 	go.opentelemetry.io/otel/log v1.47.0 // indirect
 	go.opentelemetry.io/otel/metric v1.47.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.47.0 // indirect
@@ -443,18 +442,18 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/gotestsum v1.13.0 // indirect
-	helm.sh/helm/v4 v4.2.4 // indirect
+	helm.sh/helm/v4 v4.3.0 // indirect
 	howett.net/plist v1.0.1 // indirect
-	k8s.io/api v0.36.4 // indirect
-	k8s.io/apiextensions-apiserver v0.36.4 // indirect
-	k8s.io/apimachinery v0.36.4 // indirect
-	k8s.io/apiserver v0.36.4 // indirect
-	k8s.io/cli-runtime v0.36.4 // indirect
-	k8s.io/client-go v0.36.4 // indirect
-	k8s.io/component-base v0.36.4 // indirect
+	k8s.io/api v0.37.1 // indirect
+	k8s.io/apiextensions-apiserver v0.37.1 // indirect
+	k8s.io/apimachinery v0.37.1 // indirect
+	k8s.io/apiserver v0.37.1 // indirect
+	k8s.io/cli-runtime v0.37.1 // indirect
+	k8s.io/client-go v0.37.1 // indirect
+	k8s.io/component-base v0.37.1 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260721132016-d427ff9ee9ad // indirect
-	k8s.io/kubectl v0.36.4 // indirect
+	k8s.io/kubectl v0.37.1 // indirect
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3 // indirect
 	modernc.org/libc v1.77.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
@@ -465,8 +464,8 @@ require (
 	mvdan.cc/sh/x v0.0.0-20260929184124-9a79a445faf5 // indirect
 	mvdan.cc/xurls/v2 v2.6.0 // indirect
 	oras.land/oras-go/v2 v2.6.2 // indirect
-	sigs.k8s.io/controller-runtime v0.24.1 // indirect
-	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
+	sigs.k8s.io/controller-runtime v0.25.2 // indirect
+	sigs.k8s.io/json v0.0.0-20260909141634-11ed52e25bc5 // indirect
 	sigs.k8s.io/kustomize/api v0.21.2 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.21.2 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
