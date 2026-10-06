@@ -1,0 +1,3 @@
+# --version reports the pavona version
+exec pavona --version
+stdout 'pavona version'

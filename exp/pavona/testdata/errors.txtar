@@ -1,0 +1,10 @@
+# An unknown template name reports a clear error
+! exec pavona new nonexistent
+stderr 'template "nonexistent" not found'
+
+# An existing non-empty output directory is rejected
+! exec pavona new tool -o existing -n test-project -q
+stderr 'exists and is not empty'
+
+-- existing/dummy.txt --
+content

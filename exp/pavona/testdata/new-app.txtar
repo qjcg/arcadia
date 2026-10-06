@@ -1,0 +1,9 @@
+# The app template generates a full-stack web app
+exec pavona new app acmecorp -q
+
+exists acmecorp/main.go
+exists acmecorp/main_test.go
+exists acmecorp/go.mod
+exists acmecorp/Dockerfile
+exists acmecorp/.gitignore
+exists acmecorp/internal/handlers/health.go

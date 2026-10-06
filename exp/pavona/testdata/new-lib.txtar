@@ -1,0 +1,8 @@
+# The lib template generates a minimal Go library module
+exec pavona new lib go-csvstream -q
+
+exists go-csvstream/lib.go
+exists go-csvstream/lib_test.go
+exists go-csvstream/go.mod
+exists go-csvstream/Taskfile.yaml
+exists go-csvstream/.gitignore

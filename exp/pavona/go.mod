@@ -8,6 +8,7 @@ require (
 	cuelang.org/go v0.17.1
 	github.com/GiGurra/boa v1.0.31
 	github.com/cucumber/godog v0.15.1
+	github.com/rogpeppe/go-internal v1.16.0
 	github.com/spf13/cobra v1.10.2
 )
 
@@ -50,7 +51,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20260916144827-6e6d8ebdba95 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/rogpeppe/go-internal v1.16.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/xo/terminfo v1.2.0 // indirect

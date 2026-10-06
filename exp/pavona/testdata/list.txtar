@@ -1,0 +1,14 @@
+# list shows all built-in templates
+exec pavona list
+stdout 'tool'
+stdout 'lib'
+stdout 'site'
+stdout 'tui'
+stdout 'app'
+stdout 'agent'
+stdout 'pavona'
+stdout 'monorepo-go'
+
+# ls is an alias for list
+exec pavona ls
+stdout 'monorepo-go'

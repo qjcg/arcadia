@@ -1,0 +1,17 @@
+# The monorepo-go template generates a Go workspace with tooling and release automation
+exec pavona new monorepo-go my-monorepo -q
+
+exists my-monorepo/go.work
+exists my-monorepo/Taskfile.yaml
+exists my-monorepo/README.md
+exists my-monorepo/AGENTS.md
+exists my-monorepo/.editorconfig
+exists my-monorepo/.editorconfig-checker.json
+exists my-monorepo/.lefthook.yaml
+exists my-monorepo/.github/CODEOWNERS
+exists my-monorepo/.github/workflows/sv-release.yml
+exists my-monorepo/docs
+
+grep 'go 1\.27\.1' my-monorepo/go.work
+grep 'TODO build' my-monorepo/Taskfile.yaml
+grep 'actions/checkout' my-monorepo/.github/workflows/sv-release.yml

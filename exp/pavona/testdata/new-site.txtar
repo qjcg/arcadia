@@ -1,0 +1,4 @@
+# The site template generates a static site project
+exec pavona new site blog -q
+
+exists blog/content/index.md

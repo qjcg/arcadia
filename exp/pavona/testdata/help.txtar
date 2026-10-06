@@ -1,0 +1,10 @@
+# Running with no arguments shows the branching coral art in coral color
+exec pavona
+stdout '---\|---\.'
+stdout '\x1b\[38;2;255;127;80m'
+
+# --help shows the same art and mentions templates
+exec pavona --help
+stdout '---\|---\.'
+stdout '\x1b\[38;2;255;127;80m'
+stdout 'template'

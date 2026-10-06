@@ -1,0 +1,11 @@
+# The tool template generates a Go CLI project with cobra and BDD tests
+exec pavona new tool my-cli -q
+
+exists my-cli/main.go
+exists my-cli/go.mod
+exists my-cli/Taskfile.yaml
+exists my-cli/.gitignore
+exists my-cli/features
+
+# Template variables are rendered into the project files
+grep 'my-cli' my-cli/main.go

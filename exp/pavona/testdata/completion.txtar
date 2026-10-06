@@ -1,0 +1,15 @@
+# Shell completion lists all built-in templates
+exec pavona __complete new ''
+stdout 'tool'
+stdout 'lib'
+stdout 'site'
+stdout 'tui'
+stdout 'app'
+stdout 'agent'
+stdout 'pavona'
+stdout 'monorepo-go'
+
+# Completion filters by prefix
+exec pavona __complete new mo
+stdout 'monorepo-go'
+! stdout 'tool\t'

@@ -1,0 +1,6 @@
+# The tui template generates a terminal UI project
+exec pavona new tui chatmonitor -q
+
+exists chatmonitor/main.go
+exists chatmonitor/go.mod
+exists chatmonitor/.gitignore

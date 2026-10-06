@@ -1,0 +1,34 @@
+# A custom template in a local directory can generate a project
+exec pavona new custom-tmpl custom-test -q
+
+# Variables with defaults are rendered
+grep 'Hello, World!' custom-test/main.go
+
+# Static files are copied verbatim
+cmp custom-test/README.md custom-tmpl/README.md
+
+-- custom-tmpl/config.cue --
+package template
+
+name:        "custom"
+description: "A custom template for testing"
+
+variables: {
+	// Project name
+	project_name: string
+
+	// Greeting message
+	message?: string | *"Hello, World!"
+}
+
+-- custom-tmpl/main.go.tmpl --
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("{{.message}}")
+}
+
+-- custom-tmpl/README.md --
+static content

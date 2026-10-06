@@ -45,7 +45,8 @@ tasks:
   uninstall: rm -f {{.BIN_INSTALLED}}
 
   test:
-    desc: Run all tests (unit + godog BDD scenarios)
+    desc: Run all tests (build smoke, godog BDD scenarios, testscript CLI scripts)
+    deps: [build]
     cmds:
       - go test ./...
 

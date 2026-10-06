@@ -1,0 +1,6 @@
+# The agent template generates a NATS Agent Protocol service
+exec pavona new agent triagebot -q
+
+exists triagebot/main.go
+exists triagebot/go.mod
+exists triagebot/.gitignore

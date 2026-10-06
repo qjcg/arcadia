@@ -1,0 +1,14 @@
+# The pavona template creates a starter template for generating projects
+exec pavona new pavona my-template -q
+
+exists my-template/config.cue
+grep 'my-template' my-template/config.cue
+grep 'project_name: string' my-template/config.cue
+grep 'greeting\?: string' my-template/config.cue
+
+# A generated template is not hydrated with template sources
+! exists my-template/main.go.tmpl
+
+# The generated template can itself generate a project
+exec pavona new my-template generated-project -q
+! exists generated-project/main.go
