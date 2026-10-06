@@ -5,14 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [unreleased]
+
+### Changed
+- 3e477efd - Bump deps
+- 552a4a10 - Add TODO-* docs
+- 503567d1 - Use `upx --force-overwrite`
+- 12b469e9 - Update deps
+- ab85ecd3 - consolidate repeated feature assertions
+- 8cbfd45b - support tabular feature assertions
+- c17ef480 - reuse one CLI binary across root tests
+- ced8cd35 - Make install task only-on-changed
+
 ## [v0.8.0] - 2026-09-29
 
 ### Added
-- 8dca095 - collect template values in an editable form
+- 8dca0951 - collect template values in an editable form
 
 ### Changed
-- 038a0ec - Update deps
-- 097d3f2 - describe Huh template forms
+- 038a0ecb - Update deps
+- 097d3f2c - describe Huh template forms
 
 ## [v0.7.0] - 2026-09-29
 

@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- e0df6f5f - Bump deps
+- 3e477efd - Bump deps
 - 1305b2c9 - Update deps
 - 348b5218 - keep task update from breaking the build
 - 878b20c2 - Update deps
