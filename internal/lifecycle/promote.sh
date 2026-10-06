@@ -56,4 +56,4 @@ git add -A
 git commit -m "feat($name)!: promote $src to $dst at v1.0.0"
 git tag -a "cmd/$name/v1.0.0" -m "release cmd/$name v1.0.0"
 echo "promote: promoted $src -> $dst at v1.0.0"
-echo "promote: tag created locally; push it through the repository's normal review and release workflow"
+echo "promote: preserve this commit in main history; if merge rewrites history, retarget the tag before publishing"

@@ -52,8 +52,10 @@ The task verifies the module, README, changelog, tests, and lifecycle policy; mo
 workspace membership; runs `go mod tidy`, tests, and vet; then creates
 one conventional commit and the annotated `cmd/<name>/v1.0.0` tag. Inspect the
 result before pushing the branch and tag through the repository's normal review
-and release workflow. The exp module's old tags remain in Git as historical
-versions of the old module path.
+and release workflow. Keep the tagged commit in `main`'s history (do not squash
+or rebase it); if a history-rewriting merge is unavoidable, retarget the tag to
+the merge commit before publishing it. The exp module's old tags remain in Git as
+historical versions of the old module path.
 
 The move changes the Go module path. Any consumer of `exp/<name>` must update its
 imports and dependency path; that break is expected and is why experiments carry
