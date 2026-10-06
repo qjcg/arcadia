@@ -7,11 +7,6 @@ import (
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
-func TestMain(m *testing.M) {
-	testscript.Main(m, map[string]func(){})
-	os.Exit(m.Run())
-}
-
 func TestLifecycle(t *testing.T) {
 	dir, err := os.Getwd()
 	if err != nil {
