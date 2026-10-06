@@ -9,6 +9,12 @@
 - Write clean, modular code.
 - Organize Go packages under an `internal` subdirectory unless the library code is intended for export.
 
+### Agent Artifacts
+- Store agent-facing artifacts under `agents/`:
+  - `agents/skills/`: first-party Agent Skills, one per `agents/skills/<name>/SKILL.md` directory.
+  - `agents/plugins/`: generated Agent Plugin packages (Agent Plugins spec). Never edit these trees by hand; regenerate them via `task plugins:sync`.
+- `.agents/` is gitignored, machine-local harness state. Never commit it or treat it as a source of truth.
+
 ### Git
 - Commit work incrementally in feature branches off `main`.
 - Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
@@ -19,20 +25,6 @@
 - Maintain a concise, clear, and useful `README.md`.
 
 ## Workflow
-
-### Issue Tracking
-- ALWAYS use `go tool bd` to manage tasks and implementation plans.
-- Apply these flags when creating work items for maximum clarity:
-  - `--type`: (bug|feature|task|epic|chore)
-  - `--description`: Detailed explanation of the task
-  - `--acceptance`: Clear criteria for when the task is considered done
-  - `--deps`: Comma-separated dependencies (e.g., `sv-123`)
-  - `--design`: Any critical technical design notes
-  - `--estimate`: Time estimate in minutes. Estimate time for an agent such as yourself, NOT a human.
-  - `--priority`: Priority level (P0-P4)
-  - `--labels`: Comma-separated labels
-  - `--parent`: Link to a parent epic or task for hierarchy
-- Use `bd list` or `bd ready` to check the current queue.
 
 ### Build & Development
 - Use `task` via `github.com/go-task/task/v3/cmd/task`.

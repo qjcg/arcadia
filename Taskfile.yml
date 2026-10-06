@@ -201,7 +201,7 @@ tasks:
     env:
       GOWORK: "off"
     cmds:
-      - go tool sv changelog --all --write --exclude skills
+      - go tool sv changelog --all --write --exclude agents/skills
 
   changelogs:commit:
     desc: Commit and push regenerated CHANGELOG.md files if any changed.
@@ -241,7 +241,7 @@ tasks:
         # 1. Regenerate CHANGELOG.md files (emitting the pending versions as dated
         #    entries), commit only the changelog files, and tag at the changelog
         #    commit so each tag points at a commit that contains its own entry.
-        go tool sv changelog --all --write --tag --ref main --exclude skills
+        go tool sv changelog --all --write --tag --ref main --exclude agents/skills
         # 2. Push the changelog commit and the new tags.
         git push origin main
         git push origin --tags

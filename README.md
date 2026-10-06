@@ -13,6 +13,8 @@
 
 ## Layout
 
+- [agents](agents): Agent artifacts — first-party Agent Skills and generated Agent Plugin packages.
+- [docs](docs): Documentation, including MADR-style ADRs in [docs/adrs](docs/adrs).
 - [examples](examples): Various examples.
 - [exp](exp): Experimental commands. Unstable, may change at any time.
 
