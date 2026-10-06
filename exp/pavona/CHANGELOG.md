@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- f126e79c - add guided usage course
+- af5181cb - slim godog suite to narrative specs
+- d902764a - replace build-in-TestMain CLI tests with testscript
 - 3e477efd - Bump deps
 - 552a4a10 - Add TODO-* docs
 - 503567d1 - Use `upx --force-overwrite`

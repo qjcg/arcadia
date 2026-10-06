@@ -5,10 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.50.0] - 2026-10-06
+
+### Added
+- b696060 - establish command promotion lifecycle
+
+### Changed
+- 409498f - Remove cruft
+- 89edb2d - clarify root module version line
+- f5d3a34 - clarify promotion tag ancestry
+- 9cd6b3a - Bump deps
+- 531442e - scaffold agent skills config
+- 47200d8 - drop go.mod replace directives to keep tools go-installable
+- e639f5c - narrow pin:deps to the two still-broken deps
+
 ## [v0.49.1] - 2026-10-06
 
 ### Fixed
-- c73c1b9 - exclude entire agents/ tree from sv tagging
+- c73c1b91 - exclude entire agents/ tree from sv tagging
 
 ## [v0.49.0] - 2026-10-06
 
@@ -18,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - f52a5b46 - Update deps
+- 842fc60f - Build the CLI on boa
+- 1fde9605 - Add testscript CLI tests
+- a84cc850 - Add README
 - 4ba49547 - Align ADR validation wording with ap tooling
 - 02bc57d0 - Add MADR ADR for agent artifacts layout
 - 130de803 - Move first-party skills under agents/ umbrella
@@ -39,6 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ff33d42a - Bump go version
 - 26dbee26 - Bump sv to latest release
 
+### Fixed
+- c96da051 - Print command results to stdout
+
 ## [v0.48.0] - 2026-08-21
 
 ### Added
@@ -56,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 77c222ac - Various tweaks
 - ebcbdc1d - make Taskfile the authoritative source for tasks
 - be077bae - Update deps
+- b8eceb75 - Add Taskfile
 
 ### Fixed
 - 577763fd - pin trivy's required Go toolchain and jsonv2
@@ -63,26 +84,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.47.1] - 2026-08-18
 
+### Added
+- 823f0ab1 - make language formatting conventions modular
+- 8202ca1d - lint multiple files in one invocation
+
 ### Changed
 - 08ab9327 - Bump omarchy version
 - 435d8b55 - Remove .skillo
 - a51e966b - Remove exp/skillo
 - 1766ce66 - Scan complete workspace by default
 - 53b49e27 - Update deps
+- 862a6421 - Update deps
 
 ### Fixed
 - e74bee91 - Bump disk size to allow `omarchy update`
+- 71db28d5 - use Chinese full stop in Chinese READMEs
 
 ## [v0.47.0] - 2026-08-06
 
 ### Added
+- 112e669c - add punctuation fix to --fix
+- cd588d80 - add --fix flag for auto-correcting fixable issues
 - 52d9b671 - add awesome-lint CLI tool for linting awesome lists
 
 ### Changed
+- 05e26cbe - cover Fix funnels to pass the CRAP gate
 - 0d83ccf5 - Bump action versions in sv-release
 - 7c5bb1e1 - Add lint:go-crap task
+- ac3f5326 - reduce CRAP scores for validateListItem and setupCLI
+- e5011487 - add unit tests to bring linter CRAP scores under threshold
 - 950f7964 - Update go.work.sum
 - d4208456 - Bump deps
+
+### Fixed
+- 8a3a2dc3 - only spell-check prose so --fix stops corrupting links
+- 621f4f09 - handle case-insensitive filenames and fix false positives
+- 3d8d5989 - match npx output on badge, list-item, double-link rules
 
 ## [v0.46.0] - 2026-07-19
 
@@ -400,7 +437,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - 0cedbafb - remove rsc.io/markdown replace directive
-- 6b5561fd - use debug.ReadBuildInfo for version
 - 9540e9fd - bump exp/sv to v0.2.0
 
 ### Fixed
@@ -433,6 +469,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - 35ef18a6 - Bump to latest release
 - 444cbe20 - Add .envrc with LEFTHOOK_BIN set to use via `go tool`
+- 34d30c8f - Add background overview link to README
 
 ## [v0.31.4] - 2026-04-05
 
@@ -838,15 +875,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - aa9c3cfa - Reorganize test tasks
 
+### Fixed
+- 0184efa3 - Run modernize
+
 ## [v0.8.2] - 2025-09-18
 
 ### Changed
 - ec34e745 - Bump trivy version
+- 3c813693 - Add old goreleaser file
 
 ### Fixed
 - c0b93bda - Trivy vulnerabilities via go mod updates
 
 ## [v0.8.1] - 2025-09-18
+
+### Changed
+- 76161b51 - Add dockers and nfpms to goreleaser config
+- 7e55be55 - Bump deps
+- 41b88f67 - Run gofumpt
 
 ### Fixed
 - 9c1dc1cf - Taskfile indentation
@@ -855,10 +901,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - 80a13aed - Add x/testdrive-omarchy
+- c5da519e - Add updated .goreleaser
 
 ### Changed
+- d5c2b620 - Update Taskfile
 - 2ed6d260 - Update .gitignore
 - 2b7d084e - Add tag dep to tag:push task
+- 2a543eb5 - Add to Taskfile
 
 ## [v0.7.0] - 2025-09-15
 
@@ -866,7 +915,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - b52b5c02 - Move horeb from x/ to cmd/
 
 ### Changed
+- f8f5c48c - Fix broken links
 - 1348a335 - Update go.work.sum
+- af3511bf - Add .svu.yaml
+- 2b0b4575 - Add some Taskfile commands
 - a22c2670 - Use stdlib slog
 - 98e88f6b - Add doc comment
 - 4d326044 - Run default tasks in parallel
@@ -874,6 +926,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - a9a97ca3 - Re-add goreleaser tool to fix broken deps
+- 912d49b3 - Add slog error keys
 
 ## [v0.6.1] - 2025-09-05
 
