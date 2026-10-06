@@ -8,16 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.50.0] - 2026-10-06
 
 ### Added
-- b696060 - establish command promotion lifecycle
+- b6960607 - establish command promotion lifecycle
 
 ### Changed
-- 409498f - Remove cruft
-- 89edb2d - clarify root module version line
-- f5d3a34 - clarify promotion tag ancestry
-- 9cd6b3a - Bump deps
-- 531442e - scaffold agent skills config
-- 47200d8 - drop go.mod replace directives to keep tools go-installable
-- e639f5c - narrow pin:deps to the two still-broken deps
+- 409498f8 - Remove cruft
+- 89edb2d7 - clarify root module version line
+- f5d3a34c - clarify promotion tag ancestry
+- 9cd6b3af - Bump deps
+- 531442e5 - scaffold agent skills config
+- 47200d82 - drop go.mod replace directives to keep tools go-installable
+- e639f5c8 - narrow pin:deps to the two still-broken deps
 
 ## [v0.49.1] - 2026-10-06
 

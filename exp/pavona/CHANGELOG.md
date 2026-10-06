@@ -5,20 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [v0.9.0] - 2026-10-06
+
+### Added
+- 12f095b - add selectable dark mode
+- c7542c6 - add lesson keyboard navigation
 
 ### Changed
-- f126e79c - add guided usage course
-- af5181cb - slim godog suite to narrative specs
-- d902764a - replace build-in-TestMain CLI tests with testscript
-- 3e477efd - Bump deps
-- 552a4a10 - Add TODO-* docs
-- 503567d1 - Use `upx --force-overwrite`
-- 12b469e9 - Update deps
-- ab85ecd3 - consolidate repeated feature assertions
-- 8cbfd45b - support tabular feature assertions
-- c17ef480 - reuse one CLI binary across root tests
-- ced8cd35 - Make install task only-on-changed
+- f126e79 - add guided usage course
+- af5181c - slim godog suite to narrative specs
+- d902764 - replace build-in-TestMain CLI tests with testscript
+- 3e477ef - Bump deps
+- 552a4a1 - Add TODO-* docs
+- 503567d - Use `upx --force-overwrite`
+- 12b469e - Update deps
+- ab85ecd - consolidate repeated feature assertions
+- 8cbfd45 - support tabular feature assertions
+- c17ef48 - reuse one CLI binary across root tests
+- ced8cd3 - Make install task only-on-changed
 
 ## [v0.8.0] - 2026-09-29
 

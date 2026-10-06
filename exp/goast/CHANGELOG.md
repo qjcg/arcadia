@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.1.0] - 2026-10-06
 
 ### Added
-- b696060 - establish command promotion lifecycle
+- b6960607 - establish command promotion lifecycle
 
 ### Changed
-- 844a2f6 - Rename x/ directory to exp/
+- 844a2f69 - Rename x/ directory to exp/
