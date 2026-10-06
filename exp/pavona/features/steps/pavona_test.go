@@ -2,7 +2,6 @@ package steps
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -30,11 +29,9 @@ func TestFeatures(t *testing.T) {
 				return ctx2, nil
 			})
 
-			RegisterListSteps(ctx, state)
-			RegisterNewSteps(ctx, state)
+			RegisterCommandSteps(ctx, state)
+			RegisterProjectSteps(ctx, state)
 			RegisterCustomSteps(ctx, state)
-			RegisterErrorSteps(ctx, state)
-			RegisterVersionSteps(ctx, state)
 		},
 		Options: &godog.Options{
 			Format:   "pretty",
@@ -46,8 +43,4 @@ func TestFeatures(t *testing.T) {
 	if suite.Run() != 0 {
 		t.Fatal("non-zero status from godog test suite")
 	}
-}
-
-func TestMain(m *testing.M) {
-	os.Exit(m.Run())
 }

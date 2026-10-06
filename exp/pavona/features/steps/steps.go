@@ -6,21 +6,27 @@ import (
 	"github.com/cucumber/godog"
 )
 
-func RegisterListSteps(ctx *godog.ScenarioContext, state *PavonaState) {
+// RegisterCommandSteps registers steps for invoking the pavona CLI
+// and asserting on its output.
+func RegisterCommandSteps(ctx *godog.ScenarioContext, state *PavonaState) {
 	ctx.Step(`^I run pavona with "([^"]+)"$`, func(flags string) error {
 		return state.runPavonaWithFlags(flags)
+	})
+	ctx.Step(`^I run pavona with "([^"]+)", "([^"]+)"$`, func(first, second string) error {
+		_, err := state.runPavona(first, second)
+		_ = err // we care about output and exit code, captured in state
+		return nil
 	})
 	ctx.Step(`^the output should contain "([^"]+)"$`, func(expected string) error {
 		return state.outputShouldContain(expected)
 	})
-	ctx.Step(`^the output should contain:$`, func(table *godog.Table) error {
-		return checkTable(table, state.outputShouldContain)
-	})
 }
 
-func RegisterNewSteps(ctx *godog.ScenarioContext, state *PavonaState) {
-	ctx.Step(`^I create a project from the "([^"]+)" template with name "([^"]+)"$`, func(template, name string) error {
-		return state.newTemplate(template, name, "")
+// RegisterProjectSteps registers steps for preparing output directories
+// and asserting on generated projects.
+func RegisterProjectSteps(ctx *godog.ScenarioContext, state *PavonaState) {
+	ctx.Step(`^an existing non-empty output directory$`, func() error {
+		return state.createExistingDir()
 	})
 	ctx.Step(`^I create a project from the "([^"]+)" template into that directory$`, func(template string) error {
 		return state.newTemplate(template, "test-project", state.existingDir)
@@ -28,19 +34,12 @@ func RegisterNewSteps(ctx *godog.ScenarioContext, state *PavonaState) {
 	ctx.Step(`^the output directory should contain "([^"]+)"$`, func(path string) error {
 		return state.outputDirShouldContain(path)
 	})
-	ctx.Step(`^the output directory should contain:$`, func(table *godog.Table) error {
-		return checkTable(table, state.outputDirShouldContain)
-	})
 	ctx.Step(`^"([^"]+)" should contain "([^"]+)"$`, func(filePath, expected string) error {
 		return state.fileShouldContain(filePath, expected)
 	})
-	ctx.Step(`^"([^"]+)" should contain:$`, func(filePath string, table *godog.Table) error {
-		return checkTable(table, func(expected string) error {
-			return state.fileShouldContain(filePath, expected)
-		})
-	})
 }
 
+// RegisterCustomSteps registers steps for working with custom templates.
 func RegisterCustomSteps(ctx *godog.ScenarioContext, state *PavonaState) {
 	ctx.Step(`^a custom template with config\.cue and main\.go\.tmpl$`, func() error {
 		return state.createCustomTemplate()
@@ -50,47 +49,12 @@ func RegisterCustomSteps(ctx *godog.ScenarioContext, state *PavonaState) {
 	})
 }
 
-func RegisterErrorSteps(ctx *godog.ScenarioContext, state *PavonaState) {
-	ctx.Step(`^I run pavona with "([^"]+)", "([^"]+)"$`, func(flag, value string) error {
-		_, err := state.runPavona(flag, value)
-		_ = err // we care about exit code, captured in state
-		return nil
-	})
-	ctx.Step(`^an existing non-empty output directory$`, func() error {
-		return state.createExistingDir()
-	})
-	ctx.Step(`^the output should contain "([^"]+)"$`, func(expected string) error {
-		return state.outputShouldContain(expected)
-	})
-}
-
-func RegisterVersionSteps(ctx *godog.ScenarioContext, state *PavonaState) {
-	ctx.Step(`^I run pavona with "([^"]+)"$`, func(flags string) error {
-		return state.runPavonaWithFlags(flags)
-	})
-	ctx.Step(`^the output should contain "([^"]+)"$`, func(expected string) error {
-		return state.outputShouldContain(expected)
-	})
-}
-
 // runPavonaWithFlags splits a space-separated flag string and runs pavona.
 func (s *PavonaState) runPavonaWithFlags(flags string) error {
 	// Parse flags respecting quoted strings
 	args := parseArgs(flags)
 	_, err := s.runPavona(args...)
 	return err
-}
-
-func checkTable(table *godog.Table, check func(string) error) error {
-	for _, row := range table.Rows {
-		if len(row.Cells) != 1 {
-			return errf("expected a one-column table, got %d columns", len(row.Cells))
-		}
-		if err := check(row.Cells[0].Value); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // parseArgs splits a string into arguments, respecting double-quoted tokens.
@@ -141,13 +105,9 @@ func (s *PavonaState) fileShouldContain(filePath, expected string) error {
 	return containsStr(content, expected)
 }
 
-// newTemplate runs pavona to create a project from a built-in template with quiet mode.
+// newTemplate runs pavona to create a project from a built-in template
+// into outputDir with quiet mode.
 func (s *PavonaState) newTemplate(template, name, outputDir string) error {
-	if outputDir == "" {
-		s.outputDir = filepath.Join(s.tmpDir, name)
-		_, err := s.runPavona("new", template, name, "-q")
-		return err
-	}
 	s.outputDir = outputDir
 	_, err := s.runPavona("new", template, "-o", outputDir, "-n", name, "-q")
 	return err
