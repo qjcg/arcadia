@@ -328,6 +328,7 @@ require (
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20260916144827-6e6d8ebdba95 // indirect
 	github.com/psanford/sqlite3vfs v0.0.0-20260519004904-f9180fa2acc9 // indirect
 	github.com/puzpuzpuz/xsync/v4 v4.5.0 // indirect
+	github.com/qjcg/arcadia/cmd/ap v0.0.0
 	github.com/qjcg/arcadia/cmd/sv v1.3.1 // indirect
 	github.com/rakyll/hey v0.1.5 // indirect
 	github.com/redis/go-redis/extra/redisotel/v9 v9.5.3 // indirect
@@ -485,6 +486,7 @@ tool (
 	github.com/evilmartians/lefthook/v2
 	github.com/go-task/task/v3/cmd/task
 	github.com/padiazg/go-crap
+	github.com/qjcg/arcadia/cmd/ap
 	github.com/qjcg/arcadia/cmd/sv
 	github.com/rakyll/hey
 	github.com/rogerwelin/cassowary/cmd/cassowary
@@ -504,3 +506,5 @@ retract (
 	v1.0.1
 	v1.0.0
 )
+
+replace github.com/qjcg/arcadia/cmd/ap => ./cmd/ap

@@ -162,6 +162,22 @@ tasks:
 
 
   ######################################################################
+  # agents (skills and plugin packages; see docs/adrs/0001-*)
+
+  skills:validate:
+    desc: Validate first-party agent skills against the Agent Skills spec.
+    cmd: go tool ap validate agents/skills
+
+  plugins:sync:
+    desc: Regenerate Agent Plugin packages under agents/plugins from their sync specs.
+    cmd: go tool ap sync
+
+  plugins:validate:
+    desc: Validate Agent Plugin packages against the Agent Plugins spec.
+    cmd: go tool ap validate agents/plugins
+
+
+  ######################################################################
   # update
 
   update:

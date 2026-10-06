@@ -2,6 +2,7 @@ go 1.27.1
 
 use (
 	.
+	./cmd/ap
 	./cmd/awesome-lint
 	./cmd/horeb
 	./cmd/sv
