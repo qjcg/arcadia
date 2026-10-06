@@ -1,0 +1,55 @@
+# Build an upstream git repo with two skills and a root LICENSE.
+exec git init upstream
+cd upstream
+exec git config user.email test@example.com
+exec git config user.name Test
+mkdir skills/engineering/demo
+mkdir skills/productivity/other
+cp ../skill skills/engineering/demo/SKILL.md
+cp ../skill skills/productivity/other/SKILL.md
+cp ../license LICENSE
+exec git add .
+exec git commit -m initial
+exec git tag v1.0.0
+cd ..
+
+# Sync a plugin package from the pinned upstream ref.
+mkdir specs
+cp spec.yaml specs/demo-plugin.yaml
+exec ap sync --specs specs --out out
+stdout 'wrote out/demo-plugin'
+
+# Only the promoted skill is copied; unlisted skills stay behind.
+exists out/demo-plugin/skills/demo/SKILL.md
+! exists out/demo-plugin/skills/other
+
+# copy-root files land at the package root.
+exists out/demo-plugin/LICENSE
+
+# The generated package validates.
+exec ap validate out
+stdout 'ok'
+
+-- skill --
+---
+name: demo
+description: A demo skill.
+---
+# Demo
+-- license --
+license text
+-- spec.yaml --
+name: demo-plugin
+version: "1.0.0"
+description: A demo plugin.
+license: MIT
+author:
+  name: Test
+source:
+  type: git
+  repo: upstream
+  ref: v1.0.0
+  skills:
+    - skills/engineering/demo
+  copy-root:
+    - LICENSE

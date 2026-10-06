@@ -1,0 +1,61 @@
+# Sync a plugin package from a local source tree.
+mkdir specs
+cp spec.yaml specs/demo-plugin.yaml
+exec ap sync --specs specs --out out
+stdout 'wrote out/demo-plugin'
+
+# The manifest is generated from the spec.
+grep '"name": "demo-plugin"' out/demo-plugin/plugin.json
+grep '"version": "0.1.0"' out/demo-plugin/plugin.json
+grep '"\$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"' out/demo-plugin/plugin.json
+
+# copy-root files land at the package root.
+exists out/demo-plugin/LICENSE
+
+# Frontmatter is normalized into Agent Skills form: non-standard fields move
+# into metadata as strings, nested maps flatten to dot-separated keys.
+grep 'metadata:' out/demo-plugin/skills/demo/SKILL.md
+grep 'disable-model-invocation: "true"' out/demo-plugin/skills/demo/SKILL.md
+grep 'argument-hint:' out/demo-plugin/skills/demo/SKILL.md
+grep 'credits.skill: show-me' out/demo-plugin/skills/demo/SKILL.md
+! grep 'disable-model-invocation: true$' out/demo-plugin/skills/demo/SKILL.md
+
+# The Markdown body is preserved byte for byte.
+grep '^# Demo$' out/demo-plugin/skills/demo/SKILL.md
+
+# Regenerating is deterministic.
+cp out/demo-plugin/plugin.json saved.json
+exec ap sync --specs specs --out out
+cmp saved.json out/demo-plugin/plugin.json
+
+# The generated package validates.
+exec ap validate out
+stdout 'ok'
+
+-- source/demo/SKILL.md --
+---
+name: demo
+description: A demo skill.
+argument-hint: "What next?"
+disable-model-invocation: true
+metadata:
+  credits:
+    skill: show-me
+---
+# Demo
+-- source/LICENSE --
+license text
+-- spec.yaml --
+name: demo-plugin
+version: "0.1.0"
+description: A demo plugin.
+license: MIT
+author:
+  name: Test
+source:
+  type: local
+  path: source
+  skills:
+    - demo
+  copy-root:
+    - LICENSE

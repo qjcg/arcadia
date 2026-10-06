@@ -1,0 +1,73 @@
+# A minimal valid plugin package passes.
+exec ap validate pkg
+stdout 'ok'
+
+# Unknown top-level manifest fields and a non-canonical $schema are rejected.
+cp badmanifest pkg/plugin.json
+! exec ap validate pkg
+stdout 'unknown field "skills"'
+stdout '\$schema must be'
+stdout 'author: unknown field'
+
+# A Markdown link escaping the plugin root is rejected (Agent Plugins §4.1).
+cp goodmanifest pkg/plugin.json
+cp escapinglink pkg/README.md
+! exec ap validate pkg
+stdout 'escapes the plugin root'
+
+# Symlinks are not allowed anywhere in the package.
+cp linkREADME pkg/README.md
+symlink pkg/LICENSE-LINK -> LICENSE
+! exec ap validate pkg
+stdout 'symlinks are not allowed'
+
+# Dispatch: a directory of package roots is validated package by package.
+rm pkg/LICENSE-LINK
+exec ap validate .
+stdout 'ok'
+
+-- goodmanifest --
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "demo-plugin",
+  "version": "1.0.0",
+  "description": "A demo plugin.",
+  "author": {
+    "name": "Someone",
+    "url": "https://example.com"
+  },
+  "license": "MIT"
+}
+-- pkg/plugin.json --
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "demo-plugin",
+  "version": "1.0.0",
+  "description": "A demo plugin.",
+  "author": {
+    "name": "Someone",
+    "url": "https://example.com"
+  },
+  "license": "MIT"
+}
+-- pkg/README.md --
+See [the skill](skills/demo/SKILL.md).
+-- linkREADME --
+See [the skill](skills/demo/SKILL.md).
+-- escapinglink --
+See [the docs](../docs).
+-- badmanifest --
+{
+  "$schema": "https://example.com/plugin.schema.json",
+  "name": "demo-plugin",
+  "skills": ["demo"],
+  "author": {
+    "team": "x"
+  }
+}
+-- pkg/skills/demo/SKILL.md --
+---
+name: demo
+description: A demo skill.
+---
+# Demo

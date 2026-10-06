@@ -1,0 +1,69 @@
+# A valid bare skills tree passes.
+exec ap validate skills
+stdout 'ok'
+
+# A skill whose name does not match its directory is rejected.
+cp mismatched skills/broken/SKILL.md
+! exec ap validate skills
+stdout 'must match directory name'
+
+# Non-standard frontmatter fields are rejected (use metadata).
+cp nonstandard skills/broken/SKILL.md
+! exec ap validate skills
+stdout 'unknown frontmatter field'
+
+# Skill names must follow the Agent Skills name rules.
+cp badname skills/broken/SKILL.md
+! exec ap validate skills
+stdout 'name:'
+
+# Metadata values must be strings.
+cp nestedmeta skills/broken/SKILL.md
+! exec ap validate skills
+stdout 'metadata.credits must be a string'
+
+# A path with no skills is an error.
+mkdir empty
+! exec ap validate empty
+stderr 'no plugin.json and no skills found'
+
+-- skills/demo/SKILL.md --
+---
+name: demo
+description: A demo skill.
+---
+# Demo
+-- skills/broken/SKILL.md --
+---
+name: broken
+description: A broken skill.
+---
+# Broken
+-- mismatched --
+---
+name: other
+description: A broken skill.
+---
+# Broken
+-- nonstandard --
+---
+name: broken
+description: A broken skill.
+disable-model-invocation: true
+---
+# Broken
+-- badname --
+---
+name: -broken-
+description: A broken skill.
+---
+# Broken
+-- nestedmeta --
+---
+name: broken
+description: A broken skill.
+metadata:
+  credits:
+    author: someone
+---
+# Broken
