@@ -217,7 +217,7 @@ tasks:
     env:
       GOWORK: "off"
     cmds:
-      - go tool sv changelog --all --write --exclude agents/skills
+      - go tool sv changelog --all --write --exclude agents
 
   changelogs:commit:
     desc: Commit and push regenerated CHANGELOG.md files if any changed.
@@ -246,7 +246,7 @@ tasks:
       GOWORK: "off"
     vars:
       NEW_TAGS:
-        sh: go tool sv next --all | grep -E '^(.*/)?v[0-9]+\.[0-9]+\.[0-9]+$' | tr '\n' ' ' || true
+        sh: go tool sv next --all --exclude agents | grep -E '^(.*/)?v[0-9]+\.[0-9]+\.[0-9]+$' | tr '\n' ' ' || true
     cmds:
       - |
         set -e
@@ -257,7 +257,7 @@ tasks:
         # 1. Regenerate CHANGELOG.md files (emitting the pending versions as dated
         #    entries), commit only the changelog files, and tag at the changelog
         #    commit so each tag points at a commit that contains its own entry.
-        go tool sv changelog --all --write --tag --ref main --exclude agents/skills
+        go tool sv changelog --all --write --tag --ref main --exclude agents
         # 2. Push the changelog commit and the new tags.
         git push origin main
         git push origin --tags
