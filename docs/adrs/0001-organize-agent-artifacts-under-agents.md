@@ -99,5 +99,6 @@ cost is near zero.
 * `mcp.json` is omitted when a package has no MCP servers; a missing fixed component
   location is valid.
 * Validation: `plugin.json` against `schemas/1.0.0/plugin.schema.json`, every skill
-  through `skills-ref validate`, and every plugin-relative path checked to resolve
-  within the plugin root.
+  checked against the Agent Skills spec (`task skills:validate` /
+  `task plugins:validate`, as `skills-ref validate` does), and every
+  plugin-relative path checked to resolve within the plugin root.
