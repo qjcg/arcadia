@@ -5,34 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.49.1] - 2026-10-06
+
+### Fixed
+- c73c1b9 - exclude entire agents/ tree from sv tagging
+
 ## [v0.49.0] - 2026-10-06
 
 ### Added
-- ca69e62 - Add mattpocock-skills and arcadia-skills plugin packages
-- dde3dfa - Add sync and validate tool for Agent Plugin packages
+- ca69e622 - Add mattpocock-skills and arcadia-skills plugin packages
+- dde3dfaa - Add sync and validate tool for Agent Plugin packages
 
 ### Changed
-- f52a5b4 - Update deps
-- 4ba4954 - Align ADR validation wording with ap tooling
-- 02bc57d - Add MADR ADR for agent artifacts layout
-- 130de80 - Move first-party skills under agents/ umbrella
-- e0df6f5 - Bump deps
-- 3e477ef - Bump deps
-- e19d524 - Bump version
-- 12b469e - Update deps
-- 038a0ec - Update deps
-- d5611a9 - establish the design system project home
-- bf3c0f3 - add Lumen design system specification
-- 090a07d - Update go.work.sum
-- 1305b2c - Update deps
-- 2733f2b - Bump deps
-- 4e0fbdc - Bump golangci-lint version
-- d1fe8f3 - Add lint:betterleaks task
-- 348b521 - keep task update from breaking the build
-- 4ca529e - Tweak update task
-- ddad7b6 - Bump omarchy version
-- ff33d42 - Bump go version
-- 26dbee2 - Bump sv to latest release
+- f52a5b46 - Update deps
+- 4ba49547 - Align ADR validation wording with ap tooling
+- 02bc57d0 - Add MADR ADR for agent artifacts layout
+- 130de803 - Move first-party skills under agents/ umbrella
+- e0df6f5f - Bump deps
+- 3e477efd - Bump deps
+- e19d5245 - Bump version
+- 12b469e9 - Update deps
+- 038a0ecb - Update deps
+- d5611a9a - establish the design system project home
+- bf3c0f33 - add Lumen design system specification
+- 090a07de - Update go.work.sum
+- 1305b2c9 - Update deps
+- 2733f2b3 - Bump deps
+- 4e0fbdce - Bump golangci-lint version
+- d1fe8f38 - Add lint:betterleaks task
+- 348b5218 - keep task update from breaking the build
+- 4ca529e3 - Tweak update task
+- ddad7b68 - Bump omarchy version
+- ff33d42a - Bump go version
+- 26dbee26 - Bump sv to latest release
 
 ## [v0.48.0] - 2026-08-21
 

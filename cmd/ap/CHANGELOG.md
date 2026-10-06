@@ -8,13 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.1.0] - 2026-10-06
 
 ### Added
-- dde3dfa - Add sync and validate tool for Agent Plugin packages
+- dde3dfaa - Add sync and validate tool for Agent Plugin packages
 
 ### Changed
-- f52a5b4 - Update deps
-- 842fc60 - Build the CLI on boa
-- 1fde960 - Add testscript CLI tests
-- a84cc85 - Add README
+- f52a5b46 - Update deps
+- 842fc60f - Build the CLI on boa
+- 1fde9605 - Add testscript CLI tests
+- a84cc850 - Add README
 
 ### Fixed
-- c96da05 - Print command results to stdout
+- c96da051 - Print command results to stdout
