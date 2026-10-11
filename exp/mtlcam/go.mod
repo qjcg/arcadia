@@ -10,5 +10,5 @@ require (
 require (
 	github.com/gosuri/uilive v0.0.4 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 )
