@@ -88,6 +88,12 @@ type model struct {
 	calculator *search.InterestCalculator
 	// Engine seam running the active pilot over the view
 	engine pilot.Engine
+	// The registered pilot currently driving the view
+	pilotID pilot.ID
+	// The Auto-zoom pilot instance the keys and URL parameters steer
+	autozoom *pilot.AutoZoom
+	// Seeker backing the Auto-zoom pilot's interesting-region search
+	seek *autoZoomSeeker
 	// Animation and UI state
 	animationState animation.AnimationState
 	// Rendering engine with caching and parallel computation
@@ -102,14 +108,62 @@ type model struct {
 	bookmarksLoadedOk bool                   // Whether bookmarks were successfully loaded from file
 }
 
+// autoZoomSeeker adapts the TUI's interest calculator to the
+// Auto-zoom pilot's Seeker seam. Julia parameters live outside the
+// pilot's View yet shape Julia regions, so the tick loop refreshes
+// them before each step.
+type autoZoomSeeker struct {
+	calc    *search.InterestCalculator
+	juliaCr float64
+	juliaCi float64
+}
+
+func (s *autoZoomSeeker) FindInterestingPoint(v pilot.View) (float64, float64) {
+	return s.calc.FindInterestingPoint(search.DescentSearchPasses(), s.configFor(v))
+}
+
+func (s *autoZoomSeeker) IsViewUniform(v pilot.View) bool {
+	return s.calc.IsViewUniform(s.configFor(v))
+}
+
+func (s *autoZoomSeeker) configFor(v pilot.View) persistence.Config {
+	return persistence.Config{
+		FractalType: v.FractalType,
+		CenterX:     v.CenterX,
+		CenterY:     v.CenterY,
+		Zoom:        v.Zoom,
+		MaxIter:     v.MaxIter,
+		JuliaCr:     s.juliaCr,
+		JuliaCi:     s.juliaCi,
+	}
+}
+
+// autoZoomPilot returns the Auto-zoom pilot instance, creating it on
+// first use. Steering mutates the receiver, so call it on the model
+// copy an Update returns (display code must use autoZoomDisplay).
+func (m *model) autoZoomPilot() *pilot.AutoZoom {
+	if m.autozoom == nil {
+		if m.seek == nil {
+			m.seek = &autoZoomSeeker{calc: m.calculator}
+		}
+		m.autozoom = pilot.NewAutoZoom(m.seek)
+	}
+	return m.autozoom
+}
+
+// autoZoomDisplay returns the steered Auto-zoom parameters and
+// journey state for display. Display reads never create the pilot.
+func (m model) autoZoomDisplay() (speed float64, direction pilot.Direction, panning bool) {
+	if m.autozoom == nil {
+		return pilot.DefaultSpeed, pilot.DirectionIn, false
+	}
+	return m.autozoom.Speed(), m.autozoom.Direction(), m.autozoom.Panning()
+}
+
 // Init initializes the Bubble Tea model
 func (m model) Init() tea.Cmd {
-	// If auto-zoom is enabled (e.g., from URL), start the tick loop
-	if m.animationState.AutoPilot.Enabled {
-		return tickCmd()
-	}
-	// If vantage mode is enabled, start the tick loop
-	if m.animationState.Vantage.Enabled {
+	// The journey starts from a URL, a flag, or a keypress
+	if m.activePilot() != pilot.ManualID {
 		return tickCmd()
 	}
 	return nil
@@ -122,7 +176,7 @@ func (m *model) addBookmark(name string) error {
 		m.bookmarks = loaded
 	}
 
-	url := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
+	url := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.autoZoomPilot().Speed(), m.autoZoomPilot().Direction(), m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
 
 	bookmark := persistence.Bookmark{
 		Name: name,
@@ -134,34 +188,34 @@ func (m *model) addBookmark(name string) error {
 }
 
 // activePilot returns the registered pilot currently driving the
-// view.
+// view. The Vantage tour still runs as its ad-hoc mode until the
+// Vantage pilot ticket, so its flag names the active pilot.
 func (m model) activePilot() pilot.ID {
-	switch {
-	case m.animationState.Vantage.Enabled:
+	if m.animationState.Vantage.Enabled {
 		return pilot.VantageID
-	case m.animationState.AutoPilot.Enabled:
-		return pilot.AutoZoomID
-	default:
+	}
+	if m.pilotID == "" {
 		return pilot.ManualID
 	}
+	return m.pilotID
 }
 
-// selectPilot makes the given registered pilot the one driving the
-// view. Auto-zoom and vantage still run as their ad-hoc modes here;
-// they become pilots in their own tickets.
+// selectPilot makes id the one active pilot, replacing whatever was
+// active. The engine runs the pilot's motion; the Vantage tour still
+// runs as its ad-hoc mode until the Vantage pilot ticket.
 func (m *model) selectPilot(id pilot.ID) {
-	m.animationState.AutoPilot.Enabled = false
+	m.pilotID = id
 	m.animationState.Vantage.Enabled = false
 	m.animationState.Vantage.Initialized = false
 
 	switch id {
 	case pilot.AutoZoomID:
-		m.animationState.AutoPilot.Enabled = true
-		m.animationState.AutoPilot.ZoomDirection = 1
+		m.engine.Activate(m.autoZoomPilot())
 		if m.animationState.AutoPilot.BaseMaxIter == 0 {
 			m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
 		}
 	case pilot.VantageID:
+		m.engine.Activate(pilot.Manual())
 		m.animationState.Vantage.Enabled = true
 		if m.animationState.Vantage.SceneDuration == 0 {
 			m.animationState.Vantage.SceneDuration = animation.DefaultVantageSceneDuration
@@ -170,6 +224,8 @@ func (m *model) selectPilot(id pilot.ID) {
 		if m.animationState.AutoPilot.BaseMaxIter == 0 {
 			m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
 		}
+	default:
+		m.engine.Activate(pilot.Manual())
 	}
 }
 
@@ -185,6 +241,8 @@ func applyParamsToModel(m *model, params persistence.FractalURLParams) {
 	m.config.JuliaCi = params.JuliaCi
 
 	m.selectPilot(params.Pilot)
+	m.autoZoomPilot().SetSpeed(params.PilotSpeed)
+	m.autoZoomPilot().SetDirection(params.PilotDirection)
 
 	m.animationState.Color.DynamicColor = params.DynamicColorEnabled
 	m.animationState.Transition.Mode = persistence.StringToTransitionMode(params.Transition)
@@ -435,23 +493,10 @@ func (m model) getEffectiveSearchDelta() float64 {
 	return delta
 }
 
-// isViewUniform checks if the current view is mostly uniform (boring)
-// Delegates to the interest calculator
-func (m model) isViewUniform() bool {
-	return m.calculator.IsViewUniform(m.config)
-}
-
 // findInterestingPoint searches for a point with high variation/detail
 // Delegates to the interest calculator
 func (m model) findInterestingPoint() (float64, float64) {
 	return m.calculator.FindInterestingPoint(search.DefaultSearchPasses(), m.config)
-}
-
-// findDescentTarget searches for a nearby interesting point for auto-pilot descent mode.
-// This uses a focused search radius to encourage zooming into local details rather
-// than jumping to distant features, creating a smoother "descending" experience.
-func (m model) findDescentTarget() (float64, float64) {
-	return m.calculator.FindInterestingPoint(search.DescentSearchPasses(), m.config)
 }
 
 // view returns the current view state for the pilot engine seam.
@@ -493,15 +538,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.applyRandom()
 				m.animationState.Vantage.SceneTimer = m.animationState.Vantage.SceneDuration
 				m.animationState.Vantage.Initialized = true
-				// Enable slow panning by setting up a fake autopilot target
+				// Enable slow panning by setting up a vantage target
 				newX, newY := m.findInterestingPoint()
-				m.animationState.AutoPilot.TargetX = newX
-				m.animationState.AutoPilot.TargetY = newY
-				m.animationState.AutoPilot.HasTarget = true
-				m.animationState.AutoPilot.PanProgress = 0.0
-				// Ensure dynamic color and no auto-zoom
+				m.animationState.Vantage.TargetX = newX
+				m.animationState.Vantage.TargetY = newY
+				m.animationState.Vantage.HasTarget = true
+				m.animationState.Vantage.PanProgress = 0.0
 				m.animationState.Color.DynamicColor = true
-				m.animationState.AutoPilot.Enabled = false
 				return m, tickCmd()
 			}
 
@@ -509,10 +552,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.animationState.Vantage.SceneTimer--
 
 			// Apply slow pan if we have a target
-			if m.animationState.AutoPilot.HasTarget && m.animationState.AutoPilot.PanProgress < 1.0 {
+			if m.animationState.Vantage.HasTarget && m.animationState.Vantage.PanProgress < 1.0 {
 				// Move toward target gradually (slower than autopilot)
-				deltaX := m.animationState.AutoPilot.TargetX - m.config.CenterX
-				deltaY := m.animationState.AutoPilot.TargetY - m.config.CenterY
+				deltaX := m.animationState.Vantage.TargetX - m.config.CenterX
+				deltaY := m.animationState.Vantage.TargetY - m.config.CenterY
 
 				m.config.CenterX += deltaX * animation.VantagePanRate
 				m.config.CenterY += deltaY * animation.VantagePanRate
@@ -523,9 +566,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				remainingDist := deltaX*deltaX + deltaY*deltaY
 				if remainingDist < precisionThreshold {
-					m.animationState.AutoPilot.PanProgress = 1.0
+					m.animationState.Vantage.PanProgress = 1.0
 				} else {
-					m.animationState.AutoPilot.PanProgress += 0.01 // Also slower progress update
+					m.animationState.Vantage.PanProgress += 0.01 // Also slower progress update
 				}
 			}
 
@@ -543,189 +586,115 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.animationState.Vantage.SceneTimer = m.animationState.Vantage.SceneDuration
 				// Find new interesting point to pan to
 				newX, newY := m.findInterestingPoint()
-				m.animationState.AutoPilot.TargetX = newX
-				m.animationState.AutoPilot.TargetY = newY
-				m.animationState.AutoPilot.HasTarget = true
-				m.animationState.AutoPilot.PanProgress = 0.0
+				m.animationState.Vantage.TargetX = newX
+				m.animationState.Vantage.TargetY = newY
+				m.animationState.Vantage.HasTarget = true
+				m.animationState.Vantage.PanProgress = 0.0
 			}
 
 			// Continue the animation
 			return m, tickCmd()
 		}
 
-		// Handle auto-zoom animation tick with intelligent panning
-		if m.animationState.AutoPilot.Enabled {
+		if m.activePilot() == pilot.AutoZoomID {
 			// Update iteration count adaptively based on zoom level
 			m.config.MaxIter = m.calculateAdaptiveMaxIter()
+		}
 
-			// Check if we need a new target
-			// Only switch targets when:
-			// 1. No target exists yet, OR
-			// 2. We've fully reached the current target, OR
-			// 3. The view has become completely uniform (boring) AND we've made significant progress
-			// This prevents jerky mid-pan jumps and encourages descent into local details
-			shouldFindNewTarget := false
-			if !m.animationState.AutoPilot.HasTarget {
-				shouldFindNewTarget = true
-			} else if m.animationState.AutoPilot.PanProgress >= 1.0 {
-				shouldFindNewTarget = true
-			} else if m.animationState.AutoPilot.PanProgress > 0.8 && m.isViewUniform() {
-				// Only jump if we're mostly done AND the view is boring
-				shouldFindNewTarget = true
-			}
-
-			if shouldFindNewTarget {
-				// Find a new interesting point using descent-focused search
-				// This searches close to center, encouraging zooming into local details
-				newX, newY := m.findDescentTarget()
-				m.animationState.AutoPilot.TargetX = newX
-				m.animationState.AutoPilot.TargetY = newY
-				m.animationState.AutoPilot.HasTarget = true
-				m.animationState.AutoPilot.PanProgress = 0.0
-			}
-
-			// Smooth pan toward target
-			if m.animationState.AutoPilot.HasTarget && m.animationState.AutoPilot.PanProgress < 1.0 {
-				// Move toward target gradually
-				// Just move a fraction of the remaining distance each frame
-				deltaX := m.animationState.AutoPilot.TargetX - m.config.CenterX
-				deltaY := m.animationState.AutoPilot.TargetY - m.config.CenterY
-
-				// Move a fraction of the remaining distance per tick (smooth exponential approach)
-				m.config.CenterX += deltaX * animation.AutoPilotPanRate
-				m.config.CenterY += deltaY * animation.AutoPilotPanRate
-
-				// Update progress based on distance remaining
-				// Use precision-aware threshold
-				effectiveDelta := m.getEffectiveSearchDelta()
-				precisionThreshold := effectiveDelta * effectiveDelta * 0.01
-
-				remainingDist := deltaX*deltaX + deltaY*deltaY
-				if remainingDist < precisionThreshold {
-					// Close enough, mark as reached
-					m.animationState.AutoPilot.PanProgress = 1.0
-				} else {
-					// Progress increases faster at first, slower as we approach
-					m.animationState.AutoPilot.PanProgress += 0.02
-				}
-			}
-
-			// Zoom based on direction (speed configurable via zoomSpeed)
-			// Default: 1.05x per tick, ~60fps = 1.05^20 ≈ 2.65x per second
-			if m.animationState.AutoPilot.ZoomDirection > 0 {
-				// Zoom in
-				m.config.Zoom *= m.animationState.AutoPilot.ZoomSpeed
-				// Check if we hit maximum zoom and should trigger transition
-				if m.config.Zoom > 1e15 {
-					m.config.Zoom = 1e15
-					// Trigger transition if enabled
-					if m.animationState.Transition.Mode > 0 && m.animationState.Transition.Progress == 0.0 {
-						m.startFractalTransition()
-					}
-				}
-			} else {
-				// Zoom out
-				m.config.Zoom /= m.animationState.AutoPilot.ZoomSpeed
-				// Minimum zoom limit
-				if m.config.Zoom < 0.1 {
-					m.config.Zoom = 0.1
-					// Trigger transition if enabled
-					if m.animationState.Transition.Mode > 0 && m.animationState.Transition.Progress == 0.0 {
-						m.startFractalTransition()
-					}
-				}
-			}
-
-			// Handle transition animations using the new transitions package
-			if m.animationState.Transition.Progress > 0.0 {
-				var completed bool
-				var message string
-
-				// Use the appropriate transition based on mode
-				switch m.animationState.Transition.Mode {
-				case TransitionFade:
-					if m.animationState.Transition.FadeTransition == nil {
-						m.animationState.Transition.FadeTransition = transition.NewFadeTransition(allFractalTypes)
-						m.animationState.Transition.FadeTransition.Start(m.config.FractalType)
-					}
-					completed, message = m.animationState.Transition.FadeTransition.Update()
-					if completed {
-						m.config.FractalType = m.animationState.Transition.FadeTransition.Target
-						m.resetToDefaultState(m.animationState.Transition.FadeTransition.Target)
-						m.animationState.Transition.Progress = 0.0
-						m.animationState.Messages.RandomMsg = message
-					}
-				case TransitionZoomOutIn:
-					if m.animationState.Transition.ZoomOutInTransition == nil {
-						m.animationState.Transition.ZoomOutInTransition = transition.NewZoomOutInTransition(allFractalTypes)
-						m.animationState.Transition.ZoomOutInTransition.Start(m.config.FractalType)
-					}
-					completed, zoomLevel, message := m.animationState.Transition.ZoomOutInTransition.Update()
-					m.config.Zoom = zoomLevel
-					if completed {
-						m.config.FractalType = m.animationState.Transition.ZoomOutInTransition.Target
-						m.resetToDefaultState(m.animationState.Transition.ZoomOutInTransition.Target)
-						m.animationState.Transition.Progress = 0.0
-						m.animationState.Messages.RandomMsg = message
-					}
-				case TransitionRotate:
-					if m.animationState.Transition.RotateTransition == nil {
-						m.animationState.Transition.RotateTransition = transition.NewRotateTransition(allFractalTypes)
-						m.animationState.Transition.RotateTransition.Start(m.config.FractalType)
-					}
-					completed, centerX, centerY, message := m.animationState.Transition.RotateTransition.Update()
-					m.config.CenterX = centerX
-					m.config.CenterY = centerY
-					if completed {
-						m.config.FractalType = m.animationState.Transition.RotateTransition.Target
-						m.resetToDefaultState(m.animationState.Transition.RotateTransition.Target)
-						m.animationState.Transition.Progress = 0.0
-						m.animationState.Messages.RandomMsg = message
-					}
-				case TransitionBreakthrough:
-					if m.animationState.Transition.BreakthroughTransition == nil {
-						m.animationState.Transition.BreakthroughTransition = transition.NewBreakthroughTransition(allFractalTypes)
-						m.animationState.Transition.BreakthroughTransition.Start(m.config.FractalType)
-					}
-					completed, centerX, centerY, zoomLevel, message := m.animationState.Transition.BreakthroughTransition.Update()
-					m.config.CenterX = centerX
-					m.config.CenterY = centerY
-					m.config.Zoom = zoomLevel
-					if completed {
-						m.config.FractalType = m.animationState.Transition.BreakthroughTransition.Target
-						m.resetToDefaultState(m.animationState.Transition.BreakthroughTransition.Target)
-						m.animationState.Transition.Progress = 0.0
-						m.animationState.Messages.RandomMsg = message
-					}
-				}
-			}
-
-			// Update dynamic color hue shift
-			if m.animationState.Color.DynamicColor {
-				m.animationState.Color.HueShift += 0.5 // Shift 0.5 degrees per tick (30 degrees/sec at 60fps, full cycle every 12 seconds)
-				if m.animationState.Color.HueShift >= 360.0 {
-					m.animationState.Color.HueShift -= 360.0
-				}
-			}
-
-			// Continue the animation by sending another tick
-			return m, tickCmd()
+		// Julia parameters live outside the pilot's View yet shape the
+		// regions it seeks; refresh the seeker's copy before stepping.
+		if m.seek != nil {
+			m.seek.juliaCr, m.seek.juliaCi = m.config.JuliaCr, m.config.JuliaCi
 		}
 
 		// The active pilot evolves the view through the engine seam,
-		// boundary rules included. Only the Manual pilot drives here so
-		// far; the ad-hoc auto-zoom and vantage blocks above become
-		// pilots in their own tickets. What to do at a boundary arrival
-		// beyond the clamp lands with transitions.
-		next, _ := m.engine.Tick(m.view())
+		// boundary rules included. Actively arriving at a boundary
+		// starts the arrival transition when one is configured.
+		next, arrival := m.engine.Tick(m.view())
 		m.applyView(next)
+		if arrival != nil && m.animationState.Transition.Mode > 0 && m.animationState.Transition.Progress == 0.0 {
+			m.startFractalTransition()
+		}
 
-		// Update dynamic color even when not auto-zooming (for manual navigation)
+		// Handle transition animations using the new transitions package
+		if m.animationState.Transition.Progress > 0.0 {
+			var completed bool
+			var message string
+
+			// Use the appropriate transition based on mode
+			switch m.animationState.Transition.Mode {
+			case TransitionFade:
+				if m.animationState.Transition.FadeTransition == nil {
+					m.animationState.Transition.FadeTransition = transition.NewFadeTransition(allFractalTypes)
+					m.animationState.Transition.FadeTransition.Start(m.config.FractalType)
+				}
+				completed, message = m.animationState.Transition.FadeTransition.Update()
+				if completed {
+					m.config.FractalType = m.animationState.Transition.FadeTransition.Target
+					m.resetToDefaultState(m.animationState.Transition.FadeTransition.Target)
+					m.animationState.Transition.Progress = 0.0
+					m.animationState.Messages.RandomMsg = message
+				}
+			case TransitionZoomOutIn:
+				if m.animationState.Transition.ZoomOutInTransition == nil {
+					m.animationState.Transition.ZoomOutInTransition = transition.NewZoomOutInTransition(allFractalTypes)
+					m.animationState.Transition.ZoomOutInTransition.Start(m.config.FractalType)
+				}
+				completed, zoomLevel, message := m.animationState.Transition.ZoomOutInTransition.Update()
+				m.config.Zoom = zoomLevel
+				if completed {
+					m.config.FractalType = m.animationState.Transition.ZoomOutInTransition.Target
+					m.resetToDefaultState(m.animationState.Transition.ZoomOutInTransition.Target)
+					m.animationState.Transition.Progress = 0.0
+					m.animationState.Messages.RandomMsg = message
+				}
+			case TransitionRotate:
+				if m.animationState.Transition.RotateTransition == nil {
+					m.animationState.Transition.RotateTransition = transition.NewRotateTransition(allFractalTypes)
+					m.animationState.Transition.RotateTransition.Start(m.config.FractalType)
+				}
+				completed, centerX, centerY, message := m.animationState.Transition.RotateTransition.Update()
+				m.config.CenterX = centerX
+				m.config.CenterY = centerY
+				if completed {
+					m.config.FractalType = m.animationState.Transition.RotateTransition.Target
+					m.resetToDefaultState(m.animationState.Transition.RotateTransition.Target)
+					m.animationState.Transition.Progress = 0.0
+					m.animationState.Messages.RandomMsg = message
+				}
+			case TransitionBreakthrough:
+				if m.animationState.Transition.BreakthroughTransition == nil {
+					m.animationState.Transition.BreakthroughTransition = transition.NewBreakthroughTransition(allFractalTypes)
+					m.animationState.Transition.BreakthroughTransition.Start(m.config.FractalType)
+				}
+				completed, centerX, centerY, zoomLevel, message := m.animationState.Transition.BreakthroughTransition.Update()
+				m.config.CenterX = centerX
+				m.config.CenterY = centerY
+				m.config.Zoom = zoomLevel
+				if completed {
+					m.config.FractalType = m.animationState.Transition.BreakthroughTransition.Target
+					m.resetToDefaultState(m.animationState.Transition.BreakthroughTransition.Target)
+					m.animationState.Transition.Progress = 0.0
+					m.animationState.Messages.RandomMsg = message
+				}
+			}
+		}
+
+		// Update dynamic color hue shift
 		if m.animationState.Color.DynamicColor {
-			m.animationState.Color.HueShift += 0.5
+			m.animationState.Color.HueShift += 0.5 // Shift 0.5 degrees per tick (30 degrees/sec at 60fps, full cycle every 12 seconds)
 			if m.animationState.Color.HueShift >= 360.0 {
 				m.animationState.Color.HueShift -= 360.0
 			}
+		}
+
+		// The Auto-zoom journey runs every tick
+		if m.activePilot() == pilot.AutoZoomID {
+			return m, tickCmd()
+		}
+
+		// Update dynamic color even when not auto-zooming (for manual navigation)
+		if m.animationState.Color.DynamicColor {
 			// Continue ticking to keep colors changing
 			return m, tickCmd()
 		}
@@ -886,49 +855,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "R":
 			// Random - random everything with interesting view
 			m.applyRandom()
-			// Only start tick loop if not already in an animation mode
-			if !m.animationState.AutoPilot.Enabled && !m.animationState.Vantage.Enabled {
+			// Only start tick loop if not already on a journey
+			if m.activePilot() == pilot.ManualID {
 				return m, tickCmd()
 			}
 			return m, nil
 
 		case "z":
-			// Toggle auto-pilot mode (mutually exclusive with vantage mode)
-			if m.animationState.Vantage.Enabled {
-				// Exit vantage mode when entering autopilot
-				m.animationState.Vantage.Enabled = false
-				m.animationState.Vantage.Initialized = false
+			// Toggle the Auto-zoom pilot (replaces whatever was active)
+			if m.activePilot() == pilot.AutoZoomID {
+				m.selectPilot(pilot.ManualID)
+				return m, nil
 			}
-			m.animationState.AutoPilot.Enabled = !m.animationState.AutoPilot.Enabled
-			if m.animationState.AutoPilot.Enabled {
-				// Store base iteration count for adaptive scaling
-				if m.animationState.AutoPilot.BaseMaxIter == 0 {
-					m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
-				}
-				// Initialize zoom direction if not set (default to zoom in)
-				if m.animationState.AutoPilot.ZoomDirection == 0 {
-					m.animationState.AutoPilot.ZoomDirection = 1
-				}
-				// Start the animation
-				return m, tickCmd()
-			}
-			return m, nil
+			m.selectPilot(pilot.AutoZoomID)
+			return m, tickCmd()
 
 		case "r":
-			// Toggle/reverse auto-pilot zoom direction
-			if m.animationState.AutoPilot.ZoomDirection >= 0 {
-				m.animationState.AutoPilot.ZoomDirection = -1
-			} else {
-				m.animationState.AutoPilot.ZoomDirection = 1
-			}
+			// Reverse the Auto-zoom pilot's zoom direction
+			m.autoZoomPilot().ReverseDirection()
 			return m, nil
 
 		case "V":
 			// Vantage mode: Jump immediately if already on, or Start if off
-			if m.animationState.AutoPilot.Enabled {
-				m.animationState.AutoPilot.Enabled = false
-			}
-
 			if m.animationState.Vantage.Enabled {
 				// Already in vantage mode, jump immediately to next scene
 				m.animationState.Vantage.SceneTimer = 0
@@ -939,16 +887,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			// Entering vantage mode
-			m.animationState.Vantage.Enabled = true
-			if m.animationState.AutoPilot.BaseMaxIter == 0 {
-				m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
-			}
+			m.selectPilot(pilot.VantageID)
 			m.animationState.Vantage.SceneTimer = 0
-			if m.animationState.Vantage.SceneDuration == 0 {
-				m.animationState.Vantage.SceneDuration = 100
-			}
-			m.animationState.Color.DynamicColor = true
-			m.animationState.AutoPilot.Enabled = false
 			m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage Mode: ON (%.1fs/scene)", float64(m.animationState.Vantage.SceneDuration)/20.0)
 			m.animationState.Messages.RandomTimer = 30
 			return m, tickCmd()
@@ -956,28 +896,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "v":
 			// lowercase v: Toggle vantage mode normally
 			if m.animationState.Vantage.Enabled {
-				m.animationState.Vantage.Enabled = false
-				m.animationState.Vantage.Initialized = false
+				m.selectPilot(pilot.ManualID)
 				m.animationState.Messages.RandomMsg = "Vantage Mode: OFF"
 				m.animationState.Messages.RandomTimer = 30
-			} else {
-				if m.animationState.AutoPilot.Enabled {
-					m.animationState.AutoPilot.Enabled = false
-				}
-				m.animationState.Vantage.Enabled = true
-				if m.animationState.AutoPilot.BaseMaxIter == 0 {
-					m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
-				}
-				m.animationState.Vantage.SceneTimer = 0
-				if m.animationState.Vantage.SceneDuration == 0 {
-					m.animationState.Vantage.SceneDuration = 100
-				}
-				m.animationState.Color.DynamicColor = true
-				m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage Mode: ON (%.1fs/scene)", float64(m.animationState.Vantage.SceneDuration)/20.0)
-				m.animationState.Messages.RandomTimer = 30
-				return m, tickCmd()
+				return m, nil
 			}
-			return m, nil
+			m.selectPilot(pilot.VantageID)
+			m.animationState.Vantage.SceneTimer = 0
+			m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage Mode: ON (%.1fs/scene)", float64(m.animationState.Vantage.SceneDuration)/20.0)
+			m.animationState.Messages.RandomTimer = 30
+			return m, tickCmd()
 
 		// Navigation - Pan
 		case "up", "w":
@@ -995,10 +923,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Zoom
 		case "+", "=":
-			// If auto-pilot is active, set zoom direction to IN
+			// If the Auto-zoom pilot is active, steer the journey inward
 			// Otherwise perform manual zoom in
-			if m.animationState.AutoPilot.Enabled {
-				m.animationState.AutoPilot.ZoomDirection = 1
+			if m.activePilot() == pilot.AutoZoomID {
+				m.autoZoomPilot().SetDirection(pilot.DirectionIn)
 			} else {
 				m.config.Zoom *= 1.2
 			}
@@ -1008,10 +936,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.config.Zoom *= 1.2
 			return m, nil
 		case "-", "_":
-			// If auto-pilot is active, set zoom direction to OUT
+			// If the Auto-zoom pilot is active, steer the journey outward
 			// Otherwise perform manual zoom out
-			if m.animationState.AutoPilot.Enabled {
-				m.animationState.AutoPilot.ZoomDirection = -1
+			if m.activePilot() == pilot.AutoZoomID {
+				m.autoZoomPilot().SetDirection(pilot.DirectionOut)
 			} else {
 				m.config.Zoom /= 1.2
 			}
@@ -1196,7 +1124,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Copy current location as URL
 		case "U":
-			urlStr := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
+			urlStr := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.autoZoomPilot().Speed(), m.autoZoomPilot().Direction(), m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
 			if err := clipboard.WriteAll(urlStr); err != nil {
 				m.animationState.Messages.URLMsg = fmt.Sprintf("Error copying URL: %v", err)
 			} else {
@@ -1208,14 +1136,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Zoom speed control (autopilot)
 		case "}":
 			// Increase zoom speed
-			m.animationState.AutoPilot.ZoomSpeed = math.Min(m.animationState.AutoPilot.ZoomSpeed+0.05, 1.5)
-			m.animationState.Messages.RandomMsg = fmt.Sprintf("Zoom speed: %.2fx", m.animationState.AutoPilot.ZoomSpeed)
+			m.autoZoomPilot().SetSpeed(min(m.autoZoomPilot().Speed()+0.05, animation.MaxZoomSpeed))
+			m.animationState.Messages.RandomMsg = fmt.Sprintf("Zoom speed: %.2fx", m.autoZoomPilot().Speed())
 			m.animationState.Messages.RandomTimer = 30
 			return m, nil
 		case "{":
 			// Decrease zoom speed
-			m.animationState.AutoPilot.ZoomSpeed = math.Max(m.animationState.AutoPilot.ZoomSpeed-0.05, 0.90)
-			m.animationState.Messages.RandomMsg = fmt.Sprintf("Zoom speed: %.2fx", m.animationState.AutoPilot.ZoomSpeed)
+			m.autoZoomPilot().SetSpeed(max(m.autoZoomPilot().Speed()-0.05, animation.MinZoomSpeed))
+			m.animationState.Messages.RandomMsg = fmt.Sprintf("Zoom speed: %.2fx", m.autoZoomPilot().Speed())
 			m.animationState.Messages.RandomTimer = 30
 			return m, nil
 
@@ -1442,8 +1370,9 @@ func (m model) renderStatusBar() string {
 		Foreground(lipgloss.Color("cyan"))
 
 	// Determine direction arrow: ↑ for zoom in, ↓ for zoom out
+	zoomSpeed, zoomDirection, panning := m.autoZoomDisplay()
 	directionArrow := "\u2191" // ↑ (up arrow)
-	if m.animationState.AutoPilot.ZoomDirection < 0 {
+	if zoomDirection < 0 {
 		directionArrow = "\u2193" // ↓ (down arrow)
 	}
 
@@ -1467,10 +1396,10 @@ func (m model) renderStatusBar() string {
 			Background(lipgloss.Color("green")).
 			Bold(true)
 
-		statusText := fmt.Sprintf(" %s pilot %s (%.2fx) ", pilot.Name(id), directionArrow, m.animationState.AutoPilot.ZoomSpeed)
-		if m.animationState.AutoPilot.HasTarget && m.animationState.AutoPilot.PanProgress < 1.0 {
+		statusText := fmt.Sprintf(" %s pilot %s (%.2fx) ", pilot.Name(id), directionArrow, zoomSpeed)
+		if panning {
 			// Show we're panning toward an interesting region
-			statusText = fmt.Sprintf(" %s pilot \u2192 %s (%.2fx) ", pilot.Name(id), directionArrow, m.animationState.AutoPilot.ZoomSpeed) // → arrow
+			statusText = fmt.Sprintf(" %s pilot \u2192 %s (%.2fx) ", pilot.Name(id), directionArrow, zoomSpeed) // → arrow
 		}
 		modeIndicator = autoZoomStyle.Render(statusText)
 	default:
@@ -1803,6 +1732,8 @@ func main() {
 
 	// Check for URL argument (positional) or --url flag
 	urlPilot := pilot.ManualID
+	urlPilotSpeed := pilot.DefaultSpeed
+	urlPilotDirection := pilot.DirectionIn
 	urlDynamicColor := false
 	urlTransitionMode := TransitionNone
 
@@ -1856,6 +1787,8 @@ func main() {
 
 		// Save URL state for interactive mode
 		urlPilot = params.Pilot
+		urlPilotSpeed = params.PilotSpeed
+		urlPilotDirection = params.PilotDirection
 		urlDynamicColor = params.DynamicColorEnabled
 		urlTransitionMode = persistence.StringToTransitionMode(params.Transition)
 
@@ -1943,7 +1876,7 @@ func main() {
 		// Create temporary model to use random function
 		tempModel := model{
 			config: config,
-			// Initialize the interest calculator (required by applyRandom -> isViewUniform)
+			// Initialize the interest calculator (required by applyRandom)
 			calculator: search.NewInterestCalculator(wrapCalculateFractalFloat64),
 		}
 		tempModel.applyRandom()
@@ -1977,7 +1910,6 @@ func main() {
 	// Run interactive TUI mode
 	animState := animation.NewAnimationState()
 	animState.AutoPilot.BaseMaxIter = config.MaxIter
-	animState.AutoPilot.ZoomDirection = 1
 	animState.Transition.Mode = TransitionFade
 	animState.Transition.FadeTransition = transition.NewFadeTransition(allFractalTypes)
 
@@ -1995,24 +1927,23 @@ func main() {
 	// Apply URL-based state if provided
 	if *urlFlag != "" {
 		m.selectPilot(urlPilot)
+		m.autoZoomPilot().SetSpeed(urlPilotSpeed)
+		m.autoZoomPilot().SetDirection(urlPilotDirection)
 		m.animationState.Color.DynamicColor = urlDynamicColor
 		m.animationState.Transition.Mode = urlTransitionMode
 	}
 
 	// Apply CLI autopilot flag if provided
 	if *autopilot {
-		m.animationState.AutoPilot.Enabled = true
+		m.selectPilot(pilot.AutoZoomID)
 	}
 
 	// Apply CLI vantage flag if provided
 	if *vantage {
-		m.animationState.Vantage.Enabled = true
+		m.selectPilot(pilot.VantageID)
 		// vantage duration in seconds -> convert to ticks (50ms per tick)
 		m.animationState.Vantage.SceneDuration = vantageSceneDuration * 20 // 20 ticks per second
 		m.animationState.Vantage.SceneTimer = 0                            // Will trigger first scene immediately
-		// Force dynamic color on and autopilot off
-		m.animationState.Color.DynamicColor = true
-		m.animationState.AutoPilot.Enabled = false
 	}
 
 	p := tea.NewProgram(m, tea.WithAltScreen())

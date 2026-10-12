@@ -70,6 +70,12 @@ func (a *AutoZoom) SetDirection(d Direction) { a.direction = d }
 // ReverseDirection flips the zoom direction.
 func (a *AutoZoom) ReverseDirection() { a.direction = -a.direction }
 
+// Panning reports whether the pilot is currently panning toward an
+// interesting region.
+func (a *AutoZoom) Panning() bool {
+	return a.hasTarget && a.panProgress < 1
+}
+
 // Step steers the journey one tick: it seeks interesting regions,
 // pans toward the current one, and zooms in the steered direction at
 // the steered speed.

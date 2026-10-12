@@ -2,16 +2,9 @@ package animation
 
 import "github.com/qjcg/arcadia/exp/fractalis/internal/tui/transition"
 
-// AutoPilotState holds auto-pilot specific animation state
+// AutoPilotState holds the iteration bookkeeping the journeys share.
 type AutoPilotState struct {
-	Enabled       bool    // Auto-zoom mode active
-	ZoomDirection int     // +1 for zoom in, -1 for zoom out
-	ZoomSpeed     float64 // Multiplier for zoom speed (default 1.05)
-	TargetX       float64 // Target point to pan toward
-	TargetY       float64
-	HasTarget     bool    // Whether we have a target to pan toward
-	PanProgress   float64 // 0.0 to 1.0, how far we've panned toward target
-	BaseMaxIter   int     // Base iteration count (for adaptive scaling)
+	BaseMaxIter int // Base iteration count (for adaptive scaling)
 }
 
 // VantageState holds vantage mode specific animation state
@@ -20,7 +13,7 @@ type VantageState struct {
 	SceneDuration int  // Number of ticks per scene
 	SceneTimer    int  // Countdown for current scene
 	Initialized   bool // Track if mode has been initialized
-	// Shared pan state (uses same fields as AutoPilot)
+	// Tour pan state (collapses into the Vantage pilot with its ticket)
 	TargetX     float64
 	TargetY     float64
 	HasTarget   bool
@@ -71,9 +64,6 @@ type AnimationState struct {
 // NewAnimationState creates initialized animation state
 func NewAnimationState() AnimationState {
 	return AnimationState{
-		AutoPilot: AutoPilotState{
-			ZoomSpeed: DefaultZoomSpeed,
-		},
 		Vantage: VantageState{
 			SceneDuration: DefaultVantageSceneDuration,
 		},
