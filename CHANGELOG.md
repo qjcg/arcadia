@@ -5,19 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.52.0] - 2026-10-12
+
+### Added
+- 7c9b86f - keep all worktrees under ~/src/worktrees/<repo>
+
 ## [v0.51.0] - 2026-10-12
 
 ### Added
-- 6f55b97 - add worktree lifecycle task targets and scripts
+- 6f55b971 - add worktree lifecycle task targets and scripts
 
 ### Changed
-- 3d01a6f - add agent worktrees convention, ADR 0003, and glossary terms
-- ee56a64 - point agent workflows at the engineering skills
-- 0c2b8da - Update deps
-- 604a66b - Tweak formatting
-- 02458ca - standardize agent-generated markdown style
-- 6385dc0 - add templ vs gomponents research notes
-- 4f4e841 - Update deps
+- 3d01a6f9 - add agent worktrees convention, ADR 0003, and glossary terms
+- ee56a643 - point agent workflows at the engineering skills
+- 0c2b8da9 - Update deps
+- 604a66bb - Tweak formatting
+- 02458ca5 - standardize agent-generated markdown style
+- 6385dc00 - add templ vs gomponents research notes
+- 4f4e841f - Update deps
 
 ## [v0.50.0] - 2026-10-06
 
