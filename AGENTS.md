@@ -7,13 +7,18 @@
 
 ### Code Organization
 - Write clean, modular code.
-- Organize Go packages under an `internal` subdirectory unless the library code is intended for export.
+- Organize Go packages under an `internal` subdirectory unless the
+  library code is intended for export.
 
 ### Agent Artifacts
 - Store agent-facing artifacts under `agents/`:
-  - `agents/skills/`: first-party Agent Skills, one per `agents/skills/<name>/SKILL.md` directory.
-  - `agents/plugins/`: generated Agent Plugin packages (Agent Plugins spec). Never edit these trees by hand; regenerate them via `task plugins:sync`.
-- `.agents/` is gitignored, machine-local harness state. Never commit it or treat it as a source of truth.
+  - `agents/skills/`: first-party Agent Skills, one per
+    `agents/skills/<name>/SKILL.md` directory.
+  - `agents/plugins/`: generated Agent Plugin packages (Agent Plugins
+    spec). Never edit these trees by hand; regenerate them via
+    `task plugins:sync`.
+- `.agents/` is gitignored, machine-local harness state. Never commit it
+  or treat it as a source of truth.
 
 ### Git
 - Commit work incrementally in feature branches off `main`.
@@ -110,27 +115,43 @@ func TestCLI(t *testing.T) {
 ### Games
 - Use `github.com/hajimehoshi/ebiten/v2` for game development.
 - Target WebAssembly (WasmServe option).
-- Serve for browsers via `go run github.com/hajimehoshi/wasmserve@latest ./path/to/game`.
+- Serve for browsers via
+  `go run github.com/hajimehoshi/wasmserve@latest ./path/to/game`.
 
 ## Quality
 
 ### Testing
-Refer to the `tester` skill for comprehensive guidance on writing high-quality tests.
+Refer to the `tester` skill for comprehensive guidance on writing
+high-quality tests.
 
 ## Agent skills
 
+Do engineering work through the mattpocock engineering skills. Start
+builds with `grill-with-docs`, split multi-session work with `to-spec`
+and `to-tickets`, drive code with `tdd`, and close with `code-review`
+and `pr`. Unsure which skill fits? Read the `ask-matt` router first.
+The tracker, labels, and domain-doc layout those skills assume are
+configured in the subsections below.
+
 ### Issue tracker
 
-Issues and specs live as GitHub issues in `qjcg/arcadia`, operated via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues and specs live as GitHub issues in `qjcg/arcadia`, operated via
+the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Default five-role vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+Default five-role vocabulary: `needs-triage`, `needs-info`,
+`ready-for-agent`, `ready-for-human`, `wontfix`. See
+`docs/agents/triage-labels.md`.
 
 ### Domain docs
 
-Single-context: `GLOSSARY.md` at the repo root and ADRs under `docs/adrs/`. See `docs/agents/domain.md`.
+Single-context: `GLOSSARY.md` at the repo root and ADRs under
+`docs/adrs/`. See `docs/agents/domain.md`.
 
 ### Command lifecycle
 
-New Go commands start as independent modules under `exp/` and enter `cmd/` only by promotion to v1.0.0. See `docs/agents/command-lifecycle.md` and [ADR 0002](docs/adrs/0002-command-lifecycle-exp-to-cmd.md).
+New Go commands start as independent modules under `exp/` and enter
+`cmd/` only by promotion to v1.0.0. See
+`docs/agents/command-lifecycle.md` and
+[ADR 0002](docs/adrs/0002-command-lifecycle-exp-to-cmd.md).
