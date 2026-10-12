@@ -3,6 +3,7 @@ package persistence
 import (
 	"testing"
 
+	"github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/color"
 )
 
@@ -25,6 +26,7 @@ func TestParseStandardFractalURL(t *testing.T) {
 				MaxIter:     50,
 				ColorTheme:  color.ColorGrayscale,
 				Transition:  "none",
+				Pilot:       pilot.ManualID,
 			},
 			wantErr: false,
 		},
@@ -40,6 +42,7 @@ func TestParseStandardFractalURL(t *testing.T) {
 				MaxIter:     50,
 				ColorTheme:  color.ColorRainbow,
 				Transition:  "none",
+				Pilot:       pilot.ManualID,
 				JuliaCr:     -0.7,
 				JuliaCi:     0.27015,
 			},
@@ -57,7 +60,7 @@ func TestParseStandardFractalURL(t *testing.T) {
 				MaxIter:             50,
 				ColorTheme:          color.ColorGrayscale,
 				Transition:          "none",
-				AutopilotEnabled:    true,
+				Pilot:               pilot.AutoZoomID,
 				DynamicColorEnabled: true,
 			},
 			wantErr: false,
@@ -74,6 +77,7 @@ func TestParseStandardFractalURL(t *testing.T) {
 				MaxIter:     50,
 				ColorTheme:  color.ColorGrayscale,
 				Transition:  "fade",
+				Pilot:       pilot.ManualID,
 			},
 			wantErr: false,
 		},
@@ -134,8 +138,8 @@ func TestParseStandardFractalURL(t *testing.T) {
 			if got.Transition != tt.want.Transition {
 				t.Errorf("Transition = %v, want %v", got.Transition, tt.want.Transition)
 			}
-			if got.AutopilotEnabled != tt.want.AutopilotEnabled {
-				t.Errorf("AutopilotEnabled = %v, want %v", got.AutopilotEnabled, tt.want.AutopilotEnabled)
+			if got.Pilot != tt.want.Pilot {
+				t.Errorf("Pilot = %v, want %v", got.Pilot, tt.want.Pilot)
 			}
 			if got.DynamicColorEnabled != tt.want.DynamicColorEnabled {
 				t.Errorf("DynamicColorEnabled = %v, want %v", got.DynamicColorEnabled, tt.want.DynamicColorEnabled)
@@ -172,7 +176,7 @@ func TestParseHyperrandURL(t *testing.T) {
 			url:     "fractal://random/?autopilot=t&dynamic_color=t",
 			wantErr: false,
 			checkFn: func(p *FractalURLParams) bool {
-				return p.Mode == ModeRandom && p.AutopilotEnabled && p.DynamicColorEnabled
+				return p.Mode == ModeRandom && p.Pilot == pilot.AutoZoomID && p.DynamicColorEnabled
 			},
 		},
 	}
@@ -207,7 +211,7 @@ func TestParseBooleanParameters(t *testing.T) {
 			url:     "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot",
 			wantErr: false,
 			check: func(p *FractalURLParams, err error) bool {
-				return err == nil && p.AutopilotEnabled
+				return err == nil && p.Pilot == pilot.AutoZoomID
 			},
 		},
 		{
@@ -215,7 +219,7 @@ func TestParseBooleanParameters(t *testing.T) {
 			url:     "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=t",
 			wantErr: false,
 			check: func(p *FractalURLParams, err error) bool {
-				return err == nil && p.AutopilotEnabled
+				return err == nil && p.Pilot == pilot.AutoZoomID
 			},
 		},
 		{
@@ -223,7 +227,7 @@ func TestParseBooleanParameters(t *testing.T) {
 			url:     "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=f",
 			wantErr: false,
 			check: func(p *FractalURLParams, err error) bool {
-				return err == nil && !p.AutopilotEnabled
+				return err == nil && p.Pilot == pilot.ManualID
 			},
 		},
 		{
@@ -255,7 +259,7 @@ func TestParseBooleanParameters(t *testing.T) {
 			url:     "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot&dynamic_color",
 			wantErr: false,
 			check: func(p *FractalURLParams, err error) bool {
-				return err == nil && p.AutopilotEnabled && p.DynamicColorEnabled
+				return err == nil && p.Pilot == pilot.AutoZoomID && p.DynamicColorEnabled
 			},
 		},
 		{
@@ -271,7 +275,7 @@ func TestParseBooleanParameters(t *testing.T) {
 			url:     "fractal://random/?autopilot",
 			wantErr: false,
 			check: func(p *FractalURLParams, err error) bool {
-				return err == nil && p.Mode == ModeRandom && p.AutopilotEnabled
+				return err == nil && p.Mode == ModeRandom && p.Pilot == pilot.AutoZoomID
 			},
 		},
 	}
@@ -298,7 +302,7 @@ func TestConfigToFractalURL(t *testing.T) {
 		JuliaCi:     0.27015,
 	}
 
-	url := ConfigToFractalURL(config, false, false, TransitionNone)
+	url := ConfigToFractalURL(config, pilot.ManualID, false, TransitionNone)
 
 	// Parse it back and verify
 	params, err := ParseFractalURL(url)
@@ -317,10 +321,10 @@ func TestConfigToFractalURL(t *testing.T) {
 		t.Errorf("Zoom mismatch: got %v, want %v", params.Zoom, config.Zoom)
 	}
 
-	// Test with autopilot and dynamic color enabled
-	url = ConfigToFractalURL(config, true, true, TransitionNone)
-	if !contains(url, "autopilot=t") {
-		t.Errorf("Generated URL should contain 'autopilot=t', got: %s", url)
+	// Test with the Auto-zoom pilot and dynamic color enabled
+	url = ConfigToFractalURL(config, pilot.AutoZoomID, true, TransitionNone)
+	if !contains(url, "pilot=autozoom") {
+		t.Errorf("Generated URL should contain 'pilot=autozoom', got: %s", url)
 	}
 	if !contains(url, "dynamic_color=t") {
 		t.Errorf("Generated URL should contain 'dynamic_color=t', got: %s", url)
@@ -332,8 +336,8 @@ func TestConfigToFractalURL(t *testing.T) {
 		t.Errorf("Failed to parse generated URL: %v", err)
 		return
 	}
-	if !params.AutopilotEnabled {
-		t.Errorf("AutopilotEnabled should be true")
+	if params.Pilot != pilot.AutoZoomID {
+		t.Errorf("Pilot should be autozoom")
 	}
 	if !params.DynamicColorEnabled {
 		t.Errorf("DynamicColorEnabled should be true")
@@ -373,6 +377,123 @@ func TestTransitionModeConversion(t *testing.T) {
 			mode := StringToTransitionMode(str)
 			if mode != tt.backMode {
 				t.Errorf("StringToTransitionMode(%v) = %d, want %d", str, mode, tt.backMode)
+			}
+		})
+	}
+}
+
+func TestPilotParameter(t *testing.T) {
+	tests := []struct {
+		name    string
+		url     string
+		want    pilot.ID
+		wantErr bool
+	}{
+		{
+			name: "pilot=manual",
+			url:  "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot=manual",
+			want: pilot.ManualID,
+		},
+		{
+			name: "pilot=autozoom",
+			url:  "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot=autozoom",
+			want: pilot.AutoZoomID,
+		},
+		{
+			name: "pilot=vantage",
+			url:  "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot=vantage",
+			want: pilot.VantageID,
+		},
+		{
+			name: "default is the Manual pilot",
+			url:  "fractal://mandelbrot/-0.5/0.0/1.0/50/",
+			want: pilot.ManualID,
+		},
+		{
+			name:    "unknown pilot errors",
+			url:     "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot=warp",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseFractalURL(tt.url)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("ParseFractalURL() = %+v, want error", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ParseFractalURL() error: %v", err)
+			}
+			if got.Pilot != tt.want {
+				t.Errorf("Pilot = %q, want %q", got.Pilot, tt.want)
+			}
+		})
+	}
+}
+
+func TestAutopilotDeprecatedAlias(t *testing.T) {
+	tests := []struct {
+		name    string
+		url     string
+		want    pilot.ID
+		wantErr bool
+	}{
+		{name: "on maps to the Auto-zoom pilot", url: "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=on", want: pilot.AutoZoomID},
+		{name: "off maps to the Manual pilot", url: "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=off", want: pilot.ManualID},
+		{name: "legacy valueless form maps to the Auto-zoom pilot", url: "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot", want: pilot.AutoZoomID},
+		{name: "legacy t maps to the Auto-zoom pilot", url: "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=t", want: pilot.AutoZoomID},
+		{name: "legacy f maps to the Manual pilot", url: "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=f", want: pilot.ManualID},
+		{name: "invalid alias value errors", url: "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=invalid", wantErr: true},
+		{name: "pilot= wins over the alias", url: "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot=manual&autopilot=on", want: pilot.ManualID},
+		{name: "pilot= wins over the alias for vantage", url: "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=on&pilot=vantage", want: pilot.VantageID},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseFractalURL(tt.url)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("ParseFractalURL() = %+v, want error", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ParseFractalURL() error: %v", err)
+			}
+			if got.Pilot != tt.want {
+				t.Errorf("Pilot = %q, want %q", got.Pilot, tt.want)
+			}
+		})
+	}
+}
+
+func TestPilotRoundTrip(t *testing.T) {
+	config := Config{
+		FractalType: FractalMandelbrot,
+		CenterX:     -0.5,
+		CenterY:     0.0,
+		Zoom:        1.0,
+		MaxIter:     50,
+		ColorScheme: color.ColorGrayscale,
+	}
+
+	for _, id := range pilot.IDs() {
+		t.Run(string(id), func(t *testing.T) {
+			url := ConfigToFractalURL(config, id, false, TransitionNone)
+			if !contains(url, "pilot="+string(id)) {
+				t.Fatalf("generated URL %q should contain pilot=%s", url, id)
+			}
+
+			params, err := ParseFractalURL(url)
+			if err != nil {
+				t.Fatalf("Failed to parse generated URL: %v", err)
+			}
+			if params.Pilot != id {
+				t.Errorf("Pilot = %q, want %q", params.Pilot, id)
 			}
 		})
 	}

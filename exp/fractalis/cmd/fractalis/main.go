@@ -17,6 +17,7 @@ import (
 
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/fractal"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/persistence"
+	"github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/search"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/animation"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/color"
@@ -119,7 +120,7 @@ func (m *model) addBookmark(name string) error {
 		m.bookmarks = loaded
 	}
 
-	url := persistence.ConfigToFractalURL(m.config, m.animationState.AutoPilot.Enabled, m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
+	url := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
 
 	bookmark := persistence.Bookmark{
 		Name: name,
@@ -128,6 +129,46 @@ func (m *model) addBookmark(name string) error {
 
 	m.bookmarks = append(m.bookmarks, bookmark)
 	return persistence.SaveBookmarks(m.bookmarks)
+}
+
+// activePilot returns the registered pilot currently driving the
+// view.
+func (m model) activePilot() pilot.ID {
+	switch {
+	case m.animationState.Vantage.Enabled:
+		return pilot.VantageID
+	case m.animationState.AutoPilot.Enabled:
+		return pilot.AutoZoomID
+	default:
+		return pilot.ManualID
+	}
+}
+
+// selectPilot makes the given registered pilot the one driving the
+// view. Auto-zoom and vantage still run as their ad-hoc modes here;
+// they become pilots in their own tickets.
+func (m *model) selectPilot(id pilot.ID) {
+	m.animationState.AutoPilot.Enabled = false
+	m.animationState.Vantage.Enabled = false
+	m.animationState.Vantage.Initialized = false
+
+	switch id {
+	case pilot.AutoZoomID:
+		m.animationState.AutoPilot.Enabled = true
+		m.animationState.AutoPilot.ZoomDirection = 1
+		if m.animationState.AutoPilot.BaseMaxIter == 0 {
+			m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
+		}
+	case pilot.VantageID:
+		m.animationState.Vantage.Enabled = true
+		if m.animationState.Vantage.SceneDuration == 0 {
+			m.animationState.Vantage.SceneDuration = animation.DefaultVantageSceneDuration
+		}
+		m.animationState.Color.DynamicColor = true
+		if m.animationState.AutoPilot.BaseMaxIter == 0 {
+			m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
+		}
+	}
 }
 
 // applyParamsToModel applies FractalURLParams to a model
@@ -141,10 +182,7 @@ func applyParamsToModel(m *model, params persistence.FractalURLParams) {
 	m.config.JuliaCr = params.JuliaCr
 	m.config.JuliaCi = params.JuliaCi
 
-	m.animationState.AutoPilot.Enabled = params.AutopilotEnabled
-	if params.AutopilotEnabled {
-		m.animationState.AutoPilot.ZoomDirection = 1
-	}
+	m.selectPilot(params.Pilot)
 
 	m.animationState.Color.DynamicColor = params.DynamicColorEnabled
 	m.animationState.Transition.Mode = persistence.StringToTransitionMode(params.Transition)
@@ -1128,7 +1166,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Copy current location as URL
 		case "U":
-			urlStr := persistence.ConfigToFractalURL(m.config, m.animationState.AutoPilot.Enabled, m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
+			urlStr := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
 			if err := clipboard.WriteAll(urlStr); err != nil {
 				m.animationState.Messages.URLMsg = fmt.Sprintf("Error copying URL: %v", err)
 			} else {
@@ -1732,7 +1770,7 @@ func main() {
 	vantageSceneDuration := *vantageSceneDurationSpec
 
 	// Check for URL argument (positional) or --url flag
-	urlAutopilot := false
+	urlPilot := pilot.ManualID
 	urlDynamicColor := false
 	urlTransitionMode := TransitionNone
 
@@ -1785,7 +1823,7 @@ func main() {
 		config.JuliaCi = params.JuliaCi
 
 		// Save URL state for interactive mode
-		urlAutopilot = params.AutopilotEnabled
+		urlPilot = params.Pilot
 		urlDynamicColor = params.DynamicColorEnabled
 		urlTransitionMode = persistence.StringToTransitionMode(params.Transition)
 
@@ -1883,8 +1921,8 @@ func main() {
 	// Check which engine to use
 	if config.Engine == persistence.EngineEbiten {
 		// Apply flags to config for Ebiten
-		config.AutoPilotEnabled = *autopilot || urlAutopilot
-		config.VantageEnabled = *vantage
+		config.AutoPilotEnabled = *autopilot || urlPilot == pilot.AutoZoomID
+		config.VantageEnabled = *vantage || urlPilot == pilot.VantageID
 		config.VantageSceneDuration = vantageSceneDuration
 
 		// Run Ebiten engine (compiled in only with -tags ebiten)
@@ -1924,7 +1962,7 @@ func main() {
 
 	// Apply URL-based state if provided
 	if *urlFlag != "" {
-		m.animationState.AutoPilot.Enabled = urlAutopilot
+		m.selectPilot(urlPilot)
 		m.animationState.Color.DynamicColor = urlDynamicColor
 		m.animationState.Transition.Mode = urlTransitionMode
 	}

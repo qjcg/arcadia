@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/color"
 )
 
@@ -20,7 +21,7 @@ type FractalURLParams struct {
 	ColorTheme          string
 	Transition          string
 	Engine              string
-	AutopilotEnabled    bool
+	Pilot               pilot.ID
 	DynamicColorEnabled bool
 	JuliaCr             float64
 	JuliaCi             float64
@@ -52,7 +53,7 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 		ColorTheme:          color.ColorGrayscale,
 		Transition:          "none",
 		Engine:              EngineBubbleTea,
-		AutopilotEnabled:    false,
+		Pilot:               pilot.ManualID,
 		DynamicColorEnabled: false,
 		JuliaCr:             -0.7,
 		JuliaCi:             0.27015,
@@ -147,13 +148,27 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 		}
 	}
 
-	// Parse boolean variables: can be specified without value (defaults to true) or with "t"/"f"
-	if _, ok := queryParams["autopilot"]; ok {
-		if parsedAutopilot, err := ParseBooleanParam(queryParams, "autopilot"); err != nil {
+	// autopilot is a deprecated alias for pilot selection: on maps to
+	// the Auto-zoom pilot, off to the Manual pilot.
+	if values, ok := queryParams["autopilot"]; ok {
+		aliasPilot, err := parseAutopilotAlias(values)
+		if err != nil {
 			return FractalURLParams{}, err
-		} else {
-			params.AutopilotEnabled = parsedAutopilot
 		}
+		params.Pilot = aliasPilot
+	}
+
+	// pilot= selects the registered pilot and wins over the alias.
+	if values, ok := queryParams["pilot"]; ok {
+		raw := ""
+		if len(values) > 0 {
+			raw = values[0]
+		}
+		selected, err := pilot.ParseID(raw)
+		if err != nil {
+			return FractalURLParams{}, err
+		}
+		params.Pilot = selected
 	}
 
 	if _, ok := queryParams["dynamic_color"]; ok {
@@ -184,7 +199,7 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 }
 
 // ConfigToFractalURL generates a fractal:// URL from a Config and runtime state
-func ConfigToFractalURL(config Config, autopilot, dynamicColor bool, transitionMode int) string {
+func ConfigToFractalURL(config Config, activePilot pilot.ID, dynamicColor bool, transitionMode int) string {
 	// Build the base URL path
 	basePath := fmt.Sprintf(
 		"fractal://%s/%.10g/%.10g/%.10g/%d/",
@@ -216,9 +231,9 @@ func ConfigToFractalURL(config Config, autopilot, dynamicColor bool, transitionM
 		queryParams.Set("engine", config.Engine)
 	}
 
-	// Autopilot
-	if autopilot {
-		queryParams.Set("autopilot", "t")
+	// Pilot
+	if activePilot != "" {
+		queryParams.Set("pilot", string(activePilot))
 	}
 
 	// Dynamic color
@@ -246,7 +261,7 @@ func ConfigToFractalURL(config Config, autopilot, dynamicColor bool, transitionM
 }
 
 // RandomToFractalURL generates a random URL with query parameters
-func RandomToFractalURL(colorTheme string, autopilot, dynamicColor bool, transitionMode int) string {
+func RandomToFractalURL(colorTheme string, activePilot pilot.ID, dynamicColor bool, transitionMode int) string {
 	queryParams := url.Values{}
 
 	if colorTheme != "" && colorTheme != color.ColorGrayscale {
@@ -260,8 +275,8 @@ func RandomToFractalURL(colorTheme string, autopilot, dynamicColor bool, transit
 		}
 	}
 
-	if autopilot {
-		queryParams.Set("autopilot", "t")
+	if activePilot != "" {
+		queryParams.Set("pilot", string(activePilot))
 	}
 
 	if dynamicColor {
@@ -283,6 +298,24 @@ func ValidateFractalURL(urlString string) error {
 }
 
 // Helper functions
+
+// parseAutopilotAlias maps the deprecated autopilot query parameter
+// to a pilot: on (or the legacy t / valueless form) selects the
+// Auto-zoom pilot, off (or the legacy f) the Manual pilot.
+func parseAutopilotAlias(values []string) (pilot.ID, error) {
+	val := ""
+	if len(values) > 0 {
+		val = strings.ToLower(values[0])
+	}
+	switch val {
+	case "", "on", "t":
+		return pilot.AutoZoomID, nil
+	case "off", "f":
+		return pilot.ManualID, nil
+	default:
+		return "", fmt.Errorf("invalid autopilot value: %s (use 'on' or 'off', the deprecated 't'/'f', or specify without value for on)", val)
+	}
+}
 
 // ParseBooleanParam parses a boolean query parameter.
 // If the parameter is present but empty (e.g., ?autopilot), it returns true.
