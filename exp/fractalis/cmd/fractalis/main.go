@@ -913,10 +913,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Navigation - Pan
 		case "up", "w":
-			m.config.CenterY += 0.1 / m.config.Zoom
+			m.config.CenterY -= 0.1 / m.config.Zoom
 			return m, nil
 		case "down", "s":
-			m.config.CenterY -= 0.1 / m.config.Zoom
+			m.config.CenterY += 0.1 / m.config.Zoom
 			return m, nil
 		case "left", "a":
 			m.config.CenterX -= 0.1 / m.config.Zoom
