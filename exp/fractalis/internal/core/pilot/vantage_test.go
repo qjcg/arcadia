@@ -155,7 +155,7 @@ func TestVantagePansTowardDiscoveredPoints(t *testing.T) {
 		SceneDuration: 2,
 		Viewpoints: []Viewpoint{
 			viewpointAt("first", 0, 0, 10),
-			viewpointAt("second", 0, 0, 20),
+			viewpointAt("second", 5, 5, 20),
 		},
 		Discover: func(View) (float64, float64) {
 			discovered++
@@ -173,11 +173,14 @@ func TestVantagePansTowardDiscoveredPoints(t *testing.T) {
 	if views[0].CenterX != 0 || views[0].CenterY != 0 {
 		t.Fatalf("scene tick moved the view to %+v, want the scene itself", views[0])
 	}
-	if views[1].CenterX <= 0 || views[1].CenterY <= 0 {
+	if views[1].CenterX <= views[0].CenterX || views[1].CenterY <= views[0].CenterY {
 		t.Fatalf("pan tick did not move toward the discovered point: %+v", views[1])
 	}
-	if views[2].CenterX != 0 || views[3].CenterX <= views[1].CenterX {
-		t.Fatalf("new scene did not restart its own pan: %+v, %+v", views[2], views[3])
+	if views[2].CenterX != 5 || views[2].CenterY != 5 {
+		t.Fatalf("scene switch did not land on the new scene: %+v", views[2])
+	}
+	if views[3].CenterX >= views[2].CenterX || views[3].CenterY >= views[2].CenterY {
+		t.Fatalf("new scene did not restart its own pan: %+v", views[3])
 	}
 }
 
