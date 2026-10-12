@@ -86,6 +86,8 @@ type model struct {
 	lastRender string
 	// Interest calculator for finding interesting points
 	calculator *search.InterestCalculator
+	// Engine seam running the active pilot over the view
+	engine pilot.Engine
 	// Animation and UI state
 	animationState animation.AnimationState
 	// Rendering engine with caching and parallel computation
@@ -452,6 +454,26 @@ func (m model) findDescentTarget() (float64, float64) {
 	return m.calculator.FindInterestingPoint(search.DescentSearchPasses(), m.config)
 }
 
+// view returns the current view state for the pilot engine seam.
+func (m model) view() pilot.View {
+	return pilot.View{
+		FractalType: m.config.FractalType,
+		CenterX:     m.config.CenterX,
+		CenterY:     m.config.CenterY,
+		Zoom:        m.config.Zoom,
+		MaxIter:     m.config.MaxIter,
+	}
+}
+
+// applyView writes a pilot-evolved view back to the config.
+func (m *model) applyView(v pilot.View) {
+	m.config.FractalType = v.FractalType
+	m.config.CenterX = v.CenterX
+	m.config.CenterY = v.CenterY
+	m.config.Zoom = v.Zoom
+	m.config.MaxIter = v.MaxIter
+}
+
 // Update handles messages and updates the model
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -689,6 +711,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Continue the animation by sending another tick
 			return m, tickCmd()
 		}
+
+		// The active pilot evolves the view through the engine seam,
+		// boundary rules included. Only the Manual pilot drives here so
+		// far; the ad-hoc auto-zoom and vantage blocks above become
+		// pilots in their own tickets. What to do at a boundary arrival
+		// beyond the clamp lands with transitions.
+		next, _ := m.engine.Tick(m.view())
+		m.applyView(next)
 
 		// Update dynamic color even when not auto-zooming (for manual navigation)
 		if m.animationState.Color.DynamicColor {
@@ -1417,36 +1447,38 @@ func (m model) renderStatusBar() string {
 		directionArrow = "\u2193" // ↓ (down arrow)
 	}
 
-	// Build mode indicator - only one mode can be active at once
+	// Build the active pilot indicator - only one pilot is active at
+	// a time, and the status bar names it
 	modeIndicator := ""
-	if m.animationState.Vantage.Enabled {
-		// Active vantage mode: bright blue background
+	switch id := m.activePilot(); id {
+	case pilot.VantageID:
+		// Active Vantage pilot: bright blue background
 		vantageStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("white")).
 			Background(lipgloss.Color("blue")).
 			Bold(true)
 		sceneDurationSec := float64(m.animationState.Vantage.SceneDuration) / 20.0
-		statusText := fmt.Sprintf(" VANTAGE (%.1fs/scene) ", sceneDurationSec)
+		statusText := fmt.Sprintf(" %s pilot (%.1fs/scene) ", pilot.Name(id), sceneDurationSec)
 		modeIndicator = vantageStyle.Render(statusText)
-	} else if m.animationState.AutoPilot.Enabled {
-		// Active auto-pilot: bright green background
+	case pilot.AutoZoomID:
+		// Active Auto-zoom pilot: bright green background
 		autoZoomStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("white")).
 			Background(lipgloss.Color("green")).
 			Bold(true)
 
-		statusText := fmt.Sprintf(" AUTO-PILOT %s (%.2fx) ", directionArrow, m.animationState.AutoPilot.ZoomSpeed)
+		statusText := fmt.Sprintf(" %s pilot %s (%.2fx) ", pilot.Name(id), directionArrow, m.animationState.AutoPilot.ZoomSpeed)
 		if m.animationState.AutoPilot.HasTarget && m.animationState.AutoPilot.PanProgress < 1.0 {
 			// Show we're panning toward an interesting region
-			statusText = fmt.Sprintf(" AUTO-PILOT \u2192 %s (%.2fx) ", directionArrow, m.animationState.AutoPilot.ZoomSpeed) // → arrow
+			statusText = fmt.Sprintf(" %s pilot \u2192 %s (%.2fx) ", pilot.Name(id), directionArrow, m.animationState.AutoPilot.ZoomSpeed) // → arrow
 		}
 		modeIndicator = autoZoomStyle.Render(statusText)
-	} else {
-		// Manual mode: subtle indicator
+	default:
+		// Manual pilot: subtle indicator
 		inactiveStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240")). // Gray
 			Bold(false)
-		modeIndicator = inactiveStyle.Render(fmt.Sprintf("Explore (z/v to toggle)"))
+		modeIndicator = inactiveStyle.Render(fmt.Sprintf("%s pilot (z/v to toggle)", pilot.Name(id)))
 	}
 
 	// Format zoom level - use scientific notation for high values
