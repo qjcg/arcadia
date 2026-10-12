@@ -122,7 +122,7 @@ func (m *model) addBookmark(name string) error {
 		m.bookmarks = loaded
 	}
 
-	url := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
+	url := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Vantage.SceneDuration, m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
 
 	bookmark := persistence.Bookmark{
 		Name: name,
@@ -1196,7 +1196,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Copy current location as URL
 		case "U":
-			urlStr := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
+			urlStr := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Vantage.SceneDuration, m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
 			if err := clipboard.WriteAll(urlStr); err != nil {
 				m.animationState.Messages.URLMsg = fmt.Sprintf("Error copying URL: %v", err)
 			} else {

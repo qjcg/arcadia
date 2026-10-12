@@ -12,16 +12,19 @@ import (
 
 // FractalURLParams holds parsed parameters from a fractal:// URL
 type FractalURLParams struct {
-	Mode                URLMode
-	FractalType         string
-	CenterX             float64
-	CenterY             float64
-	Zoom                float64
-	MaxIter             int
-	ColorTheme          string
-	Transition          string
-	Engine              string
-	Pilot               pilot.ID
+	Mode        URLMode
+	FractalType string
+	CenterX     float64
+	CenterY     float64
+	Zoom        float64
+	MaxIter     int
+	ColorTheme  string
+	Transition  string
+	Engine      string
+	Pilot       pilot.ID
+	// SceneDuration is the Vantage pilot's scene duration parameter,
+	// in ticks per scene.
+	SceneDuration       int
 	DynamicColorEnabled bool
 	JuliaCr             float64
 	JuliaCi             float64
@@ -54,6 +57,7 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 		Transition:          "none",
 		Engine:              EngineBubbleTea,
 		Pilot:               pilot.ManualID,
+		SceneDuration:       pilot.DefaultSceneDuration,
 		DynamicColorEnabled: false,
 		JuliaCr:             -0.7,
 		JuliaCi:             0.27015,
@@ -179,6 +183,16 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 		}
 	}
 
+	// pilot_* parameters carry pilot settings. Scene duration is the
+	// Vantage pilot's, in ticks per scene.
+	if raw := queryParams.Get("pilot_scene_duration"); raw != "" {
+		duration, err := strconv.Atoi(raw)
+		if err != nil || duration < 1 {
+			return FractalURLParams{}, fmt.Errorf("invalid pilot_scene_duration: %s", raw)
+		}
+		params.SceneDuration = duration
+	}
+
 	if juliaCr := queryParams.Get("julia_cr"); juliaCr != "" {
 		cr, err := strconv.ParseFloat(juliaCr, 64)
 		if err != nil {
@@ -199,7 +213,7 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 }
 
 // ConfigToFractalURL generates a fractal:// URL from a Config and runtime state
-func ConfigToFractalURL(config Config, activePilot pilot.ID, dynamicColor bool, transitionMode int) string {
+func ConfigToFractalURL(config Config, activePilot pilot.ID, sceneDuration int, dynamicColor bool, transitionMode int) string {
 	// Build the base URL path
 	basePath := fmt.Sprintf(
 		"fractal://%s/%.10g/%.10g/%.10g/%d/",
@@ -234,6 +248,11 @@ func ConfigToFractalURL(config Config, activePilot pilot.ID, dynamicColor bool, 
 	// Pilot
 	if activePilot != "" {
 		queryParams.Set("pilot", string(activePilot))
+	}
+
+	// Vantage pilot settings
+	if activePilot == pilot.VantageID && sceneDuration > 0 {
+		queryParams.Set("pilot_scene_duration", strconv.Itoa(sceneDuration))
 	}
 
 	// Dynamic color
