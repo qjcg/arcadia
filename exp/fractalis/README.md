@@ -140,6 +140,8 @@ fractals --url "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=on"
 - `engine`: bubbletea, ebiten
 - `color_theme`: grayscale, blue, rainbow, fire, purple, green, gold, cyan
 - `pilot`: manual, autozoom, vantage
+- `pilot_speed`: Auto-zoom pilot zoom multiplier per tick (default 1.05)
+- `pilot_direction`: Auto-zoom pilot zoom direction, in or out (default in)
 - `autopilot`: on/off (deprecated alias for `pilot` selection)
 - `dynamic_color`: on/off (smooth hue rotation)
 - `transition`: none, fade, zoomout, rotate, breakthrough
