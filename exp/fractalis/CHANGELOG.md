@@ -8,35 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.2.0] - 2026-10-12
 
 ### Added
-- d151796 - make the ebiten engine opt-in via build tag
+- d151796a - make the ebiten engine opt-in via build tag
 
 ### Changed
-- 4f4e841 - Update deps
-- e0df6f5 - Bump deps
-- 3e477ef - Bump deps
-- 1305b2c - Update deps
-- 2733f2b - Bump deps
-- 348b521 - keep task update from breaking the build
-- 878b20c - Update deps
-- 04bb597 - Update deps
-- 53b49e2 - Update deps
-- d420845 - Bump deps
-- 51f343c - Bump go deps
-- 453a8cf - Update go deps
-- dafb137 - Update deps
-- 79771f9 - Update all changelogs
-- ae73b3c - Update all the changelogs
-- c48959a - Update all changelogs
-- 6731ec0 - Update all changelogs
-- 6f2d4ba - Update wasm
-- 7cb48ab - Add changelogs for all modules via `sv changelog -aw`
-- 49cce78 - Update deps
-- a8cd3ee - Update go deps
-- 7cae5fa - Update go deps
-- 54dd9f3 - Update go deps
+- 4f4e841f - Update deps
+- e0df6f5f - Bump deps
+- 3e477efd - Bump deps
+- 1305b2c9 - Update deps
+- 2733f2b3 - Bump deps
+- 348b5218 - keep task update from breaking the build
+- 878b20c2 - Update deps
+- 04bb597d - Update deps
+- 53b49e27 - Update deps
+- d4208456 - Bump deps
+- 51f343c6 - Bump go deps
+- 453a8cfc - Update go deps
+- dafb1370 - Update deps
+- 79771f93 - Update all changelogs
+- ae73b3c2 - Update all the changelogs
+- c48959a8 - Update all changelogs
+- 6731ec0a - Update all changelogs
+- 6f2d4ba3 - Update wasm
+- 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
+- 49cce786 - Update deps
+- a8cd3eec - Update go deps
+- 7cae5fa3 - Update go deps
+- 54dd9f3e - Update go deps
 
 ### Fixed
-- f4d7568 - invert TUI pan so w/up pan up and s/down pan down
+- f4d7568a - invert TUI pan so w/up pan up and s/down pan down
 
 ## [v0.1.4] - 2026-05-24
 
