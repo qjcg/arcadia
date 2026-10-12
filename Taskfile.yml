@@ -195,6 +195,22 @@ tasks:
 
 
   ######################################################################
+  # agent worktrees (see docs/agents/worktrees.md)
+
+  worktree:new:
+    desc: Create an agent worktree at ../arcadia.worktrees/<slug> (task worktree:new -- <slug> [branch]).
+    cmd: sh internal/worktrees/new.sh {{.CLI_ARGS}}
+
+  worktree:clean:
+    desc: Remove an agent worktree and its branch (task worktree:clean -- <slug>; FORCE=1 discards unmerged or dirty work).
+    cmd: sh internal/worktrees/clean.sh {{.CLI_ARGS}}
+
+  worktree:ls:
+    desc: List all worktrees of this repository.
+    cmd: git worktree list
+
+
+  ######################################################################
   # update
 
   update:
