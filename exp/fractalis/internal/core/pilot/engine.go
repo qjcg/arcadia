@@ -21,7 +21,9 @@ const (
 // rules. There is no "no pilot" state: the Manual pilot is active
 // until another one is activated.
 type Engine struct {
-	active Pilot
+	active   Pilot
+	seen     bool
+	lastZoom float64
 }
 
 // Active returns the one pilot active at this moment.
@@ -42,9 +44,14 @@ func (e *Engine) Activate(p Pilot) { e.active = p }
 // put at the boundary; a view resting at a boundary is left alone.
 // A non-empty schedule plays a transition across the boundary
 // instead, which the scheduler executes when transitions land.
+// Movement toward a boundary counts from any source — the pilot or
+// manual zoom — so externally driven arrivals fire too.
 func (e *Engine) Tick(v View) (View, *Boundary) {
 	next := e.Active().Step(v)
-	if next.Zoom == v.Zoom {
+	moving := next.Zoom != v.Zoom || (e.seen && v.Zoom != e.lastZoom)
+	e.seen = true
+	e.lastZoom = v.Zoom
+	if !moving {
 		// Not moving toward a boundary; a resting view is left alone.
 		return next, nil
 	}
