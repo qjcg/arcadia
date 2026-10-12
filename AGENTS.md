@@ -23,6 +23,12 @@
 - Write documentation in Markdown format.
 - Store documentation in a `docs/` directory, except for `README.md`.
 - Maintain a concise, clear, and useful `README.md`.
+- Format agent-generated Markdown at a maximum line width of 80
+  characters: wrap prose at 80, keep table rows within 80 with aligned,
+  padded columns (move long cell detail into notes below the table), and
+  hold citations as reference-style links in a trailing "Link
+  references" section so prose lines stay short. Treat "zero lines over
+  80 characters, all link references resolved" as the completion check.
 
 ## Workflow
 
