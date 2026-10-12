@@ -45,6 +45,11 @@
   - Apply hot reload to Web UIs, Games, and Backend servers.
   - Trigger `air` via `task` (e.g., `task dev` calling `go tool air`).
 
+### Concurrent Work
+- When more than one agent session works on this repo at once, give
+  each session its own git worktree via `task worktree:new`. See
+  `docs/agents/worktrees.md` for the convention and rules.
+
 ### CI/CD
 - Use `github.com/evilmartians/lefthook` for git hooks.
   - Store multi-line shell commands for hooks in a separate directory.

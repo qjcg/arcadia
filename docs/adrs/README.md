@@ -16,3 +16,4 @@ MADR-style ([madrgithub.io](https://adr.github.io/madr/)) decision records for a
 
 - [0001. Organize agent artifacts under `agents/` with generated plugin packages](0001-organize-agent-artifacts-under-agents.md)
 - [0002. Command lifecycle: experiments in `exp/`, promotion to `cmd/` at v1.0.0](0002-command-lifecycle-exp-to-cmd.md)
+- [0003. Agent worktrees: one worktree per concurrent agent session](0003-agent-worktrees-for-concurrent-agents.md)
