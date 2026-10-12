@@ -140,6 +140,8 @@ fractals --url "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=on"
 - `engine`: bubbletea, ebiten
 - `color_theme`: grayscale, blue, rainbow, fire, purple, green, gold, cyan
 - `pilot`: manual, autozoom, vantage
+- `pilot_scene_duration`: ticks per vantage scene (20 ticks ≈ 1 second;
+  default 100)
 - `autopilot`: on/off (deprecated alias for `pilot` selection)
 - `dynamic_color`: on/off (smooth hue rotation)
 - `transition`: none, fade, zoomout, rotate, breakthrough
@@ -355,6 +357,9 @@ When running in interactive mode, use these keyboard shortcuts:
 - **-**, **_** - Zoom out manually, or set auto-pilot to zoom out direction (↓)
 - **z** - Toggle auto-pilot mode (automatic exploration with intelligent panning)
 - **r** - Reverse/toggle auto-pilot zoom direction (↑ ↔ ↓)
+- **v** - Toggle the Vantage pilot (tours curated viewpoints)
+- **V** - Skip ahead to the Vantage pilot's next scene
+- **>** / **<** - Lengthen/shorten vantage scenes
 - **0** - Reset view to default (position, zoom, and iteration depth)
 
 ### Fractal Types
