@@ -1,6 +1,6 @@
 module github.com/qjcg/arcadia
 
-go 1.27.1
+go 1.27.2
 
 require github.com/rogpeppe/go-internal v1.16.0
 
@@ -220,7 +220,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/henvic/httpretty v0.2.0 // indirect
 	github.com/huandu/xstrings v1.6.2 // indirect
-	github.com/ianlancetaylor/demangle v0.0.0-20260724033716-83e58baca724 // indirect
+	github.com/ianlancetaylor/demangle v0.0.0-20261012173340-cbb8aaea4290 // indirect
 	github.com/in-toto/attestation v1.2.0 // indirect
 	github.com/in-toto/in-toto-golang v0.11.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -239,7 +239,7 @@ require (
 	github.com/kaptinlin/jsonpointer v0.4.28 // indirect
 	github.com/kaptinlin/jsonschema v0.9.10 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
-	github.com/klauspost/compress v1.20.1 // indirect
+	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/klauspost/pgzip v1.2.7 // indirect
 	github.com/knadh/koanf/maps v0.1.3 // indirect
@@ -305,7 +305,7 @@ require (
 	github.com/pingcap/errors v0.11.5-0.20250523034308-74f78ae071ee // indirect
 	github.com/pingcap/failpoint v0.0.0-20260811232634-55ac33a48e3b // indirect
 	github.com/pingcap/log v1.1.0 // indirect
-	github.com/pingcap/tidb/pkg/parser v0.0.0-20261010115534-788ad51619dd // indirect
+	github.com/pingcap/tidb/pkg/parser v0.0.0-20261012132229-06441e2a681d // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/sftp v1.13.11 // indirect
@@ -403,7 +403,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/crypto/x509roots/fallback v0.0.0-20261009200856-99e4382b128e // indirect
+	golang.org/x/crypto/x509roots/fallback v0.0.0-20261011195143-3b414e3e8284 // indirect
 	golang.org/x/exp v0.0.0-20261011100332-faecfb24eb49 // indirect
 	golang.org/x/image v0.47.0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
@@ -449,7 +449,7 @@ require (
 	modernc.org/sqlite v1.60.1 // indirect
 	mvdan.cc/gofumpt v0.12.0 // indirect
 	mvdan.cc/sh/v3 v3.14.1 // indirect
-	mvdan.cc/sh/x v0.0.0-20260929184124-9a79a445faf5 // indirect
+	mvdan.cc/sh/x v0.0.0-20261012132700-0e8ea6fccd96 // indirect
 	mvdan.cc/xurls/v2 v2.6.0 // indirect
 	oras.land/oras-go/v2 v2.6.2 // indirect
 	sigs.k8s.io/controller-runtime v0.25.2 // indirect

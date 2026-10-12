@@ -153,7 +153,7 @@ require (
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/kennygrant/sanitize v1.2.4 // indirect
-	github.com/klauspost/compress v1.20.1 // indirect
+	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/klauspost/pgzip v1.2.7 // indirect
 	github.com/knadh/koanf/maps v0.1.3 // indirect
@@ -263,5 +263,5 @@ require (
 	google.golang.org/grpc v1.84.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	mvdan.cc/sh/v3 v3.14.1 // indirect
-	mvdan.cc/sh/x v0.0.0-20260929184124-9a79a445faf5 // indirect
+	mvdan.cc/sh/x v0.0.0-20261012132700-0e8ea6fccd96 // indirect
 )
