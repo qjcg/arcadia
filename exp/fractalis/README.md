@@ -139,7 +139,8 @@ fractals --url "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=on"
 **Query Parameters** (all optional):
 - `engine`: bubbletea, ebiten
 - `color_theme`: grayscale, blue, rainbow, fire, purple, green, gold, cyan
-- `autopilot`: on/off
+- `pilot`: manual, autozoom, vantage
+- `autopilot`: on/off (deprecated alias for `pilot` selection)
 - `dynamic_color`: on/off (smooth hue rotation)
 - `transition`: none, fade, zoomout, rotate, breakthrough
 - `julia_cr`: Julia set real parameter (for Julia sets)
