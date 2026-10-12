@@ -18,7 +18,6 @@ import (
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/fractal"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/persistence"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/search"
-	"github.com/qjcg/arcadia/exp/fractalis/internal/ebiten"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/animation"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/color"
 	renderlib "github.com/qjcg/arcadia/exp/fractalis/internal/tui/render"
@@ -1613,7 +1612,7 @@ func main() {
 	flag.BoolVar(vantage, "V", false, "Shorthand for --vantage")
 
 	vantageSceneDurationSpec := flag.Int("vantage-duration", 5, "Seconds per scene in vantage mode")
-	engineFlag := flag.String("engine", persistence.EngineBubbleTea, "Rendering engine (bubbletea, ebiten)")
+	engineFlag := flag.String("engine", persistence.EngineBubbleTea, engineChoiceHelp)
 	flag.StringVar(engineFlag, "e", persistence.EngineBubbleTea, "Shorthand for --engine")
 
 	fulscreenFlag := flag.Bool("fullscreen", false, "Start in fullscreen mode (ebiten only)")
@@ -1696,7 +1695,7 @@ func main() {
 			{"-a, --autopilot", "Enable auto-zoom and intelligent exploration"},
 			{"-V, --vantage", "Enable vantage mode (scenic tour)"},
 			{"--vantage-duration <sec>", "Seconds per scene in vantage mode (default 5)"},
-			{"-e, --engine <name>", "Rendering engine (bubbletea, ebiten)"},
+			{"-e, --engine <name>", engineChoiceHelp},
 			{"-f, --fullscreen", "Start in fullscreen mode (ebiten only)"},
 		})
 
@@ -1888,9 +1887,8 @@ func main() {
 		config.VantageEnabled = *vantage
 		config.VantageSceneDuration = vantageSceneDuration
 
-		// Run Ebiten engine
-		game := ebiten.NewGame(config)
-		if err := game.Run(); err != nil {
+		// Run Ebiten engine (compiled in only with -tags ebiten)
+		if err := runEbitenEngine(config); err != nil {
 			fmt.Fprintf(os.Stderr, "Error running ebiten engine: %v\n", err)
 			os.Exit(1)
 		}

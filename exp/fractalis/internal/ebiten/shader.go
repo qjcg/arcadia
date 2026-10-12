@@ -1,3 +1,5 @@
+//go:build ebiten || (js && wasm)
+
 package ebiten
 
 import (

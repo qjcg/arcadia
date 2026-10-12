@@ -31,18 +31,28 @@ An interactive terminal-based fractal viewer with ASCII art rendering and color 
 
 ## Installation
 
+Fractalis is installable everywhere Go runs: the default build is pure Go
+with no native dependencies. The graphical `ebiten` engine is opt-in at
+build time via the `ebiten` build tag and requires cgo plus the X11/ALSA
+development libraries.
+
 ### Using go install
 
 ```bash
-go install github.com/qjcg/arcadia/exp/fractalis@latest
+# Terminal build (works everywhere)
+go install github.com/qjcg/arcadia/exp/fractalis/cmd/fractalis@latest
+
+# Graphical build (requires X11/ALSA dev libraries)
+go install -tags ebiten \
+  github.com/qjcg/arcadia/exp/fractalis/cmd/fractalis@latest
 ```
 
 ### Building from source
 
 ```bash
 cd exp/fractalis
-go tool task build
-# Binary will be in bin/fractals
+go tool task build         # terminal build -> bin/fractalis
+go tool task build-ebiten  # graphical build -> bin/fractalis-ebiten
 ```
 
 ### Installing locally
@@ -58,7 +68,12 @@ go tool task install
 
 Fractalis supports different rendering engines:
 - `bubbletea` (default): Terminal-based ASCII interface
-- `ebiten`: GPU-accelerated graphical interface (supports 3D Mandelbulb/Mandelbox)
+- `ebiten`: GPU-accelerated graphical interface (supports 3D
+  Mandelbulb/Mandelbox)
+
+The `ebiten` engine is only included in binaries built with the `ebiten`
+build tag (`go install -tags ebiten ...`, `go tool task build-ebiten`).
+A default build exits with a rebuild hint when asked for it.
 
 Launch with a specific engine:
 

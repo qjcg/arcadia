@@ -25,6 +25,16 @@ tasks:
     generates:
       - '{{.BIN}}'
 
+  build-ebiten:
+    desc: >-
+      Build the binary with the graphical ebiten engine (requires cgo and
+      X11/ALSA dev libraries)
+    deps: [wasm]
+    cmds:
+      - >-
+        go build -tags ebiten -ldflags '-s -w'
+        -o {{.BIN_DIR}}/fractalis-ebiten ./cmd/fractalis
+
   wasm:
     desc: Build the WebAssembly binary
     cmds:
@@ -65,6 +75,11 @@ tasks:
     cmds:
       - go test -cover ./...
 
+  test-ebiten:
+    desc: Run tests including the ebiten engine (requires graphics libs)
+    cmds:
+      - go test -cover -tags ebiten ./...
+
   clean:
     desc: Clean build artifacts
     cmds:
@@ -73,7 +88,9 @@ tasks:
   dev-ebiten:
     desc: Run ebiten engine with hot reload using air
     cmds:
-      - go tool air --build.cmd "go run ./cmd/fractalis --engine ebiten"
+      - >-
+        go tool air --build.cmd
+        "go run -tags ebiten ./cmd/fractalis --engine ebiten"
 
   wasm-ebiten:
     desc: Serve ebiten engine as WebAssembly in browser
