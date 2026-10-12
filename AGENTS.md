@@ -34,6 +34,10 @@
   hold citations as reference-style links in a trailing "Link
   references" section so prose lines stay short. Treat "zero lines over
   80 characters, all link references resolved" as the completion check.
+  This applies to Markdown committed to the repo (docs, README, ADRs,
+  glossaries). Content posted to the GitHub issue tracker (issue and
+  PR bodies, comments) is not wrapped — write natural paragraphs
+  there.
 
 ## Workflow
 

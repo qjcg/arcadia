@@ -13,6 +13,12 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 
+## Writing style
+
+Bodies and comments posted here are not line-wrapped: write natural
+paragraphs and let the tracker render them. The repo's 80-character
+Markdown rule applies only to Markdown committed to the repo.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
