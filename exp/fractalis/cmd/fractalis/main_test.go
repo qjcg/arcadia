@@ -9,6 +9,7 @@ import (
 
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/fractal"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/persistence"
+	"github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/search"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/animation"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/color"
@@ -1007,7 +1008,7 @@ func TestRenderStatusBar(t *testing.T) {
 					},
 				},
 			},
-			contains: []string{"AUTO-PILOT"},
+			contains: []string{"Auto-zoom pilot"},
 		},
 		{
 			name: "Julia parameters shown",
@@ -1515,29 +1516,65 @@ func TestStatusBarModeIndicators(t *testing.T) {
 		JuliaCi:     0.27015,
 	}
 
-	// Test explorer mode (manual navigation)
+	// Test manual mode: the status bar names the active Manual pilot
 	m := model{config: config}
 	output := m.renderStatusBar()
-	if !containsSubstring(output, "Explore") {
-		t.Error("Status bar should show 'Explore' for manual mode")
+	if !containsSubstring(output, "Manual pilot") {
+		t.Error("Status bar should name the active Manual pilot")
 	}
 
-	// Test autopilot mode
+	// Test the Auto-zoom pilot
 	m.animationState.AutoPilot.Enabled = true
 	output = m.renderStatusBar()
-	if !containsSubstring(output, "AUTO-PILOT") {
-		t.Error("Status bar should show 'AUTO-PILOT' when autopilot is active")
+	if !containsSubstring(output, "Auto-zoom pilot") {
+		t.Error("Status bar should name the active Auto-zoom pilot")
 	}
 
-	// Test vantage mode
+	// Test the Vantage pilot
 	m.animationState.AutoPilot.Enabled = false
 	m.animationState.Vantage.Enabled = true
 	m.animationState.Vantage.SceneDuration = 100
 	output = m.renderStatusBar()
-	if !containsSubstring(output, "VANTAGE") {
-		t.Error("Status bar should show 'VANTAGE' when vantage is active")
+	if !containsSubstring(output, "Vantage pilot") {
+		t.Error("Status bar should name the active Vantage pilot")
 	}
 	if !containsSubstring(output, "5.0s") {
 		t.Error("Status bar should show vantage duration (100 ticks = 5 seconds)")
+	}
+}
+
+// zoomDoublingPilot is a stub pilot for asserting that the TUI routes
+// its view through the engine seam.
+type zoomDoublingPilot struct{}
+
+func (zoomDoublingPilot) Step(v pilot.View) pilot.View {
+	v.Zoom *= 2
+	return v
+}
+
+func (zoomDoublingPilot) TransitionSchedule() pilot.Schedule { return pilot.Schedule{} }
+
+func TestTickLeavesViewUnchangedForManualPilot(t *testing.T) {
+	m := model{
+		config: Config{FractalType: FractalMandelbrot, CenterX: -0.5, Zoom: 2.0, MaxIter: 50},
+	}
+
+	updated, _ := m.Update(tickMsg{})
+	got := updated.(model)
+	if got.config.Zoom != 2.0 || got.config.CenterX != -0.5 {
+		t.Errorf("manual tick changed the view: %+v, want unchanged", got.config)
+	}
+}
+
+func TestTickRoutesViewThroughEngineSeam(t *testing.T) {
+	m := model{
+		config: Config{FractalType: FractalMandelbrot, Zoom: 2.0, MaxIter: 50},
+	}
+	m.engine.Activate(zoomDoublingPilot{})
+
+	updated, _ := m.Update(tickMsg{})
+	got := updated.(model)
+	if got.config.Zoom != 4.0 {
+		t.Errorf("tick did not evolve the view through the engine seam: Zoom = %v, want 4", got.config.Zoom)
 	}
 }
