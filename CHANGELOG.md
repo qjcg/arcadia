@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [unreleased]
+
+### Changed
+- 0c2b8da9 - Update deps
+- 604a66bb - Tweak formatting
+- 02458ca5 - standardize agent-generated markdown style
+- 6385dc00 - add templ vs gomponents research notes
+- 4f4e841f - Update deps
+
 ## [v0.50.0] - 2026-10-06
 
 ### Added
