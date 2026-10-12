@@ -9,16 +9,12 @@ const (
 	VantageStatusDuration     = 30  // ~1.5 seconds
 
 	// Default animation settings
-	DefaultZoomSpeed            = 1.05 // 5% zoom per tick
-	MinZoomSpeed                = 0.90 // Minimum zoom speed
-	MaxZoomSpeed                = 1.5  // Maximum zoom speed
-	DefaultVantageSceneDuration = 100  // ~5 seconds (100 ticks at 50ms)
-	MinVantageSceneDuration     = 20   // ~1 second
-	MaxVantageSceneDuration     = 600  // ~30 seconds
+	DefaultZoomSpeed = 1.05 // 5% zoom per tick
+	MinZoomSpeed     = 0.90 // Minimum zoom speed
+	MaxZoomSpeed     = 1.5  // Maximum zoom speed
 
 	// Pan speeds
 	AutoPilotPanRate  = 0.05 // 5% of remaining distance per tick
-	VantagePanRate    = 0.02 // 2% of remaining distance per tick (slower)
 	ProgressIncrement = 0.02 // Progress increment per tick
 
 	// Search intensity

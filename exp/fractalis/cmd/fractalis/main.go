@@ -88,6 +88,8 @@ type model struct {
 	calculator *search.InterestCalculator
 	// Engine seam running the active pilot over the view
 	engine pilot.Engine
+	// The Vantage pilot: tours curated viewpoints on its scene timer
+	vantage *pilot.Vantage
 	// Animation and UI state
 	animationState animation.AnimationState
 	// Rendering engine with caching and parallel computation
@@ -104,12 +106,9 @@ type model struct {
 
 // Init initializes the Bubble Tea model
 func (m model) Init() tea.Cmd {
-	// If auto-zoom is enabled (e.g., from URL), start the tick loop
-	if m.animationState.AutoPilot.Enabled {
-		return tickCmd()
-	}
-	// If vantage mode is enabled, start the tick loop
-	if m.animationState.Vantage.Enabled {
+	// Start the tick loop while any pilot drives the view (auto-zoom
+	// still runs as its ad-hoc mode until it becomes a pilot).
+	if m.activePilot() != pilot.ManualID {
 		return tickCmd()
 	}
 	return nil
@@ -122,7 +121,7 @@ func (m *model) addBookmark(name string) error {
 		m.bookmarks = loaded
 	}
 
-	url := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Vantage.SceneDuration, m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
+	url := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.sceneDuration(), m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
 
 	bookmark := persistence.Bookmark{
 		Name: name,
@@ -136,23 +135,31 @@ func (m *model) addBookmark(name string) error {
 // activePilot returns the registered pilot currently driving the
 // view.
 func (m model) activePilot() pilot.ID {
-	switch {
-	case m.animationState.Vantage.Enabled:
+	if _, ok := m.engine.Active().(*pilot.Vantage); ok {
 		return pilot.VantageID
-	case m.animationState.AutoPilot.Enabled:
-		return pilot.AutoZoomID
-	default:
-		return pilot.ManualID
 	}
+	if m.animationState.AutoPilot.Enabled {
+		return pilot.AutoZoomID
+	}
+	return pilot.ManualID
+}
+
+// sceneDuration returns the Vantage pilot's scene duration, or zero
+// when there is no Vantage pilot.
+func (m model) sceneDuration() int {
+	if m.vantage == nil {
+		return 0
+	}
+	return m.vantage.SceneDuration()
 }
 
 // selectPilot makes the given registered pilot the one driving the
-// view. Auto-zoom and vantage still run as their ad-hoc modes here;
-// they become pilots in their own tickets.
+// view. Auto-zoom still runs as its ad-hoc mode here; it becomes a
+// pilot in its own ticket. Switching pilots replaces the active one
+// cleanly.
 func (m *model) selectPilot(id pilot.ID) {
 	m.animationState.AutoPilot.Enabled = false
-	m.animationState.Vantage.Enabled = false
-	m.animationState.Vantage.Initialized = false
+	m.engine.Activate(pilot.Manual())
 
 	switch id {
 	case pilot.AutoZoomID:
@@ -162,14 +169,11 @@ func (m *model) selectPilot(id pilot.ID) {
 			m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
 		}
 	case pilot.VantageID:
-		m.animationState.Vantage.Enabled = true
-		if m.animationState.Vantage.SceneDuration == 0 {
-			m.animationState.Vantage.SceneDuration = animation.DefaultVantageSceneDuration
+		if m.vantage == nil {
+			m.vantage = pilot.NewVantage(pilot.VantageOptions{})
 		}
+		m.engine.Activate(m.vantage)
 		m.animationState.Color.DynamicColor = true
-		if m.animationState.AutoPilot.BaseMaxIter == 0 {
-			m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
-		}
 	}
 }
 
@@ -185,6 +189,10 @@ func applyParamsToModel(m *model, params persistence.FractalURLParams) {
 	m.config.JuliaCi = params.JuliaCi
 
 	m.selectPilot(params.Pilot)
+
+	if m.vantage != nil {
+		m.vantage.SetSceneDuration(params.SceneDuration)
+	}
 
 	m.animationState.Color.DynamicColor = params.DynamicColorEnabled
 	m.animationState.Transition.Mode = persistence.StringToTransitionMode(params.Transition)
@@ -462,6 +470,8 @@ func (m model) view() pilot.View {
 		CenterY:     m.config.CenterY,
 		Zoom:        m.config.Zoom,
 		MaxIter:     m.config.MaxIter,
+		JuliaCr:     m.config.JuliaCr,
+		JuliaCi:     m.config.JuliaCi,
 	}
 }
 
@@ -472,6 +482,8 @@ func (m *model) applyView(v pilot.View) {
 	m.config.CenterY = v.CenterY
 	m.config.Zoom = v.Zoom
 	m.config.MaxIter = v.MaxIter
+	m.config.JuliaCr = v.JuliaCr
+	m.config.JuliaCi = v.JuliaCi
 }
 
 // Update handles messages and updates the model
@@ -486,73 +498,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tickMsg:
-		// Handle vantage mode - continuous random scenes with slow pan
-		if m.animationState.Vantage.Enabled {
-			// Initialize first scene if not yet initialized
-			if !m.animationState.Vantage.Initialized {
-				m.applyRandom()
-				m.animationState.Vantage.SceneTimer = m.animationState.Vantage.SceneDuration
-				m.animationState.Vantage.Initialized = true
-				// Enable slow panning by setting up a fake autopilot target
-				newX, newY := m.findInterestingPoint()
-				m.animationState.AutoPilot.TargetX = newX
-				m.animationState.AutoPilot.TargetY = newY
-				m.animationState.AutoPilot.HasTarget = true
-				m.animationState.AutoPilot.PanProgress = 0.0
-				// Ensure dynamic color and no auto-zoom
-				m.animationState.Color.DynamicColor = true
-				m.animationState.AutoPilot.Enabled = false
-				return m, tickCmd()
-			}
-
-			// Decrement scene timer
-			m.animationState.Vantage.SceneTimer--
-
-			// Apply slow pan if we have a target
-			if m.animationState.AutoPilot.HasTarget && m.animationState.AutoPilot.PanProgress < 1.0 {
-				// Move toward target gradually (slower than autopilot)
-				deltaX := m.animationState.AutoPilot.TargetX - m.config.CenterX
-				deltaY := m.animationState.AutoPilot.TargetY - m.config.CenterY
-
-				m.config.CenterX += deltaX * animation.VantagePanRate
-				m.config.CenterY += deltaY * animation.VantagePanRate
-
-				// Update progress based on distance remaining
-				effectiveDelta := m.getEffectiveSearchDelta()
-				precisionThreshold := effectiveDelta * effectiveDelta * 0.01
-
-				remainingDist := deltaX*deltaX + deltaY*deltaY
-				if remainingDist < precisionThreshold {
-					m.animationState.AutoPilot.PanProgress = 1.0
-				} else {
-					m.animationState.AutoPilot.PanProgress += 0.01 // Also slower progress update
-				}
-			}
-
-			// Update dynamic color hue shift
-			if m.animationState.Color.DynamicColor {
-				m.animationState.Color.HueShift += 0.5
-				if m.animationState.Color.HueShift >= 360.0 {
-					m.animationState.Color.HueShift -= 360.0
-				}
-			}
-
-			// Check if it's time to switch to a new scene
-			if m.animationState.Vantage.SceneTimer <= 0 {
-				m.applyRandom()
-				m.animationState.Vantage.SceneTimer = m.animationState.Vantage.SceneDuration
-				// Find new interesting point to pan to
-				newX, newY := m.findInterestingPoint()
-				m.animationState.AutoPilot.TargetX = newX
-				m.animationState.AutoPilot.TargetY = newY
-				m.animationState.AutoPilot.HasTarget = true
-				m.animationState.AutoPilot.PanProgress = 0.0
-			}
-
-			// Continue the animation
-			return m, tickCmd()
-		}
-
 		// Handle auto-zoom animation tick with intelligent panning
 		if m.animationState.AutoPilot.Enabled {
 			// Update iteration count adaptively based on zoom level
@@ -754,8 +699,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		// Continue ticking if any timer is active
-		if m.animationState.Messages.ScreenshotTimer > 0 || m.animationState.Messages.RandomTimer > 0 || m.animationState.Messages.URLTimer > 0 {
+		// Continue ticking while a pilot drives the view, or any timer
+		// is active
+		if m.activePilot() != pilot.ManualID ||
+			m.animationState.Messages.ScreenshotTimer > 0 || m.animationState.Messages.RandomTimer > 0 || m.animationState.Messages.URLTimer > 0 {
 			return m, tickCmd()
 		}
 
@@ -887,18 +834,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Random - random everything with interesting view
 			m.applyRandom()
 			// Only start tick loop if not already in an animation mode
-			if !m.animationState.AutoPilot.Enabled && !m.animationState.Vantage.Enabled {
+			if m.activePilot() == pilot.ManualID {
 				return m, tickCmd()
 			}
 			return m, nil
 
 		case "z":
-			// Toggle auto-pilot mode (mutually exclusive with vantage mode)
-			if m.animationState.Vantage.Enabled {
-				// Exit vantage mode when entering autopilot
-				m.animationState.Vantage.Enabled = false
-				m.animationState.Vantage.Initialized = false
-			}
+			// Toggle auto-pilot mode (mutually exclusive with the Vantage
+			// pilot)
+			m.engine.Activate(pilot.Manual())
 			m.animationState.AutoPilot.Enabled = !m.animationState.AutoPilot.Enabled
 			if m.animationState.AutoPilot.Enabled {
 				// Store base iteration count for adaptive scaling
@@ -924,60 +868,33 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "V":
-			// Vantage mode: Jump immediately if already on, or Start if off
-			if m.animationState.AutoPilot.Enabled {
-				m.animationState.AutoPilot.Enabled = false
-			}
-
-			if m.animationState.Vantage.Enabled {
-				// Already in vantage mode, jump immediately to next scene
-				m.animationState.Vantage.SceneTimer = 0
-				m.animationState.Vantage.Initialized = false
+			// Vantage pilot: jump to the next scene when already active,
+			// or activate it when not
+			if m.activePilot() == pilot.VantageID {
+				m.vantage.NextScene()
 				m.animationState.Messages.RandomMsg = "Vantage: Next Scene"
 				m.animationState.Messages.RandomTimer = 30
 				return m, tickCmd()
 			}
 
-			// Entering vantage mode
-			m.animationState.Vantage.Enabled = true
-			if m.animationState.AutoPilot.BaseMaxIter == 0 {
-				m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
-			}
-			m.animationState.Vantage.SceneTimer = 0
-			if m.animationState.Vantage.SceneDuration == 0 {
-				m.animationState.Vantage.SceneDuration = 100
-			}
-			m.animationState.Color.DynamicColor = true
-			m.animationState.AutoPilot.Enabled = false
-			m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage Mode: ON (%.1fs/scene)", float64(m.animationState.Vantage.SceneDuration)/20.0)
+			m.selectPilot(pilot.VantageID)
+			m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage Mode: ON (%.1fs/scene)", float64(m.sceneDuration())/20.0)
 			m.animationState.Messages.RandomTimer = 30
 			return m, tickCmd()
 
 		case "v":
-			// lowercase v: Toggle vantage mode normally
-			if m.animationState.Vantage.Enabled {
-				m.animationState.Vantage.Enabled = false
-				m.animationState.Vantage.Initialized = false
+			// Toggle the Vantage pilot
+			if m.activePilot() == pilot.VantageID {
+				m.selectPilot(pilot.ManualID)
 				m.animationState.Messages.RandomMsg = "Vantage Mode: OFF"
 				m.animationState.Messages.RandomTimer = 30
-			} else {
-				if m.animationState.AutoPilot.Enabled {
-					m.animationState.AutoPilot.Enabled = false
-				}
-				m.animationState.Vantage.Enabled = true
-				if m.animationState.AutoPilot.BaseMaxIter == 0 {
-					m.animationState.AutoPilot.BaseMaxIter = m.config.MaxIter
-				}
-				m.animationState.Vantage.SceneTimer = 0
-				if m.animationState.Vantage.SceneDuration == 0 {
-					m.animationState.Vantage.SceneDuration = 100
-				}
-				m.animationState.Color.DynamicColor = true
-				m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage Mode: ON (%.1fs/scene)", float64(m.animationState.Vantage.SceneDuration)/20.0)
-				m.animationState.Messages.RandomTimer = 30
-				return m, tickCmd()
+				return m, nil
 			}
-			return m, nil
+
+			m.selectPilot(pilot.VantageID)
+			m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage Mode: ON (%.1fs/scene)", float64(m.sceneDuration())/20.0)
+			m.animationState.Messages.RandomTimer = 30
+			return m, tickCmd()
 
 		// Navigation - Pan
 		case "up", "w":
@@ -1196,7 +1113,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Copy current location as URL
 		case "U":
-			urlStr := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Vantage.SceneDuration, m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
+			urlStr := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.sceneDuration(), m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
 			if err := clipboard.WriteAll(urlStr); err != nil {
 				m.animationState.Messages.URLMsg = fmt.Sprintf("Error copying URL: %v", err)
 			} else {
@@ -1222,17 +1139,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Vantage scene duration control
 		case ">":
 			// Increase vantage scene duration
-			m.animationState.Vantage.SceneDuration = int(math.Min(float64(m.animationState.Vantage.SceneDuration)+20, 600)) // Max 30 seconds (600 ticks)
-			sceneSec := float64(m.animationState.Vantage.SceneDuration) / 20.0
-			m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage duration: %.1fs/scene", sceneSec)
-			m.animationState.Messages.RandomTimer = 30
+			if m.vantage != nil {
+				m.vantage.SetSceneDuration(min(m.vantage.SceneDuration()+20, 600)) // Max 30 seconds (600 ticks)
+				sceneSec := float64(m.vantage.SceneDuration()) / 20.0
+				m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage duration: %.1fs/scene", sceneSec)
+				m.animationState.Messages.RandomTimer = 30
+			}
 			return m, nil
 		case "<":
 			// Decrease vantage scene duration
-			m.animationState.Vantage.SceneDuration = int(math.Max(float64(m.animationState.Vantage.SceneDuration)-20, 20)) // Min 1 second (20 ticks)
-			sceneSec := float64(m.animationState.Vantage.SceneDuration) / 20.0
-			m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage duration: %.1fs/scene", sceneSec)
-			m.animationState.Messages.RandomTimer = 30
+			if m.vantage != nil {
+				m.vantage.SetSceneDuration(max(m.vantage.SceneDuration()-20, 20)) // Min 1 second (20 ticks)
+				sceneSec := float64(m.vantage.SceneDuration()) / 20.0
+				m.animationState.Messages.RandomMsg = fmt.Sprintf("Vantage duration: %.1fs/scene", sceneSec)
+				m.animationState.Messages.RandomTimer = 30
+			}
 			return m, nil
 		}
 	}
@@ -1457,7 +1378,7 @@ func (m model) renderStatusBar() string {
 			Foreground(lipgloss.Color("white")).
 			Background(lipgloss.Color("blue")).
 			Bold(true)
-		sceneDurationSec := float64(m.animationState.Vantage.SceneDuration) / 20.0
+		sceneDurationSec := float64(m.sceneDuration()) / 20.0
 		statusText := fmt.Sprintf(" %s pilot (%.1fs/scene) ", pilot.Name(id), sceneDurationSec)
 		modeIndicator = vantageStyle.Render(statusText)
 	case pilot.AutoZoomID:
@@ -1803,6 +1724,7 @@ func main() {
 
 	// Check for URL argument (positional) or --url flag
 	urlPilot := pilot.ManualID
+	urlSceneDuration := pilot.DefaultSceneDuration
 	urlDynamicColor := false
 	urlTransitionMode := TransitionNone
 
@@ -1856,6 +1778,7 @@ func main() {
 
 		// Save URL state for interactive mode
 		urlPilot = params.Pilot
+		urlSceneDuration = params.SceneDuration
 		urlDynamicColor = params.DynamicColorEnabled
 		urlTransitionMode = persistence.StringToTransitionMode(params.Transition)
 
@@ -1981,6 +1904,24 @@ func main() {
 	animState.Transition.Mode = TransitionFade
 	animState.Transition.FadeTransition = transition.NewFadeTransition(allFractalTypes)
 
+	// The Vantage pilot tours curated viewpoints, panning each scene
+	// toward a discovered interesting point.
+	calculator := search.NewInterestCalculator(wrapCalculateFractalFloat64)
+	vantagePilot := pilot.NewVantage(pilot.VantageOptions{
+		SceneDuration: urlSceneDuration,
+		Discover: func(v pilot.View) (float64, float64) {
+			return calculator.FindInterestingPoint(search.DefaultSearchPasses(), persistence.Config{
+				FractalType: v.FractalType,
+				CenterX:     v.CenterX,
+				CenterY:     v.CenterY,
+				Zoom:        v.Zoom,
+				MaxIter:     v.MaxIter,
+				JuliaCr:     v.JuliaCr,
+				JuliaCi:     v.JuliaCi,
+			})
+		},
+	})
+
 	m := model{
 		config:            config,
 		bookmarks:         bookmarks,
@@ -1989,7 +1930,9 @@ func main() {
 		renderer:          renderlib.NewRenderer(config, wrapCalculateFractal),
 
 		// Initialize the interest calculator
-		calculator: search.NewInterestCalculator(wrapCalculateFractalFloat64),
+		calculator: calculator,
+		// The Vantage pilot running the curated tour
+		vantage: vantagePilot,
 	}
 
 	// Apply URL-based state if provided
@@ -2006,13 +1949,9 @@ func main() {
 
 	// Apply CLI vantage flag if provided
 	if *vantage {
-		m.animationState.Vantage.Enabled = true
 		// vantage duration in seconds -> convert to ticks (50ms per tick)
-		m.animationState.Vantage.SceneDuration = vantageSceneDuration * 20 // 20 ticks per second
-		m.animationState.Vantage.SceneTimer = 0                            // Will trigger first scene immediately
-		// Force dynamic color on and autopilot off
-		m.animationState.Color.DynamicColor = true
-		m.animationState.AutoPilot.Enabled = false
+		m.vantage.SetSceneDuration(vantageSceneDuration * 20) // 20 ticks per second
+		m.selectPilot(pilot.VantageID)
 	}
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
