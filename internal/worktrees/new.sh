@@ -3,7 +3,8 @@
 #
 # Usage: new.sh <slug> [branch]
 #
-# Creates ../arcadia.worktrees/<slug> on <branch> (default: <slug>).
+# Creates <repo-parent>/worktrees/<repo>/<slug> (e.g.
+# ~/src/worktrees/arcadia/<slug>) on <branch> (default: <slug>).
 # Branches off main when the branch does not exist yet; reattaches an
 # existing branch so a crashed session can pick its work back up. See
 # docs/agents/worktrees.md for the convention this enforces.
@@ -18,17 +19,21 @@ esac
 
 die() { echo "worktree:new: $*" >&2; exit 1; }
 
-root=$(git rev-parse --show-toplevel)
-base=$(dirname "$root")
-dir="$base/arcadia.worktrees/$slug"
+# The main checkout owns the shared .git dir; its parent hosts
+# worktrees/<repo>/ (same directory the pi-subagents harness uses).
+common=$(git rev-parse --path-format=absolute --git-common-dir)
+main=$(dirname "$common")
+base="$(dirname "$main")/worktrees/$(basename "$main")"
+dir="$base/$slug"
+mkdir -p "$base"
 
 [ ! -e "$dir" ] || die "$dir already exists"
 
-if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
-  git -C "$root" worktree add "$dir" "$branch"
+if git -C "$main" show-ref --verify --quiet "refs/heads/$branch"; then
+  git -C "$main" worktree add "$dir" "$branch"
   echo "worktree:new: reattached existing branch $branch at $dir"
 else
-  git -C "$root" worktree add -b "$branch" "$dir" main
+  git -C "$main" worktree add -b "$branch" "$dir" main
   echo "worktree:new: created branch $branch off main at $dir"
 fi
 

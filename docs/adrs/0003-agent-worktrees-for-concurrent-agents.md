@@ -46,7 +46,9 @@ sharing one object store, and the dangerous shared state is small and
 nameable.
 
 * Each concurrent session works in its own worktree at
-  `../arcadia.worktrees/<slug>`, slug
+  `~/src/worktrees/<repo>/<slug>` (originally
+  `../arcadia.worktrees/<slug>`; relocated 2026-10-12 to share the
+  directory the pi-subagents harness uses for managed worktrees), slug
   `<issue-or-task-id>-<short-desc>`, branch named after the slug.
   `git worktree list` is the registry.
 * A worktree is **branch-only territory**: it may branch, commit,
@@ -87,7 +89,7 @@ The working procedure lives in `docs/agents/worktrees.md`.
 ### Confirmation
 
 * `task worktree:new -- demo-slug` creates
-  `../arcadia.worktrees/demo-slug` on branch `demo-slug` off `main`;
+  `~/src/worktrees/arcadia/demo-slug` on branch `demo-slug` off `main`;
   `task worktree:clean -- demo-slug` removes it and prunes.
 * `task worktree:clean` refuses an unmerged branch without `FORCE=1`.
 * `task validate-conventional-commit` passes on this change's commits.

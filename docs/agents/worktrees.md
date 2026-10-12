@@ -10,15 +10,24 @@ use the terms in [`GLOSSARY.md`](../../GLOSSARY.md).
 
 Each concurrent agent session works in its own **worktree** — a second
 working directory of the same repository, sharing one history and one
-set of refs. Worktrees live in a sibling directory of the clone:
+set of refs. All worktrees live under one directory per repository:
 
-    ../arcadia.worktrees/<slug>
+    ~/src/worktrees/<repo>/<slug>
+
+for this repo: `~/src/worktrees/arcadia/<slug>`. This is the same
+directory the pi-subagents harness uses for its managed worktrees, so
+every working copy of a repo — session worktrees and harness
+worktrees alike — shows up in one place.
 
 `<slug>` is lowercase letters, digits, and hyphens, shaped
 `<issue-or-task-id>-<short-desc>` (e.g. `142-worktree-docs`). The
 worktree's branch is named after the slug unless you pass an explicit
 branch name. `git worktree list` is the registry; there is no other
 inventory to keep in sync.
+
+Session notes and other out-of-repo artifacts for a repo live under:
+
+    ~/src/worktrees/<repo>/.notes/<feature>/
 
 The `go.work` workspace file is tracked, so every worktree is a
 self-contained Go workspace with no setup step.
@@ -87,9 +96,11 @@ after the fact.
 ## Harness-managed worktrees
 
 Agent harnesses (e.g. pig subagents run with worktree isolation) may
-create managed worktrees at paths outside `../arcadia.worktrees/`. The
-layout convention does not apply to them — the rules do. Any directory
-holding an agent session is branch-only territory.
+create managed worktrees in the same directory, named
+`pi-worktree-*`. They follow the same rules as session worktrees —
+any directory holding an agent session is branch-only territory —
+but their lifecycle belongs to the harness: do not `task worktree:clean`
+them, and do not reuse their names for session worktrees.
 
 ## Shared machine state
 

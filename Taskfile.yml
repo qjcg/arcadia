@@ -198,7 +198,7 @@ tasks:
   # agent worktrees (see docs/agents/worktrees.md)
 
   worktree:new:
-    desc: Create an agent worktree at ../arcadia.worktrees/<slug> (task worktree:new -- <slug> [branch]).
+    desc: Create an agent worktree at ~/src/worktrees/arcadia/<slug> (task worktree:new -- <slug> [branch]).
     cmd: sh internal/worktrees/new.sh {{.CLI_ARGS}}
 
   worktree:clean:
