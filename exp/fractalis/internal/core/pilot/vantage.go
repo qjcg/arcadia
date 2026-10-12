@@ -33,19 +33,34 @@ type Vantage struct {
 // NewVantage returns a Vantage pilot touring the given viewpoints,
 // or CuratedViewpoints() when none are given.
 func NewVantage(opts VantageOptions) *Vantage {
-	duration := opts.SceneDuration
-	if duration < 1 {
-		duration = DefaultSceneDuration
-	}
 	viewpoints := opts.Viewpoints
 	if len(viewpoints) == 0 {
 		viewpoints = CuratedViewpoints()
 	}
 	return &Vantage{
-		sceneDuration: duration,
+		sceneDuration: sceneTicks(opts.SceneDuration),
 		viewpoints:    viewpoints,
 	}
 }
+
+// sceneTicks normalizes a scene duration to ticks per scene.
+func sceneTicks(d int) int {
+	if d < 1 {
+		return DefaultSceneDuration
+	}
+	return d
+}
+
+// SceneDuration returns the ticks the view rests on each scene.
+func (p *Vantage) SceneDuration() int { return p.sceneDuration }
+
+// SetSceneDuration retimes the tour: the new duration applies from
+// the next scene.
+func (p *Vantage) SetSceneDuration(d int) { p.sceneDuration = sceneTicks(d) }
+
+// NextScene makes the following Step skip ahead to the next viewpoint
+// on the tour.
+func (p *Vantage) NextScene() { p.sceneTimer = 0 }
 
 // Step rests the view on each curated scene for SceneDuration ticks,
 // then moves it to the next viewpoint on the tour.

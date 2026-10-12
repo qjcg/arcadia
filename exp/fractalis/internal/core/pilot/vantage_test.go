@@ -147,6 +147,40 @@ func TestVantageToursCuratedViewpoints(t *testing.T) {
 	}
 }
 
+func TestVantagePansTowardDiscoveredPoints(t *testing.T) {
+	// The pilot pans each scene slowly toward a discovered
+	// interesting point, one pan per scene.
+	discovered := 0
+	vantage := NewVantage(VantageOptions{
+		SceneDuration: 2,
+		Viewpoints: []Viewpoint{
+			viewpointAt("first", 0, 0, 10),
+			viewpointAt("second", 0, 0, 20),
+		},
+		Discover: func(View) (float64, float64) {
+			discovered++
+			return 1, 1
+		},
+	})
+
+	var e Engine
+	e.Activate(vantage)
+	views := tickN(&e, View{FractalType: "mandelbrot", Zoom: 1, MaxIter: 50}, 4)
+
+	if discovered != 2 {
+		t.Fatalf("Discover called %d times, want once per scene", discovered)
+	}
+	if views[0].CenterX != 0 || views[0].CenterY != 0 {
+		t.Fatalf("scene tick moved the view to %+v, want the scene itself", views[0])
+	}
+	if views[1].CenterX <= 0 || views[1].CenterY <= 0 {
+		t.Fatalf("pan tick did not move toward the discovered point: %+v", views[1])
+	}
+	if views[2].CenterX != 0 || views[3].CenterX <= views[1].CenterX {
+		t.Fatalf("new scene did not restart its own pan: %+v, %+v", views[2], views[3])
+	}
+}
+
 func TestVantageScheduleIsSingleFade(t *testing.T) {
 	vantage := NewVantage(VantageOptions{
 		Viewpoints: []Viewpoint{viewpointAt("only", 0, 0, 1)},
