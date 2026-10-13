@@ -178,6 +178,28 @@ func TestReplPromptCmdSubstKeepsInputAlive(t *testing.T) {
 	}
 }
 
+// TestReplAliasWithQuotedValue is the regression test for alias
+// values parsed as shell words: 'alias x='cmd args” must store the
+// unquoted value and expand correctly at the REPL.
+func TestReplAliasWithQuotedValue(t *testing.T) {
+	home := t.TempDir()
+	rc := "alias greet='echo ALIASOK'\n"
+	if err := os.WriteFile(filepath.Join(home, ".terebrarc"),
+		[]byte(rc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r := startReplWithHome(t, home)
+	defer r.close()
+
+	if !r.waitFor("trb:", 5*time.Second) {
+		t.Fatalf("no prompt; output so far: %q", r.snapshot())
+	}
+	r.send("greet\n")
+	if !r.waitFor("ALIASOK", 3*time.Second) {
+		t.Fatalf("quoted-value alias did not run; output: %q", r.snapshot())
+	}
+}
+
 // TestReplMultilineContinuation proves the REPL accumulates lines
 // until the bash parser sees complete input, and that --explain works
 // against the new parse path (issue #17 acceptance).

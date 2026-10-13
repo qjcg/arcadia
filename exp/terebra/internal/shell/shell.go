@@ -198,31 +198,85 @@ func (s *Shell) evalLine(ctx context.Context, line string) error {
 	if len(fields) == 0 {
 		return nil
 	}
+	args := splitWords(strings.TrimLeft(trimmed[len(fields[0]):], " \t"))
 	switch fields[0] {
 	case "alias":
-		s.builtinAlias(fields[1:])
+		s.builtinAlias(args)
 		return nil
 	case "unalias":
-		s.builtinUnalias(fields[1:])
+		s.builtinUnalias(args)
 		return nil
 	case "jobs":
 		s.printJobs(s.Stdout)
 		return nil
 	case "fg":
-		s.fgJob(fields[1:])
+		s.fgJob(args)
 		return nil
 	case "bg":
-		s.bgJob(fields[1:])
+		s.bgJob(args)
 		return nil
 	case "history":
-		s.builtinHistory(fields[1:])
+		s.builtinHistory(args)
 		return nil
 	case "state":
-		if len(fields) > 1 && fields[1] == "load" {
-			return s.stateLoad(fields[2:])
+		if len(args) > 0 && args[0] == "load" {
+			return s.stateLoad(args[1:])
 		}
 	}
 	return s.engine.Eval(ctx, s.expandAlias(trimmed))
+}
+
+// splitWords splits s on unquoted whitespace and strips one layer of
+// quoting from each word, mirroring how bash parses builtin arguments
+// as shell words. Adjacent quotes concatenate (`'it”s'` is `it's`).
+func splitWords(s string) []string {
+	var words []string
+	var b strings.Builder
+	var quote byte
+	started := false
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case quote == '\'':
+			if c == '\'' {
+				quote = 0
+			} else {
+				b.WriteByte(c)
+			}
+		case quote == '"':
+			switch c {
+			case '"':
+				quote = 0
+			case '\\':
+				if i+1 < len(s) {
+					i++
+				}
+				b.WriteByte(s[i])
+			default:
+				b.WriteByte(c)
+			}
+		case c == '\'' || c == '"':
+			quote = c
+			started = true
+		case c == '\\' && i+1 < len(s):
+			i++
+			b.WriteByte(s[i])
+			started = true
+		case c == ' ' || c == '\t':
+			if started {
+				words = append(words, b.String())
+				b.Reset()
+				started = false
+			}
+		default:
+			b.WriteByte(c)
+			started = true
+		}
+	}
+	if started {
+		words = append(words, b.String())
+	}
+	return words
 }
 
 // expandAlias expands a leading command word that matches an alias.
