@@ -1,150 +1,84 @@
+// Package shell is terebra's interactive REPL around the interp
+// engine: readline, prompt, completion, job control, and the REPL-only
+// commands. All evaluation goes through internal/engine (ADR 0004),
+// so the REPL, -c, and script mode share one parse-and-execute path.
 package shell
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
 
+	"cuelang.org/go/cue"
 	"github.com/chzyer/readline"
-	"github.com/qjcg/arcadia/exp/terebra/internal/builtins"
-	"github.com/qjcg/arcadia/exp/terebra/internal/drill"
-	"github.com/qjcg/arcadia/exp/terebra/internal/expand"
-	"github.com/qjcg/arcadia/exp/terebra/internal/parser"
-	"github.com/qjcg/arcadia/exp/terebra/internal/plugin"
+
+	"github.com/qjcg/arcadia/exp/terebra/internal/cueutil"
+	"github.com/qjcg/arcadia/exp/terebra/internal/engine"
 )
 
 const historyFile = ".terebra_history"
 
+// Shell is the interactive REPL: one persistent engine plus the
+// readline experience and the job table.
 type Shell struct {
-	Stdin    io.Reader
-	Stdout   io.Writer
-	Stderr   io.Writer
-	builtins *builtins.Registry
-	vars     map[string]string
-	readonly map[string]bool
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+
+	engine   *engine.Engine
 	aliases  map[string]string
-	arrays   map[string][]string
-	assoc    map[string]map[string]string
-	plugins  *plugin.Registry
 	jobs     []*Job
 	jobSeq   int
 	exitCode int
 	mu       sync.Mutex
-	rl       *readline.Instance
-	debug    bool // set -x debug mode
-	fuzzy    bool // Ctrl+R fuzzy search flag
-	nullGlob bool // set -o nullglob: unmatched globs expand to nothing
-	dotGlob  bool // set -o dotglob: globs match leading-dot names
 
-	// stdin pipe for interrupting readline
-	stdinR          *os.File // read end of pipe (readline reads from this)
-	stdinW          *os.File // write end of pipe (goroutine writes to this)
+	rl    *readline.Instance
+	fuzzy bool // Ctrl+R fuzzy search flag
+
+	// stdin pipe so we can interrupt readline (Ctrl+R, external
+	// commands). The pipe is created once and reused.
+	stdinR          *os.File // read end (readline reads from this)
+	stdinW          *os.File // write end (copier goroutine writes to this)
 	stdinDone       chan struct{}
-	stdinNeedsReset bool // set when stdin pipe was paused for an external command
-
-	// self-pipe used to interrupt the stdin copy goroutine without closing
-	// os.Stdin (closing a terminal fd in raw mode does not unblock a pending
-	// read, which deadlocked pauseStdinPipe/closeStdinPipe).
-	stopR *os.File
-	stopW *os.File
+	stopR, stopW    *os.File // self-pipe to stop the copier
+	stdinNeedsReset bool
 }
 
-func (s *Shell) setExitCode(code int) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.exitCode = code
-}
-
-// globOptions returns the current glob expansion options.
-func (s *Shell) globOptions() expand.GlobOptions {
-	return expand.GlobOptions{NullGlob: s.nullGlob, DotGlob: s.dotGlob}
-}
-
-func (s *Shell) getExitCode() int {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.exitCode
-}
-
+// New builds the REPL shell with its engine and job control.
 func New() *Shell {
 	s := &Shell{
-		Stdin:    os.Stdin,
-		Stdout:   os.Stdout,
-		Stderr:   os.Stderr,
-		builtins: builtins.New(),
-		vars:     make(map[string]string),
-		readonly: make(map[string]bool),
-		aliases:  make(map[string]string),
-		arrays:   make(map[string][]string),
-		assoc:    make(map[string]map[string]string),
-		plugins:  plugin.New(),
+		Stdin:   os.Stdin,
+		Stdout:  os.Stdout,
+		Stderr:  os.Stderr,
+		aliases: make(map[string]string),
 	}
-	// Set default PS1 if not already set
-	if s.getVar("PS1") == "" && os.Getenv("PS1") == "" {
-		s.vars["PS1"] = "trb:{{.}}{{exit}}"
+	e, err := engine.New(engine.Options{
+		Stdin:  s.Stdin,
+		Stdout: s.Stdout,
+		Stderr: s.Stderr,
+		// Job control owns external commands (issue #12 layer).
+		External: s.execJob,
+	})
+	if err != nil {
+		panic(err)
 	}
-	// Register shell-aware builtins that need access to the Shell struct
-	s.builtins.Register("export", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return s.builtinExport(args, stdout, stderr)
-	})
-	s.builtins.Register("unset", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return s.builtinUnset(args, stdout, stderr)
-	})
-	s.builtins.Register("set", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return s.builtinSet(args, stdout, stderr)
-	})
-	s.builtins.Register("jobs", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return builtinJobs(args, stdout, stderr, s)
-	})
-	s.builtins.Register("fg", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return builtinFg(args, stdout, stderr, s)
-	})
-	s.builtins.Register("bg", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return builtinBg(args, stdout, stderr, s)
-	})
-	s.builtins.Register("drill", drill.Handler)
-	s.builtins.Register("cue", builtins.CueHandler())
-	s.builtins.Register("plugin", plugin.PluginBuiltin(s.plugins))
-	s.builtins.Register("state", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return s.builtinState(args, stdin, stdout, stderr)
-	})
-	s.builtins.Register("source", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return s.builtinSource(args, stdin, stdout, stderr)
-	})
-	s.builtins.Register("alias", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return s.builtinAlias(args, stdout, stderr)
-	})
-	s.builtins.Register("unalias", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return s.builtinUnalias(args, stdout, stderr)
-	})
-	s.builtins.Register("history", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return s.builtinHistory(args, stdout, stderr)
-	})
-	s.builtins.Register("readonly", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return s.builtinReadonly(args, stdout, stderr)
-	})
-	s.builtins.Register("exec", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return s.builtinExec(args, stdout, stderr)
-	})
-	s.builtins.Register("exit", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-		return s.builtinExit(args, stdout, stderr)
-	})
-	// Load ~/.terebrarc if it exists
-	s.loadRc()
+	s.engine = e
 	return s
 }
 
+// Run starts the interactive REPL.
 func Run() error {
 	sh := New()
 	return sh.Repl()
 }
 
+// Repl is the readline loop: accumulate lines until input is
+// complete, evaluate through the engine, repeat.
 func (s *Shell) Repl() error {
 	histPath := ""
 	if home := os.Getenv("HOME"); home != "" {
@@ -161,20 +95,28 @@ func (s *Shell) Repl() error {
 	s.rl = rl
 	defer rl.Close()
 
+	s.loadRc()
+
+	ctx := context.Background()
+	var buf strings.Builder
 	for {
-		// If the stdin pipe was paused for an external command, resume the
-		// copy goroutine on the same pipe. The pipe is not recreated, so
-		// any input already buffered in it is preserved.
+		// If the stdin pipe was paused for an external command, resume
+		// the copy goroutine on the same pipe.
 		if s.stdinNeedsReset {
 			s.stdinNeedsReset = false
 			s.resumeStdinPipe()
 		}
 
-		rl.SetPrompt(s.prompt())
+		if buf.Len() > 0 {
+			rl.SetPrompt("> ")
+		} else {
+			rl.SetPrompt(s.prompt())
+		}
 
 		line, err := rl.Readline()
 		if err != nil {
 			if err == readline.ErrInterrupt {
+				buf.Reset()
 				continue
 			}
 			if err == io.EOF {
@@ -208,33 +150,297 @@ func (s *Shell) Repl() error {
 			return err
 		}
 
-		line = strings.TrimSpace(line)
-
-		if line == "" {
+		if buf.Len() > 0 {
+			buf.WriteString("\n")
+		}
+		buf.WriteString(line)
+		src := buf.String()
+		if strings.TrimSpace(src) == "" {
+			buf.Reset()
 			continue
 		}
 
-		pipe, err := parser.ParseScript(line)
-		if err != nil {
-			fmt.Fprintf(s.Stderr, "trb: parse error: %v\n", err)
+		err = s.evalLine(ctx, src)
+		if err != nil && engine.Incomplete(err) {
+			// Unclosed quote or open block: read another line.
 			continue
 		}
-
-		// Fill in heredoc content from interactive input if needed
-		if s.rl != nil {
-			s.fillHeredocs(pipe)
-		}
-
-		if err := s.ExecuteScript(pipe); err != nil {
-			if errors.Is(err, errExitShell) {
-				os.Exit(s.exitCode)
-			}
-			fmt.Fprintf(s.Stderr, "trb: error: %v\n", err)
-			s.exitCode = 1
-		} else {
+		buf.Reset()
+		switch {
+		case err == nil:
 			s.exitCode = 0
+		case s.engine.Exited():
+			code, _ := engine.ExitCode(err)
+			s.closeStdinPipe()
+			os.Exit(code)
+		default:
+			fmt.Fprintf(s.Stderr, "trb: %v\n", err)
+			s.exitCode = 1
+			if code, ok := engine.ExitCode(err); ok {
+				s.exitCode = code
+			}
 		}
 	}
+}
+
+// evalLine runs one REPL input chunk: REPL-only commands are served
+// locally, everything else goes through the shared engine.
+func (s *Shell) evalLine(ctx context.Context, line string) error {
+	trimmed := strings.TrimSpace(line)
+	if rest, ok := strings.CutPrefix(trimmed, "--explain"); ok {
+		fmt.Fprintf(s.Stdout, "# would execute: %s\n", strings.TrimSpace(rest))
+		return nil
+	}
+	fields := strings.Fields(trimmed)
+	if len(fields) == 0 {
+		return nil
+	}
+	switch fields[0] {
+	case "alias":
+		s.builtinAlias(fields[1:])
+		return nil
+	case "unalias":
+		s.builtinUnalias(fields[1:])
+		return nil
+	case "jobs":
+		s.printJobs(s.Stdout)
+		return nil
+	case "fg":
+		s.fgJob(fields[1:])
+		return nil
+	case "bg":
+		s.bgJob(fields[1:])
+		return nil
+	case "history":
+		s.builtinHistory(fields[1:])
+		return nil
+	case "state":
+		if len(fields) > 1 && fields[1] == "load" {
+			return s.stateLoad(fields[2:])
+		}
+	}
+	return s.engine.Eval(ctx, s.expandAlias(trimmed))
+}
+
+// expandAlias expands a leading command word that matches an alias.
+// Trailing-space aliases do not chain-expand; that is a documented
+// limitation of the REPL layer.
+func (s *Shell) expandAlias(line string) string {
+	name, rest, hasRest := strings.Cut(line, " ")
+	alias, ok := s.aliases[name]
+	if !ok {
+		return line
+	}
+	if hasRest {
+		return alias + " " + rest
+	}
+	return alias
+}
+
+// builtinAlias defines or lists aliases (bash output format).
+func (s *Shell) builtinAlias(args []string) {
+	if len(args) == 0 {
+		for name, val := range s.aliases {
+			fmt.Fprintf(s.Stdout, "alias %s='%s'\n", name, val)
+		}
+		return
+	}
+	for _, arg := range args {
+		name, val, ok := strings.Cut(arg, "=")
+		if !ok {
+			if val, ok := s.aliases[name]; ok {
+				fmt.Fprintf(s.Stdout, "alias %s='%s'\n", name, val)
+			}
+			continue
+		}
+		s.aliases[name] = val
+	}
+}
+
+// builtinUnalias removes aliases.
+func (s *Shell) builtinUnalias(args []string) {
+	for _, name := range args {
+		delete(s.aliases, name)
+	}
+}
+
+// builtinHistory prints recent history, most recent last.
+func (s *Shell) builtinHistory(args []string) {
+	lines := s.readHistory()
+	n := len(lines)
+	if len(args) > 0 {
+		fmt.Sscanf(args[0], "%d", &n)
+	}
+	for i := min(n, len(lines)) - 1; i >= 0; i-- {
+		fmt.Fprintf(s.Stdout, "%5d  %s\n", len(lines)-i, lines[i])
+	}
+}
+
+// stateLoad restores variables from a state file into the engine.
+func (s *Shell) stateLoad(args []string) error {
+	path := "terebra-state.cue"
+	if len(args) > 0 {
+		path = args[0]
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	ctx := cueutil.NewContext()
+	v := cueutil.CompileString(ctx, string(data))
+	if err := cueutil.Err(v); err != nil {
+		return err
+	}
+	vals := map[string]string{}
+	cueutil.WalkFields(cueutil.LookupPath(v, "vars"),
+		func(name string, val cue.Value) bool {
+			if str, err := val.String(); err == nil {
+				vals[name] = str
+			}
+			return true
+		})
+	s.engine.SetVars(vals)
+	fmt.Fprintf(s.Stdout, "state loaded from %s\n", path)
+	return nil
+}
+
+// captureCommandOutput evaluates a command and returns its stdout,
+// used for PS1 command substitutions.
+func (s *Shell) captureCommandOutput(cmdStr string) (string, error) {
+	out, err := s.engine.Capture(context.Background(), cmdStr)
+	return strings.TrimRight(out, "\n"), err
+}
+
+// prompt renders PS1 (template vars and command substitutions).
+func (s *Shell) prompt() string {
+	// Check for PS1 customization — engine vars first, then env.
+	ps1 := s.getVar("PS1")
+	if ps1 == "" {
+		ps1 = os.Getenv("PS1")
+	}
+	if ps1 != "" {
+		// Expand $(...) command substitutions first
+		ps1 = s.expandPromptCmd(ps1)
+		// Then process template vars
+		if strings.Contains(ps1, "{{.}}") {
+			wd, _ := os.Getwd()
+			home := os.Getenv("HOME")
+			display := wd
+			if after, ok := strings.CutPrefix(display, home); ok {
+				display = "~" + after
+			}
+			mark := "$"
+			if s.exitCode != 0 {
+				mark = "!"
+			}
+			ps1 = strings.ReplaceAll(ps1, "{{.}}", display)
+			ps1 = strings.ReplaceAll(ps1, "{{exit}}", mark)
+			ps1 = strings.ReplaceAll(ps1, "{{exitcode}}", fmt.Sprintf("%d", s.exitCode))
+		}
+		// Handle multi-line prompts: print preceding lines to stderr,
+		// return only the last line as the readline prompt.
+		if idx := strings.LastIndex(ps1, "\n"); idx >= 0 {
+			fmt.Fprint(s.Stderr, ps1[:idx], "\r\n")
+			ps1 = ps1[idx+1:]
+		}
+		ps1 = strings.TrimRight(ps1, "\n\r")
+		// Strip ANSI escape codes so readline computes cursor position
+		// correctly. Trim trailing spaces so the appended space is the
+		// only one.
+		ps1 = strings.TrimRight(stripANSI(ps1), " ")
+		return ps1 + " "
+	}
+	wd, _ := os.Getwd()
+	home := os.Getenv("HOME")
+	display := wd
+	if after, ok := strings.CutPrefix(display, home); ok {
+		display = "~" + after
+	}
+	mark := "$"
+	if s.exitCode != 0 {
+		mark = "!"
+	}
+	return fmt.Sprintf("trb:%s%s ", display, mark)
+}
+
+// getVar reads a shell variable from the engine, falling back to the
+// process environment.
+func (s *Shell) getVar(name string) string {
+	if v, ok := s.engine.Vars()[name]; ok {
+		return v.String()
+	}
+	return os.Getenv(name)
+}
+
+// expandPromptCmd evaluates $(...) command substitutions in a prompt.
+func (s *Shell) expandPromptCmd(input string) string {
+	var b strings.Builder
+	for i := 0; i < len(input); {
+		if strings.HasPrefix(input[i:], "$(") {
+			depth := 1
+			j := i + 2
+			for j < len(input) && depth > 0 {
+				switch input[j] {
+				case '(':
+					depth++
+				case ')':
+					depth--
+				}
+				j++
+			}
+			if depth == 0 {
+				if out, err := s.captureCommandOutput(input[i+2 : j-1]); err == nil {
+					b.WriteString(out)
+				}
+				i = j
+				continue
+			}
+		}
+		b.WriteByte(input[i])
+		i++
+	}
+	return b.String()
+}
+
+// stripANSI removes ANSI escape codes (both CSI and OSC sequences).
+func stripANSI(s string) string {
+	var result strings.Builder
+	i := 0
+	for i < len(s) {
+		if s[i] == '\033' {
+			if i+1 < len(s) && s[i+1] == '[' {
+				// CSI sequence: \033[...<letter>
+				j := i + 2
+				for j < len(s) && !((s[j] >= 'A' && s[j] <= 'Z') || (s[j] >= 'a' && s[j] <= 'z')) {
+					j++
+				}
+				i = j + 1
+				continue
+			}
+			if i+1 < len(s) && s[i+1] == ']' {
+				// OSC sequence: \033]...(\a or \033\\)
+				j := i + 2
+				for j < len(s) {
+					if s[j] == '\a' {
+						j++
+						break
+					}
+					if s[j] == '\033' && j+1 < len(s) && s[j+1] == '\\' {
+						j += 2
+						break
+					}
+					j++
+				}
+				i = j
+				continue
+			}
+			i++
+			continue
+		}
+		result.WriteByte(s[i])
+		i++
+	}
+	return result.String()
 }
 
 func (s *Shell) filterInput(r rune) (rune, bool) {
@@ -250,7 +456,8 @@ func (s *Shell) filterInput(r rune) (rune, bool) {
 	return r, true
 }
 
-// newReadlineConfig creates a fresh readline.Config for the current stdin pipe.
+// newReadlineConfig creates a fresh readline.Config for the current
+// stdin pipe.
 func (s *Shell) newReadlineConfig(histPath string) *readline.Config {
 	return &readline.Config{
 		Prompt:              "",
@@ -268,13 +475,8 @@ func (s *Shell) newReadlineConfig(histPath string) *readline.Config {
 }
 
 // setupStdinPipe creates a pipe and starts a goroutine that copies
-// from os.Stdin into the pipe. Readline reads from the read end of
-// the pipe so we can interrupt it by closing the pipe.
-//
-// The pipe is created once and reused across external commands. The
-// copy goroutine is paused (not the pipe) when an external command
-// needs the terminal, so any input already buffered in the pipe is
-// preserved for the next readline call.
+// from os.Stdin into the pipe. Readline reads from the read end so we
+// can interrupt it without closing os.Stdin.
 func (s *Shell) setupStdinPipe() {
 	r, w, err := os.Pipe()
 	if err != nil {
@@ -286,13 +488,12 @@ func (s *Shell) setupStdinPipe() {
 	}
 	s.stdinR = r
 	s.stdinW = w
-	s.Stdin = r // redirect all reads through the pipe so the goroutine is the sole os.Stdin reader
+	s.Stdin = r // the copier is the sole os.Stdin reader
 	s.startStdinCopier()
 }
 
-// startStdinCopier launches the goroutine that copies os.Stdin into the
-// pipe. It can be stopped via pauseStdinPipe and restarted via
-// resumeStdinPipe without recreating the pipe.
+// startStdinCopier launches the goroutine that copies os.Stdin into
+// the pipe. It can be paused and resumed without recreating the pipe.
 func (s *Shell) startStdinCopier() {
 	s.stdinDone = make(chan struct{})
 	stopR, stopW, err := os.Pipe()
@@ -308,10 +509,9 @@ func (s *Shell) startStdinCopier() {
 		buf := make([]byte, 4096)
 		stdinFd := int(os.Stdin.Fd())
 		for {
-			// Wait for input on os.Stdin or the stop pipe. We cannot rely
-			// on closing os.Stdin to interrupt a pending read: in raw mode
-			// a terminal fd is not unblocked by close(), which deadlocked
-			// the old pause/close logic. So we select on a self-pipe.
+			// Wait for input on os.Stdin or the stop pipe. A terminal fd
+			// is not unblocked by close() in raw mode, so the copier is
+			// stopped via this self-pipe.
 			rfds := &syscall.FdSet{}
 			FD_SET(stdinFd, rfds)
 			if stopR != nil {
@@ -357,9 +557,9 @@ func FD_ISSET(fd int, set *syscall.FdSet) bool {
 	return set.Bits[fd/64]&(1<<(uint(fd)%64)) != 0
 }
 
-// pauseStdinPipe stops the stdin copy goroutine and restores direct stdin
-// so an external command can read the terminal. The pipe itself is kept
-// open so any buffered input is preserved.
+// pauseStdinPipe stops the stdin copier and restores direct stdin so
+// an external command can read the terminal. Buffered pipe input is
+// preserved.
 func (s *Shell) pauseStdinPipe() {
 	if s.stdinDone != nil {
 		if s.stopW != nil {
@@ -371,7 +571,7 @@ func (s *Shell) pauseStdinPipe() {
 	s.Stdin = os.Stdin
 }
 
-// resumeStdinPipe restarts the stdin copy goroutine on the existing pipe.
+// resumeStdinPipe restarts the stdin copier on the existing pipe.
 func (s *Shell) resumeStdinPipe() {
 	if s.stdinR != nil && s.stdinR != os.Stdin {
 		s.startStdinCopier()
@@ -379,8 +579,7 @@ func (s *Shell) resumeStdinPipe() {
 	}
 }
 
-// closeStdinPipe closes the stdin pipe and waits for the copy goroutine
-// to exit.
+// closeStdinPipe closes the stdin pipe and waits for the copier.
 func (s *Shell) closeStdinPipe() {
 	if s.stdinDone != nil {
 		if s.stopW != nil {
@@ -406,10 +605,10 @@ func (s *Shell) closeStdinPipe() {
 	s.stdinDone = nil
 	s.stopR = nil
 	s.stopW = nil
-	s.Stdin = os.Stdin // restore direct stdin after pipe is closed
+	s.Stdin = os.Stdin
 }
 
-// readHistory reads the history file and returns all lines.
+// readHistory reads the history file, most recent first.
 func (s *Shell) readHistory() []string {
 	home := os.Getenv("HOME")
 	if home == "" {
@@ -421,21 +620,18 @@ func (s *Shell) readHistory() []string {
 		return nil
 	}
 	lines := strings.Split(string(data), "\n")
-	// Remove trailing empty line
 	if len(lines) > 0 && lines[len(lines)-1] == "" {
 		lines = lines[:len(lines)-1]
 	}
-	// Reverse so most recent is first
 	for i, j := 0, len(lines)-1; i < j; i, j = i+1, j-1 {
 		lines[i], lines[j] = lines[j], lines[i]
 	}
 	return lines
 }
 
-// loadRc loads ~/.terebrarc if it exists, executing it line by line
-// in the shell's own context so assignments (PS1) and aliases land in
-// the REPL's stores. Control flow in rc files runs through the interp
-// engine once the REPL moves over (issue #17).
+// loadRc loads ~/.terebrarc if it exists, running each line through
+// the same eval path as typed input so assignments (PS1) and aliases
+// land where the REPL reads them.
 func (s *Shell) loadRc() {
 	home := os.Getenv("HOME")
 	if home == "" {
@@ -451,241 +647,6 @@ func (s *Shell) loadRc() {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		script, err := parser.ParseScript(line)
-		if err != nil || len(script.Pipelines) == 0 {
-			continue
-		}
-		_ = s.ExecuteScript(script)
+		_ = s.evalLine(context.Background(), line)
 	}
-}
-
-// fillHeredocs reads heredoc content from the user when it wasn't provided
-// in the input line (e.g. interactive REPL usage).
-func (s *Shell) fillHeredocs(script *parser.Script) {
-	for _, pipe := range script.Pipelines {
-		for _, cmd := range pipe.Commands {
-			for _, redir := range cmd.Redirects {
-				if (redir.Type == parser.RedirectHeredoc || redir.Type == parser.RedirectHeredocDash) && redir.Content == "" {
-					var content strings.Builder
-					delimiter := redir.File
-					for {
-						s.rl.SetPrompt("> ")
-						line, err := s.rl.Readline()
-						if err != nil {
-							break
-						}
-						trimmed := line
-						if redir.Type == parser.RedirectHeredocDash {
-							trimmed = strings.TrimLeft(line, "\t")
-						}
-						if trimmed == delimiter {
-							break
-						}
-						content.WriteString(line)
-						content.WriteByte('\n')
-					}
-					redir.Content = content.String()
-				}
-			}
-		}
-	}
-}
-
-func (s *Shell) prompt() string {
-	// Check for PS1 customization — check shell vars first, then env
-	ps1 := s.getVar("PS1")
-	if ps1 == "" {
-		ps1 = os.Getenv("PS1")
-	}
-	if ps1 != "" {
-		// Expand $(...) command substitutions first
-		ps1 = s.expandPromptCmd(ps1)
-		// Then process template vars
-		if strings.Contains(ps1, "{{.}}") {
-			wd, _ := os.Getwd()
-			home := os.Getenv("HOME")
-			display := wd
-			if after, ok := strings.CutPrefix(display, home); ok {
-				display = "~" + after
-			}
-			mark := "$"
-			if s.exitCode != 0 {
-				mark = "!"
-			}
-			ps1 = strings.ReplaceAll(ps1, "{{.}}", display)
-			ps1 = strings.ReplaceAll(ps1, "{{exit}}", mark)
-			ps1 = strings.ReplaceAll(ps1, "{{exitcode}}", fmt.Sprintf("%d", s.exitCode))
-		}
-		// Handle multi-line prompts: print preceding lines to stderr,
-		// return only the last line as the readline prompt.
-		if idx := strings.LastIndex(ps1, "\n"); idx >= 0 {
-			fmt.Fprint(s.Stderr, ps1[:idx], "\r\n")
-			ps1 = ps1[idx+1:]
-		}
-		ps1 = strings.TrimRight(ps1, "\n\r")
-		// Strip ANSI escape codes so readline computes cursor position
-		// correctly. Trim trailing spaces so the appended space is the
-		// only one — users who include a trailing space in their PS1
-		// won't get a double space.
-		ps1 = strings.TrimRight(stripANSI(ps1), " ")
-		return ps1 + " "
-	}
-	wd, _ := os.Getwd()
-	home := os.Getenv("HOME")
-	display := wd
-	if after, ok := strings.CutPrefix(display, home); ok {
-		display = "~" + after
-	}
-	mark := "$"
-	if s.exitCode != 0 {
-		mark = "!"
-	}
-	return fmt.Sprintf("trb:%s%s ", display, mark)
-}
-
-// stripANSI removes ANSI escape codes (both CSI and OSC sequences) from s.
-func stripANSI(s string) string {
-	var result strings.Builder
-	i := 0
-	for i < len(s) {
-		if s[i] == '\033' {
-			if i+1 < len(s) && s[i+1] == '[' {
-				// CSI sequence: \033[...<letter>
-				i += 2
-				for i < len(s) && !(s[i] >= 'A' && s[i] <= 'Z' || s[i] >= 'a' && s[i] <= 'z') {
-					i++
-				}
-				if i < len(s) {
-					i++
-				}
-				continue
-			}
-			if i+1 < len(s) && s[i+1] == ']' {
-				// OSC sequence: \033]...\007 or \033]...\033\\
-				i += 2
-				for i < len(s) {
-					if s[i] == '\007' {
-						i++
-						break
-					}
-					if s[i] == '\033' && i+1 < len(s) && s[i+1] == '\\' {
-						i += 2
-						break
-					}
-					i++
-				}
-				continue
-			}
-		}
-		result.WriteByte(s[i])
-		i++
-	}
-	return result.String()
-}
-
-// expandPromptCmd finds $(...) in input, executes each command via sh -c,
-// and replaces the expression with the command's stdout.
-func (s *Shell) expandPromptCmd(input string) string {
-	if !strings.Contains(input, "$(") {
-		return input
-	}
-	var result strings.Builder
-	i := 0
-	for i < len(input) {
-		if input[i] == '$' && i+1 < len(input) && input[i+1] == '(' {
-			i += 2 // skip $(
-			// Find matching ), handling nesting
-			depth := 1
-			start := i
-			for i < len(input) && depth > 0 {
-				if input[i] == '(' {
-					depth++
-				} else if input[i] == ')' {
-					depth--
-				}
-				if depth > 0 {
-					i++
-				}
-			}
-			cmdStr := input[start:i]
-			if i < len(input) {
-				i++ // skip )
-			}
-			// Execute the command via sh -c
-			cmd := exec.Command("sh", "-c", cmdStr)
-			output, err := cmd.Output()
-			if err == nil {
-				out := strings.TrimRight(string(output), "\n\r")
-				result.WriteString(out)
-			} // on error, substitute nothing
-			continue
-		}
-		result.WriteByte(input[i])
-		i++
-	}
-	return result.String()
-}
-
-// builtinExit handles the exit builtin. It sets the shell's exit code and
-// returns -1 as a sentinel that the executor interprets as "exit the shell".
-// builtinExec handles the exec builtin. It replaces the current process with
-// the given command using syscall.Exec, which never returns on success.
-func (s *Shell) builtinExec(args []string, stdout, stderr io.Writer) int {
-	if len(args) == 0 {
-		fmt.Fprintln(stderr, "exec: missing command")
-		return 1
-	}
-
-	argv0 := ""
-	cmdArgs := args
-	if args[0] == "-a" {
-		if len(args) < 2 {
-			fmt.Fprintln(stderr, "exec: option requires an argument: -a")
-			return 1
-		}
-		argv0 = args[1]
-		cmdArgs = args[2:]
-	}
-
-	if len(cmdArgs) == 0 {
-		fmt.Fprintln(stderr, "exec: missing command")
-		return 1
-	}
-
-	command := cmdArgs[0]
-	path, err := exec.LookPath(command)
-	if err != nil {
-		s.exitCode = 127
-		fmt.Fprintf(stderr, "exec: %v\n", err)
-		return 127
-	}
-
-	argv := cmdArgs
-	if argv0 != "" {
-		argv = make([]string, len(cmdArgs))
-		argv[0] = argv0
-		copy(argv[1:], cmdArgs[1:])
-	}
-
-	envv := os.Environ()
-
-	if err := syscall.Exec(path, argv, envv); err != nil {
-		s.exitCode = 126
-		fmt.Fprintf(stderr, "exec: %v\n", err)
-		return 126
-	}
-
-	return 0
-}
-
-func (s *Shell) builtinExit(args []string, stdout, stderr io.Writer) int {
-	code := 0
-	if len(args) > 0 {
-		if _, err := fmt.Sscanf(args[0], "%d", &code); err != nil {
-			fmt.Fprintf(stderr, "exit: invalid exit code: %s\n", args[0])
-			code = 1
-		}
-	}
-	s.exitCode = code
-	return -1
 }

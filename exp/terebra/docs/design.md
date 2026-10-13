@@ -35,8 +35,12 @@
 
 Word expansion happens in a fixed order after parsing, before execution:
 
-```
-input → parse → brace expand → tilde expand → variable expand → glob → execute
+Expansion is mvdan/sh's (bash order and semantics), with brace
+expansion applied to command words first via `syntax.SplitBraces` and
+`expand.BracesSeq` (ADR 0004).
+
+````
+input → desugar |> → parse → brace expand → interp expansion → execute
 ```
 
 1. **Brace expansion** — `{a,b,c}`, `{1..5}` generate multiple words

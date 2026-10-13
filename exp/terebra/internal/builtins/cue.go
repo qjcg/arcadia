@@ -11,6 +11,10 @@ import (
 	"github.com/qjcg/arcadia/exp/terebra/internal/cueutil"
 )
 
+// Handler is a builtin command handler: it runs with the command's
+// arguments and standard streams and returns an exit code.
+type Handler func(args []string, stdin io.Reader, stdout, stderr io.Writer) int
+
 // CueHandler returns a handler for the "cue" builtin subcommand.
 func CueHandler() Handler {
 	return func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {

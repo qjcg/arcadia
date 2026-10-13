@@ -13,12 +13,15 @@
 package engine
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	mexpand "mvdan.cc/sh/v3/expand"
@@ -50,6 +53,7 @@ type Engine struct {
 	runner   *interp.Runner
 	plugins  *plugin.Registry
 	external interp.ExecHandlerFunc
+	out      *switchWriter
 }
 
 // New builds an engine with its own persistent interpreter.
@@ -64,8 +68,9 @@ func New(opts Options) (*Engine, error) {
 		opts.Stderr = os.Stderr
 	}
 	e := &Engine{plugins: plugin.New(), external: opts.External}
+	e.out = &switchWriter{dst: opts.Stdout}
 	runner, err := interp.New(
-		interp.StdIO(opts.Stdin, opts.Stdout, opts.Stderr),
+		interp.StdIO(opts.Stdin, e.out, opts.Stderr),
 		interp.Env(mexpand.ListEnviron(os.Environ()...)),
 		interp.ExecHandlers(func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 			return e.exec
@@ -396,4 +401,77 @@ func stripShebang(src string) string {
 		return after
 	}
 	return ""
+}
+
+// --- interpreter introspection and capture ---
+
+// Vars returns the interpreter's live variable table. Assignments
+// made by Eval are reflected in it.
+func (e *Engine) Vars() map[string]mexpand.Variable {
+	return e.runner.Vars
+}
+
+// SetVars assigns variables directly into the interpreter. REPL-layer
+// features (state load) use this; scripts should use assignments.
+func (e *Engine) SetVars(vals map[string]string) {
+	for k, v := range vals {
+		e.runner.Vars[k] = mexpand.Variable{
+			Set:  true,
+			Kind: mexpand.String,
+			Str:  v,
+		}
+	}
+}
+
+// Funcs returns the interpreter's live function table.
+func (e *Engine) Funcs() map[string]*syntax.Stmt {
+	return e.runner.Funcs
+}
+
+// Exited reports whether the last Eval ran the exit builtin.
+func (e *Engine) Exited() bool {
+	return e.runner.Exited()
+}
+
+// Capture evaluates src with stdout redirected, returning whatever
+// the source wrote there. Used for PS1 command substitutions and
+// other REPL queries.
+func (e *Engine) Capture(ctx context.Context, src string) (string, error) {
+	var buf bytes.Buffer
+	restore := e.out.swap(&buf)
+	defer restore()
+	err := e.Eval(ctx, src)
+	return buf.String(), err
+}
+
+// Incomplete reports whether err says the input was unfinished (an
+// unclosed quote or open block), so a REPL can read more lines.
+func Incomplete(err error) bool {
+	var pe *syntax.ParseError
+	return errors.As(err, &pe) && pe.Incomplete
+}
+
+// switchWriter routes interpreter output so Capture can temporarily
+// divert stdout into a buffer.
+type switchWriter struct {
+	mu  sync.Mutex
+	dst io.Writer
+}
+
+func (w *switchWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.dst.Write(p)
+}
+
+func (w *switchWriter) swap(dst io.Writer) func() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	prev := w.dst
+	w.dst = dst
+	return func() {
+		w.mu.Lock()
+		defer w.mu.Unlock()
+		w.dst = prev
+	}
 }

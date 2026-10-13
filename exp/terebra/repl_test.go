@@ -153,3 +153,26 @@ func TestReplPromptAppears(t *testing.T) {
 		t.Fatalf("no prompt; output so far: %q", r.snapshot())
 	}
 }
+
+// TestReplMultilineContinuation proves the REPL accumulates lines
+// until the bash parser sees complete input, and that --explain works
+// against the new parse path (issue #17 acceptance).
+func TestReplMultilineContinuation(t *testing.T) {
+	r := startRepl(t)
+	defer r.close()
+	if !r.waitFor("trb:", 5*time.Second) {
+		t.Fatalf("no prompt; output so far: %q", r.snapshot())
+	}
+
+	r.send("if true; then\n")
+	r.send("echo MULTI\n")
+	r.send("fi\n")
+	if !r.waitFor("MULTI", 3*time.Second) {
+		t.Fatalf("multi-line block did not run; output: %q", r.snapshot())
+	}
+
+	r.send("--explain echo hello\n")
+	if !r.waitFor("# would execute: echo hello", 3*time.Second) {
+		t.Fatalf("--explain did not run; output: %q", r.snapshot())
+	}
+}

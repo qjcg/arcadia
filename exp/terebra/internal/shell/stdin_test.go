@@ -130,6 +130,10 @@ func TestStdinCopierForwardsData(t *testing.T) {
 // TestReplRunsCommand drives Repl with a pty-backed stdin, feeding a command
 // followed by Ctrl+D (EOF). A hard timeout prevents indefinite hangs.
 func TestReplRunsCommand(t *testing.T) {
+	// Hermetic: no ambient rc or PS1 may influence the REPL here.
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("PS1", "")
+
 	ptmx, tty, err := openPty()
 	if err != nil {
 		t.Skipf("no pty: %v", err)
