@@ -25,7 +25,6 @@ func TestParseStandardFractalURL(t *testing.T) {
 				Zoom:        1.0,
 				MaxIter:     50,
 				ColorTheme:  color.ColorGrayscale,
-				Transition:  "none",
 				Pilot:       pilot.ManualID,
 			},
 			wantErr: false,
@@ -41,7 +40,6 @@ func TestParseStandardFractalURL(t *testing.T) {
 				Zoom:        1.0,
 				MaxIter:     50,
 				ColorTheme:  color.ColorRainbow,
-				Transition:  "none",
 				Pilot:       pilot.ManualID,
 				JuliaCr:     -0.7,
 				JuliaCi:     0.27015,
@@ -59,7 +57,6 @@ func TestParseStandardFractalURL(t *testing.T) {
 				Zoom:                1.0,
 				MaxIter:             50,
 				ColorTheme:          color.ColorGrayscale,
-				Transition:          "none",
 				Pilot:               pilot.AutoZoomID,
 				DynamicColorEnabled: true,
 			},
@@ -76,7 +73,8 @@ func TestParseStandardFractalURL(t *testing.T) {
 				Zoom:        1.0,
 				MaxIter:     50,
 				ColorTheme:  color.ColorGrayscale,
-				Transition:  "fade",
+				Schedule:    pilot.Schedule{Transitions: []string{"fade"}, Traversal: pilot.Single},
+				ScheduleSet: true,
 				Pilot:       pilot.ManualID,
 			},
 			wantErr: false,
@@ -135,8 +133,9 @@ func TestParseStandardFractalURL(t *testing.T) {
 			if got.ColorTheme != tt.want.ColorTheme {
 				t.Errorf("ColorTheme = %v, want %v", got.ColorTheme, tt.want.ColorTheme)
 			}
-			if got.Transition != tt.want.Transition {
-				t.Errorf("Transition = %v, want %v", got.Transition, tt.want.Transition)
+			if !schedulesEqual(got.Schedule, tt.want.Schedule) || got.ScheduleSet != tt.want.ScheduleSet {
+				t.Errorf("Schedule = %+v (set %v), want %+v (set %v)",
+					got.Schedule, got.ScheduleSet, tt.want.Schedule, tt.want.ScheduleSet)
 			}
 			if got.Pilot != tt.want.Pilot {
 				t.Errorf("Pilot = %v, want %v", got.Pilot, tt.want.Pilot)
@@ -302,7 +301,7 @@ func TestConfigToFractalURL(t *testing.T) {
 		JuliaCi:     0.27015,
 	}
 
-	url := ConfigToFractalURL(config, pilot.ManualID, false, TransitionNone)
+	url := ConfigToFractalURL(config, pilot.ManualID, false, pilot.Schedule{})
 
 	// Parse it back and verify
 	params, err := ParseFractalURL(url)
@@ -322,7 +321,7 @@ func TestConfigToFractalURL(t *testing.T) {
 	}
 
 	// Test with the Auto-zoom pilot and dynamic color enabled
-	url = ConfigToFractalURL(config, pilot.AutoZoomID, true, TransitionNone)
+	url = ConfigToFractalURL(config, pilot.AutoZoomID, true, pilot.Schedule{})
 	if !contains(url, "pilot=autozoom") {
 		t.Errorf("Generated URL should contain 'pilot=autozoom', got: %s", url)
 	}
@@ -351,35 +350,6 @@ func contains(s, substr string) bool {
 		}
 	}
 	return false
-}
-
-func TestTransitionModeConversion(t *testing.T) {
-	tests := []struct {
-		name     string
-		mode     int
-		want     string
-		backMode int
-	}{
-		{"none", TransitionNone, "none", TransitionNone},
-		{"fade", TransitionFade, "fade", TransitionFade},
-		{"zoomout", TransitionZoomOutIn, "zoomout", TransitionZoomOutIn},
-		{"rotate", TransitionRotate, "rotate", TransitionRotate},
-		{"breakthrough", TransitionBreakthrough, "breakthrough", TransitionBreakthrough},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			str := TransitionModeToString(tt.mode)
-			if str != tt.want {
-				t.Errorf("TransitionModeToString(%d) = %v, want %v", tt.mode, str, tt.want)
-			}
-
-			mode := StringToTransitionMode(str)
-			if mode != tt.backMode {
-				t.Errorf("StringToTransitionMode(%v) = %d, want %d", str, mode, tt.backMode)
-			}
-		})
-	}
 }
 
 func TestPilotParameter(t *testing.T) {
@@ -483,7 +453,7 @@ func TestPilotRoundTrip(t *testing.T) {
 
 	for _, id := range pilot.IDs() {
 		t.Run(string(id), func(t *testing.T) {
-			url := ConfigToFractalURL(config, id, false, TransitionNone)
+			url := ConfigToFractalURL(config, id, false, pilot.Schedule{})
 			if !contains(url, "pilot="+string(id)) {
 				t.Fatalf("generated URL %q should contain pilot=%s", url, id)
 			}

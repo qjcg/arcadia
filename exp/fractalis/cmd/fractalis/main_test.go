@@ -11,6 +11,7 @@ import (
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/persistence"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/search"
+	"github.com/qjcg/arcadia/exp/fractalis/internal/core/transition"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/animation"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/color"
 	renderlib "github.com/qjcg/arcadia/exp/fractalis/internal/tui/render"
@@ -1570,11 +1571,123 @@ func TestTickRoutesViewThroughEngineSeam(t *testing.T) {
 	m := model{
 		config: Config{FractalType: FractalMandelbrot, Zoom: 2.0, MaxIter: 50},
 	}
-	m.engine.Activate(zoomDoublingPilot{})
+	m.seam().Activate(zoomDoublingPilot{})
 
 	updated, _ := m.Update(tickMsg{})
 	got := updated.(model)
 	if got.config.Zoom != 4.0 {
 		t.Errorf("tick did not evolve the view through the engine seam: Zoom = %v, want 4", got.config.Zoom)
+	}
+}
+
+// primeTick returns the model after one tick that only records the
+// current zoom, so a later externally driven zoom movement is
+// observed as movement toward a boundary.
+func primeTick(t *testing.T, m model) model {
+	t.Helper()
+	updated, _ := m.Update(tickMsg{})
+	return updated.(model)
+}
+
+func TestBoundaryCrossingPlaysFadeAndLandsNewFractal(t *testing.T) {
+	m := model{
+		config: Config{FractalType: FractalMandelbrot, Zoom: 0.12, MaxIter: 50},
+	}
+	m.seam().SetSchedule(pilot.Schedule{
+		Transitions: []string{transition.FadeID},
+		Traversal:   pilot.Single,
+	})
+	m = primeTick(t, m)
+
+	// Externally zoom out past the bottom boundary, as a zoom keypress
+	// does between ticks.
+	m.config.Zoom = 0.05
+	updated, _ := m.Update(tickMsg{})
+	got := updated.(model)
+
+	if got.crossing == nil {
+		t.Fatal("boundary arrival while moving did not start a crossing")
+	}
+	if got.crossing.Effect != transition.FadeID {
+		t.Errorf("crossing effect = %q, want %q", got.crossing.Effect, transition.FadeID)
+	}
+	if got.config.Zoom != pilot.MinZoom {
+		t.Errorf("view during crossing = %v, want frozen at %v", got.config.Zoom, pilot.MinZoom)
+	}
+
+	// Play the crossing to landing: the view arrives at a different
+	// fractal type and the crossing clears.
+	for i := 0; i < 40 && got.crossing != nil; i++ {
+		updated, _ = got.Update(tickMsg{})
+		got = updated.(model)
+	}
+	if got.crossing != nil {
+		t.Fatal("crossing did not land")
+	}
+	if got.config.FractalType == FractalMandelbrot {
+		t.Error("landing kept the old fractal type; want a different one")
+	}
+}
+
+func TestBoundaryArrivalClampsOnEmptySchedule(t *testing.T) {
+	m := model{
+		config: Config{FractalType: FractalMandelbrot, Zoom: 0.12, MaxIter: 50},
+	}
+	m.seam() // empty schedule: none
+	m = primeTick(t, m)
+
+	m.config.Zoom = 0.05
+	updated, _ := m.Update(tickMsg{})
+	got := updated.(model)
+
+	if got.crossing != nil {
+		t.Fatal("empty schedule started a crossing; want none")
+	}
+	if got.config.Zoom != pilot.MinZoom {
+		t.Errorf("view did not clamp at the boundary: Zoom = %v, want %v", got.config.Zoom, pilot.MinZoom)
+	}
+}
+
+func TestBoundaryRestingIsLeftAlone(t *testing.T) {
+	m := model{
+		config: Config{FractalType: FractalMandelbrot, Zoom: pilot.MinZoom, MaxIter: 50},
+	}
+	m.seam().SetSchedule(pilot.Schedule{
+		Transitions: []string{transition.FadeID},
+		Traversal:   pilot.Single,
+	})
+	m = primeTick(t, m)
+
+	updated, _ := m.Update(tickMsg{})
+	got := updated.(model)
+	if got.crossing != nil {
+		t.Fatal("resting at a boundary started a crossing; want left alone")
+	}
+}
+
+func TestURLScheduleSeedsTheModel(t *testing.T) {
+	m := model{
+		config: Config{FractalType: FractalMandelbrot, Zoom: 2.0, MaxIter: 50},
+	}
+	params, err := persistence.ParseFractalURL(
+		"fractal://mandelbrot/-0.5/0.0/2.0/50/?transition=fade,zoomout",
+	)
+	if err != nil {
+		t.Fatalf("ParseFractalURL: %v", err)
+	}
+	applyParamsToModel(&m, params)
+
+	if got := persistence.ScheduleString(m.schedule); got != "fade,zoomout" {
+		t.Errorf("effective schedule = %q, want %q", got, "fade,zoomout")
+	}
+	url := persistence.ConfigToFractalURL(
+		m.config, m.activePilot(), m.animationState.Color.DynamicColor, m.schedule,
+	)
+	roundTripped, err := persistence.ParseFractalURL(url)
+	if err != nil {
+		t.Fatalf("ParseFractalURL(round-trip): %v", err)
+	}
+	if got := persistence.ScheduleString(roundTripped.Schedule); got != "fade,zoomout" {
+		t.Errorf("round-tripped schedule = %q, want %q", got, "fade,zoomout")
 	}
 }
