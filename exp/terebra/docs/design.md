@@ -135,7 +135,7 @@ CUE's lattice type system (types + values unified) is the internal currency of t
 - Arrays (indexed + associative)
 - Arithmetic expansion `$((expr))`
 - String manipulation (slice, replace, regex)
-- `try`/`catch` error handling
+- `set -e`, `set -u`, `trap` error handling
 - **CUE-typed variables**: `let port: int & >1024 = 8080` (CUE constraint on a shell variable)
 - Shebang support (`#!/usr/bin/env terebra`)
 - Compile `.trb` → standalone Go binary

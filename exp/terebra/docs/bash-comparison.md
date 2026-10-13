@@ -6,10 +6,12 @@ broader vision (including some features marked "planned"); this document only
 covers behavior that exists in the code today and is exercised by
 `testdata/*.txtar` or the package unit tests.
 
-Terebra is a shell written in Go. It deliberately reuses bash's syntax for the
-common cases, so most one-liners are portable, but it is **not** a bash clone:
-it omits a large amount of bash builtins, script syntax, and expansions, and it
-adds a structured-data layer (CUE) that bash has no equivalent for.
+Terebra is a shell written in Go and a **superset of bash**: syntax,
+builtins, and expansion semantics come from
+[`mvdan.cc/sh/v3`](https://github.com/mvdan/sh), so bash scripts run
+unchanged. On top of that it adds a structured-data layer (auger pipes
+and CUE integration) and a curated REPL experience that bash has no
+equivalent for.
 
 ## At a glance
 
@@ -22,26 +24,26 @@ adds a structured-data layer (CUE) that bash has no equivalent for.
 | Redirect `>`, `>>`, `<`, `2>`, `2>>`, `2>&1`                        | Yes                       | Yes                     |
 | Redirect `&>`, `&>>`                                                | Yes (bash 4+)             | Yes                     |
 | Heredoc `<<`, `<<-`, here-string `<<<`                              | Yes                       | Yes                     |
-| Arbitrary fd redirection (`3>`, `n>&m`)                             | Yes                       | No (only fd 2)          |
+| Arbitrary fd redirection (`3>`, `n>&m`)                             | Yes                       | No (fd 0-2 only)        |
 | Chaining `;`, `&&`, `\|\|`                                          | Yes                       | Yes                     |
-| Background `&`, `jobs`, `fg`, `bg`                                  | Full job control          | Basic (see below)       |
+| Background `&`, `jobs`, `fg`, `bg`                                  | Full job control          | Yes (see below)         |
 | Variables `$VAR`, `${VAR}`, `$?`, `$$`                              | Yes                       | Yes                     |
-| Positional params `$0..$9`, `$@`, `$#`, `$*`                        | Yes                       | No                      |
-| Default/alternate expansions `${v:-}`, `${v:=}`, `${v:+}`, `${v:?}` | Yes                       | No                      |
-| Arrays (indexed + associative)                                      | Yes                       | Yes (subset)            |
-| Arithmetic `$(( ))`                                                 | Full C-like               | Integer subset          |
+| Positional params `$0..$9`, `$@`, `$#`, `$*`                        | Yes                       | Yes                     |
+| Default/alternate expansions `${v:-}`, `${v:=}`, `${v:+}`, `${v:?}` | Yes                       | Yes                     |
+| Arrays (indexed + associative)                                      | Yes                       | Yes (full bash)         |
+| Arithmetic `$(( ))`                                                 | Full C-like               | Full C-like             |
 | Command substitution `$( )`, `` ` ` ``                              | Yes                       | Yes                     |
 | Brace / tilde / glob expansion                                      | Yes                       | Yes                     |
 | Recursive glob `**`                                                 | `globstar` shopt          | Yes (always on)         |
 | Quoting `'…'`, `"…"`, `\`                                           | Yes                       | Yes                     |
-| ANSI-C quoting `$'…'`                                               | Yes                       | No                      |
-| Process substitution `<( )`, `>( )`                                 | Yes                       | No                      |
-| `[[ ]]`, `(( ))`, `case`, `select`                                  | Yes                       | No                      |
+| ANSI-C quoting `$'…'`                                               | Yes                       | Yes                     |
+| Process substitution `<( )`, `>( )`                                 | Yes                       | Yes                     |
+| `[[ ]]`, `(( ))`, `case`, `select`                                  | Yes                       | Yes                     |
 | Script control flow (`if`, `for`, `while`, functions)              | Yes                       | Yes (bash via mvdan/sh) |
-| User-defined function params / locals / `return`                    | Yes                       | No                      |
-| History expansion (`!!`, `!$`)                                      | Yes                       | No                      |
+| User-defined function params / locals / `return`                    | Yes                       | Yes                     |
+| History expansion (`!!`, `!$`)                                      | Yes                       | No (readline search)    |
 | Programmable completion                                             | Yes                       | No (fixed strategy)     |
-| Startup file                                                        | `~/.bashrc`, `~/.profile` | `~/.terebrarc`          |
+| Startup file                                                        | `~/.bashrc`, `~/.profile` | `~/.terebrarc` (bash)   |
 | Structured data (CUE) integration                                   | No                        | Yes                     |
 | Compile scripts to standalone binaries                              | No                        | Yes                     |
 
@@ -70,7 +72,7 @@ Supported operators (verified in `internal/parser/lexer.go` and
 - `cmd1 |& cmd2` — pipe stdout **and** stderr (bash 4+ syntax).
 - `cmd1 ; cmd2` — sequential.
 - `cmd1 && cmd2`, `cmd1 || cmd2` — short-circuit.
-- `cmd &` — background (not supported inside pipelines, see job control).
+- `cmd &` — background, including whole pipelines (see job control).
 
 Redirections:
 
@@ -141,9 +143,9 @@ patterns as in bash.
 | `${arr[@]}`                              | Yes          | Yes                             |
 | `${#arr[@]}`                             | Yes          | Yes                             |
 | `${!arr[@]}` (keys/indices)              | Yes          | Yes                             |
-| Associative arrays                       | `declare -A` | Auto-created on non-numeric key |
-| `${arr[@]:1:2}` slicing, `${arr[@]/x/y}` | Yes          | No                              |
-| `declare -a` / `declare -A` (explicit)   | Yes          | **No**                          |
+| Associative arrays                       | `declare -A` | `declare -A` (bash)             |
+| `${arr[@]:1:2}` slicing, `${arr[@]/x/y}` | Yes          | Yes                             |
+| `declare -a` / `declare -A` (explicit)   | Yes          | Yes                             |
 
 Terebra auto-promotes an array to associative when a key is not numeric
 (`internal/shell/shell.go` `getArrayVar`/assignment handling), so
@@ -164,7 +166,7 @@ hex/octal literals, or the `(( ))` compound command.
 | Single quotes (literal)                   | Yes  | Yes                          |
 | Double quotes (allow `$`, `` ` ``, `\`)   | Yes  | Yes                          |
 | Backslash escaping                        | Yes  | Yes                          |
-| `$'…'` ANSI-C quoting                     | Yes  | **No**                       |
+| `$'…'` ANSI-C quoting                     | Yes  | Yes                          |
 | `$"…"` locale strings                     | Yes  | **No**                       |
 | Command substitution `$( )` and `` ` ` `` | Yes  | Yes (nested `$()` supported) |
 
@@ -199,13 +201,14 @@ Terebra executes scripts in two ways:
 | Include        | `source file.trb`                                  |
 | Shebang        | `#!/usr/bin/env terebra`                           |
 
-Not supported in terebra's scripting language: `case`/`esac`, `select`,
-`break`/`continue`/`return`, C-style `for (( ))`, `[[ ]]`, arithmetic
-`(( ))`, function parameters, local scope, or `getopts`.
+All bash control flow works in `-c` one-liners and `.trb` files alike
+(parsing and interpretation come from mvdan/sh): `case`/`esac`,
+`select`, `break`/`continue`/`return`, C-style `for (( ))`, `[[ ]]`,
+arithmetic `(( ))`, function parameters, local scope, and `getopts`.
 
-Because control flow lives in the scripting-language parser, a one-line
-`terebra -c 'if …; then …; fi'` is **not** interpreted as a conditional. Use a
-`.trb` file or a `-c` string containing newlines.
+Still not supported: history expansion (`!!`), programmable completion
+(`compgen`/`complete`), and alias expansion inside scripts (REPL
+aliases expand at the first word of a line).
 
 ## Job control and signals
 
@@ -216,8 +219,8 @@ Because control flow lives in the scripting-language parser, a one-line
 | `fg [n]`, `bg [n]`               | Yes  | Yes (numeric id only, no `%1` specs)                 |
 | Ctrl+C (SIGINT) forwarding       | Yes  | Yes                                                  |
 | Ctrl+Z (SIGTSTP) stop + resume   | Yes  | Yes                                                  |
-| Background inside a pipeline     | Yes  | **No** (`background not supported in pipelines yet`) |
-| `disown`, `wait`, `kill` builtin | Yes  | **No** (`kill` only as external command)             |
+| Background inside a pipeline     | Yes  | Yes (whole pipeline)                                 |
+| `disown`, `wait`, `kill` builtin | Yes  | `wait` yes; `kill`/`disown` no                       |
 
 ## Interactive REPL
 
@@ -228,7 +231,7 @@ Because control flow lives in the scripting-language parser, a one-line
 | Vi keybindings                   | `set -o vi`               | `set -o vi` (also `set -o emacs`)                             |
 | Persistent history file          | `~/.bash_history`         | `~/.terebra_history`                                          |
 | Reverse history search           | Ctrl+R (incremental)      | Ctrl+R **fuzzy TUI** (bubbletea)                              |
-| History expansion `!!`, `!$`     | Yes                       | **No**                                                        |
+| History expansion `!!`, `!$`     | Yes                       | No (readline search)                                          |
 | `history -c` / `-d` / `-w`       | Yes                       | **No**; `history [n]` lists only                              |
 | Tab completion                   | Programmable (`complete`) | Fixed: commands, builtins, files, `PATH`, `~`                 |
 | Flag/option completion           | Programmable              | No                                                            |
@@ -236,7 +239,7 @@ Because control flow lives in the scripting-language parser, a one-line
 | Multi-line prompt                | Escapes                   | Supported                                                     |
 | Syntax highlighting while typing | Via plugins               | No                                                            |
 | `--explain` dry run              | No                        | Yes                                                           |
-| Startup file                     | `~/.bashrc`/`~/.profile`  | `~/.terebrarc`                                                |
+| Startup file                     | `~/.bashrc`/`~/.profile`  | `~/.terebrarc` (bash)                                         |
 
 `set` options in terebra: `-x`/`+x` (trace), `-o vi`/`-o emacs`,
 `-o nullglob`/`-o no-nullglob`, `-o dotglob`/`-o no-dotglob`. Bash options such

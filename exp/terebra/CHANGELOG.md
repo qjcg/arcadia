@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### Added
+- cfd85f05 - REPL on the interp engine; hand-rolled expansion gone
+- a96f2dd6 - run scripts and -c on the mvdan/sh interp engine
+- c9d21d06 - desugar auger pipes into a reserved pipeline stage
+
 ### Changed
+- 1ef505cd - builtin decision record - mvdan/sh builtins wholesale
+- 02fe6752 - spike job control over interp exec handlers
+- c661e2c0 - diff brace expansion against mvdan/sh
 - 4f4e841f - Update deps
 - 3e477efd - Bump deps
 - 12b469e9 - Update deps

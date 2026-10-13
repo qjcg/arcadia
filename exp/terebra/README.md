@@ -27,8 +27,13 @@ go run . build script.trb myapp
 
 ## Features
 
+Terebra is a **superset of bash**: the language, builtins, and
+expansion semantics come from mvdan/sh. Everything that is not bash is
+terebra's own — auger pipes, `drill`/`cue`, and the REPL experience.
+
 ### Core Shell
-- REPL with readline (history, search, editing, persistent history, fuzzy Ctrl+R search)
+- REPL with readline (history, search, editing, persistent history, fuzzy Ctrl+R
+  search)
 - Built-in commands: `cd`, `pwd`, `echo`, `exit`, `help`, `type`,
   `export`, `unset`, `set`, `readonly`, `alias`, `unalias`, `history`,
   `source`, `jobs`, `fg`, `bg`, `drill`, `cue`, `plugin`, `state` —
@@ -39,11 +44,13 @@ go run . build script.trb myapp
 - Command chaining: `&&`, `||`, `;`
 - Job control: `&`, `jobs`, `fg`, `bg`
 - Variables: `$VAR`, `${VAR}`, `$?`, `$$`, local/exported/read-only
-- Brace expansion: `{a,b,c}`, `{1..5}`, `{a..z..2}`, `{01..05}`, nested, cartesian
+- Brace expansion: `{a,b,c}`, `{1..5}`, `{a..z..2}`, `{01..05}`, nested,
+  cartesian
 - Globbing: `*`, `?`, `[...]`, `**` (recursive)
 - Arithmetic expansion: `$((2 + 3))`, `$((x * 2))`
 - Arrays: `arr=(1 2 3)`, `${arr[0]}`, `${arr[@]}`, `${#arr[@]}`
-- Associative arrays: `declare -A map`, `map[key]=val`, `${map[key]}`, `${!map[@]}`
+- Associative arrays: `declare -A map`, `map[key]=val`, `${map[key]}`,
+  `${!map[@]}`
 - String manipulation: `${var:0:5}`, `${var/old/new}`, `${var^^}`, `${var,}`,
   `${var#pat}`, `${var%pat}`, `${#var}`
 - Command substitution: `$(cmd)`, `` `cmd` ``
@@ -55,12 +62,14 @@ go run . build script.trb myapp
 - `--explain` dry-run flag
 - `~/.terebrarc` startup script
 
-### Scripting Language (`.trb`)
-- `if`/`then`/`elif`/`else`/`fi` conditionals
-- `for`/`in`/`do`/`done` loops
-- `while`/`do`/`done` and `until`/`do`/`done` loops
-- `function name {}` and `name() {}` function definitions
-- `set -e`, `set -u`, and `trap` error handling (bash)
+### Scripting (`.trb` = bash + auger)
+
+Scripts are bash (via mvdan/sh): `if`/`case`/`select`,
+`for`/`while`/`until` loops (including C-style `for (( ))`),
+functions with parameters and `local`, `getopts`, `trap`, and every
+expansion bash offers. Terebra adds:
+
+- `set -e`, `set -u`, and `trap` error handling recipes
 - `source` to include script files
 - Shebang support (`#!/usr/bin/env terebra`)
 
@@ -88,11 +97,13 @@ trap 'echo "failed at $LINENO"' ERR
 - Load Go `.so` plugins at runtime
 - `plugin load <path>` — load a plugin
 - `plugin list` — list loaded plugins
-- Plugin search path: `~/.terebra/plugins/`, `/usr/lib/terebra/plugins/`, `$TEREBRA_PLUGIN_PATH`
+- Plugin search path: `~/.terebra/plugins/`, `/usr/lib/terebra/plugins/`,
+  `$TEREBRA_PLUGIN_PATH`
 - Optional interfaces: `Completer`, `PromptFunc`, `CUEEncoder`, `CUEDecoder`
 
 ### Script Compilation
-- `terebra build <script.trb> [output]` — compile `.trb` scripts to standalone Go binaries
+- `terebra build <script.trb> [output]` — compile `.trb` scripts to standalone
+  Go binaries
 
 ## Project Structure
 
