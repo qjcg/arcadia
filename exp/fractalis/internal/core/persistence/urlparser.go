@@ -19,7 +19,8 @@ type FractalURLParams struct {
 	Zoom                float64
 	MaxIter             int
 	ColorTheme          string
-	Transition          string
+	Schedule            pilot.Schedule
+	ScheduleSet         bool
 	Engine              string
 	Pilot               pilot.ID
 	DynamicColorEnabled bool
@@ -51,7 +52,6 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 	params := FractalURLParams{
 		// Defaults
 		ColorTheme:          color.ColorGrayscale,
-		Transition:          "none",
 		Engine:              EngineBubbleTea,
 		Pilot:               pilot.ManualID,
 		DynamicColorEnabled: false,
@@ -133,10 +133,12 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 	}
 
 	if transition := queryParams.Get("transition"); transition != "" {
-		if !IsValidTransition(transition) {
-			return FractalURLParams{}, fmt.Errorf("invalid transition: %s", transition)
+		schedule, err := ParseSchedule(transition)
+		if err != nil {
+			return FractalURLParams{}, err
 		}
-		params.Transition = transition
+		params.Schedule = schedule
+		params.ScheduleSet = true
 	}
 
 	if engine := queryParams.Get("engine"); engine != "" {
@@ -199,7 +201,7 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 }
 
 // ConfigToFractalURL generates a fractal:// URL from a Config and runtime state
-func ConfigToFractalURL(config Config, activePilot pilot.ID, dynamicColor bool, transitionMode int) string {
+func ConfigToFractalURL(config Config, activePilot pilot.ID, dynamicColor bool, schedule pilot.Schedule) string {
 	// Build the base URL path
 	basePath := fmt.Sprintf(
 		"fractal://%s/%.10g/%.10g/%.10g/%d/",
@@ -218,12 +220,9 @@ func ConfigToFractalURL(config Config, activePilot pilot.ID, dynamicColor bool, 
 		queryParams.Set("color_theme", config.ColorScheme)
 	}
 
-	// Transition
-	if transitionMode > 0 {
-		transitionName := TransitionModeToString(transitionMode)
-		if transitionName != "none" {
-			queryParams.Set("transition", transitionName)
-		}
+	// Transition schedule
+	if !schedule.Empty() {
+		queryParams.Set("transition", ScheduleString(schedule))
 	}
 
 	// Engine
@@ -261,18 +260,15 @@ func ConfigToFractalURL(config Config, activePilot pilot.ID, dynamicColor bool, 
 }
 
 // RandomToFractalURL generates a random URL with query parameters
-func RandomToFractalURL(colorTheme string, activePilot pilot.ID, dynamicColor bool, transitionMode int) string {
+func RandomToFractalURL(colorTheme string, activePilot pilot.ID, dynamicColor bool, schedule pilot.Schedule) string {
 	queryParams := url.Values{}
 
 	if colorTheme != "" && colorTheme != color.ColorGrayscale {
 		queryParams.Set("color_theme", colorTheme)
 	}
 
-	if transitionMode > 0 {
-		transitionName := TransitionModeToString(transitionMode)
-		if transitionName != "none" {
-			queryParams.Set("transition", transitionName)
-		}
+	if !schedule.Empty() {
+		queryParams.Set("transition", ScheduleString(schedule))
 	}
 
 	if activePilot != "" {
@@ -374,48 +370,4 @@ func IsValidColorTheme(theme string) bool {
 		color.ColorCyan:      true,
 	}
 	return validThemes[theme]
-}
-
-func IsValidTransition(transition string) bool {
-	validTransitions := map[string]bool{
-		"none":         true,
-		"fade":         true,
-		"zoomout":      true,
-		"zoom_out":     true,
-		"rotate":       true,
-		"breakthrough": true,
-	}
-	return validTransitions[transition]
-}
-
-func TransitionModeToString(mode int) string {
-	switch mode {
-	case TransitionNone:
-		return "none"
-	case TransitionFade:
-		return "fade"
-	case TransitionZoomOutIn:
-		return "zoomout"
-	case TransitionRotate:
-		return "rotate"
-	case TransitionBreakthrough:
-		return "breakthrough"
-	default:
-		return "none"
-	}
-}
-
-func StringToTransitionMode(s string) int {
-	switch strings.ToLower(s) {
-	case "fade":
-		return TransitionFade
-	case "zoomout", "zoom_out":
-		return TransitionZoomOutIn
-	case "rotate":
-		return TransitionRotate
-	case "breakthrough":
-		return TransitionBreakthrough
-	default:
-		return TransitionNone
-	}
 }

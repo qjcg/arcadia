@@ -78,99 +78,74 @@ func (r *Renderer) CacheStats() (hits, misses int64, hitRate float64) {
 
 // RenderFractal generates the ASCII fractal output with caching and parallel computation
 func (r *Renderer) RenderFractal() string {
-	// Check cache first
-	if cached, found := r.iterationCache.Get(r.config); found {
-		return r.renderFromIterations(cached)
-	}
-
-	// Calculate iterations (either parallel or serial)
-	var iterGrid [][]int
-	if r.enableParallel && r.config.Height*r.config.Width > 1000 { // Only parallelize for large grids
-		iterGrid = r.calculateIterationsParallel()
-	} else {
-		iterGrid = r.calculateIterationsSerial()
-	}
-
-	// Cache the result
-	r.iterationCache.Set(r.config, iterGrid)
-
-	return r.renderFromIterations(iterGrid)
+	grid, colorGrid := r.cellGrid(r.config)
+	return r.cellString(grid, colorGrid, r.config)
 }
 
-// calculateIterationsSerial computes iteration counts serially
-func (r *Renderer) calculateIterationsSerial() [][]int {
-	grid := make([][]int, r.config.Height)
-	for row := range r.config.Height {
-		grid[row] = make([]int, r.config.Width)
-		for col := range r.config.Width {
-			cr, ci := MapToComplex(col, row, r.config.Width, r.config.Height,
-				r.config.CenterX, r.config.CenterY, r.config.Zoom)
-			grid[row][col] = int(r.calculateFractal(cr, ci, r.config))
+// RenderCrossfade dissolves between the renderings of two views at
+// mix (0 = all source, 1 = all destination), picking per cell
+// against a fixed dither so the dissolve is stable as mix grows.
+func (r *Renderer) RenderCrossfade(src, dst persistence.Config, mix float64) string {
+	srcGrid, srcColors := r.cellGrid(src)
+	dstGrid, dstColors := r.cellGrid(dst)
+
+	height := len(srcGrid)
+	width := len(srcGrid[0])
+	grid := make([][]byte, height)
+	colorGrid := make([][]string, height)
+	for row := range height {
+		grid[row] = make([]byte, width)
+		colorGrid[row] = make([]string, width)
+		for col := range width {
+			if cellDither(row, col) < mix {
+				grid[row][col] = dstGrid[row][col]
+				colorGrid[row][col] = dstColors[row][col]
+			} else {
+				grid[row][col] = srcGrid[row][col]
+				colorGrid[row][col] = srcColors[row][col]
+			}
 		}
 	}
-	return grid
+	return r.cellString(grid, colorGrid, src)
 }
 
-// calculateIterationsParallel computes iteration counts in parallel using goroutines
-func (r *Renderer) calculateIterationsParallel() [][]int {
-	grid := make([][]int, r.config.Height)
-	for i := range grid {
-		grid[i] = make([]int, r.config.Width)
-	}
-
-	// Use a work queue pattern to distribute rows across workers
-	rowChan := make(chan int, r.numWorkers*2)
-	var wg sync.WaitGroup
-
-	// Start worker goroutines
-	for worker := 0; worker < r.numWorkers; worker++ {
-		wg.Go(func() {
-			for row := range rowChan {
-				for col := range r.config.Width {
-					cr, ci := MapToComplex(col, row, r.config.Width, r.config.Height,
-						r.config.CenterX, r.config.CenterY, r.config.Zoom)
-					grid[row][col] = int(r.calculateFractal(cr, ci, r.config))
-				}
-			}
-		})
-	}
-
-	// Send rows to workers
-	for row := range r.config.Height {
-		rowChan <- row
-	}
-	close(rowChan)
-	wg.Wait()
-
-	return grid
+// cellDither returns a stable pseudo-random threshold in [0,1) for a
+// cell, so a dissolve reveals the same cells first as mix grows.
+func cellDither(row, col int) float64 {
+	h := uint32(row)*0x9E3779B9 ^ uint32(col)*0x85EBCA6B
+	h ^= h >> 16
+	h *= 0x7FEB352D
+	h ^= h >> 15
+	return float64(h) / float64(^uint32(0))
 }
 
-// renderFromIterations converts iteration grid to colored ASCII output
-func (r *Renderer) renderFromIterations(iterGrid [][]int) string {
-	// Create grid for character map
-	grid := make([][]byte, r.config.Height)
-	colorGrid := make([][]string, r.config.Height)
+// cellGrid renders the config to per-cell characters and colors.
+func (r *Renderer) cellGrid(cfg persistence.Config) (grid [][]byte, colorGrid [][]string) {
+	iterGrid := r.iterationsFor(cfg)
+
+	grid = make([][]byte, cfg.Height)
+	colorGrid = make([][]string, cfg.Height)
 	for i := range grid {
-		grid[i] = make([]byte, r.config.Width)
-		colorGrid[i] = make([]string, r.config.Width)
+		grid[i] = make([]byte, cfg.Width)
+		colorGrid[i] = make([]string, cfg.Width)
 	}
 
 	// Convert iterations to characters and colors
-	for row := range r.config.Height {
-		for col := range r.config.Width {
+	for row := range cfg.Height {
+		for col := range cfg.Width {
 			iter := iterGrid[row][col]
-			char := GetChar(iter, r.config.MaxIter)
+			char := GetChar(iter, cfg.MaxIter)
 			var ansiColor string
 
-			scheme := r.config.ColorScheme
+			scheme := cfg.ColorScheme
 			if !r.colorMode {
 				scheme = color.ColorGrayscale
 			}
 
 			if r.dynamicColor && r.colorMode {
-				ansiColor = color.GetColorWithHueShift(iter, r.config.MaxIter, scheme, r.hueShift)
+				ansiColor = color.GetColorWithHueShift(iter, cfg.MaxIter, scheme, r.hueShift)
 			} else {
-				ansiColor = color.GetColor(iter, r.config.MaxIter, scheme)
+				ansiColor = color.GetColor(iter, cfg.MaxIter, scheme)
 			}
 
 			grid[row][col] = char
@@ -180,13 +155,16 @@ func (r *Renderer) renderFromIterations(iterGrid [][]int) string {
 
 	// Apply breakthrough transition overlay if active
 	if r.breakthroughTr != nil {
-		applyBreakthroughOverlay(grid, colorGrid, r.config.Width, r.config.Height, r.breakthroughTr)
+		applyBreakthroughOverlay(grid, colorGrid, cfg.Width, cfg.Height, r.breakthroughTr)
 	}
+	return grid, colorGrid
+}
 
-	// Convert grid to string output
+// cellString serializes a cell grid to colored output.
+func (r *Renderer) cellString(grid [][]byte, colorGrid [][]string, cfg persistence.Config) string {
 	var output strings.Builder
-	for row := range r.config.Height {
-		for col := range r.config.Width {
+	for row := range cfg.Height {
+		for col := range cfg.Width {
 			color := colorGrid[row][col]
 			char := grid[row][col]
 
@@ -198,15 +176,81 @@ func (r *Renderer) renderFromIterations(iterGrid [][]int) string {
 		}
 
 		// Reset color at end of line and add newline
-		if r.config.ColorScheme != color.ColorGrayscale {
+		if cfg.ColorScheme != color.ColorGrayscale {
 			output.WriteString("\033[0m")
 		}
-		if row < r.config.Height-1 {
+		if row < cfg.Height-1 {
 			output.WriteByte('\n')
 		}
 	}
 
 	return output.String()
+}
+
+// iterationsFor computes the iteration counts for cfg, reusing the
+// cache of recent viewports when possible.
+func (r *Renderer) iterationsFor(cfg persistence.Config) [][]int {
+	if cached, found := r.iterationCache.Get(cfg); found {
+		return cached
+	}
+
+	var iterGrid [][]int
+	if r.enableParallel && cfg.Height*cfg.Width > 1000 { // Only parallelize for large grids
+		iterGrid = r.calculateIterationsParallel(cfg)
+	} else {
+		iterGrid = r.calculateIterationsSerial(cfg)
+	}
+
+	r.iterationCache.Set(cfg, iterGrid)
+	return iterGrid
+}
+
+// calculateIterationsSerial computes iteration counts serially
+func (r *Renderer) calculateIterationsSerial(cfg persistence.Config) [][]int {
+	grid := make([][]int, cfg.Height)
+	for row := range cfg.Height {
+		grid[row] = make([]int, cfg.Width)
+		for col := range cfg.Width {
+			cr, ci := MapToComplex(col, row, cfg.Width, cfg.Height,
+				cfg.CenterX, cfg.CenterY, cfg.Zoom)
+			grid[row][col] = int(r.calculateFractal(cr, ci, cfg))
+		}
+	}
+	return grid
+}
+
+// calculateIterationsParallel computes iteration counts in parallel using goroutines
+func (r *Renderer) calculateIterationsParallel(cfg persistence.Config) [][]int {
+	grid := make([][]int, cfg.Height)
+	for i := range grid {
+		grid[i] = make([]int, cfg.Width)
+	}
+
+	// Use a work queue pattern to distribute rows across workers
+	rowChan := make(chan int, r.numWorkers*2)
+	var wg sync.WaitGroup
+
+	// Start worker goroutines
+	for worker := 0; worker < r.numWorkers; worker++ {
+		wg.Go(func() {
+			for row := range rowChan {
+				for col := range cfg.Width {
+					cr, ci := MapToComplex(col, row, cfg.Width, cfg.Height,
+						cfg.CenterX, cfg.CenterY, cfg.Zoom)
+					grid[row][col] = int(r.calculateFractal(cr, ci, cfg))
+				}
+			}
+		})
+	}
+
+	// Send rows to workers
+	for row := range cfg.Height {
+		rowChan <- row
+	}
+	close(rowChan)
+	wg.Wait()
+
+	return grid
 }
 
 // MapToComplex converts terminal coordinates to complex plane coordinates

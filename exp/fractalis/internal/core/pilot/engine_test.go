@@ -236,3 +236,46 @@ func pow2(n float64) float64 {
 	}
 	return p
 }
+
+func TestBoundaryArrivalFiresOnExternallyDrivenMovement(t *testing.T) {
+	// Manual zoom moves the view outside the pilot. Arriving at the
+	// bottom boundary while actively moving still fires.
+	var e Engine
+	v := View{Zoom: 0.2, MaxIter: 50}
+	v, _ = e.Tick(v)
+
+	v.Zoom = 0.1 // externally zoomed out to the boundary
+	next, arrival := e.Tick(v)
+	if arrival == nil || *arrival != BottomBoundary {
+		t.Fatalf("arrival = %v, want BottomBoundary while actively moving", arrival)
+	}
+	if next.Zoom != MinZoom {
+		t.Fatalf("Zoom = %v, want clamped to %v", next.Zoom, MinZoom)
+	}
+
+	// Once the view rests at the boundary it is left alone.
+	for range 3 {
+		next, arrival = e.Tick(next)
+		if arrival != nil {
+			t.Fatalf("arrival = %v, want none for a resting view", *arrival)
+		}
+		if next.Zoom != MinZoom {
+			t.Fatalf("resting view moved: Zoom = %v, want %v", next.Zoom, MinZoom)
+		}
+	}
+}
+
+func TestBoundaryArrivalClampsExternallyOvershotZoom(t *testing.T) {
+	var e Engine
+	v := View{Zoom: 0.5, MaxIter: 50}
+	v, _ = e.Tick(v)
+
+	v.Zoom = 0.01 // externally zoomed past the boundary
+	next, arrival := e.Tick(v)
+	if arrival == nil || *arrival != BottomBoundary {
+		t.Fatalf("arrival = %v, want BottomBoundary", arrival)
+	}
+	if next.Zoom != MinZoom {
+		t.Fatalf("Zoom = %v, want clamped to %v", next.Zoom, MinZoom)
+	}
+}

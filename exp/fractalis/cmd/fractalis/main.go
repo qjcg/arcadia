@@ -19,10 +19,11 @@ import (
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/persistence"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/search"
+	"github.com/qjcg/arcadia/exp/fractalis/internal/core/transition"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/animation"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/color"
 	renderlib "github.com/qjcg/arcadia/exp/fractalis/internal/tui/render"
-	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/transition"
+	tuitransition "github.com/qjcg/arcadia/exp/fractalis/internal/tui/transition"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/web"
 )
 
@@ -32,10 +33,10 @@ const (
 
 	// Transition animation modes
 	TransitionNone         = persistence.TransitionNone
-	TransitionFade         = transition.TransitionFade
-	TransitionZoomOutIn    = transition.TransitionZoomOutIn
-	TransitionRotate       = transition.TransitionRotate
-	TransitionBreakthrough = transition.TransitionBreakthrough
+	TransitionFade         = tuitransition.TransitionFade
+	TransitionZoomOutIn    = tuitransition.TransitionZoomOutIn
+	TransitionRotate       = tuitransition.TransitionRotate
+	TransitionBreakthrough = tuitransition.TransitionBreakthrough
 
 	// Fractal types
 	FractalMandelbrot    = persistence.FractalMandelbrot
@@ -86,8 +87,14 @@ type model struct {
 	lastRender string
 	// Interest calculator for finding interesting points
 	calculator *search.InterestCalculator
-	// Engine seam running the active pilot over the view
-	engine pilot.Engine
+	// Transition runner: boundary arrivals, schedules, crossings
+	runner *transition.Runner
+	// Effect registry for rendering crossing frames
+	effects *transition.Registry
+	// Effective transition schedule (URL-seeded; presets land in #7)
+	schedule pilot.Schedule
+	// Crossing in flight, if any
+	crossing *transition.Crossing
 	// Animation and UI state
 	animationState animation.AnimationState
 	// Rendering engine with caching and parallel computation
@@ -122,7 +129,7 @@ func (m *model) addBookmark(name string) error {
 		m.bookmarks = loaded
 	}
 
-	url := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
+	url := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Color.DynamicColor, m.schedule)
 
 	bookmark := persistence.Bookmark{
 		Name: name,
@@ -187,7 +194,10 @@ func applyParamsToModel(m *model, params persistence.FractalURLParams) {
 	m.selectPilot(params.Pilot)
 
 	m.animationState.Color.DynamicColor = params.DynamicColorEnabled
-	m.animationState.Transition.Mode = persistence.StringToTransitionMode(params.Transition)
+	if params.ScheduleSet {
+		m.schedule = params.Schedule
+		m.seam().SetSchedule(m.schedule)
+	}
 
 	m.animationState.AutoPilot.BaseMaxIter = params.MaxIter
 }
@@ -239,19 +249,19 @@ func (m *model) startFractalTransition() {
 	// Initialize the appropriate transition based on mode
 	switch m.animationState.Transition.Mode {
 	case TransitionFade:
-		m.animationState.Transition.FadeTransition = transition.NewFadeTransition(allFractalTypes)
+		m.animationState.Transition.FadeTransition = tuitransition.NewFadeTransition(allFractalTypes)
 		m.animationState.Transition.FadeTransition.Start(m.config.FractalType)
 		m.animationState.Messages.RandomMsg = m.animationState.Transition.FadeTransition.GetMessage()
 	case TransitionZoomOutIn:
-		m.animationState.Transition.ZoomOutInTransition = transition.NewZoomOutInTransition(allFractalTypes)
+		m.animationState.Transition.ZoomOutInTransition = tuitransition.NewZoomOutInTransition(allFractalTypes)
 		m.animationState.Transition.ZoomOutInTransition.Start(m.config.FractalType)
 		m.animationState.Messages.RandomMsg = m.animationState.Transition.ZoomOutInTransition.GetMessage()
 	case TransitionRotate:
-		m.animationState.Transition.RotateTransition = transition.NewRotateTransition(allFractalTypes)
+		m.animationState.Transition.RotateTransition = tuitransition.NewRotateTransition(allFractalTypes)
 		m.animationState.Transition.RotateTransition.Start(m.config.FractalType)
 		m.animationState.Messages.RandomMsg = m.animationState.Transition.RotateTransition.GetMessage()
 	case TransitionBreakthrough:
-		m.animationState.Transition.BreakthroughTransition = transition.NewBreakthroughTransition(allFractalTypes)
+		m.animationState.Transition.BreakthroughTransition = tuitransition.NewBreakthroughTransition(allFractalTypes)
 		m.animationState.Transition.BreakthroughTransition.Start(m.config.FractalType)
 		m.animationState.Messages.RandomMsg = m.animationState.Transition.BreakthroughTransition.GetMessage()
 	}
@@ -474,6 +484,22 @@ func (m *model) applyView(v pilot.View) {
 	m.config.MaxIter = v.MaxIter
 }
 
+// seam returns the model's transition runner, building the default
+// one on first use. Selection lives in the runner's scheduler and
+// destination policy; randomness is seeded at the edge.
+func (m *model) seam() *transition.Runner {
+	if m.runner == nil {
+		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		m.runner = transition.NewRunner(
+			pilot.NewScheduler(rng),
+			pilot.NewRandomDestination(allFractalTypes, rng),
+		)
+		m.effects = transition.NewRegistry()
+		m.effects.Register(transition.FadeID, transition.Fade{})
+	}
+	return m.runner
+}
+
 // Update handles messages and updates the model
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -645,7 +671,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch m.animationState.Transition.Mode {
 				case TransitionFade:
 					if m.animationState.Transition.FadeTransition == nil {
-						m.animationState.Transition.FadeTransition = transition.NewFadeTransition(allFractalTypes)
+						m.animationState.Transition.FadeTransition = tuitransition.NewFadeTransition(allFractalTypes)
 						m.animationState.Transition.FadeTransition.Start(m.config.FractalType)
 					}
 					completed, message = m.animationState.Transition.FadeTransition.Update()
@@ -657,7 +683,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				case TransitionZoomOutIn:
 					if m.animationState.Transition.ZoomOutInTransition == nil {
-						m.animationState.Transition.ZoomOutInTransition = transition.NewZoomOutInTransition(allFractalTypes)
+						m.animationState.Transition.ZoomOutInTransition = tuitransition.NewZoomOutInTransition(allFractalTypes)
 						m.animationState.Transition.ZoomOutInTransition.Start(m.config.FractalType)
 					}
 					completed, zoomLevel, message := m.animationState.Transition.ZoomOutInTransition.Update()
@@ -670,7 +696,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				case TransitionRotate:
 					if m.animationState.Transition.RotateTransition == nil {
-						m.animationState.Transition.RotateTransition = transition.NewRotateTransition(allFractalTypes)
+						m.animationState.Transition.RotateTransition = tuitransition.NewRotateTransition(allFractalTypes)
 						m.animationState.Transition.RotateTransition.Start(m.config.FractalType)
 					}
 					completed, centerX, centerY, message := m.animationState.Transition.RotateTransition.Update()
@@ -684,7 +710,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				case TransitionBreakthrough:
 					if m.animationState.Transition.BreakthroughTransition == nil {
-						m.animationState.Transition.BreakthroughTransition = transition.NewBreakthroughTransition(allFractalTypes)
+						m.animationState.Transition.BreakthroughTransition = tuitransition.NewBreakthroughTransition(allFractalTypes)
 						m.animationState.Transition.BreakthroughTransition.Start(m.config.FractalType)
 					}
 					completed, centerX, centerY, zoomLevel, message := m.animationState.Transition.BreakthroughTransition.Update()
@@ -713,12 +739,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// The active pilot evolves the view through the engine seam,
-		// boundary rules included. Only the Manual pilot drives here so
-		// far; the ad-hoc auto-zoom and vantage blocks above become
-		// pilots in their own tickets. What to do at a boundary arrival
-		// beyond the clamp lands with transitions.
-		next, _ := m.engine.Tick(m.view())
+		// boundary rules included. A boundary arrival fires a
+		// transition from the effective schedule; an empty schedule
+		// clamps and the view stays put.
+		next, crossing := m.seam().Tick(m.view())
 		m.applyView(next)
+		m.crossing = crossing
+		if crossing != nil {
+			// A crossing freezes the view at its source and lands
+			// the destination when progress completes.
+			if crossing.Progress.Landed() {
+				m.crossing = nil // the destination is now the view
+				if m.config.FractalType == FractalJulia {
+					// Arriving at Julia opens on its default parameters.
+					m.config.JuliaCr = -0.7
+					m.config.JuliaCi = 0.27015
+				}
+			}
+			return m, tickCmd()
+		}
 
 		// Update dynamic color even when not auto-zooming (for manual navigation)
 		if m.animationState.Color.DynamicColor {
@@ -1002,11 +1041,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.config.Zoom *= 1.2
 			}
-			return m, nil
+			return m, tickCmd()
 		case "i":
 			// Manual zoom in only
 			m.config.Zoom *= 1.2
-			return m, nil
+			return m, tickCmd()
 		case "-", "_":
 			// If auto-pilot is active, set zoom direction to OUT
 			// Otherwise perform manual zoom out
@@ -1015,11 +1054,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.config.Zoom /= 1.2
 			}
-			return m, nil
+			return m, tickCmd()
 		case "o":
 			// Manual zoom out only
 			m.config.Zoom /= 1.2
-			return m, nil
+			return m, tickCmd()
 		case "0":
 			// Reset zoom, center, and iteration depth to defaults
 			m.config.Zoom = 1.0
@@ -1196,7 +1235,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Copy current location as URL
 		case "U":
-			urlStr := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Color.DynamicColor, m.animationState.Transition.Mode)
+			urlStr := persistence.ConfigToFractalURL(m.config, m.activePilot(), m.animationState.Color.DynamicColor, m.schedule)
 			if err := clipboard.WriteAll(urlStr); err != nil {
 				m.animationState.Messages.URLMsg = fmt.Sprintf("Error copying URL: %v", err)
 			} else {
@@ -1569,6 +1608,12 @@ func (m model) renderStatusBar() string {
 
 // renderFractal generates the ASCII fractal view using the cached renderer
 func (m model) renderFractal() string {
+	// A crossing in flight renders over the shared progress model:
+	// the effect splits the frame between the two views.
+	if c := m.crossing; c != nil {
+		return m.renderCrossing(*c)
+	}
+
 	// Update renderer with current config and animation state
 	m.renderer.SetConfig(m.config)
 	m.renderer.SetColorMode(m.animationState.Color.ColorMode)
@@ -1581,6 +1626,36 @@ func (m model) renderFractal() string {
 
 	// Use the renderer (leverages caching and parallel computation)
 	return m.renderer.RenderFractal()
+}
+
+// renderCrossing draws one frame of a boundary crossing: the effect
+// named by the scheduler mixes the source and destination views over
+// the shared progress model.
+func (m model) renderCrossing(c transition.Crossing) string {
+	var effect transition.Effect = transition.Fade{}
+	if m.effects != nil {
+		if e, ok := m.effects.Lookup(c.Effect); ok {
+			effect = e
+		}
+	}
+	frame := effect.Frame(c.Source, c.Destination, c.Progress)
+	return m.renderer.RenderCrossfade(
+		m.configForView(frame.Source),
+		m.configForView(frame.Destination),
+		frame.Mix,
+	)
+}
+
+// configForView projects a pilot view onto the render config, keeping
+// the terminal size and palette of the current config.
+func (m model) configForView(v pilot.View) Config {
+	cfg := m.config
+	cfg.FractalType = v.FractalType
+	cfg.CenterX = v.CenterX
+	cfg.CenterY = v.CenterY
+	cfg.Zoom = v.Zoom
+	cfg.MaxIter = v.MaxIter
+	return cfg
 }
 
 // looksLikeURL checks if a string looks like a fractal URL (without the fractal:// prefix)
@@ -1804,7 +1879,8 @@ func main() {
 	// Check for URL argument (positional) or --url flag
 	urlPilot := pilot.ManualID
 	urlDynamicColor := false
-	urlTransitionMode := TransitionNone
+	urlSchedule := pilot.Schedule{}
+	urlScheduleSet := false
 
 	args := flag.Args()
 	if len(args) > 0 {
@@ -1857,7 +1933,8 @@ func main() {
 		// Save URL state for interactive mode
 		urlPilot = params.Pilot
 		urlDynamicColor = params.DynamicColorEnabled
-		urlTransitionMode = persistence.StringToTransitionMode(params.Transition)
+		urlSchedule = params.Schedule
+		urlScheduleSet = params.ScheduleSet
 
 		if params.Engine != "" {
 			config.Engine = params.Engine
@@ -1979,7 +2056,7 @@ func main() {
 	animState.AutoPilot.BaseMaxIter = config.MaxIter
 	animState.AutoPilot.ZoomDirection = 1
 	animState.Transition.Mode = TransitionFade
-	animState.Transition.FadeTransition = transition.NewFadeTransition(allFractalTypes)
+	animState.Transition.FadeTransition = tuitransition.NewFadeTransition(allFractalTypes)
 
 	m := model{
 		config:            config,
@@ -1996,7 +2073,10 @@ func main() {
 	if *urlFlag != "" {
 		m.selectPilot(urlPilot)
 		m.animationState.Color.DynamicColor = urlDynamicColor
-		m.animationState.Transition.Mode = urlTransitionMode
+		if urlScheduleSet {
+			m.schedule = urlSchedule
+			m.seam().SetSchedule(urlSchedule)
+		}
 	}
 
 	// Apply CLI autopilot flag if provided

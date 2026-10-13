@@ -114,14 +114,14 @@ func BenchmarkCalculateIterationsParallel(b *testing.B) {
 	b.Run("Serial", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = r.calculateIterationsSerial()
+			_ = r.calculateIterationsSerial(r.config)
 		}
 	})
 
 	b.Run("Parallel", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = r.calculateIterationsParallel()
+			_ = r.calculateIterationsParallel(r.config)
 		}
 	})
 }
