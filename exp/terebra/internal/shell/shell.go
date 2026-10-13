@@ -100,17 +100,20 @@ func (s *Shell) Repl() error {
 	ctx := context.Background()
 	var buf strings.Builder
 	for {
-		// If the stdin pipe was paused for an external command, resume
-		// the copy goroutine on the same pipe.
-		if s.stdinNeedsReset {
-			s.stdinNeedsReset = false
-			s.resumeStdinPipe()
-		}
-
 		if buf.Len() > 0 {
 			rl.SetPrompt("> ")
 		} else {
+			// Computing the prompt may run commands (PS1 command
+			// substitutions), which pause the stdin pump so they can
+			// read the terminal.
 			rl.SetPrompt(s.prompt())
+		}
+
+		// The pump must be running before readline blocks on its pipe:
+		// resume it after whatever ran above, not before.
+		if s.stdinNeedsReset {
+			s.stdinNeedsReset = false
+			s.resumeStdinPipe()
 		}
 
 		line, err := rl.Readline()

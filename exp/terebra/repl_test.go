@@ -154,6 +154,30 @@ func TestReplPromptAppears(t *testing.T) {
 	}
 }
 
+// TestReplPromptCmdSubstKeepsInputAlive is the regression test for
+// the REPL hang: a startup file setting PS1 to a command substitution
+// (the common oh-my-posh shape) must not starve the stdin pump, so
+// typed input still reaches readline afterwards.
+func TestReplPromptCmdSubstKeepsInputAlive(t *testing.T) {
+	home := t.TempDir()
+	rc := "export PS1='$(/bin/echo psub)> '\n"
+	if err := os.WriteFile(filepath.Join(home, ".terebrarc"),
+		[]byte(rc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r := startReplWithHome(t, home)
+	defer r.close()
+
+	if !r.waitFor("psub>", 5*time.Second) {
+		t.Fatalf("prompt from cmdsubst PS1 never rendered; output: %q",
+			r.snapshot())
+	}
+	r.send("echo ALIVE\n")
+	if !r.waitFor("ALIVE", 3*time.Second) {
+		t.Fatalf("input dead after cmdsubst prompt; output: %q", r.snapshot())
+	}
+}
+
 // TestReplMultilineContinuation proves the REPL accumulates lines
 // until the bash parser sees complete input, and that --explain works
 // against the new parse path (issue #17 acceptance).
