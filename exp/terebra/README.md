@@ -29,9 +29,11 @@ go run . build script.trb myapp
 
 ### Core Shell
 - REPL with readline (history, search, editing, persistent history, fuzzy Ctrl+R search)
-- Built-in commands: `cd`, `pwd`, `echo`, `exit`, `help`, `type`, `which`,
-  `export`, `unset`, `set`, `readonly`, `alias`, `unalias`, `history`, `source`,
-  `jobs`, `fg`, `bg`, `drill`, `cue`, `plugin`, `state`
+- Built-in commands: `cd`, `pwd`, `echo`, `exit`, `help`, `type`,
+  `export`, `unset`, `set`, `readonly`, `alias`, `unalias`, `history`,
+  `source`, `jobs`, `fg`, `bg`, `drill`, `cue`, `plugin`, `state` —
+  plus every bash builtin mvdan/sh provides (`printf`, `read`,
+  `declare`, `trap`, `test`, …)
 - External command execution via `$PATH`
 - Pipes `|`, redirects `>`, `>>`, `<`, `2>`, `2>>`, `2>&1`, heredocs `<<`, `<<-`
 - Command chaining: `&&`, `||`, `;`
@@ -58,9 +60,19 @@ go run . build script.trb myapp
 - `for`/`in`/`do`/`done` loops
 - `while`/`do`/`done` and `until`/`do`/`done` loops
 - `function name {}` and `name() {}` function definitions
-- `try`/`catch`/`end` error handling
+- `set -e`, `set -u`, and `trap` error handling (bash)
 - `source` to include script files
 - Shebang support (`#!/usr/bin/env terebra`)
+
+#### Error handling recipes
+
+`try`/`catch`/`end` is retired; use standard bash options:
+
+```bash
+set -e                          # stop at the first failure
+trap 'rm -f "$tmp"' EXIT        # cleanup runs either way
+trap 'echo "failed at $LINENO"' ERR
+```
 
 ### CUE Integration
 - `drill cue <file>` — evaluate, validate, extract, unify CUE values

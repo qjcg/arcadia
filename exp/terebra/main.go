@@ -7,8 +7,22 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/qjcg/arcadia/exp/terebra/internal/engine"
 	"github.com/qjcg/arcadia/exp/terebra/internal/shell"
 )
+
+// scriptExit maps a script engine error to a process exit code,
+// printing unexpected errors and honoring explicit exit statuses.
+func scriptExit(err error, stderr io.Writer) int {
+	if err != nil {
+		if code, ok := engine.ExitCode(err); ok {
+			return code
+		}
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+	return 0
+}
 
 func getVersion() string {
 	if info, ok := debug.ReadBuildInfo(); ok {
@@ -43,11 +57,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stderr, "-c requires a script argument")
 			return 1
 		}
-		if err := shell.RunScriptFromString(args[1]); err != nil {
-			fmt.Fprintln(stderr, err)
-			return 1
-		}
-		return 0
+		return scriptExit(engine.RunScriptFromString(args[1]), stderr)
 
 	case "--version", "-v":
 		fmt.Fprintf(stdout, "terebra %s\n", getVersion())
@@ -59,18 +69,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stderr, "--explain requires a command")
 			return 1
 		}
-		// Build a script that the shell can parse: --explain <cmd> <args>
-		var script strings.Builder
-		script.WriteString("--explain ")
-		script.WriteString(args[1])
-		for _, a := range args[2:] {
-			script.WriteString(" ")
-			script.WriteString(a)
-		}
-		if err := shell.RunScriptFromString(script.String()); err != nil {
-			fmt.Fprintln(stderr, err)
-			return 1
-		}
+		fmt.Fprintf(stdout, "# would execute: %s\n",
+			strings.Join(args[1:], " "))
 		return 0
 
 	case "help", "--help", "-h":
@@ -87,11 +87,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	default:
 		// Script mode: execute the given file
 		if !strings.HasPrefix(args[0], "-") {
-			if err := shell.RunScript(args[0]); err != nil {
-				fmt.Fprintln(stderr, err)
-				return 1
-			}
-			return 0
+			return scriptExit(engine.RunScript(args[0]), stderr)
 		}
 		fmt.Fprintf(stderr, "unknown flag: %s\n", args[0])
 		return 1

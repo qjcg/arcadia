@@ -11,11 +11,11 @@ terebra -c 'arr=(a b c) ; arr[1]=x ; echo ${arr[1]}'
 stdout 'x'
 
 # associative array — all values
-terebra -c 'colors[red]=r ; colors[blue]=b ; echo ${colors[@]}'
+terebra -c 'declare -A colors ; colors[red]=r ; colors[blue]=b ; echo ${colors[@]}'
 stdout 'r'
 stdout 'b'
 
-# array auto-promote (non-numeric key)
+# non-numeric subscript without declare -A is bash arithmetic indexing
 terebra -c 'arr[key]=val ; echo ${arr[key]}'
 stdout 'val'
 
@@ -24,5 +24,5 @@ terebra -c 'arr=(a b c) ; echo $arr[0]'
 stdout 'a'
 
 # associative array access without braces
-terebra -c 'colors[red]=r ; colors[blue]=b ; echo $colors[red]'
+terebra -c 'declare -A colors ; colors[red]=r ; echo $colors[red]'
 stdout 'r'

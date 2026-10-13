@@ -14,9 +14,9 @@ import (
 	"cuelang.org/go/cue"
 	"github.com/chzyer/readline"
 	"github.com/qjcg/arcadia/exp/terebra/internal/cueutil"
+	"github.com/qjcg/arcadia/exp/terebra/internal/engine"
 	"github.com/qjcg/arcadia/exp/terebra/internal/expand"
 	"github.com/qjcg/arcadia/exp/terebra/internal/parser"
-	"github.com/qjcg/arcadia/exp/terebra/internal/script"
 )
 
 // completer returns a readline.AutoCompleter for tab completion.
@@ -1295,7 +1295,7 @@ func (s *Shell) builtinStateLoad(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-// Shell methods implementing the script.Executor interface.
+// Shell helpers used by command execution.
 
 func (s *Shell) RunCommand(name string, args []string, stdin io.Reader, stdout io.Writer) error {
 	cmd := &parser.Command{
@@ -1303,14 +1303,6 @@ func (s *Shell) RunCommand(name string, args []string, stdin io.Reader, stdout i
 		Args: args,
 	}
 	return s.ExecuteCommand(cmd, stdin, stdout, nil)
-}
-
-func (s *Shell) FuncDefs() map[string][]script.Stmt {
-	return s.funcs
-}
-
-func (s *Shell) SetFuncDef(name string, body []script.Stmt) {
-	s.funcs[name] = body
 }
 
 // GetVar returns the value of a variable.
@@ -1336,7 +1328,7 @@ func (s *Shell) builtinSource(args []string, stdin io.Reader, stdout, stderr io.
 		return 1
 	}
 
-	if err := s.interp.ParseAndExec(string(data)); err != nil {
+	if err := engine.RunScriptFromString(string(data)); err != nil {
 		fmt.Fprintf(stderr, "source: %v\n", err)
 		return 1
 	}

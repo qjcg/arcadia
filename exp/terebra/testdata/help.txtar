@@ -1,18 +1,14 @@
-# help builtin
+# help lists the shell's builtins, bash style
 terebra -c 'help'
-stdout 'Terebra -- auger shell'
+stdout 'defined internally'
 
 # help for a specific builtin
 terebra -c 'help cd'
-stdout 'cd \[dir\]'
+stdout 'Change the shell working directory'
 
-# help for a topic
-terebra -c 'help strings'
-stdout 'Substring'
-
-# help for unknown builtin
+# help for an unknown topic reports no match
 ! terebra -c 'help nonexistent_cmd'
-stderr 'no help'
+stderr 'no help topics match'
 
 # --version
 terebra --version

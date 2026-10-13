@@ -17,7 +17,6 @@ import (
 	"github.com/qjcg/arcadia/exp/terebra/internal/expand"
 	"github.com/qjcg/arcadia/exp/terebra/internal/parser"
 	"github.com/qjcg/arcadia/exp/terebra/internal/plugin"
-	"github.com/qjcg/arcadia/exp/terebra/internal/script"
 )
 
 const historyFile = ".terebra_history"
@@ -32,14 +31,12 @@ type Shell struct {
 	aliases  map[string]string
 	arrays   map[string][]string
 	assoc    map[string]map[string]string
-	funcs    map[string][]script.Stmt
 	plugins  *plugin.Registry
 	jobs     []*Job
 	jobSeq   int
 	exitCode int
 	mu       sync.Mutex
 	rl       *readline.Instance
-	interp   *script.Interpreter
 	debug    bool // set -x debug mode
 	fuzzy    bool // Ctrl+R fuzzy search flag
 	nullGlob bool // set -o nullglob: unmatched globs expand to nothing
@@ -86,14 +83,12 @@ func New() *Shell {
 		aliases:  make(map[string]string),
 		arrays:   make(map[string][]string),
 		assoc:    make(map[string]map[string]string),
-		funcs:    make(map[string][]script.Stmt),
 		plugins:  plugin.New(),
 	}
 	// Set default PS1 if not already set
 	if s.getVar("PS1") == "" && os.Getenv("PS1") == "" {
 		s.vars["PS1"] = "trb:{{.}}{{exit}}"
 	}
-	s.interp = script.NewInterpreter(s)
 	// Register shell-aware builtins that need access to the Shell struct
 	s.builtins.Register("export", func(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return s.builtinExport(args, stdout, stderr)
@@ -148,51 +143,6 @@ func New() *Shell {
 func Run() error {
 	sh := New()
 	return sh.Repl()
-}
-
-// RunScript executes a script file.
-func RunScript(path string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("cannot execute %q: %v", path, err)
-	}
-	return RunScriptFromString(string(data))
-}
-
-// RunScriptFromString executes a script string.
-func RunScriptFromString(content string) error {
-	sh := New()
-	// Skip shebang line if present
-	if strings.HasPrefix(content, "#!") {
-		idx := strings.IndexByte(content, '\n')
-		if idx >= 0 {
-			content = content[idx+1:]
-		} else {
-			content = ""
-		}
-	}
-
-	// If the script spans multiple lines, use the scripting interpreter
-	// (the shell parser treats newlines as whitespace, not as command separators).
-	if strings.Contains(content, "\n") {
-		return sh.interp.ParseAndExec(content)
-	}
-
-	// Try parsing as shell script first (supports ; && || chaining)
-	script, err := parser.ParseScript(content)
-	if err == nil && len(script.Pipelines) > 0 {
-		err = sh.ExecuteScript(script)
-		if errors.Is(err, errExitShell) {
-			if sh.getExitCode() != 0 {
-				os.Exit(sh.getExitCode())
-			}
-			return nil
-		}
-		return err
-	}
-
-	// Fall back to the scripting language interpreter
-	return sh.interp.ParseAndExec(content)
 }
 
 func (s *Shell) Repl() error {
@@ -482,7 +432,10 @@ func (s *Shell) readHistory() []string {
 	return lines
 }
 
-// loadRc loads ~/.terebrarc if it exists, executing it as a script.
+// loadRc loads ~/.terebrarc if it exists, executing it line by line
+// in the shell's own context so assignments (PS1) and aliases land in
+// the REPL's stores. Control flow in rc files runs through the interp
+// engine once the REPL moves over (issue #17).
 func (s *Shell) loadRc() {
 	home := os.Getenv("HOME")
 	if home == "" {
@@ -493,7 +446,17 @@ func (s *Shell) loadRc() {
 	if err != nil {
 		return // file doesn't exist or can't be read — skip silently
 	}
-	s.interp.ParseAndExec(string(data))
+	for line := range strings.SplitSeq(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		script, err := parser.ParseScript(line)
+		if err != nil || len(script.Pipelines) == 0 {
+			continue
+		}
+		_ = s.ExecuteScript(script)
+	}
 }
 
 // fillHeredocs reads heredoc content from the user when it wasn't provided

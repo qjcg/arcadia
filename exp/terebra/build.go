@@ -12,12 +12,16 @@ const compileTemplate = `package main
 
 import (
 	"os"
-	"github.com/qjcg/arcadia/exp/terebra/internal/shell"
+
+	"github.com/qjcg/arcadia/exp/terebra/internal/engine"
 )
 
 func main() {
 	script := %s
-	if err := shell.RunScriptFromString(script); err != nil {
+	if err := engine.RunScriptFromString(script); err != nil {
+		if code, ok := engine.ExitCode(err); ok {
+			os.Exit(code)
+		}
 		os.Exit(1)
 	}
 }

@@ -275,15 +275,9 @@ func (s *Shell) ExecuteCommand(cmd *parser.Command, stdin io.Reader, stdout io.W
 		return nil
 	}
 
-	// Check user-defined functions
-	if body, ok := s.funcs[expandedName]; ok {
-		for _, stmt := range body {
-			if err := s.interp.ExecStmt(stmt); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
+	// Check user-defined functions: retired with the script language
+	// package; the interp engine owns functions now (issue #17 brings
+	// the REPL onto the same engine).
 
 	return s.runExternalCommand(expandedName, expandedArgs, in, out, errOut)
 }

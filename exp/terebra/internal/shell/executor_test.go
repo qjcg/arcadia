@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/qjcg/arcadia/exp/terebra/internal/parser"
-	"github.com/qjcg/arcadia/exp/terebra/internal/script"
 )
 
 func TestApplyTempEnv(t *testing.T) {
@@ -378,24 +377,6 @@ func TestExecuteCommandAlias(t *testing.T) {
 	// alias expanded to echo hello; echo is a builtin -> exit 0
 	if s.getExitCode() != 0 {
 		t.Fatalf("expected exit 0, got %d", s.getExitCode())
-	}
-}
-
-func TestExecuteCommandFunction(t *testing.T) {
-	s := newTestShell()
-	// Define a function whose body runs a pipeline (echo builtin)
-	out := &strings.Builder{}
-	body := []script.Stmt{
-		&script.CommandStmt{Pipeline: &parser.Pipeline{Commands: []*parser.Command{{Name: "echo", Args: []string{"fn"}}}}},
-	}
-	s.SetFuncDef("myfunc", body)
-	s.Stdout = out
-	cmd := &parser.Command{Name: "myfunc"}
-	if err := s.ExecuteCommand(cmd, strings.NewReader(""), out, nil); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !strings.Contains(out.String(), "fn") {
-		t.Fatalf("expected function output 'fn', got %q", out.String())
 	}
 }
 

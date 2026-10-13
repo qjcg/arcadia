@@ -11,24 +11,6 @@ import (
 	"github.com/qjcg/arcadia/exp/terebra/internal/parser"
 )
 
-func TestRunScriptFromStringSimple(t *testing.T) {
-	if err := RunScriptFromString("echo hi"); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestRunScriptFromStringWithNewline(t *testing.T) {
-	if err := RunScriptFromString("echo a\necho b"); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestRunScriptFromStringShebang(t *testing.T) {
-	if err := RunScriptFromString("#!/bin/sh\necho a"); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
 func TestBuiltinReadonlyList(t *testing.T) {
 	s := newTestShell()
 	s.vars["a"] = "1"

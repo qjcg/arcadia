@@ -8,8 +8,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/creack/pty"
 )
 
 var (
@@ -53,29 +51,9 @@ type repl struct {
 
 func startRepl(t *testing.T) *repl {
 	t.Helper()
-	bin := buildBinary(t)
-	cmd := exec.Command(bin)
-	f, err := pty.Start(cmd)
-	if err != nil {
-		t.Fatalf("pty.Start: %v", err)
-	}
-	r := &repl{t: t, cmd: cmd, pty: f, done: make(chan struct{})}
-	go func() {
-		defer close(r.done)
-		buf := make([]byte, 8192)
-		for {
-			n, err := f.Read(buf)
-			if n > 0 {
-				r.mu.Lock()
-				r.acc = append(r.acc, buf[:n]...)
-				r.mu.Unlock()
-			}
-			if err != nil {
-				return
-			}
-		}
-	}()
-	return r
+	// Hermetic like startReplWithHome: temp HOME, no ambient PS1, so
+	// prompt assertions never depend on the developer's shell config.
+	return startReplWithHome(t, t.TempDir())
 }
 
 func (r *repl) send(s string) {
@@ -119,7 +97,7 @@ func TestReplSingleEnterAfterExternalCommand(t *testing.T) {
 	r := startRepl(t)
 	defer r.close()
 
-	if !r.waitFor("❯", 5*time.Second) {
+	if !r.waitFor("trb:", 5*time.Second) {
 		t.Fatalf("no prompt; output so far: %q", r.snapshot())
 	}
 
@@ -152,7 +130,7 @@ func TestReplRapidInput(t *testing.T) {
 	r := startRepl(t)
 	defer r.close()
 
-	if !r.waitFor("❯", 5*time.Second) {
+	if !r.waitFor("trb:", 5*time.Second) {
 		t.Fatalf("no prompt; output so far: %q", r.snapshot())
 	}
 
@@ -171,7 +149,7 @@ func TestReplRapidInput(t *testing.T) {
 func TestReplPromptAppears(t *testing.T) {
 	r := startRepl(t)
 	defer r.close()
-	if !r.waitFor("❯", 5*time.Second) {
+	if !r.waitFor("trb:", 5*time.Second) {
 		t.Fatalf("no prompt; output so far: %q", r.snapshot())
 	}
 }

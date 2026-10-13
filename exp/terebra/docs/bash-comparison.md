@@ -37,7 +37,7 @@ adds a structured-data layer (CUE) that bash has no equivalent for.
 | ANSI-C quoting `$'…'`                                               | Yes                       | No                      |
 | Process substitution `<( )`, `>( )`                                 | Yes                       | No                      |
 | `[[ ]]`, `(( ))`, `case`, `select`                                  | Yes                       | No                      |
-| Script control flow (`if`, `for`, `while`, functions, `try`)        | Yes                       | Yes (own `.trb` syntax) |
+| Script control flow (`if`, `for`, `while`, functions)              | Yes                       | Yes (bash via mvdan/sh) |
 | User-defined function params / locals / `return`                    | Yes                       | No                      |
 | History expansion (`!!`, `!$`)                                      | Yes                       | No                      |
 | Programmable completion                                             | Yes                       | No (fixed strategy)     |
@@ -195,7 +195,7 @@ Terebra executes scripts in two ways:
 | For loop       | `for x in a b c; do … done`                        |
 | While / Until  | `while <cmd>; do … done`, `until <cmd>; do … done` |
 | Functions      | `function name { … }` or `name() { … }`            |
-| Error handling | `try … catch … end`                                |
+| Error handling | `set -e`, `set -u`, `trap ERR`/`EXIT`              |
 | Include        | `source file.trb`                                  |
 | Shebang        | `#!/usr/bin/env terebra`                           |
 

@@ -6,9 +6,9 @@ stdout 'echo is a shell builtin'
 terebra -c 'type ls'
 stdout 'ls is '
 
-# which
-terebra -c 'which echo'
-stdout '/echo'
+# command -v locates builtins and files, bash style
+terebra -c 'command -v echo'
+stdout '^echo$'
 
 # export
 terebra -c 'export FOO=bar ; echo $FOO'
@@ -24,7 +24,7 @@ stdout ''
 
 # alias
 terebra -c 'alias ll="ls -la" ; alias'
-stdout 'll=ls -la'
+stdout 'alias ll=.*ls -la'
 
 # unalias
 terebra -c 'alias ll="ls -la" ; unalias ll ; alias'
@@ -32,7 +32,7 @@ terebra -c 'alias ll="ls -la" ; unalias ll ; alias'
 
 # set -x debug trace
 terebra -c 'set -x ; echo hello'
-stderr '[+] echo hello'
+stderr '\+ echo hello'
 
 # set +x disable debug
 terebra -c 'set -x ; set +x ; echo hello'
@@ -46,14 +46,14 @@ stdout 'bar'
 ! terebra -c 'type nonexistent_cmd_xyz'
 stderr 'not found'
 
-# which for nonexistent command
-! terebra -c 'which nonexistent_cmd_xyz'
-stderr 'not found'
+# command -v fails quietly for a missing command
+! terebra -c 'command -v nonexistent_cmd_xyz'
+! stdout '.'
 
-# export listing
-terebra -c 'export FOO=bar ; export'
+# export reaches the environment
+terebra -c 'export FOO=bar ; env'
 stdout 'FOO=bar'
 
-# set listing shows vars
-terebra -c 'FOO=bar ; set'
-stdout 'FOO=bar'
+# variable listing via declare, bash style
+terebra -c 'FOO=bar ; declare -p FOO'
+stdout 'FOO="bar"'

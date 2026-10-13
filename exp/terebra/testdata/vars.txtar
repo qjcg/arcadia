@@ -6,9 +6,9 @@ stdout '/no-home'
 terebra -c 'FOO=bar ; echo $FOO'
 stdout 'bar'
 
-# PS1 default
-terebra -c 'echo $PS1'
-stdout 'trb:'
+# PS1 is a plain variable in scripts; the REPL sets its own default
+terebra -c 'PS1="x> " ; echo "$PS1"'
+stdout 'x> '
 
 # $$ PID
 terebra -c 'echo $$'
@@ -26,18 +26,23 @@ stdout 'bar'
 terebra -c 'echo $UNDEFINED_VAR_XYZ'
 stdout ''
 
-# temporary env var for one command
+# temporary env var: word expansion runs first, like bash
 terebra -c 'FOO=bar echo $FOO'
-stdout 'bar'
+stdout '^$'
+
+# temporary env var reaches the command's environment
+terebra -c 'FOO=bar env'
+stdout 'FOO=bar'
 
 # temporary env var does not persist
-terebra -c 'FOO=bar echo $FOO ; echo $FOO'
-stdout 'bar'
+terebra -c 'FOO=bar env ; echo $FOO'
+stdout '^$'
 stdout ''
 
-# multiple temporary env vars
-terebra -c 'FOO=bar BAZ=qux echo $FOO$BAZ'
-stdout 'barqux'
+# multiple temporary env vars reach the command's environment
+terebra -c 'FOO=bar BAZ=qux env'
+stdout 'FOO=bar'
+stdout 'BAZ=qux'
 
 # temporary env var alone (no command) sets persistently
 terebra -c 'FOO=bar ; echo $FOO'

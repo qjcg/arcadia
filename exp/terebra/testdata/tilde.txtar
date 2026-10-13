@@ -29,6 +29,10 @@ stdout '~'
 terebra -c 'echo ~nosuchuser_xyz'
 stdout '~nosuchuser_xyz'
 
-# tilde in a variable value is not re-expanded
+# tilde expands in assignment values, like bash
 terebra -c 'x=~; echo $x'
-stdout '~'
+stdout '/home/tildeuser'
+
+# a quoted tilde stays literal
+terebra -c 'x="~"; echo $x'
+stdout '^~$'

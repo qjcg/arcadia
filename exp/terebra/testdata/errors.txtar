@@ -4,4 +4,4 @@ stderr 'command not found'
 
 # parse error
 ! terebra -c '|'
-stderr 'expected command name'
+stderr 'can only immediately follow a statement'
