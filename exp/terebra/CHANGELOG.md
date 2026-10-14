@@ -5,30 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [v0.8.0] - 2026-10-14
 
 ### Added
-- cfd85f05 - REPL on the interp engine; hand-rolled expansion gone
-- a96f2dd6 - run scripts and -c on the mvdan/sh interp engine
-- c9d21d06 - desugar auger pipes into a reserved pipeline stage
+- cfd85f0 - REPL on the interp engine; hand-rolled expansion gone
+- a96f2dd - run scripts and -c on the mvdan/sh interp engine
+- c9d21d0 - desugar auger pipes into a reserved pipeline stage
 
 ### Changed
-- 40224fb5 - describe terebra as a superset of bash
-- 1ef505cd - builtin decision record - mvdan/sh builtins wholesale
-- 02fe6752 - spike job control over interp exec handlers
-- c661e2c0 - diff brace expansion against mvdan/sh
-- 4f4e841f - Update deps
-- 3e477efd - Bump deps
-- 12b469e9 - Update deps
-- a150be07 - Add bash comparison
-- 1305b2c9 - Update deps
+- 40224fb - describe terebra as a superset of bash
+- 1ef505c - builtin decision record - mvdan/sh builtins wholesale
+- 02fe675 - spike job control over interp exec handlers
+- c661e2c - diff brace expansion against mvdan/sh
+- 4f4e841 - Update deps
+- 3e477ef - Bump deps
+- 12b469e - Update deps
+- a150be0 - Add bash comparison
+- 1305b2c - Update deps
 
 ### Fixed
-- f10b6ed1 - pass the terminal file to unredirected children
-- a1e63705 - give foreground jobs the terminal's foreground pgroup
-- e9a71698 - keep stdin pump ownership on the REPL loop
-- 2d6ba97d - parse REPL dispatch arguments as shell words
-- 3f9565d9 - resume the stdin pump before readline blocks
+- f10b6ed - pass the terminal file to unredirected children
+- a1e6370 - give foreground jobs the terminal's foreground pgroup
+- e9a7169 - keep stdin pump ownership on the REPL loop
+- 2d6ba97 - parse REPL dispatch arguments as shell words
+- 3f9565d - resume the stdin pump before readline blocks
 
 ## [v0.7.2] - 2026-09-15
 
