@@ -148,8 +148,8 @@ tasks:
       - test:go:build-all-binaries
       - test:go:build-all-tools
 
-  test:go:unit: go tool gotestsum work
-  test:go:integration: go tool gotestsum work -tags integration
+  test:go:unit: go tool gotestsum --format-hide-empty-pkg work
+  test:go:integration: go tool gotestsum --format-hide-empty-pkg work -tags integration
 
   test:go:build-all-binaries:
     desc: Build all go binaries in the workspace to ensure no builds fail (e.g. due to dependency bumps).
