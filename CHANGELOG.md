@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- 40224fb5 - describe terebra as a superset of bash
 - b10c3c9d - record terebra as superset of mvdan/sh
 
 ## [v0.52.0] - 2026-10-12

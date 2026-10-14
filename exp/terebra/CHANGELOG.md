@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - c9d21d06 - desugar auger pipes into a reserved pipeline stage
 
 ### Changed
+- 40224fb5 - describe terebra as a superset of bash
 - 1ef505cd - builtin decision record - mvdan/sh builtins wholesale
 - 02fe6752 - spike job control over interp exec handlers
 - c661e2c0 - diff brace expansion against mvdan/sh
@@ -21,6 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 12b469e9 - Update deps
 - a150be07 - Add bash comparison
 - 1305b2c9 - Update deps
+
+### Fixed
+- f10b6ed1 - pass the terminal file to unredirected children
+- a1e63705 - give foreground jobs the terminal's foreground pgroup
+- e9a71698 - keep stdin pump ownership on the REPL loop
+- 2d6ba97d - parse REPL dispatch arguments as shell words
+- 3f9565d9 - resume the stdin pump before readline blocks
 
 ## [v0.7.2] - 2026-09-15
 
