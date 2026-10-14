@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/fractal"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/persistence"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
@@ -494,13 +496,10 @@ func TestIsViewUniform(t *testing.T) {
 					return fractal.CalculateFractal(cr, ci, cfg.FractalType, cfg.MaxIter, cfg.JuliaCr, cfg.JuliaCi)
 				},
 			)
-			m := model{
-				config:     tt.config,
-				calculator: calculator,
-			}
-			got := m.isViewUniform()
+			seeker := &autoZoomSeeker{calc: calculator}
+			got := seeker.IsViewUniform(viewForConfig(tt.config))
 			if got != tt.expected {
-				t.Errorf("isViewUniform() = %v, want %v", got, tt.expected)
+				t.Errorf("IsViewUniform() = %v, want %v", got, tt.expected)
 			}
 		})
 	}
@@ -511,19 +510,27 @@ func TestIsViewUniform(t *testing.T) {
 			return fractal.CalculateFractal(cr, ci, cfg.FractalType, cfg.MaxIter, cfg.JuliaCr, cfg.JuliaCi)
 		},
 	)
-	m := model{
-		config: Config{
-			FractalType: FractalMandelbrot,
-			CenterX:     -0.5,
-			CenterY:     0.0,
-			Zoom:        1.0,
-			MaxIter:     50,
-		},
-		calculator: calculator,
-	}
+	seeker := &autoZoomSeeker{calc: calculator}
 	// Just verify it doesn't crash and returns a valid boolean
-	result := m.isViewUniform()
+	result := seeker.IsViewUniform(viewForConfig(Config{
+		FractalType: FractalMandelbrot,
+		CenterX:     -0.5,
+		CenterY:     0.0,
+		Zoom:        1.0,
+		MaxIter:     50,
+	}))
 	_ = result // Use the result to avoid unused variable warning
+}
+
+// viewForConfig projects a Config onto the pilot's view state.
+func viewForConfig(cfg Config) pilot.View {
+	return pilot.View{
+		FractalType: cfg.FractalType,
+		CenterX:     cfg.CenterX,
+		CenterY:     cfg.CenterY,
+		Zoom:        cfg.Zoom,
+		MaxIter:     cfg.MaxIter,
+	}
 }
 
 func TestCalculateInterestScore(t *testing.T) {
@@ -1003,11 +1010,7 @@ func TestRenderStatusBar(t *testing.T) {
 					Zoom:        1.0,
 					MaxIter:     50,
 				},
-				animationState: animation.AnimationState{
-					AutoPilot: animation.AutoPilotState{
-						Enabled: true,
-					},
-				},
+				pilotID: pilot.AutoZoomID,
 			},
 			contains: []string{"Auto-zoom pilot"},
 		},
@@ -1525,15 +1528,14 @@ func TestStatusBarModeIndicators(t *testing.T) {
 	}
 
 	// Test the Auto-zoom pilot
-	m.animationState.AutoPilot.Enabled = true
+	m.selectPilot(pilot.AutoZoomID)
 	output = m.renderStatusBar()
 	if !containsSubstring(output, "Auto-zoom pilot") {
 		t.Error("Status bar should name the active Auto-zoom pilot")
 	}
 
 	// Test the Vantage pilot
-	m.animationState.AutoPilot.Enabled = false
-	m.animationState.Vantage.Enabled = true
+	m.selectPilot(pilot.VantageID)
 	m.animationState.Vantage.SceneDuration = 100
 	output = m.renderStatusBar()
 	if !containsSubstring(output, "Vantage pilot") {
@@ -1681,7 +1683,9 @@ func TestURLScheduleSeedsTheModel(t *testing.T) {
 		t.Errorf("effective schedule = %q, want %q", got, "fade,zoomout")
 	}
 	url := persistence.ConfigToFractalURL(
-		m.config, m.activePilot(), m.animationState.Color.DynamicColor, m.schedule,
+		m.config, m.activePilot(),
+		m.autoZoomPilot().Speed(), m.autoZoomPilot().Direction(),
+		m.animationState.Color.DynamicColor, m.schedule,
 	)
 	roundTripped, err := persistence.ParseFractalURL(url)
 	if err != nil {
@@ -1689,5 +1693,148 @@ func TestURLScheduleSeedsTheModel(t *testing.T) {
 	}
 	if got := persistence.ScheduleString(roundTripped.Schedule); got != "fade,zoomout" {
 		t.Errorf("round-tripped schedule = %q, want %q", got, "fade,zoomout")
+	}
+}
+
+// keyRunes sends a character key through the update loop.
+func keyRunes(m model, keys string) model {
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(keys)})
+	return updated.(model)
+}
+
+// stubSeeker is a scripted interesting-region service for wiring the
+// Auto-zoom pilot in command-level tests.
+type stubSeeker struct{ x, y float64 }
+
+func (s stubSeeker) FindInterestingPoint(pilot.View) (float64, float64) { return s.x, s.y }
+func (s stubSeeker) IsViewUniform(pilot.View) bool                      { return false }
+
+func newSteeredModel() model {
+	m := model{
+		config: Config{FractalType: FractalMandelbrot, CenterX: -0.5, Zoom: 1.0, MaxIter: 50},
+	}
+	m.autozoom = pilot.NewAutoZoom(stubSeeker{})
+	return m
+}
+
+func TestZTogglesTheAutoZoomPilot(t *testing.T) {
+	m := newSteeredModel()
+
+	m = keyRunes(m, "z")
+	if got := m.activePilot(); got != pilot.AutoZoomID {
+		t.Fatalf("activePilot() = %q after z, want autozoom", got)
+	}
+	updated, _ := m.Update(tickMsg{})
+	m = updated.(model)
+	if m.config.Zoom == 1.0 {
+		t.Fatalf("Auto-zoom pilot did not move the view: %+v", m.config)
+	}
+
+	m = keyRunes(m, "z")
+	if got := m.activePilot(); got != pilot.ManualID {
+		t.Fatalf("activePilot() = %q after z, want manual", got)
+	}
+	zoom := m.config.Zoom
+	updated, _ = m.Update(tickMsg{})
+	m = updated.(model)
+	if m.config.Zoom != zoom {
+		t.Fatalf("tick moved the view after leaving the Auto-zoom pilot: Zoom = %v, want %v", m.config.Zoom, zoom)
+	}
+}
+
+func TestSelectingPilotsReplacesTheActiveOne(t *testing.T) {
+	m := newSteeredModel()
+	m.selectPilot(pilot.AutoZoomID)
+
+	updated, _ := m.Update(tickMsg{})
+	moving := updated.(model)
+	if moving.config.Zoom == 1.0 {
+		t.Fatal("Auto-zoom pilot did not move the view")
+	}
+
+	moving.selectPilot(pilot.ManualID)
+	updated, _ = moving.Update(tickMsg{})
+	resting := updated.(model)
+	if resting.config.Zoom != moving.config.Zoom {
+		t.Fatalf("Manual pilot moved the view: Zoom = %v, want %v", resting.config.Zoom, moving.config.Zoom)
+	}
+
+	resting.selectPilot(pilot.AutoZoomID)
+	updated, _ = resting.Update(tickMsg{})
+	moving = updated.(model)
+	if moving.config.Zoom == resting.config.Zoom {
+		t.Fatal("Auto-zoom pilot did not replace the Manual pilot")
+	}
+}
+
+func TestSteeringKeysDriveTheAutoZoomJourney(t *testing.T) {
+	t.Run("'-' steers the journey outward", func(t *testing.T) {
+		m := newSteeredModel()
+		m.selectPilot(pilot.AutoZoomID)
+		m = keyRunes(m, "-")
+
+		updated, _ := m.Update(tickMsg{})
+		got := updated.(model)
+		if want := 1.0 / 1.05; got.config.Zoom != want {
+			t.Fatalf("Zoom = %v, want %v zooming out", got.config.Zoom, want)
+		}
+	})
+
+	t.Run("'+' steers the journey inward", func(t *testing.T) {
+		m := newSteeredModel()
+		m.selectPilot(pilot.AutoZoomID)
+		m = keyRunes(m, "-")
+		m = keyRunes(m, "+")
+
+		updated, _ := m.Update(tickMsg{})
+		got := updated.(model)
+		if want := 1.0 * 1.05; got.config.Zoom != want {
+			t.Fatalf("Zoom = %v, want %v zooming in", got.config.Zoom, want)
+		}
+	})
+
+	t.Run("'r' reverses the journey", func(t *testing.T) {
+		m := newSteeredModel()
+		m.selectPilot(pilot.AutoZoomID)
+		m = keyRunes(m, "r")
+
+		updated, _ := m.Update(tickMsg{})
+		got := updated.(model)
+		if want := 1.0 / 1.05; got.config.Zoom != want {
+			t.Fatalf("Zoom = %v, want %v after reversing", got.config.Zoom, want)
+		}
+	})
+
+	t.Run("'}' speeds the journey up", func(t *testing.T) {
+		m := newSteeredModel()
+		m.selectPilot(pilot.AutoZoomID)
+		m = keyRunes(m, "}")
+
+		updated, _ := m.Update(tickMsg{})
+		got := updated.(model)
+		if want := 1.10; got.config.Zoom != want {
+			t.Fatalf("Zoom = %v, want %v at the raised speed", got.config.Zoom, want)
+		}
+	})
+}
+
+func TestURLPilotParametersDriveTheAutoZoomPilot(t *testing.T) {
+	m := newSteeredModel()
+	applyParamsToModel(&m, persistence.FractalURLParams{
+		FractalType:    FractalMandelbrot,
+		Zoom:           1.0,
+		MaxIter:        50,
+		Pilot:          pilot.AutoZoomID,
+		PilotSpeed:     1.25,
+		PilotDirection: pilot.DirectionOut,
+	})
+
+	if got := m.activePilot(); got != pilot.AutoZoomID {
+		t.Fatalf("activePilot() = %q, want autozoom", got)
+	}
+	updated, _ := m.Update(tickMsg{})
+	got := updated.(model)
+	if want := 1.0 / 1.25; got.config.Zoom != want {
+		t.Fatalf("Zoom = %v, want %v at URL speed and direction", got.config.Zoom, want)
 	}
 }

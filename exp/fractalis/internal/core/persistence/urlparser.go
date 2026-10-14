@@ -23,6 +23,8 @@ type FractalURLParams struct {
 	ScheduleSet         bool
 	Engine              string
 	Pilot               pilot.ID
+	PilotSpeed          float64
+	PilotDirection      pilot.Direction
 	DynamicColorEnabled bool
 	JuliaCr             float64
 	JuliaCi             float64
@@ -54,6 +56,8 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 		ColorTheme:          color.ColorGrayscale,
 		Engine:              EngineBubbleTea,
 		Pilot:               pilot.ManualID,
+		PilotSpeed:          pilot.DefaultSpeed,
+		PilotDirection:      pilot.DirectionIn,
 		DynamicColorEnabled: false,
 		JuliaCr:             -0.7,
 		JuliaCi:             0.27015,
@@ -173,6 +177,25 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 		params.Pilot = selected
 	}
 
+	// Flat pilot_* parameters carry pilot settings. They apply
+	// whichever pilot is selected, so a copied URL reproduces the
+	// journey exactly.
+	if raw := queryParams.Get("pilot_speed"); raw != "" {
+		speed, err := strconv.ParseFloat(raw, 64)
+		if err != nil || speed <= 0 {
+			return FractalURLParams{}, fmt.Errorf("invalid pilot_speed: %s", raw)
+		}
+		params.PilotSpeed = speed
+	}
+
+	if raw := queryParams.Get("pilot_direction"); raw != "" {
+		direction, err := parseDirection(raw)
+		if err != nil {
+			return FractalURLParams{}, err
+		}
+		params.PilotDirection = direction
+	}
+
 	if _, ok := queryParams["dynamic_color"]; ok {
 		if parsedDynamicColor, err := ParseBooleanParam(queryParams, "dynamic_color"); err != nil {
 			return FractalURLParams{}, err
@@ -201,7 +224,7 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 }
 
 // ConfigToFractalURL generates a fractal:// URL from a Config and runtime state
-func ConfigToFractalURL(config Config, activePilot pilot.ID, dynamicColor bool, schedule pilot.Schedule) string {
+func ConfigToFractalURL(config Config, activePilot pilot.ID, speed float64, direction pilot.Direction, dynamicColor bool, schedule pilot.Schedule) string {
 	// Build the base URL path
 	basePath := fmt.Sprintf(
 		"fractal://%s/%.10g/%.10g/%.10g/%d/",
@@ -234,6 +257,7 @@ func ConfigToFractalURL(config Config, activePilot pilot.ID, dynamicColor bool, 
 	if activePilot != "" {
 		queryParams.Set("pilot", string(activePilot))
 	}
+	setPilotParams(queryParams, speed, direction)
 
 	// Dynamic color
 	if dynamicColor {
@@ -260,7 +284,7 @@ func ConfigToFractalURL(config Config, activePilot pilot.ID, dynamicColor bool, 
 }
 
 // RandomToFractalURL generates a random URL with query parameters
-func RandomToFractalURL(colorTheme string, activePilot pilot.ID, dynamicColor bool, schedule pilot.Schedule) string {
+func RandomToFractalURL(colorTheme string, activePilot pilot.ID, speed float64, direction pilot.Direction, dynamicColor bool, schedule pilot.Schedule) string {
 	queryParams := url.Values{}
 
 	if colorTheme != "" && colorTheme != color.ColorGrayscale {
@@ -274,6 +298,7 @@ func RandomToFractalURL(colorTheme string, activePilot pilot.ID, dynamicColor bo
 	if activePilot != "" {
 		queryParams.Set("pilot", string(activePilot))
 	}
+	setPilotParams(queryParams, speed, direction)
 
 	if dynamicColor {
 		queryParams.Set("dynamic_color", "t")
@@ -294,6 +319,39 @@ func ValidateFractalURL(urlString string) error {
 }
 
 // Helper functions
+
+// setPilotParams writes the pilot_* parameters, omitting defaults so
+// hand-written URLs stay small while round-trips stay lossless.
+func setPilotParams(queryParams url.Values, speed float64, direction pilot.Direction) {
+	if speed != pilot.DefaultSpeed {
+		queryParams.Set("pilot_speed", strconv.FormatFloat(speed, 'g', -1, 64))
+	}
+	if formatted := formatDirection(direction); formatted != "in" {
+		queryParams.Set("pilot_direction", formatted)
+	}
+}
+
+// parseDirection maps the pilot_direction query value to a zoom
+// direction.
+func parseDirection(raw string) (pilot.Direction, error) {
+	switch strings.ToLower(raw) {
+	case "in":
+		return pilot.DirectionIn, nil
+	case "out":
+		return pilot.DirectionOut, nil
+	default:
+		return 0, fmt.Errorf("invalid pilot_direction: %s (use 'in' or 'out')", raw)
+	}
+}
+
+// formatDirection maps a zoom direction to the pilot_direction query
+// value.
+func formatDirection(direction pilot.Direction) string {
+	if direction == pilot.DirectionOut {
+		return "out"
+	}
+	return "in"
+}
 
 // parseAutopilotAlias maps the deprecated autopilot query parameter
 // to a pilot: on (or the legacy t / valueless form) selects the

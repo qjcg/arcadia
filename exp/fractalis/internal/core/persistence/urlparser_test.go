@@ -301,7 +301,7 @@ func TestConfigToFractalURL(t *testing.T) {
 		JuliaCi:     0.27015,
 	}
 
-	url := ConfigToFractalURL(config, pilot.ManualID, false, pilot.Schedule{})
+	url := ConfigToFractalURL(config, pilot.ManualID, 1.05, pilot.DirectionIn, false, pilot.Schedule{})
 
 	// Parse it back and verify
 	params, err := ParseFractalURL(url)
@@ -321,7 +321,7 @@ func TestConfigToFractalURL(t *testing.T) {
 	}
 
 	// Test with the Auto-zoom pilot and dynamic color enabled
-	url = ConfigToFractalURL(config, pilot.AutoZoomID, true, pilot.Schedule{})
+	url = ConfigToFractalURL(config, pilot.AutoZoomID, 1.05, pilot.DirectionIn, true, pilot.Schedule{})
 	if !contains(url, "pilot=autozoom") {
 		t.Errorf("Generated URL should contain 'pilot=autozoom', got: %s", url)
 	}
@@ -453,7 +453,7 @@ func TestPilotRoundTrip(t *testing.T) {
 
 	for _, id := range pilot.IDs() {
 		t.Run(string(id), func(t *testing.T) {
-			url := ConfigToFractalURL(config, id, false, pilot.Schedule{})
+			url := ConfigToFractalURL(config, id, 1.05, pilot.DirectionIn, false, pilot.Schedule{})
 			if !contains(url, "pilot="+string(id)) {
 				t.Fatalf("generated URL %q should contain pilot=%s", url, id)
 			}
@@ -467,4 +467,107 @@ func TestPilotRoundTrip(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAutoZoomPilotParameters(t *testing.T) {
+	tests := []struct {
+		name      string
+		url       string
+		wantSpeed float64
+		wantDir   pilot.Direction
+		wantErr   bool
+	}{
+		{
+			name:      "defaults",
+			url:       "fractal://mandelbrot/-0.5/0.0/1.0/50/",
+			wantSpeed: 1.05,
+			wantDir:   pilot.DirectionIn,
+		},
+		{
+			name:      "pilot_speed",
+			url:       "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot_speed=1.25",
+			wantSpeed: 1.25,
+			wantDir:   pilot.DirectionIn,
+		},
+		{
+			name:      "pilot_direction=out",
+			url:       "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot_direction=out",
+			wantSpeed: 1.05,
+			wantDir:   pilot.DirectionOut,
+		},
+		{
+			name:      "both with the autozoom pilot",
+			url:       "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot=autozoom&pilot_speed=1.5&pilot_direction=out",
+			wantSpeed: 1.5,
+			wantDir:   pilot.DirectionOut,
+		},
+		{name: "unparseable speed errors", url: "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot_speed=fast", wantErr: true},
+		{name: "non-positive speed errors", url: "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot_speed=0", wantErr: true},
+		{name: "unknown direction errors", url: "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot_direction=sideways", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseFractalURL(tt.url)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("ParseFractalURL() = %+v, want error", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ParseFractalURL() error: %v", err)
+			}
+			if got.PilotSpeed != tt.wantSpeed {
+				t.Errorf("PilotSpeed = %v, want %v", got.PilotSpeed, tt.wantSpeed)
+			}
+			if got.PilotDirection != tt.wantDir {
+				t.Errorf("PilotDirection = %v, want %v", got.PilotDirection, tt.wantDir)
+			}
+		})
+	}
+}
+
+func TestAutoZoomParameterRoundTrip(t *testing.T) {
+	config := Config{
+		FractalType: FractalMandelbrot,
+		CenterX:     -0.5,
+		CenterY:     0.0,
+		Zoom:        1.0,
+		MaxIter:     50,
+		ColorScheme: color.ColorGrayscale,
+	}
+
+	t.Run("steered parameters survive copy-URL", func(t *testing.T) {
+		url := ConfigToFractalURL(config, pilot.AutoZoomID, 1.25, pilot.DirectionOut, false, pilot.Schedule{})
+		if !contains(url, "pilot_speed=1.25") {
+			t.Errorf("generated URL %q should contain pilot_speed=1.25", url)
+		}
+		if !contains(url, "pilot_direction=out") {
+			t.Errorf("generated URL %q should contain pilot_direction=out", url)
+		}
+
+		params, err := ParseFractalURL(url)
+		if err != nil {
+			t.Fatalf("ParseFractalURL() error: %v", err)
+		}
+		if params.PilotSpeed != 1.25 || params.PilotDirection != pilot.DirectionOut {
+			t.Errorf("round trip = (%v, %v), want (1.25, out)", params.PilotSpeed, params.PilotDirection)
+		}
+	})
+
+	t.Run("default parameters stay implicit", func(t *testing.T) {
+		url := ConfigToFractalURL(config, pilot.AutoZoomID, 1.05, pilot.DirectionIn, false, pilot.Schedule{})
+		if contains(url, "pilot_speed") || contains(url, "pilot_direction") {
+			t.Errorf("generated URL %q should omit default pilot parameters", url)
+		}
+
+		params, err := ParseFractalURL(url)
+		if err != nil {
+			t.Fatalf("ParseFractalURL() error: %v", err)
+		}
+		if params.PilotSpeed != 1.05 || params.PilotDirection != pilot.DirectionIn {
+			t.Errorf("round trip = (%v, %v), want (1.05, in)", params.PilotSpeed, params.PilotDirection)
+		}
+	})
 }
