@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"syscall"
+	"unsafe"
 
 	"mvdan.cc/sh/v3/interp"
 )
@@ -39,14 +41,19 @@ func (s *Shell) execJob(ctx context.Context, args []string) error {
 	cmd.Dir = hc.Dir
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
-	// The command's process group gets it SIGTTIN-stopped by the
-	// kernel if it reads the terminal while the shell is foreground --
-	// bash semantics. The stdin pump is paused by the REPL loop around
-	// Eval (see withTerminal), never here: handlers for background
-	// commands run on interp goroutines and must not touch it.
-
 	if err := cmd.Start(); err != nil {
 		return error(interp.ExitStatus(uint8(127)))
+	}
+	// Foreground jobs take the terminal's foreground process group
+	// (bash job control): without it the kernel stops them with
+	// SIGTTIN on terminal reads and SIGTTOU on attribute changes --
+	// the shape of a sudo password prompt. Background jobs keep the
+	// kernel's rules. The stdin pump is paused by the REPL loop around
+	// Eval (see withTerminal), never here: handlers for background
+	// commands run on interp goroutines and must not touch it.
+	if !s.engine.IsBackground(hc.Pos) {
+		s.takeTerminal(cmd.Process.Pid)
+		defer s.releaseTerminal()
 	}
 	job := s.addJob(cmd.Process.Pid, strings.Join(args, " "))
 	return s.waitJob(job, cmd.Process.Pid)
@@ -66,6 +73,7 @@ func (s *Shell) waitJob(job *Job, pid int) error {
 		switch {
 		case ws.Stopped():
 			s.setJobState(job, JobStopped)
+			fmt.Fprintf(s.Stderr, "\n[%d]+ Stopped  %s\n", job.ID, job.Line)
 			return error(interp.ExitStatus(128 + uint8(ws.StopSignal())))
 		case ws.Continued():
 			s.setJobState(job, JobRunning)
@@ -108,8 +116,10 @@ func (s *Shell) fgJob(args []string) {
 		return
 	}
 	fmt.Fprintln(s.Stdout, j.Line)
+	s.takeTerminal(j.Pgid)
 	syscall.Kill(-j.Pgid, syscall.SIGCONT)
 	s.waitJob(j, j.Pid)
+	s.releaseTerminal()
 }
 
 // bgJob resumes a job without waiting, like the bg builtin.
@@ -163,6 +173,36 @@ func (s *Shell) setJobState(job *Job, st JobState) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	job.State = st
+}
+
+// takeTerminal hands the terminal's foreground process group to the
+// job, as bash does for foreground jobs.
+func (s *Shell) takeTerminal(pgid int) {
+	if fd := ttyFd(); fd >= 0 {
+		setForeground(fd, pgid)
+	}
+}
+
+// releaseTerminal returns the foreground process group to the shell.
+func (s *Shell) releaseTerminal() {
+	if fd := ttyFd(); fd >= 0 {
+		setForeground(fd, syscall.Getpgrp())
+	}
+}
+
+// setForeground calls tcsetpgrp on the terminal.
+func setForeground(fd, pgid int) {
+	_, _, _ = syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd),
+		uintptr(syscall.TIOCSPGRP), uintptr(unsafe.Pointer(&pgid)))
+}
+
+// ttyFd returns the controlling terminal's fd, or -1 when stdin is
+// not a terminal (scripts, tests without a pty).
+func ttyFd() int {
+	if fi, err := os.Stdin.Stat(); err == nil && fi.Mode()&os.ModeCharDevice != 0 {
+		return int(os.Stdin.Fd())
+	}
+	return -1
 }
 
 // jobArg parses a %N job spec (bare N accepted).

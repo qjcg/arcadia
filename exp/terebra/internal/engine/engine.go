@@ -22,6 +22,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	mexpand "mvdan.cc/sh/v3/expand"
@@ -54,6 +55,7 @@ type Engine struct {
 	plugins  *plugin.Registry
 	external interp.ExecHandlerFunc
 	out      *switchWriter
+	bgCalls  atomic.Pointer[map[syntax.Pos]bool]
 }
 
 // New builds an engine with its own persistent interpreter.
@@ -94,7 +96,31 @@ func (e *Engine) Eval(ctx context.Context, src string) error {
 	if err := expandBraces(prog); err != nil {
 		return err
 	}
+	// Record which calls belong to background (&) statements so the
+	// job layer can tell foreground jobs (which take the terminal)
+	// from background ones (which keep SIGTTIN/SIGTTOU semantics).
+	bg := map[syntax.Pos]bool{}
+	for _, stmt := range prog.Stmts {
+		if stmt.Background {
+			syntax.Walk(stmt, func(n syntax.Node) bool {
+				if c, ok := n.(*syntax.CallExpr); ok {
+					bg[c.Pos()] = true
+				}
+				return true
+			})
+		}
+	}
+	e.bgCalls.Store(&bg)
 	return e.runner.Run(ctx, prog)
+}
+
+// IsBackground reports whether the command at pos runs inside a
+// background (&) statement of the most recent Eval.
+func (e *Engine) IsBackground(pos syntax.Pos) bool {
+	if m := e.bgCalls.Load(); m != nil {
+		return (*m)[pos]
+	}
+	return false
 }
 
 // ExitCode maps an Eval error to a process exit code. The bool

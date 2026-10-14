@@ -226,6 +226,35 @@ func TestReplBackgroundJobKeepsInputAlive(t *testing.T) {
 	time.Sleep(1500 * time.Millisecond)
 }
 
+// TestReplForegroundCommandReadsTerminal: a foreground command must
+// hold the terminal's foreground process group, or the kernel stops
+// it (SIGTTIN on read, SIGTTOU on tcsetattr) -- the shape of a sudo
+// password prompt (issue #23).
+func TestReplForegroundCommandReadsTerminal(t *testing.T) {
+	r := startRepl(t)
+	defer r.close()
+	if !r.waitFor("trb:", 5*time.Second) {
+		t.Fatalf("no prompt; output so far: %q", r.snapshot())
+	}
+
+	// sh reads the terminal in the foreground job and echoes it back.
+	r.send("sh -c 'read x; echo GOT$x'\n")
+	time.Sleep(300 * time.Millisecond)
+	r.send("hello\n")
+	if !r.waitFor("GOThello", 3*time.Second) {
+		t.Fatalf("foreground command could not read the terminal; output: %q",
+			r.snapshot())
+	}
+
+	// Changing terminal attributes (like sudo does) must not stop the
+	// job with SIGTTOU either.
+	r.send("sh -c 'stty sane; echo STTYOK'\n")
+	if !r.waitFor("STTYOK", 3*time.Second) {
+		t.Fatalf("foreground command stopped on tcsetattr; output: %q",
+			r.snapshot())
+	}
+}
+
 // TestReplMultilineContinuation proves the REPL accumulates lines
 // until the bash parser sees complete input, and that --explain works
 // against the new parse path (issue #17 acceptance).

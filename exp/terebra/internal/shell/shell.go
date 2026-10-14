@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -57,6 +58,10 @@ func New() *Shell {
 		Stderr:  os.Stderr,
 		aliases: make(map[string]string),
 	}
+	// The shell moves the terminal's foreground group around while it
+	// is itself in the background; SIGTTOU must not stop it.
+	signal.Ignore(syscall.SIGTTOU)
+
 	e, err := engine.New(engine.Options{
 		Stdin:  s.Stdin,
 		Stdout: s.Stdout,
@@ -177,10 +182,13 @@ func (s *Shell) Repl() error {
 			s.closeStdinPipe()
 			os.Exit(code)
 		default:
-			fmt.Fprintf(s.Stderr, "trb: %v\n", err)
-			s.exitCode = 1
 			if code, ok := engine.ExitCode(err); ok {
+				// Plain exit statuses are not errors: the command's own
+				// output speaks, and stopped jobs print a notice.
 				s.exitCode = code
+			} else {
+				fmt.Fprintf(s.Stderr, "trb: %v\n", err)
+				s.exitCode = 1
 			}
 		}
 	}
