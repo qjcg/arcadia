@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sync"
 	"testing"
 	"time"
@@ -253,6 +254,43 @@ func TestReplForegroundCommandReadsTerminal(t *testing.T) {
 		t.Fatalf("foreground command stopped on tcsetattr; output: %q",
 			r.snapshot())
 	}
+}
+
+// TestReplCommandStdoutIsTerminal: a plain command's stdout must be
+// the terminal itself, not a pipe, or tools change behavior (ls
+// columns, colors) -- issue #24. Markers include $PPID so the
+// assertion cannot match readline's echo of the typed command.
+func TestReplCommandStdoutIsTerminal(t *testing.T) {
+	r := startRepl(t)
+	defer r.close()
+	if !r.waitFor("trb:", 5*time.Second) {
+		t.Fatalf("no prompt; output so far: %q", r.snapshot())
+	}
+
+	r.send("sh -c 'test -t 1 && echo TT$PPID'\n")
+	if !waitForReg(t, r, `TT[0-9]+`, "terminal marker") {
+		t.Fatalf("command stdout is not a terminal; output: %q", r.snapshot())
+	}
+
+	// Piped output stays piped (bash-correct single column there).
+	r.send("sh -c 'test -t 1 && echo BAD || echo PP$PPID' | cat\n")
+	if !waitForReg(t, r, `PP[0-9]+`, "pipe marker") {
+		t.Fatalf("piped command saw a terminal; output: %q", r.snapshot())
+	}
+}
+
+// waitForReg waits for a regexp match in the REPL output.
+func waitForReg(t *testing.T, r *repl, pattern, what string) bool {
+	t.Helper()
+	re := regexp.MustCompile(pattern)
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if re.Match(r.snapshot()) {
+			return true
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	return false
 }
 
 // TestReplMultilineContinuation proves the REPL accumulates lines

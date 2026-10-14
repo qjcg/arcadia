@@ -114,6 +114,22 @@ func (e *Engine) Eval(ctx context.Context, src string) error {
 	return e.runner.Run(ctx, prog)
 }
 
+// OutFileIfDefault returns the terminal file behind the engine's
+// default stdout when w is that default -- nothing redirected or
+// captured. Job handlers pass the file itself to children so isatty
+// and terminal ioctls work: ls columns and colors, and interactive
+// tools, all key off them. Pipelines and redirects keep their
+// writers, where single-column output is bash-correct.
+func (e *Engine) OutFileIfDefault(w io.Writer) *os.File {
+	if e.out == nil || w != io.Writer(e.out) {
+		return nil
+	}
+	e.out.mu.Lock()
+	defer e.out.mu.Unlock()
+	f, _ := e.out.dst.(*os.File)
+	return f
+}
+
 // IsBackground reports whether the command at pos runs inside a
 // background (&) statement of the most recent Eval.
 func (e *Engine) IsBackground(pos syntax.Pos) bool {
@@ -290,6 +306,9 @@ func (e *Engine) runStageCommand(
 		return e.dispatch(context.Background(), hc, args, stdin, stdout, stderr)
 	}
 	cmd := exec.Command(args[0], args[1:]...)
+	if f := e.OutFileIfDefault(stdout); f != nil {
+		stdout = f
+	}
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = stdin, stdout, stderr
 	cmd.Dir = hc.Dir
 	cmd.Env = envPairs(hc.Env)

@@ -37,7 +37,14 @@ type Job struct {
 func (s *Shell) execJob(ctx context.Context, args []string) error {
 	hc := interp.HandlerCtx(ctx)
 	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = hc.Stdin, hc.Stdout, hc.Stderr
+	// Give children the terminal file itself when output is not
+	// redirected or captured: isatty decides ls columns, colors,
+	// and interactive tool behavior.
+	stdout := hc.Stdout
+	if f := s.engine.OutFileIfDefault(hc.Stdout); f != nil {
+		stdout = f
+	}
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = hc.Stdin, stdout, hc.Stderr
 	cmd.Dir = hc.Dir
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
