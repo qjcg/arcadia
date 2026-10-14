@@ -85,12 +85,16 @@ func (r *repl) snapshot() []byte {
 func (r *repl) close() {
 	r.t.Helper()
 	r.cmd.Process.Kill()
+	// Close the pty before waiting: a background child of the REPL
+	// keeps the slave end open after the shell dies, so the reader
+	// goroutine would otherwise never see EOF.
+	r.pty.Close()
+	_ = r.cmd.Wait() // reap
 	select {
 	case <-r.done:
 	case <-time.After(2 * time.Second):
 		r.t.Error("repl did not exit")
 	}
-	r.pty.Close()
 }
 
 func TestReplSingleEnterAfterExternalCommand(t *testing.T) {
@@ -198,6 +202,28 @@ func TestReplAliasWithQuotedValue(t *testing.T) {
 	if !r.waitFor("ALIASOK", 3*time.Second) {
 		t.Fatalf("quoted-value alias did not run; output: %q", r.snapshot())
 	}
+}
+
+// TestReplBackgroundJobKeepsInputAlive: a command started with & runs
+// on a background goroutine and must not pause the stdin pump while
+// readline is reading; input typed during the job must still arrive.
+func TestReplBackgroundJobKeepsInputAlive(t *testing.T) {
+	r := startRepl(t)
+	defer r.close()
+	if !r.waitFor("trb:", 5*time.Second) {
+		t.Fatalf("no prompt; output so far: %q", r.snapshot())
+	}
+
+	r.send("sleep 1 &\n")
+	// Give the background handler time to settle around Readline.
+	time.Sleep(300 * time.Millisecond)
+	r.send("echo AFTER\n")
+	if !r.waitFor("AFTER", 3*time.Second) {
+		t.Fatalf("input dead during background job; output: %q", r.snapshot())
+	}
+	// Let the background job finish so teardown is deterministic: an
+	// orphaned child holds the pty slave open after the shell dies.
+	time.Sleep(1500 * time.Millisecond)
 }
 
 // TestReplMultilineContinuation proves the REPL accumulates lines

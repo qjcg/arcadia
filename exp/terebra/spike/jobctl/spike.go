@@ -242,11 +242,20 @@ func jobArg(fields []string) int {
 
 // WaitState blocks until job id reaches the wanted state or the
 // timeout expires. The spike's tests use it to synchronize with real
-// signal delivery.
+// signal delivery. State is read under the table lock.
 func (s *Shell) WaitState(id int, want JobState, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		if j := s.find(id); j != nil && j.State == want {
+		s.mu.Lock()
+		var st JobState
+		for _, j := range s.jobs {
+			if j.ID == id {
+				st = j.State
+				break
+			}
+		}
+		s.mu.Unlock()
+		if st == want {
 			return true
 		}
 		time.Sleep(5 * time.Millisecond)

@@ -223,7 +223,20 @@ func (s *Shell) evalLine(ctx context.Context, line string) error {
 			return s.stateLoad(args[1:])
 		}
 	}
-	return s.engine.Eval(ctx, s.expandAlias(trimmed))
+	return s.withTerminal(func() error {
+		return s.engine.Eval(ctx, s.expandAlias(trimmed))
+	})
+}
+
+// withTerminal runs fn with the stdin pump paused so child processes
+// can read the terminal directly, then marks the pump for restart
+// before the next Readline. Pump ownership stays on the REPL loop
+// goroutine: background commands run on interp goroutines and must
+// never pause it themselves, or readline starves.
+func (s *Shell) withTerminal(fn func() error) error {
+	s.pauseStdinPipe()
+	s.stdinNeedsReset = true
+	return fn()
 }
 
 // splitWords splits s on unquoted whitespace and strips one layer of
@@ -364,7 +377,12 @@ func (s *Shell) stateLoad(args []string) error {
 // captureCommandOutput evaluates a command and returns its stdout,
 // used for PS1 command substitutions.
 func (s *Shell) captureCommandOutput(cmdStr string) (string, error) {
-	out, err := s.engine.Capture(context.Background(), cmdStr)
+	var out string
+	err := s.withTerminal(func() error {
+		var cErr error
+		out, cErr = s.engine.Capture(context.Background(), cmdStr)
+		return cErr
+	})
 	return strings.TrimRight(out, "\n"), err
 }
 

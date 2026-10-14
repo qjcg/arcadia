@@ -39,9 +39,11 @@ func (s *Shell) execJob(ctx context.Context, args []string) error {
 	cmd.Dir = hc.Dir
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
-	// Let the command own the terminal input while it runs.
-	s.pauseStdinPipe()
-	s.stdinNeedsReset = true
+	// The command's process group gets it SIGTTIN-stopped by the
+	// kernel if it reads the terminal while the shell is foreground --
+	// bash semantics. The stdin pump is paused by the REPL loop around
+	// Eval (see withTerminal), never here: handlers for background
+	// commands run on interp goroutines and must not touch it.
 
 	if err := cmd.Start(); err != nil {
 		return error(interp.ExitStatus(uint8(127)))
