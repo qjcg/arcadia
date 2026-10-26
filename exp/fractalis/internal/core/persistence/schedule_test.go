@@ -185,10 +185,10 @@ func TestCopyURLRoundTripsTheTransitionSchedule(t *testing.T) {
 
 	builders := map[string]func(pilot.Schedule) string{
 		"ConfigToFractalURL": func(s pilot.Schedule) string {
-			return ConfigToFractalURL(config, pilot.AutoZoomID, 1.05, pilot.DirectionIn, false, s)
+			return ConfigToFractalURL(config, pilot.AutoZoomID, 1.05, pilot.DirectionIn, pilot.DefaultSceneDuration, false, s)
 		},
 		"RandomToFractalURL": func(s pilot.Schedule) string {
-			return RandomToFractalURL("", pilot.AutoZoomID, 1.05, pilot.DirectionIn, false, s)
+			return RandomToFractalURL("", pilot.AutoZoomID, 1.05, pilot.DirectionIn, 0, false, s)
 		},
 	}
 	for _, spelling := range []string{

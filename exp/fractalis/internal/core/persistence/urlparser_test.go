@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
@@ -301,7 +302,7 @@ func TestConfigToFractalURL(t *testing.T) {
 		JuliaCi:     0.27015,
 	}
 
-	url := ConfigToFractalURL(config, pilot.ManualID, 1.05, pilot.DirectionIn, false, pilot.Schedule{})
+	url := ConfigToFractalURL(config, pilot.ManualID, 1.05, pilot.DirectionIn, pilot.DefaultSceneDuration, false, pilot.Schedule{})
 
 	// Parse it back and verify
 	params, err := ParseFractalURL(url)
@@ -321,7 +322,7 @@ func TestConfigToFractalURL(t *testing.T) {
 	}
 
 	// Test with the Auto-zoom pilot and dynamic color enabled
-	url = ConfigToFractalURL(config, pilot.AutoZoomID, 1.05, pilot.DirectionIn, true, pilot.Schedule{})
+	url = ConfigToFractalURL(config, pilot.AutoZoomID, 1.05, pilot.DirectionIn, pilot.DefaultSceneDuration, true, pilot.Schedule{})
 	if !contains(url, "pilot=autozoom") {
 		t.Errorf("Generated URL should contain 'pilot=autozoom', got: %s", url)
 	}
@@ -441,6 +442,91 @@ func TestAutopilotDeprecatedAlias(t *testing.T) {
 	}
 }
 
+func TestPilotSceneDurationParameter(t *testing.T) {
+	tests := []struct {
+		name    string
+		url     string
+		want    int
+		wantErr bool
+	}{
+		{
+			name: "default scene duration when absent",
+			url:  "fractal://mandelbrot/-0.5/0.0/1.0/50/",
+			want: pilot.DefaultSceneDuration,
+		},
+		{
+			name: "pilot_scene_duration parses",
+			url:  "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot=vantage&pilot_scene_duration=140",
+			want: 140,
+		},
+		{
+			name:    "not an integer errors",
+			url:     "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot_scene_duration=soon",
+			wantErr: true,
+		},
+		{
+			name:    "zero errors",
+			url:     "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot_scene_duration=0",
+			wantErr: true,
+		},
+		{
+			name:    "negative errors",
+			url:     "fractal://mandelbrot/-0.5/0.0/1.0/50/?pilot_scene_duration=-5",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseFractalURL(tt.url)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("ParseFractalURL() = %+v, want error", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ParseFractalURL() error: %v", err)
+			}
+			if got.SceneDuration != tt.want {
+				t.Errorf("SceneDuration = %d, want %d", got.SceneDuration, tt.want)
+			}
+		})
+	}
+}
+
+func TestPilotSceneDurationRoundTrip(t *testing.T) {
+	config := Config{
+		FractalType: FractalMandelbrot,
+		CenterX:     -0.5,
+		CenterY:     0.0,
+		Zoom:        1.0,
+		MaxIter:     50,
+		ColorScheme: color.ColorGrayscale,
+	}
+
+	for _, duration := range []int{1, 20, 140, 600} {
+		url := ConfigToFractalURL(config, pilot.VantageID, 1.05, pilot.DirectionIn, duration, false, pilot.Schedule{})
+		if !contains(url, "pilot_scene_duration="+strconv.Itoa(duration)) {
+			t.Fatalf("generated URL %q should carry pilot_scene_duration=%d", url, duration)
+		}
+
+		params, err := ParseFractalURL(url)
+		if err != nil {
+			t.Fatalf("Failed to parse generated URL: %v", err)
+		}
+		if params.SceneDuration != duration {
+			t.Errorf("SceneDuration = %d, want %d", params.SceneDuration, duration)
+		}
+	}
+
+	// Copies of other journeys do not carry the vantage setting.
+	url := ConfigToFractalURL(config, pilot.ManualID, 1.05, pilot.DirectionIn, 140, false, pilot.Schedule{})
+	if contains(url, "pilot_scene_duration") {
+		t.Errorf("generated URL %q should not carry pilot_scene_duration", url)
+	}
+}
+
 func TestPilotRoundTrip(t *testing.T) {
 	config := Config{
 		FractalType: FractalMandelbrot,
@@ -453,7 +539,7 @@ func TestPilotRoundTrip(t *testing.T) {
 
 	for _, id := range pilot.IDs() {
 		t.Run(string(id), func(t *testing.T) {
-			url := ConfigToFractalURL(config, id, 1.05, pilot.DirectionIn, false, pilot.Schedule{})
+			url := ConfigToFractalURL(config, id, 1.05, pilot.DirectionIn, pilot.DefaultSceneDuration, false, pilot.Schedule{})
 			if !contains(url, "pilot="+string(id)) {
 				t.Fatalf("generated URL %q should contain pilot=%s", url, id)
 			}
@@ -539,7 +625,7 @@ func TestAutoZoomParameterRoundTrip(t *testing.T) {
 	}
 
 	t.Run("steered parameters survive copy-URL", func(t *testing.T) {
-		url := ConfigToFractalURL(config, pilot.AutoZoomID, 1.25, pilot.DirectionOut, false, pilot.Schedule{})
+		url := ConfigToFractalURL(config, pilot.AutoZoomID, 1.25, pilot.DirectionOut, pilot.DefaultSceneDuration, false, pilot.Schedule{})
 		if !contains(url, "pilot_speed=1.25") {
 			t.Errorf("generated URL %q should contain pilot_speed=1.25", url)
 		}
@@ -557,7 +643,7 @@ func TestAutoZoomParameterRoundTrip(t *testing.T) {
 	})
 
 	t.Run("default parameters stay implicit", func(t *testing.T) {
-		url := ConfigToFractalURL(config, pilot.AutoZoomID, 1.05, pilot.DirectionIn, false, pilot.Schedule{})
+		url := ConfigToFractalURL(config, pilot.AutoZoomID, 1.05, pilot.DirectionIn, pilot.DefaultSceneDuration, false, pilot.Schedule{})
 		if contains(url, "pilot_speed") || contains(url, "pilot_direction") {
 			t.Errorf("generated URL %q should omit default pilot parameters", url)
 		}

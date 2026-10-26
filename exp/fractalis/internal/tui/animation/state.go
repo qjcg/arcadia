@@ -7,20 +7,6 @@ type AutoPilotState struct {
 	BaseMaxIter int // Base iteration count (for adaptive scaling)
 }
 
-// VantageState holds vantage mode specific animation state
-type VantageState struct {
-	Enabled       bool // Vantage mode active
-	SceneDuration int  // Number of ticks per scene
-	SceneTimer    int  // Countdown for current scene
-	Initialized   bool // Track if mode has been initialized
-	// Tour pan state (collapses into the Vantage pilot with its ticket)
-	TargetX     float64
-	TargetY     float64
-	HasTarget   bool
-	PanProgress float64
-	BaseMaxIter int
-}
-
 // TransitionState holds fractal transition animation state
 type TransitionState struct {
 	Mode      int     // 0=none, 1=fade, 2=zoom_out_in, 3=rotate, 4=breakthrough
@@ -55,7 +41,6 @@ type MessageState struct {
 // AnimationState holds all animation-related state
 type AnimationState struct {
 	AutoPilot  AutoPilotState
-	Vantage    VantageState
 	Transition TransitionState
 	Color      ColorState
 	Messages   MessageState
@@ -64,9 +49,6 @@ type AnimationState struct {
 // NewAnimationState creates initialized animation state
 func NewAnimationState() AnimationState {
 	return AnimationState{
-		Vantage: VantageState{
-			SceneDuration: DefaultVantageSceneDuration,
-		},
 		Color: ColorState{
 			ColorMode: true,
 		},

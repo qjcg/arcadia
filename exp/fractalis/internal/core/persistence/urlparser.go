@@ -12,19 +12,24 @@ import (
 
 // FractalURLParams holds parsed parameters from a fractal:// URL
 type FractalURLParams struct {
-	Mode                URLMode
-	FractalType         string
-	CenterX             float64
-	CenterY             float64
-	Zoom                float64
-	MaxIter             int
-	ColorTheme          string
-	Schedule            pilot.Schedule
-	ScheduleSet         bool
-	Engine              string
-	Pilot               pilot.ID
-	PilotSpeed          float64
-	PilotDirection      pilot.Direction
+	Mode        URLMode
+	FractalType string
+	CenterX     float64
+	CenterY     float64
+	Zoom        float64
+	MaxIter     int
+	ColorTheme  string
+	// Schedule is the effective transition schedule parsed from
+	// transition=; ScheduleSet reports whether the URL named one.
+	Schedule       pilot.Schedule
+	ScheduleSet    bool
+	Engine         string
+	Pilot          pilot.ID
+	PilotSpeed     float64
+	PilotDirection pilot.Direction
+	// SceneDuration is the Vantage pilot's scene duration parameter,
+	// in ticks per scene.
+	SceneDuration       int
 	DynamicColorEnabled bool
 	JuliaCr             float64
 	JuliaCi             float64
@@ -58,6 +63,7 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 		Pilot:               pilot.ManualID,
 		PilotSpeed:          pilot.DefaultSpeed,
 		PilotDirection:      pilot.DirectionIn,
+		SceneDuration:       pilot.DefaultSceneDuration,
 		DynamicColorEnabled: false,
 		JuliaCr:             -0.7,
 		JuliaCi:             0.27015,
@@ -204,6 +210,16 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 		}
 	}
 
+	// pilot_* parameters carry pilot settings. Scene duration is the
+	// Vantage pilot's, in ticks per scene.
+	if raw := queryParams.Get("pilot_scene_duration"); raw != "" {
+		duration, err := strconv.Atoi(raw)
+		if err != nil || duration < 1 {
+			return FractalURLParams{}, fmt.Errorf("invalid pilot_scene_duration: %s", raw)
+		}
+		params.SceneDuration = duration
+	}
+
 	if juliaCr := queryParams.Get("julia_cr"); juliaCr != "" {
 		cr, err := strconv.ParseFloat(juliaCr, 64)
 		if err != nil {
@@ -224,7 +240,7 @@ func ParseFractalURL(urlString string) (FractalURLParams, error) {
 }
 
 // ConfigToFractalURL generates a fractal:// URL from a Config and runtime state
-func ConfigToFractalURL(config Config, activePilot pilot.ID, speed float64, direction pilot.Direction, dynamicColor bool, schedule pilot.Schedule) string {
+func ConfigToFractalURL(config Config, activePilot pilot.ID, speed float64, direction pilot.Direction, sceneDuration int, dynamicColor bool, schedule pilot.Schedule) string {
 	// Build the base URL path
 	basePath := fmt.Sprintf(
 		"fractal://%s/%.10g/%.10g/%.10g/%d/",
@@ -259,6 +275,11 @@ func ConfigToFractalURL(config Config, activePilot pilot.ID, speed float64, dire
 	}
 	setPilotParams(queryParams, speed, direction)
 
+	// Vantage pilot settings
+	if activePilot == pilot.VantageID && sceneDuration > 0 {
+		queryParams.Set("pilot_scene_duration", strconv.Itoa(sceneDuration))
+	}
+
 	// Dynamic color
 	if dynamicColor {
 		queryParams.Set("dynamic_color", "t")
@@ -284,7 +305,7 @@ func ConfigToFractalURL(config Config, activePilot pilot.ID, speed float64, dire
 }
 
 // RandomToFractalURL generates a random URL with query parameters
-func RandomToFractalURL(colorTheme string, activePilot pilot.ID, speed float64, direction pilot.Direction, dynamicColor bool, schedule pilot.Schedule) string {
+func RandomToFractalURL(colorTheme string, activePilot pilot.ID, speed float64, direction pilot.Direction, sceneDuration int, dynamicColor bool, schedule pilot.Schedule) string {
 	queryParams := url.Values{}
 
 	if colorTheme != "" && colorTheme != color.ColorGrayscale {
@@ -299,6 +320,11 @@ func RandomToFractalURL(colorTheme string, activePilot pilot.ID, speed float64, 
 		queryParams.Set("pilot", string(activePilot))
 	}
 	setPilotParams(queryParams, speed, direction)
+
+	// Vantage pilot settings
+	if activePilot == pilot.VantageID && sceneDuration > 0 {
+		queryParams.Set("pilot_scene_duration", strconv.Itoa(sceneDuration))
+	}
 
 	if dynamicColor {
 		queryParams.Set("dynamic_color", "t")

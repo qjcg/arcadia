@@ -14,7 +14,6 @@ import (
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/search"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/transition"
-	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/animation"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/color"
 	renderlib "github.com/qjcg/arcadia/exp/fractalis/internal/tui/render"
 )
@@ -1449,60 +1448,84 @@ func TestRenderBookmarkInput(t *testing.T) {
 	}
 }
 
-func TestVantageModeFields(t *testing.T) {
+// pressKey sends a single rune key event to the model.
+func pressKey(m model, key string) model {
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(key)})
+	return updated.(model)
+}
+
+// newVantageModel returns a model with its Vantage pilot wired up.
+func newVantageModel() model {
 	m := model{
-		animationState: animation.AnimationState{
-			Vantage: animation.VantageState{
-				Enabled:       true,
-				SceneDuration: 100,
-				SceneTimer:    50,
-				Initialized:   false,
-			},
-		},
+		config: Config{FractalType: FractalMandelbrot, CenterX: -0.5, Zoom: 1.0, MaxIter: 50},
+	}
+	m.vantage = pilot.NewVantage(pilot.VantageOptions{})
+	return m
+}
+
+func TestVantageKeyActivatesVantagePilot(t *testing.T) {
+	m := pressKey(newVantageModel(), "v")
+
+	if got := m.activePilot(); got != pilot.VantageID {
+		t.Fatalf("activePilot() = %q after 'v', want %q", got, pilot.VantageID)
+	}
+	if !containsSubstring(m.renderStatusBar(), "Vantage pilot") {
+		t.Error("Status bar should name the active Vantage pilot")
+	}
+}
+
+func TestVantageKeyDeactivatesToManual(t *testing.T) {
+	m := pressKey(newVantageModel(), "v")
+	m = pressKey(m, "v")
+
+	if got := m.activePilot(); got != pilot.ManualID {
+		t.Fatalf("activePilot() = %q after 'v' twice, want %q", got, pilot.ManualID)
+	}
+}
+
+func TestSwitchingPilotsReplacesTheActiveOne(t *testing.T) {
+	m := pressKey(newVantageModel(), "v")
+	m = pressKey(m, "z")
+
+	if got := m.activePilot(); got != pilot.AutoZoomID {
+		t.Fatalf("activePilot() = %q after 'z', want %q", got, pilot.AutoZoomID)
+	}
+	if _, still := m.seam().Active().(*pilot.Vantage); still {
+		t.Fatal("switching pilots left the Vantage pilot active")
+	}
+}
+
+func TestVantageSceneDurationKeysRetuneThePilot(t *testing.T) {
+	m := pressKey(newVantageModel(), ">")
+	if got := m.vantage.SceneDuration(); got != pilot.DefaultSceneDuration+20 {
+		t.Fatalf("SceneDuration() = %d after '>', want %d", got, pilot.DefaultSceneDuration+20)
 	}
 
-	if !m.animationState.Vantage.Enabled {
-		t.Error("vantageMode should be true")
-	}
-
-	if m.animationState.Vantage.SceneDuration != 100 {
-		t.Errorf("vantageSceneDur should be 100, got %d", m.animationState.Vantage.SceneDuration)
-	}
-
-	if m.animationState.Vantage.SceneTimer != 50 {
-		t.Errorf("vantageSceneTimer should be 50, got %d", m.animationState.Vantage.SceneTimer)
-	}
-
-	if m.animationState.Vantage.Initialized {
-		t.Error("vantageInitialized should be false")
+	m = pressKey(m, "<")
+	if got := m.vantage.SceneDuration(); got != pilot.DefaultSceneDuration {
+		t.Fatalf("SceneDuration() = %d after '<', want %d", got, pilot.DefaultSceneDuration)
 	}
 }
 
 func TestVantageModeInit(t *testing.T) {
-	m := model{
-		config: Config{
-			Width:       80,
-			Height:      40,
-			MaxIter:     50,
-			CenterX:     -0.5,
-			CenterY:     0.0,
-			Zoom:        1.0,
-			ColorScheme: "grayscale",
-			FractalType: "mandelbrot",
-			JuliaCr:     -0.7,
-			JuliaCi:     0.27015,
-		},
-		animationState: animation.AnimationState{
-			Vantage: animation.VantageState{
-				Enabled: true,
-			},
-		},
+	m := newVantageModel()
+	m.config = Config{
+		Width:       80,
+		Height:      40,
+		MaxIter:     50,
+		CenterX:     -0.5,
+		CenterY:     0.0,
+		Zoom:        1.0,
+		ColorScheme: "grayscale",
+		FractalType: "mandelbrot",
+		JuliaCr:     -0.7,
+		JuliaCi:     0.27015,
 	}
+	m.selectPilot(pilot.VantageID)
 
-	// Test that Init returns a tickCmd when vantage mode is enabled
-	cmd := m.Init()
-	if cmd == nil {
-		t.Errorf("Expected tickCmd for vantage mode, got nil")
+	// Init starts the tick loop while the Vantage pilot drives.
+	if cmd := m.Init(); cmd == nil {
+		t.Error("Expected tickCmd while the Vantage pilot is active, got nil")
 	}
 }
 
@@ -1535,8 +1558,8 @@ func TestStatusBarModeIndicators(t *testing.T) {
 	}
 
 	// Test the Vantage pilot
+	m.vantage = pilot.NewVantage(pilot.VantageOptions{SceneDuration: 100})
 	m.selectPilot(pilot.VantageID)
-	m.animationState.Vantage.SceneDuration = 100
 	output = m.renderStatusBar()
 	if !containsSubstring(output, "Vantage pilot") {
 		t.Error("Status bar should name the active Vantage pilot")
@@ -1685,6 +1708,7 @@ func TestURLScheduleSeedsTheModel(t *testing.T) {
 	url := persistence.ConfigToFractalURL(
 		m.config, m.activePilot(),
 		m.autoZoomPilot().Speed(), m.autoZoomPilot().Direction(),
+		m.sceneDuration(),
 		m.animationState.Color.DynamicColor, m.schedule,
 	)
 	roundTripped, err := persistence.ParseFractalURL(url)

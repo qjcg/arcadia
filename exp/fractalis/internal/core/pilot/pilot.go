@@ -52,6 +52,9 @@ type View struct {
 	CenterY     float64
 	Zoom        float64
 	MaxIter     int
+	// Julia set parameters (c = JuliaCr + JuliaCi*i).
+	JuliaCr float64
+	JuliaCi float64
 }
 
 // Pilot is the policy that evolves a fractal view over time. Exactly

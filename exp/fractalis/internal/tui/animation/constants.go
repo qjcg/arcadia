@@ -8,17 +8,9 @@ const (
 	TransitionMessageDuration = 30  // ~1.5 seconds
 	VantageStatusDuration     = 30  // ~1.5 seconds
 
-	// Default animation settings
-	DefaultVantageSceneDuration = 100 // ~5 seconds (100 ticks at 50ms)
-	MinVantageSceneDuration     = 20  // ~1 second
-	MaxVantageSceneDuration     = 600 // ~30 seconds
-
 	// Zoom speed steering bounds for the Auto-zoom journey
 	MinZoomSpeed = 0.90 // Minimum zoom speed
 	MaxZoomSpeed = 1.5  // Maximum zoom speed
-
-	// Pan speeds
-	VantagePanRate = 0.02 // 2% of remaining distance per tick (slower)
 
 	// Search intensity
 	RandomSearchMaxAttempts = 5
