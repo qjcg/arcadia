@@ -63,4 +63,4 @@ terebra's identity.
 
 ## Link references
 
-[adr-0004]: ../../adrs/0004-terebra-superset-of-mvdan-sh.md
+[adr-0004]: ../../../docs/adrs/0004-terebra-superset-of-mvdan-sh.md

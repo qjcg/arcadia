@@ -305,10 +305,10 @@ git tags --list <pattern>
 ### Remote URL detection for hash links
 
 1. Run `git remote get-url origin`
-2. Parse common host patterns:
-   - `github.com/owner/repo` → `https://github.com/owner/repo/commit/<hash>`
-   - `gitlab.com/owner/repo` → `https://gitlab.com/owner/repo/-/commit/<hash>`
-   - `bitbucket.org/owner/repo` → `https://bitbucket.org/owner/repo/commits/<hash>`
+2. Build an HTTPS commit URL using the path for the remote host:
+   - GitHub: `/owner/repo/commit/<hash>`
+   - GitLab: `/owner/repo/-/commit/<hash>`
+   - Bitbucket: `/owner/repo/commits/<hash>`
 3. If unknown or `--no-version-links`, omit the link.
 
 ---

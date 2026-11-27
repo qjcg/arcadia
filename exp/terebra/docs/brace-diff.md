@@ -65,5 +65,5 @@ One divergence, on the case bash itself defines:
 
 ## Link references
 
-[adr-0004]: ../../adrs/0004-terebra-superset-of-mvdan-sh.md
+[adr-0004]: ../../../docs/adrs/0004-terebra-superset-of-mvdan-sh.md
 [sh-issue-1042]: https://github.com/mvdan/sh/issues/1042

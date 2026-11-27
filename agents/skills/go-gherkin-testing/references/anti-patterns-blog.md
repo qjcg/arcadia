@@ -15,12 +15,9 @@ a chat about the [BDD](https://en.wikipedia.org/wiki/Behavior-driven_development
 tool [Cucumber](https://cucumber.io/) and
 anti-patterns they have come across.
 
-The original podcast is available at
-[https://cucumber.io/blog/2016/05/09/cucumber-antipatterns](https://cucumber.io/blog/2016/05/09/cucumber-antipatterns).
-
 Cucumber is designed to be a collaboration tool that creates a living documentation, that is possible to automate,
 of the behaviour you want in a system. You describe the wanted behaviour using a language called
-[Gherkin](https://cucumber.io/docs/reference#gherkin).
+[Gherkin][gherkin-reference].
 If you are unfamiliar with Gherkin, it is probably a good idea to read up on it before you continue.
 
 ## Bad collaboration
@@ -181,7 +178,8 @@ The behavior is then described in the `Given/When/Then` of the scenario.
 
 ### Not using the narrative section of a feature
 
-The first part in a [feature file](https://cucumber.io/docs/reference) is called the *narrative section*.
+The first part in a [feature file][gherkin-reference] is called the
+*narrative section*.
 You can write whatever you want here. You can leave it blank or add useful things.
 
 Leaving the narrative section blank or adding a user story like the one below are two ways of applying an
@@ -378,6 +376,10 @@ anti-patterns that are possible to do.
 
 ## Resources
 
-- [A podcast from Cucumber Ltd](https://cucumber.io/blog/2016/05/09/cucumber-antipatterns) with Aslak Hellesøy, Matt Wynne, and Steve Tooke
+- A podcast from Cucumber Ltd with Aslak Hellesøy, Matt Wynne, and Steve Tooke
 - [Cucumber](https://cucumber.io/) — A BDD tool for simple, human collaboration
 - [Thomas Sundberg](http://www.thinkcode.se/blog/about) — your listener and author
+
+## Link references
+
+[gherkin-reference]: https://cucumber.io/docs/gherkin/reference/

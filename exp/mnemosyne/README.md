@@ -55,5 +55,5 @@ go install github.com/qjcg/arcadia/exp/mnemosyne@latest
 
 ## Related Tools
 
-- [horeb](../../cmd/horeb) — Random unicode generator
+- [horeb](../horeb) — Random unicode generator
 - [sv](../../cmd/sv) — Semantic versioning for monorepos

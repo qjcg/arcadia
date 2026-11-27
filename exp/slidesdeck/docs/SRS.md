@@ -43,8 +43,8 @@ Target users are developers, technical writers, and presenters who prefer text-b
 **FR-5**: The tool shall support bold (**text**) and italic (*text*) formatting.
 **FR-6**: The tool shall support fenced code blocks with language identifiers.
 **FR-7**: The tool shall support inline code (`code`).
-**FR-8**: The tool shall support images (![alt](url)).
-**FR-9**: The tool shall support hyperlinks ([text](url)).
+**FR-8**: The tool shall support images (`![alt](url)`).
+**FR-9**: The tool shall support hyperlinks (`[text](url)`).
 **FR-10**: The tool shall support lists (ordered and unordered).
 **FR-11**: The tool shall support blockquotes.
 
