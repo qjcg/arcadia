@@ -5,7 +5,7 @@ version: '3'
 shopt: [globstar]
 
 vars:
-  V_GOLANGCILINT: v2.14.0
+  V_GOLANGCILINT: v2.15.0
   V_TRIVY: v0.74.0
 
 tasks:
@@ -123,7 +123,7 @@ tasks:
   lint:betterleaks:
     desc: Find leaked secrets.
     cmds:
-      - go run github.com/betterleaks/betterleaks@latest {{.CLI_ARGS | default "dir . --max-target-megabytes 5"}}
+      - go run github.com/betterleaks/betterleaks/v2@latest {{.CLI_ARGS | default "git"}}
 
   lint:crap:
     desc: Compute the CRAP (Change Risk Anti-Patterns) metric.
