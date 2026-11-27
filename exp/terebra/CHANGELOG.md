@@ -5,13 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.10.0] - 2026-11-27
+
+### Added
+- d26d43a - jump to the first or last history result
+
+### Changed
+- 7d8ca2b - Fix install task
+
+### Fixed
+- 871bd85 - use alt-shift for history result jumps
+- be038b6 - seed history search from the current prompt
+- a5296a7 - treat history query whitespace as term separators
+- 6b7e83f - keep history selection visible while highlighting matches
+
 ## [v0.9.0] - 2026-11-27
 
 ### Added
-- 51b3570 - improve fuzzy history search keybindings
+- 51b35703 - improve fuzzy history search keybindings
 
 ### Changed
-- 6610a6f - Update deps
+- 6610a6f6 - Update deps
 
 ## [v0.8.0] - 2026-10-14
 
