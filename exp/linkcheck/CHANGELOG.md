@@ -8,4 +8,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.1.0] - 2026-11-27
 
 ### Changed
-- d6e30c3 - move link checker into experimental module
+- d6e30c3f - move link checker into experimental module

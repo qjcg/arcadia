@@ -5,23 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [unreleased]
+
+### Changed
+- b757bbb8 - merge impl/t6-transition-core (#6)
+- b354b16f - merge impl/t3-engine-seam (#3)
+- d67624db - exempt tracker content from the 80-char markdown wrap rule
+- 74d49b47 - add fractalis pilots/transitions design, ADR 0004, and glossary terms
+
 ## [v0.52.1] - 2026-11-27
 
 ### Changed
-- 10f7b7f - Update cue formatting
-- d6e30c3 - move link checker into experimental module
-- 5fcba32 - run Betterleaks in lint and pre-push
-- 239b907 - remove Trivy secret scan
-- 75c22e0 - scope Betterleaks lint to branch commits
-- dedc26c - Bump golangci-lint and betterleaks
-- d1b98b3 - Bump go deps
-- 9386ccf - Format cue files using v0.18.0
-- 6610a6f - Update deps
-- 40224fb - describe terebra as a superset of bash
-- b10c3c9 - record terebra as superset of mvdan/sh
+- 10f7b7ff - Update cue formatting
+- d6e30c3f - move link checker into experimental module
+- 5fcba324 - run Betterleaks in lint and pre-push
+- 239b9077 - remove Trivy secret scan
+- 75c22e0b - scope Betterleaks lint to branch commits
+- dedc26cd - Bump golangci-lint and betterleaks
+- d1b98b35 - Bump go deps
+- 9386ccfc - Format cue files using v0.18.0
+- 6610a6f6 - Update deps
+- 40224fb5 - describe terebra as a superset of bash
+- b10c3c9d - record terebra as superset of mvdan/sh
 
 ### Fixed
-- 1dffab2 - separate local link lint from external audits
+- 1dffab23 - separate local link lint from external audits
 
 ## [v0.52.0] - 2026-10-12
 

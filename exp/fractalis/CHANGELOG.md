@@ -5,11 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [v0.3.0] - 2026-11-27
+
+### Added
+- fade0a9 - share journeys with Ebiten 3D cameras
+- 7a74d3f - share transition presets with Ebiten
+- 775d17a - drive Ebiten 2D journeys through shared pilots
+- 75a78c8 - add star wipe transition
+- 61ecea3 - port TUI transition motion effects
+- ccc1b7c - apply pilot transition schedules and presets
+- 4c6d2d6 - wire the transition schedule end to end
+- a783b5a - run the TUI vantage tour through the Vantage pilot
+- 9c89567 - run the auto-zoom journey through the Auto-zoom pilot
+- 3eefab2 - render transition frames as crossfades
+- 573f9b1 - parse and round-trip pilot_scene_duration
+- e9cf77c - add Auto-zoom pilot with steerable speed and direction
+- 9e029da - run boundary arrivals through a transition runner
+- f4586f2 - pan vantage scenes toward discovered points
+- 218f835 - add transition scheduler and destination policy
+- 70abc7b - add Vantage scene-duration parameter and NextScene
+- 9e55017 - add transition core with Effect interface and fade
+- f98a99f - tour curated viewpoints in the Vantage pilot
+- 178387a - run TUI view through pilot engine and name active pilot
+- 091396b - add pilot= URL param with deprecated autopilot alias
+- 11321d3 - add pilot engine seam with Manual pilot and boundary clamp
 
 ### Changed
-- d1b98b35 - Bump go deps
-- 6610a6f6 - Update deps
+- eb11751 - merge impl/t5-vantage (#5)
+- 3b50f87 - merge impl/t4-autozoom (#4)
+- 73e619c - document the Vantage pilot and pilot_scene_duration
+- 2c83aab - document the auto-zoom pilot URL parameters
+- 2307f07 - document the pilot URL parameter
+- d1b98b3 - Bump go deps
+- 6610a6f - Update deps
+
+### Fixed
+- 0e405d6 - track manual boundary arrivals and reset schedules
+- 2415ba2 - evict iteration cache entries in insertion order
 
 ## [v0.2.0] - 2026-10-12
 
