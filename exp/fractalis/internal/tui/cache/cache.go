@@ -14,6 +14,7 @@ type IterationCache struct {
 	data  map[string][][]int // Key: hash of config + viewport, Value: grid of iterations
 	sizes map[string]struct{ w, h int }
 	// Control cache growth
+	order      []string
 	maxEntries int
 	hits       int64
 	misses     int64
@@ -45,8 +46,8 @@ func (ic *IterationCache) cacheKey(config persistence.Config) string {
 
 // Get retrieves cached iteration grid if available
 func (ic *IterationCache) Get(config persistence.Config) ([][]int, bool) {
-	ic.mu.RLock()
-	defer ic.mu.RUnlock()
+	ic.mu.Lock()
+	defer ic.mu.Unlock()
 
 	key := ic.cacheKey(config)
 	data, exists := ic.data[key]
@@ -65,14 +66,17 @@ func (ic *IterationCache) Set(config persistence.Config, grid [][]int) {
 
 	key := ic.cacheKey(config)
 
-	// If cache full, remove an old entry (simple FIFO eviction)
-	if len(ic.data) >= ic.maxEntries && ic.data[key] == nil {
-		// Find and remove first key (simple eviction)
-		for k := range ic.data {
-			delete(ic.data, k)
-			delete(ic.sizes, k)
-			break
+	if ic.maxEntries <= 0 {
+		return
+	}
+	if _, exists := ic.data[key]; !exists {
+		if len(ic.order) == ic.maxEntries {
+			oldest := ic.order[0]
+			delete(ic.data, oldest)
+			delete(ic.sizes, oldest)
+			ic.order = ic.order[1:]
 		}
+		ic.order = append(ic.order, key)
 	}
 
 	ic.data[key] = grid
@@ -85,6 +89,7 @@ func (ic *IterationCache) Set(config persistence.Config, grid [][]int) {
 func (ic *IterationCache) Clear() {
 	ic.mu.Lock()
 	defer ic.mu.Unlock()
+	ic.order = nil
 	ic.data = make(map[string][][]int)
 	ic.sizes = make(map[string]struct{ w, h int })
 }
