@@ -128,3 +128,24 @@ func TestHighlightMatchNoMatch(t *testing.T) {
 		t.Fatalf("expected unchanged entry, got %q", got)
 	}
 }
+
+func TestFuzzySearchTerms(t *testing.T) {
+	entries := []string{"git status", "status", "git log"}
+	for _, query := range []string{"git  status ", " status git", "gt st"} {
+		results := filterEntries(entries, query)
+		if len(results) != 1 || results[0].entry != entries[0] {
+			t.Errorf("query %q: got %v, want only git status", query, results)
+		}
+	}
+	if results := filterEntries(entries, "  "); len(results) != len(entries) {
+		t.Errorf("whitespace-only query returned %d results, want %d", len(results), len(entries))
+	}
+}
+
+func TestHighlightSearchTerms(t *testing.T) {
+	entry := "git status"
+	want := matchStyle(dimStyle).Render("git") + " " + matchStyle(dimStyle).Render("status")
+	if got := highlightMatch(entry, "status  git", dimStyle); got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}

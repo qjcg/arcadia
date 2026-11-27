@@ -176,9 +176,10 @@ func (m fuzzyModel) filter() (fuzzyModel, tea.Cmd) {
 // filterEntries filters and scores entries against a query, returning the
 // best matches sorted by descending score (capped at maxResults).
 func filterEntries(entries []string, q string) []filteredEntry {
+	terms := strings.Fields(q)
 	filtered := make([]filteredEntry, 0, maxResults)
 	for _, entry := range entries {
-		if ok, score := fuzzyMatch(entry, q); ok {
+		if ok, score := matchSearchTerms(entry, terms, nil); ok {
 			filtered = append(filtered, filteredEntry{entry, score})
 		}
 	}
@@ -249,17 +250,47 @@ func (m fuzzyModel) View() tea.View {
 	return v
 }
 
+// Every term must match, but terms need not appear in query order.
+func matchSearchTerms(entry string, terms []string, match func(start, end int)) (bool, int) {
+	score := 0
+	for _, term := range terms {
+		ok, termScore := scanFuzzyMatch(entry, term, match)
+		if !ok {
+			return false, 0
+		}
+		score += termScore
+	}
+	return true, score
+}
+
 // Style each span directly so match resets cannot cancel the row background.
 func highlightMatch(entry, query string, base lipgloss.Style) string {
+	terms := strings.Fields(query)
+	if len(terms) == 0 {
+		return base.Render(entry)
+	}
+	matched := make([]bool, len(entry))
+	if ok, _ := matchSearchTerms(entry, terms, func(start, end int) {
+		for i := start; i < end; i++ {
+			matched[i] = true
+		}
+	}); !ok {
+		return base.Render(entry)
+	}
+
 	var b strings.Builder
-	last := 0
-	highlighted := matchStyle(base)
-	scanFuzzyMatch(entry, query, func(start, end int) {
-		b.WriteString(base.Render(entry[last:start]))
-		b.WriteString(highlighted.Render(entry[start:end]))
-		last = end
-	})
-	b.WriteString(base.Render(entry[last:]))
+	for start := 0; start < len(entry); {
+		end := start + 1
+		for end < len(entry) && matched[end] == matched[start] {
+			end++
+		}
+		style := base
+		if matched[start] {
+			style = matchStyle(base)
+		}
+		b.WriteString(style.Render(entry[start:end]))
+		start = end
+	}
 	return b.String()
 }
 
