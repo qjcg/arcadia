@@ -1,3 +1,3 @@
 module github.com/qjcg/arcadia/exp/pangrams
 
-go 1.27.0
+go 1.27.4

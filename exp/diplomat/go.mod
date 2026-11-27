@@ -1,6 +1,6 @@
 module github.com/qjcg/arcadia/exp/diplomat
 
-go 1.27.0
+go 1.27.4
 
 require (
 	github.com/GiGurra/boa v1.0.31
@@ -12,5 +12,5 @@ require (
 require (
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/spf13/pflag v1.1.0 // indirect
 )
