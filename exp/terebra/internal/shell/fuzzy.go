@@ -117,13 +117,13 @@ func (m fuzzyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		// Terminals can report either the base key or the shifted symbol.
-		case "ctrl+shift+,", "ctrl+shift+<", "ctrl+<":
+		case "alt+shift+,", "alt+shift+<", "alt+<":
 			if len(m.filtered) > 0 {
 				m.selected = 0
 			}
 			return m, nil
 
-		case "ctrl+shift+.", "ctrl+shift+>", "ctrl+>":
+		case "alt+shift+.", "alt+shift+>", "alt+>":
 			if len(m.filtered) > 0 {
 				m.selected = len(m.filtered) - 1
 			}

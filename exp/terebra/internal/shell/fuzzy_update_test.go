@@ -241,7 +241,7 @@ func TestFuzzyJumpToResultBoundary(t *testing.T) {
 		code rune
 		want int
 	}{{'.', 2}, {',', 0}, {'>', 2}, {'<', 0}} {
-		next, _ := m.Update(tea.KeyPressMsg{Code: tc.code, Mod: tea.ModCtrl | tea.ModShift})
+		next, _ := m.Update(tea.KeyPressMsg{Code: tc.code, Mod: tea.ModAlt | tea.ModShift})
 		m = next.(fuzzyModel)
 		if m.selected != tc.want || m.query.Value() != "" {
 			t.Errorf("%q: selection = %d, query = %q; want selection %d and empty query", tc.code, m.selected, m.query.Value(), tc.want)
