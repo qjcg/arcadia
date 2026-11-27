@@ -311,11 +311,13 @@ var (
 // mutate a discarded copy and leave the running model's input blurred and
 // unable to accept keystrokes. The focus command it returns is stored so Init
 // can still start the cursor blink.
-func newFuzzySearchModel(entries []string) fuzzyModel {
+func newFuzzySearchModel(entries []string, query string) fuzzyModel {
 	ti := textinput.New()
 	ti.SetWidth(80)
 	ti.Prompt = ""
 	ti.Placeholder = "type to filter..."
+	ti.SetValue(query)
+	ti.CursorEnd()
 	focusCmd := ti.Focus()
 
 	m := fuzzyModel{
@@ -329,20 +331,20 @@ func newFuzzySearchModel(entries []string) fuzzyModel {
 	}
 
 	// Do initial filter
-	m.filter()
+	m, _ = m.filter()
 	return m
 }
 
 // runFuzzySearch launches the bubbletea TUI fuzzy search with the given history entries.
 // Returns the selected entry and whether to execute it immediately.
-func (s *Shell) runFuzzySearch() fuzzySelection {
+func (s *Shell) runFuzzySearch(query string) fuzzySelection {
 	entries := s.readHistory()
 	if len(entries) == 0 {
 		fmt.Fprint(s.Stderr, "\n(fuzzy-search): no history entries\n")
 		return fuzzySelection{}
 	}
 
-	m := newFuzzySearchModel(entries)
+	m := newFuzzySearchModel(entries, query)
 
 	p := tea.NewProgram(m, s.restoreStdin(), tea.WithOutput(s.Stdout))
 	result, err := p.Run()

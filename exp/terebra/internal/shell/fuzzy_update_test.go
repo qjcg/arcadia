@@ -7,15 +7,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// newFuzzyModel builds a fuzzyModel with the given entries and an initial query.
-func newFuzzyModel(entries []string, query string) fuzzyModel {
-	m := newFuzzySearchModel(entries)
-	m.query.SetValue(query)
-	m.query.SetCursor(len(query))
-	m, _ = m.filter()
-	return m
-}
-
 func keyPress(key rune) tea.Msg {
 	return tea.KeyPressMsg{Code: key, Text: string(key)}
 }
@@ -23,7 +14,7 @@ func keyPress(key rune) tea.Msg {
 // TestFuzzySearchModelIsFocused guards against regressing Ctrl+R search to a
 // state where the query input is blurred and silently ignores typing.
 func TestFuzzySearchModelIsFocused(t *testing.T) {
-	m := newFuzzySearchModel([]string{"alpha", "beta"})
+	m := newFuzzySearchModel([]string{"alpha", "beta"}, "")
 	if !m.query.Focused() {
 		t.Fatal("fuzzy search query is not focused; typing would be ignored")
 	}
@@ -43,7 +34,7 @@ func TestFuzzySearchModelIsFocused(t *testing.T) {
 }
 
 func TestFuzzyUpdateEscape(t *testing.T) {
-	m := newFuzzyModel([]string{"a", "b"}, "")
+	m := newFuzzySearchModel([]string{"a", "b"}, "")
 	for _, key := range []tea.KeyPressMsg{{Code: tea.KeyEscape}, {Code: 'g', Mod: tea.ModCtrl}} {
 		nm, cmd := m.Update(key)
 		fm := nm.(fuzzyModel)
@@ -60,7 +51,7 @@ func TestFuzzyUpdateEscape(t *testing.T) {
 }
 
 func TestFuzzyUpdateEnterSelects(t *testing.T) {
-	m := newFuzzyModel([]string{"alpha", "beta"}, "")
+	m := newFuzzySearchModel([]string{"alpha", "beta"}, "")
 	nm, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	fm := nm.(fuzzyModel)
 	if !fm.done {
@@ -75,7 +66,7 @@ func TestFuzzyUpdateEnterSelects(t *testing.T) {
 }
 
 func TestFuzzyUpdateEnterNoResults(t *testing.T) {
-	m := newFuzzyModel([]string{"alpha"}, "zzz")
+	m := newFuzzySearchModel([]string{"alpha"}, "zzz")
 	nm, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	fm := nm.(fuzzyModel)
 	if !fm.done {
@@ -87,7 +78,7 @@ func TestFuzzyUpdateEnterNoResults(t *testing.T) {
 }
 
 func TestFuzzyUpdateCtrlNavigationAndTab(t *testing.T) {
-	m := newFuzzyModel([]string{"alpha", "beta", "gamma"}, "a")
+	m := newFuzzySearchModel([]string{"alpha", "beta", "gamma"}, "a")
 	for _, key := range []rune{'n', 'n', 'p'} {
 		next, _ := m.Update(tea.KeyPressMsg{Code: key, Mod: tea.ModCtrl})
 		m = next.(fuzzyModel)
@@ -103,7 +94,7 @@ func TestFuzzyUpdateCtrlNavigationAndTab(t *testing.T) {
 }
 
 func TestFuzzyUpdateArrowDown(t *testing.T) {
-	m := newFuzzyModel([]string{"a", "b", "c"}, "")
+	m := newFuzzySearchModel([]string{"a", "b", "c"}, "")
 	nm, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
 	fm := nm.(fuzzyModel)
 	if fm.selected != 1 {
@@ -112,7 +103,7 @@ func TestFuzzyUpdateArrowDown(t *testing.T) {
 }
 
 func TestFuzzyUpdateArrowDownAtEnd(t *testing.T) {
-	m := newFuzzyModel([]string{"a", "b"}, "")
+	m := newFuzzySearchModel([]string{"a", "b"}, "")
 	m.selected = 1
 	nm, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
 	fm := nm.(fuzzyModel)
@@ -122,7 +113,7 @@ func TestFuzzyUpdateArrowDownAtEnd(t *testing.T) {
 }
 
 func TestFuzzyUpdateArrowUp(t *testing.T) {
-	m := newFuzzyModel([]string{"a", "b", "c"}, "")
+	m := newFuzzySearchModel([]string{"a", "b", "c"}, "")
 	m.selected = 2
 	nm, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyUp})
 	fm := nm.(fuzzyModel)
@@ -132,7 +123,7 @@ func TestFuzzyUpdateArrowUp(t *testing.T) {
 }
 
 func TestFuzzyUpdateArrowUpAtTop(t *testing.T) {
-	m := newFuzzyModel([]string{"a", "b"}, "")
+	m := newFuzzySearchModel([]string{"a", "b"}, "")
 	nm, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyUp})
 	fm := nm.(fuzzyModel)
 	if fm.selected != 0 {
@@ -141,7 +132,7 @@ func TestFuzzyUpdateArrowUpAtTop(t *testing.T) {
 }
 
 func TestFuzzyUpdateHomeClearsQuery(t *testing.T) {
-	m := newFuzzyModel([]string{"a", "b"}, "a")
+	m := newFuzzySearchModel([]string{"a", "b"}, "a")
 	nm, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyHome})
 	fm := nm.(fuzzyModel)
 	if fm.query.Value() != "" {
@@ -150,7 +141,7 @@ func TestFuzzyUpdateHomeClearsQuery(t *testing.T) {
 }
 
 func TestFuzzyUpdateTypingFilters(t *testing.T) {
-	m := newFuzzyModel([]string{"alpha", "beta", "gamma"}, "")
+	m := newFuzzySearchModel([]string{"alpha", "beta", "gamma"}, "")
 	nm, _ := m.Update(keyPress('a'))
 	fm := nm.(fuzzyModel)
 	if fm.query.Value() != "a" {
@@ -163,7 +154,7 @@ func TestFuzzyUpdateTypingFilters(t *testing.T) {
 }
 
 func TestFuzzyUpdateBackspace(t *testing.T) {
-	m := newFuzzyModel([]string{"alpha", "beta"}, "al")
+	m := newFuzzySearchModel([]string{"alpha", "beta"}, "al")
 	nm, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyBackspace})
 	fm := nm.(fuzzyModel)
 	if fm.query.Value() != "a" {
@@ -172,7 +163,7 @@ func TestFuzzyUpdateBackspace(t *testing.T) {
 }
 
 func TestFuzzyUpdateWindowSize(t *testing.T) {
-	m := newFuzzyModel([]string{"a"}, "")
+	m := newFuzzySearchModel([]string{"a"}, "")
 	nm, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
 	fm := nm.(fuzzyModel)
 	if fm.width != 100 || fm.height != 30 {
@@ -181,7 +172,7 @@ func TestFuzzyUpdateWindowSize(t *testing.T) {
 }
 
 func TestFuzzyUpdateInterrupt(t *testing.T) {
-	m := newFuzzyModel([]string{"a"}, "")
+	m := newFuzzySearchModel([]string{"a"}, "")
 	nm, cmd := m.Update(tea.InterruptMsg{})
 	fm := nm.(fuzzyModel)
 	if !fm.done {
@@ -193,7 +184,7 @@ func TestFuzzyUpdateInterrupt(t *testing.T) {
 }
 
 func TestFuzzyViewDone(t *testing.T) {
-	m := newFuzzyModel([]string{"a"}, "")
+	m := newFuzzySearchModel([]string{"a"}, "")
 	m.done = true
 	if got := m.View().Content; got != "" {
 		t.Fatalf("expected empty view when done, got %q", got)
@@ -201,7 +192,7 @@ func TestFuzzyViewDone(t *testing.T) {
 }
 
 func TestFuzzyViewRendersEntries(t *testing.T) {
-	m := newFuzzyModel([]string{"alpha", "beta"}, "")
+	m := newFuzzySearchModel([]string{"alpha", "beta"}, "")
 	view := m.View().Content
 	if !strings.Contains(view, "alpha") {
 		t.Fatalf("expected 'alpha' in view, got %q", view)
@@ -213,7 +204,7 @@ func TestFuzzyViewRendersEntries(t *testing.T) {
 
 func TestFuzzyViewTruncatesLongEntries(t *testing.T) {
 	long := strings.Repeat("x", 200)
-	m := newFuzzyModel([]string{long}, "")
+	m := newFuzzySearchModel([]string{long}, "")
 	m.width = 20
 	view := m.View().Content
 	if strings.Contains(view, long) {
@@ -222,7 +213,7 @@ func TestFuzzyViewTruncatesLongEntries(t *testing.T) {
 }
 
 func TestFuzzyViewHighlightsAfterTyping(t *testing.T) {
-	m := newFuzzyModel([]string{"Écho X", "Édit X"}, "")
+	m := newFuzzySearchModel([]string{"Écho X", "Édit X"}, "")
 	for _, r := range "éx" {
 		next, _ := m.Update(keyPress(r))
 		m = next.(fuzzyModel)

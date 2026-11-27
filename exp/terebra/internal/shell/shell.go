@@ -123,42 +123,41 @@ func (s *Shell) Repl() error {
 
 		line, err := rl.Readline()
 		if err != nil {
-			if err == readline.ErrInterrupt {
+			switch {
+			case err == readline.ErrInterrupt && s.fuzzy:
+				s.fuzzy = false
+				s.closeStdinPipe()
+				rl.Close()
+
+				draft := line
+				result := s.runFuzzySearch(draft)
+
+				s.setupStdinPipe()
+				newRL, err := readline.NewEx(s.newReadlineConfig(histPath))
+				if err != nil {
+					return fmt.Errorf("readline: %v", err)
+				}
+				s.rl = newRL
+				rl = newRL
+
+				if result.line == "" {
+					rl.Operation.SetBuffer(draft)
+					continue
+				}
+				if !result.execute {
+					rl.Operation.SetBuffer(result.line)
+					continue
+				}
+				line = result.line
+				_ = rl.SaveHistory(line)
+			case err == readline.ErrInterrupt:
 				buf.Reset()
 				continue
-			}
-			if err == io.EOF {
-				if s.fuzzy {
-					// Ctrl+R triggered: close old readline, launch TUI
-					s.fuzzy = false
-					s.closeStdinPipe()
-					rl.Close()
-
-					result := s.runFuzzySearch()
-
-					// Set up new pipe and readline
-					s.setupStdinPipe()
-					newRL, err := readline.NewEx(s.newReadlineConfig(histPath))
-					if err != nil {
-						return fmt.Errorf("readline: %v", err)
-					}
-					s.rl = newRL
-					rl = newRL
-
-					if !result.execute || result.line == "" {
-						if result.line != "" {
-							rl.Operation.SetBuffer(result.line)
-						}
-						continue
-					}
-					line = result.line
-					_ = rl.SaveHistory(line)
-				} else {
-					fmt.Fprintln(s.Stdout)
-					s.closeStdinPipe()
-					return nil
-				}
-			} else {
+			case err == io.EOF:
+				fmt.Fprintln(s.Stdout)
+				s.closeStdinPipe()
+				return nil
+			default:
 				s.closeStdinPipe()
 				return err
 			}
@@ -533,14 +532,11 @@ func stripANSI(s string) string {
 }
 
 func (s *Shell) filterInput(r rune) (rune, bool) {
-	// Ctrl+R (0x12) triggers fuzzy search
-	if r == 0x12 {
-		s.fuzzy = true
-		// Write a Ctrl+D (EOF) to the pipe so readline returns immediately
-		if s.stdinW != nil {
-			s.stdinW.Write([]byte{0x04})
-		}
-		return r, false // consume the key
+	// Readline returns the current edit buffer with ErrInterrupt. Unlike
+	// Ctrl+D, this also works when the buffer is nonempty.
+	s.fuzzy = r == 0x12
+	if s.fuzzy {
+		return readline.CharInterrupt, true
 	}
 	return r, true
 }
