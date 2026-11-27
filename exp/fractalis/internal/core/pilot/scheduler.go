@@ -17,6 +17,9 @@ func NewScheduler(rng *rand.Rand) *Scheduler {
 	return &Scheduler{rng: rng}
 }
 
+// ResetSequence starts the next sequential schedule at its first entry.
+func (s *Scheduler) ResetSequence() { s.seq = 0 }
+
 // Next picks the transition for the next boundary crossing: single
 // always takes the first entry, sequential steps through the list in
 // order and wraps, and random re-rolls uniformly per crossing. An

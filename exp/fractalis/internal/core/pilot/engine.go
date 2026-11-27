@@ -38,6 +38,9 @@ func (e *Engine) Active() Pilot {
 // active.
 func (e *Engine) Activate(p Pilot) { e.active = p }
 
+// Observe records the view before a frontend applies manual zoom input.
+func (e *Engine) Observe(v View) { e.seen, e.lastZoom = true, v.Zoom }
+
 // Tick advances the view one tick under the active pilot and enforces
 // boundary rules. It returns the boundary actively arrived at, if
 // any. With an empty transition schedule the view clamps and stays
@@ -46,11 +49,10 @@ func (e *Engine) Activate(p Pilot) { e.active = p }
 // instead, which the scheduler executes when transitions land.
 // Movement toward a boundary counts from any source — the pilot or
 // manual zoom — so externally driven arrivals fire too.
-func (e *Engine) Tick(v View) (View, *Boundary) {
-	next := e.Active().Step(v)
+func (e *Engine) Tick(v View) (next View, boundary *Boundary) {
+	next = e.Active().Step(v)
 	moving := next.Zoom != v.Zoom || (e.seen && v.Zoom != e.lastZoom)
-	e.seen = true
-	e.lastZoom = v.Zoom
+	defer func() { e.Observe(next) }()
 	if !moving || next.FractalType != v.FractalType {
 		// Not moving toward a boundary; a resting view is left alone.
 		return next, nil

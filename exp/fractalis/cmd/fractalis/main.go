@@ -483,6 +483,14 @@ func (m *model) applyView(v pilot.View) {
 // seam returns the model's transition runner, building the default
 // one on first use. Selection lives in the runner's scheduler and
 // destination policy; randomness is seeded at the edge.
+func (m *model) zoomManually(multiplier float64) {
+	if m.crossing != nil {
+		return
+	}
+	m.seam().Observe(m.view())
+	m.config.Zoom *= multiplier
+}
+
 func (m *model) seam() *transition.Runner {
 	if m.runner == nil {
 		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -793,12 +801,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.activePilot() == pilot.AutoZoomID {
 				m.autoZoomPilot().SetDirection(pilot.DirectionIn)
 			} else {
-				m.config.Zoom *= 1.2
+				m.zoomManually(1.2)
 			}
 			return m, tickCmd()
 		case "i":
-			// Manual zoom in only
-			m.config.Zoom *= 1.2
+			m.zoomManually(1.2)
 			return m, tickCmd()
 		case "-", "_":
 			// If the Auto-zoom pilot is active, steer the journey outward
@@ -806,12 +813,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.activePilot() == pilot.AutoZoomID {
 				m.autoZoomPilot().SetDirection(pilot.DirectionOut)
 			} else {
-				m.config.Zoom /= 1.2
+				m.zoomManually(1 / 1.2)
 			}
 			return m, tickCmd()
 		case "o":
-			// Manual zoom out only
-			m.config.Zoom /= 1.2
+			m.zoomManually(1 / 1.2)
 			return m, tickCmd()
 		case "0":
 			// Reset zoom, center, and iteration depth to defaults

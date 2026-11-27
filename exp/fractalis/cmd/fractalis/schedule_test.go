@@ -7,6 +7,17 @@ import (
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
 )
 
+func TestFirstManualZoomCanStartCrossing(t *testing.T) {
+	m := newSteeredModel()
+	m.config.Zoom = pilot.MinZoom * 1.1
+	m.setURLSchedule(pilot.ManualID, pilot.Schedule{Transitions: []string{pilot.FadeID}}, true)
+	m = keyRunes(m, "o")
+	updated, _ := m.Update(tickMsg{})
+	if got := updated.(model); got.crossing == nil || got.config.Zoom != pilot.MinZoom {
+		t.Fatalf("first zoom did not start a clamped crossing: zoom=%g crossing=%+v", got.config.Zoom, got.crossing)
+	}
+}
+
 func TestSchedulePrecedence(t *testing.T) {
 	m := newSteeredModel()
 	check := func(want string) {

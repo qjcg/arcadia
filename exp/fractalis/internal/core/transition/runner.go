@@ -1,6 +1,10 @@
 package transition
 
-import "github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
+import (
+	"slices"
+
+	"github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
+)
 
 // Crossing is a boundary crossing in progress: the effect playing it,
 // the views it crosses, and how far along the shared progress model it
@@ -40,13 +44,21 @@ func NewRunner(scheduler *pilot.Scheduler, destination pilot.DestinationPolicy) 
 // active.
 func (r *Runner) Activate(p pilot.Pilot) { r.engine.Activate(p) }
 
+// Observe records the view before manual input changes its zoom.
+func (r *Runner) Observe(v pilot.View) { r.engine.Observe(v) }
+
 // Active returns the one pilot active at this moment.
 func (r *Runner) Active() pilot.Pilot { return r.engine.Active() }
 
 // SetSchedule installs the effective transition schedule: the one the
 // scheduler executes at every boundary arrival. An empty schedule
 // means none: boundary arrival clamps.
-func (r *Runner) SetSchedule(schedule pilot.Schedule) { r.schedule = schedule }
+func (r *Runner) SetSchedule(schedule pilot.Schedule) {
+	if r.schedule.Traversal != schedule.Traversal || !slices.Equal(r.schedule.Transitions, schedule.Transitions) {
+		r.scheduler.ResetSequence()
+	}
+	r.schedule = schedule
+}
 
 // Tick advances the seam one tick and returns the resulting view and
 // the crossing in flight, if any. A crossing freezes the view at its
@@ -70,6 +82,7 @@ func (r *Runner) Tick(v pilot.View) (pilot.View, *Crossing) {
 	case pilot.BottomBoundary:
 		source.Zoom = lower
 	}
+	r.engine.Observe(source)
 	if r.schedule.Empty() {
 		return source, nil
 	}
@@ -90,6 +103,7 @@ func (r *Runner) advance() (pilot.View, *Crossing) {
 	c := r.crossing.copy()
 	if r.crossing.Progress.Landed() {
 		r.crossing = nil
+		r.engine.Observe(c.Destination)
 		return c.Destination, c
 	}
 	return c.Source, c

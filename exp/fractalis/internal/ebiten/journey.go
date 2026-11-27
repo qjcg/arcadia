@@ -87,7 +87,6 @@ func (g *Game) tickJourney() {
 		g.sessionSchedule = new(g.schedule)
 		g.journey.SetSchedule(g.schedule)
 	}
-	cfg := g.getPersistenceConfig()
 	if a, ok := g.journey.Active().(*pilot.AutoZoom); ok {
 		if rate := g.autopilotSpeed; rate > 0 {
 			base := g.config.PilotSpeed
@@ -97,15 +96,7 @@ func (g *Game) tickJourney() {
 			a.SetSpeed(math.Pow(base, rate))
 		}
 	}
-	view := pilot.View{FractalType: cfg.FractalType, CenterX: cfg.CenterX, CenterY: cfg.CenterY, Zoom: cfg.Zoom, MaxIter: cfg.MaxIter, JuliaCr: cfg.JuliaCr, JuliaCi: cfg.JuliaCi}
-	if g.fractalType < 2 {
-		shape := g.power
-		if g.fractalType == 1 {
-			shape = g.boxScale
-		}
-		view = spatialView(g.fractalType, g.camX, g.camY, g.camZ, g.camPitch, g.camYaw, shape)
-		view.MaxIter = cfg.MaxIter
-	}
+	view := g.journeyView()
 	next, crossing := g.journey.Tick(view)
 	if crossing != nil && !crossing.Progress.Landed() {
 		g.crossing = crossing
@@ -115,6 +106,20 @@ func (g *Game) tickJourney() {
 	if next != view {
 		g.applyJourneyView(next)
 	}
+}
+
+func (g *Game) journeyView() pilot.View {
+	cfg := g.getPersistenceConfig()
+	view := pilot.View{FractalType: cfg.FractalType, CenterX: cfg.CenterX, CenterY: cfg.CenterY, Zoom: cfg.Zoom, MaxIter: cfg.MaxIter, JuliaCr: cfg.JuliaCr, JuliaCi: cfg.JuliaCi}
+	if g.fractalType < 2 {
+		shape := g.power
+		if g.fractalType == 1 {
+			shape = g.boxScale
+		}
+		view = spatialView(g.fractalType, g.camX, g.camY, g.camZ, g.camPitch, g.camYaw, shape)
+		view.MaxIter = cfg.MaxIter
+	}
+	return view
 }
 
 func (g *Game) applyJourneyView(v pilot.View) {

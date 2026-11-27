@@ -189,6 +189,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 // Update implements ebiten.Game
 func (g *Game) Update() error {
+	if g.journey != nil {
+		g.journey.Observe(g.journeyView())
+	}
 	// Handle keyboard input
 	if g.handleInput() {
 		return ebiten.Termination
