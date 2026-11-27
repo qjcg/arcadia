@@ -6,6 +6,7 @@ shopt: [globstar]
 
 vars:
   V_GOLANGCILINT: v2.15.0
+  V_BETTERLEAKS: v2.0.0-rc.15
   V_TRIVY: v0.74.0
 
 tasks:
@@ -121,9 +122,12 @@ tasks:
       GOEXPERIMENT: jsonv2
 
   lint:betterleaks:
-    desc: Find leaked secrets.
-    cmds:
-      - go run github.com/betterleaks/betterleaks/v2@latest {{.CLI_ARGS | default "git"}}
+    desc: Scan commits in HEAD that are not in origin/main for secrets.
+    cmd: go run github.com/betterleaks/betterleaks/v2@{{.V_BETTERLEAKS}} git --revision origin/main..HEAD --redact {{.CLI_ARGS}}
+
+  lint:betterleaks:history:
+    desc: Audit Git history across all local refs for secrets.
+    cmd: go run github.com/betterleaks/betterleaks/v2@{{.V_BETTERLEAKS}} git --redact {{.CLI_ARGS}}
 
   lint:crap:
     desc: Compute the CRAP (Change Risk Anti-Patterns) metric.
