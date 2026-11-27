@@ -51,22 +51,23 @@ func (e *Engine) Tick(v View) (View, *Boundary) {
 	moving := next.Zoom != v.Zoom || (e.seen && v.Zoom != e.lastZoom)
 	e.seen = true
 	e.lastZoom = v.Zoom
-	if !moving {
+	if !moving || next.FractalType != v.FractalType {
 		// Not moving toward a boundary; a resting view is left alone.
 		return next, nil
 	}
 
+	lower, upper := next.ZoomBounds()
 	var arrived *Boundary
 	switch {
-	case next.Zoom >= MaxZoom:
+	case next.Zoom >= upper:
 		arrived = new(TopBoundary)
 		if e.Active().TransitionSchedule().Empty() {
-			next.Zoom = MaxZoom
+			next.Zoom = upper
 		}
-	case next.Zoom <= MinZoom:
+	case next.Zoom <= lower:
 		arrived = new(BottomBoundary)
 		if e.Active().TransitionSchedule().Empty() {
-			next.Zoom = MinZoom
+			next.Zoom = lower
 		}
 	}
 	return next, arrived

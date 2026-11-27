@@ -24,6 +24,11 @@ func (Rotate) Frame(src, dst pilot.View, p Progress) Frame {
 	t := float64(p)
 	angle := 2 * math.Pi * t
 	offset := func(v pilot.View) pilot.View {
+		if c := &v.Camera; c.Spatial {
+			c.X, c.Z = c.X*math.Cos(angle)-c.Z*math.Sin(angle), c.X*math.Sin(angle)+c.Z*math.Cos(angle)
+			c.Yaw -= angle
+			return v
+		}
 		radius := 0.5 / max(v.Zoom, pilot.MinZoom)
 		v.CenterX += radius * (math.Cos(angle) - 1)
 		v.CenterY += radius * math.Sin(angle)
@@ -41,6 +46,10 @@ func (Breakthrough) Frame(src, dst pilot.View, p Progress) Frame {
 	offset := shake * 0.1 / max(src.Zoom, pilot.MinZoom)
 	src.CenterX += offset
 	src.CenterY -= offset
+	if src.Camera.Spatial {
+		src.Camera.Pitch += 0.1 * shake
+		src.Camera.Yaw += 0.08 * shake
+	}
 	src.Zoom *= 1 - 0.5*math.Sin(math.Pi*t)
 	return Frame{Source: src, Destination: dst, Mix: min(1, max(0, (t-0.3)/0.5))}
 }

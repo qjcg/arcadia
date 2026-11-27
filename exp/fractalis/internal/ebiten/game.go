@@ -71,32 +71,19 @@ type Game struct {
 	colorShift  float64
 
 	// Autopilot state
-	flatJourney             *transition.Runner
-	flatCrossing            *transition.Crossing
-	crossingLayer           *ebiten.Image
-	flatPilot, flatURLPilot pilot.ID
-	flatSchedule            pilot.Schedule
-	flatOverride            *pilot.Schedule
-	cycleSchedule           bool
-	autopilotEnabled        bool
-	autopilotTime           float64
-	autopilotSpeed          float64
-	autopilotRadius         float64
-	autopilotHeight         float64
-	calculator              *search.InterestCalculator
+	journey               *transition.Runner
+	crossing              *transition.Crossing
+	crossingLayer         *ebiten.Image
+	activePilot, urlPilot pilot.ID
+	schedule              pilot.Schedule
+	sessionSchedule       *pilot.Schedule
+	cycleSchedule         bool
+	autopilotEnabled      bool
+	autopilotSpeed        float64
+	calculator            *search.InterestCalculator
 
 	// Vantage state
-	vantageEnabled     bool
-	vantageVantages    []VantagePoint
-	vantageIndex       int
-	vantageTimer       float64
-	vantageSceneTime   float64
-	vantagePanning     bool
-	vantagePanProgress float64
-	vantageInitialized bool
-	vantageTargetX     float64
-	vantageTargetZ     float64
-	vantageHasTarget   bool
+	vantageEnabled bool
 
 	// Paint mode state
 	inpaintMode  PaintMode
@@ -180,13 +167,8 @@ func NewGame(config persistence.Config) *Game {
 		colorShift:       0.0,
 		startTime:        time.Now(),
 		autopilotEnabled: config.AutoPilotEnabled,
-		autopilotTime:    0,
 		autopilotSpeed:   1.0,
-		autopilotRadius:  2.5,
-		autopilotHeight:  0.5,
 		vantageEnabled:   config.VantageEnabled,
-		vantageSceneTime: float64(config.VantageSceneDuration),
-		vantageVantages:  defaultVantagePoints(),
 		inpaintMode:      PaintModeNone,
 		outpaintMode:     PaintModeNone,
 	}
@@ -212,13 +194,7 @@ func (g *Game) Update() error {
 		return ebiten.Termination
 	}
 
-	if g.fractalType >= 2 {
-		g.tickFlatJourney()
-	} else if g.autopilotEnabled {
-		g.updateAutopilot()
-	} else if g.vantageEnabled {
-		g.updateVantage()
-	}
+	g.tickJourney()
 
 	// Update color shift for animation
 	g.colorShift += 0.5
@@ -233,10 +209,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		return
 	}
 
-	if g.flatCrossing == nil {
+	if g.crossing == nil {
 		g.drawFractal(screen)
 	} else {
-		g.drawFlatCrossing(screen)
+		g.drawCrossing(screen)
 	}
 	g.drawUI(screen)
 }

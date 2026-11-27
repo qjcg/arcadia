@@ -63,11 +63,12 @@ func (r *Runner) Tick(v pilot.View) (pilot.View, *Crossing) {
 	}
 
 	source := next
+	lower, upper := source.ZoomBounds()
 	switch *arrival {
 	case pilot.TopBoundary:
-		source.Zoom = pilot.MaxZoom
+		source.Zoom = upper
 	case pilot.BottomBoundary:
-		source.Zoom = pilot.MinZoom
+		source.Zoom = lower
 	}
 	if r.schedule.Empty() {
 		return source, nil

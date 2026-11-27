@@ -80,6 +80,9 @@ func (a *AutoZoom) Panning() bool {
 // pans toward the current one, and zooms in the steered direction at
 // the steered speed.
 func (a *AutoZoom) Step(v View) View {
+	if v.Camera.Spatial {
+		return a.stepCamera(v)
+	}
 	if v.FractalType != a.fractalType {
 		// A new fractal deserves a fresh region.
 		a.fractalType = v.FractalType

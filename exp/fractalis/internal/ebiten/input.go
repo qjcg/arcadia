@@ -60,14 +60,14 @@ func (g *Game) handleInput() bool {
 		g.fractalType = 0 // Mandelbulb
 		g.camX, g.camY, g.camZ = 0.0, 1.5, 6.0
 		g.camPitch, g.camYaw = 0.0, 3.14159
-		g.flatPilot = ""
+		g.activePilot = ""
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyF2) {
 		g.fractalType = 1 // Mandelbox
 		g.camX, g.camY, g.camZ = 5.0, 2.0, 5.0
 		g.camPitch, g.camYaw = -0.3, 3.927
 		g.boxScale = 2.7
-		g.flatPilot = ""
+		g.activePilot = ""
 	}
 
 	// Parameter adjustment
@@ -204,37 +204,16 @@ func (g *Game) handleInput() bool {
 	// Clamp pitch to avoid flipping
 	g.camPitch = math.Max(-math.Pi/2+0.1, math.Min(math.Pi/2-0.1, g.camPitch))
 
-	// Toggle autopilot on Z (was P, re-mapped further below)
 	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
-		if g.vantageEnabled {
-			g.vantageEnabled = false
-			g.vantageInitialized = false
-		}
 		g.autopilotEnabled = !g.autopilotEnabled
-		if g.autopilotEnabled {
-			g.autopilotTime = 0
-			g.flatPilot = ""
-		}
+		g.vantageEnabled = false
 	}
-
-	// Toggle vantage mode on V
 	if inpututil.IsKeyJustPressed(ebiten.KeyV) {
-		if g.autopilotEnabled {
-			g.autopilotEnabled = false
-		}
-		shift := ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight)
-		if shift {
-			// Shift+V always jumps or starts
-			g.vantageEnabled = true
-			g.vantageTimer = 0
-			g.vantageInitialized = false
+		if shift && g.vantageEnabled {
+			g.nextVantageScene()
 		} else {
-			// v (no shift) toggles normally
-			g.vantageEnabled = !g.vantageEnabled
-			if g.vantageEnabled {
-				g.vantageTimer = 0
-				g.vantageInitialized = false
-			}
+			g.vantageEnabled = !g.vantageEnabled || shift
+			g.autopilotEnabled = false
 		}
 	}
 

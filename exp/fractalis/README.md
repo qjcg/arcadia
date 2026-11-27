@@ -140,16 +140,15 @@ fractals --url "fractal://mandelbrot/-0.5/0.0/1.0/50/?autopilot=on"
 - `engine`: bubbletea, ebiten
 - `color_theme`: grayscale, blue, rainbow, fire, purple, green, gold, cyan
 - `pilot`: manual, autozoom, vantage
-<<<<<<< HEAD
 - `pilot_speed`: Auto-zoom pilot zoom multiplier per tick (default 1.05)
 - `pilot_direction`: Auto-zoom pilot zoom direction, in or out (default in)
-=======
-- `pilot_scene_duration`: ticks per vantage scene (20 ticks ≈ 1 second;
-  default 100)
->>>>>>> impl/t5-vantage
+- `pilot_scene_duration`: Vantage pilot ticks per scene (default 100)
 - `autopilot`: on/off (deprecated alias for `pilot` selection)
 - `dynamic_color`: on/off (smooth hue rotation)
-- `transition`: none, fade, zoomout, rotate, breakthrough
+- `transition`: `none`, a single effect (`fade`, `zoomout`, `rotate`,
+  `breakthrough`, `starwipe`), a comma-separated sequence, `random` for all
+  effects, or `random:fade,starwipe` for a random subset. `T` cycles presets
+  and sets a session override that survives pilot switches.
 - `julia_cr`: Julia set real parameter (for Julia sets)
 - `julia_ci`: Julia set imaginary parameter (for Julia sets)
 

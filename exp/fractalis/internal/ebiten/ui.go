@@ -5,6 +5,8 @@ package ebiten
 import (
 	"fmt"
 
+	"github.com/qjcg/arcadia/exp/fractalis/internal/core/persistence"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"golang.org/x/image/colornames"
@@ -21,16 +23,7 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 		modeStr = "VANTAGE"
 	}
 
-	vantageInfo := ""
-	if g.vantageEnabled {
-		remaining := g.vantageSceneTime - g.vantageTimer
-		if g.fractalType < 2 && g.vantageIndex >= 0 && g.vantageIndex < len(g.vantageVantages) {
-			vp := g.vantageVantages[g.vantageIndex]
-			vantageInfo = fmt.Sprintf("\nVantage: %s (%.1fs)\n%s\n", vp.Name, remaining, vp.Description)
-		} else {
-			vantageInfo = fmt.Sprintf("\nVantage: Random Scene (%.1fs)\nExploring interesting features...\n", remaining)
-		}
-	}
+	vantageInfo := "\nTransition: " + persistence.ScheduleString(g.schedule) + " (T to cycle)\n"
 
 	paintInfo := ""
 	if g.inpaintMode != PaintModeNone || g.outpaintMode != PaintModeNone {

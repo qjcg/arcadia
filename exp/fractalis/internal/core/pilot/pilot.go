@@ -55,6 +55,23 @@ type View struct {
 	// Julia set parameters (c = JuliaCr + JuliaCi*i).
 	JuliaCr float64
 	JuliaCi float64
+	Camera  Camera
+}
+
+// Camera carries spatial state for a 3D fractal. Zoom measures inverse
+// distance from the origin; the camera coordinates supply its direction.
+type Camera struct {
+	Spatial           bool
+	X, Y, Z           float64
+	Pitch, Yaw, Shape float64
+}
+
+// ZoomBounds returns the outward and inward limits of this view.
+func (v View) ZoomBounds() (float64, float64) {
+	if v.Camera.Spatial {
+		return 0.025, 1.6
+	}
+	return MinZoom, MaxZoom
 }
 
 // Pilot is the policy that evolves a fractal view over time. Exactly

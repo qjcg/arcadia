@@ -32,7 +32,15 @@ func (s flatSeeker) IsViewUniform(v pilot.View) bool {
 	return s.game.calculator.IsViewUniform(s.config(v))
 }
 
-func (g *Game) tickFlatJourney() {
+func (g *Game) nextVantageScene() {
+	if g.journey != nil {
+		if v, ok := g.journey.Active().(*pilot.Vantage); ok {
+			v.NextScene()
+		}
+	}
+}
+
+func (g *Game) tickJourney() {
 	id := pilot.ManualID
 	if g.autopilotEnabled {
 		id = pilot.AutoZoomID
@@ -40,12 +48,12 @@ func (g *Game) tickFlatJourney() {
 	if g.vantageEnabled {
 		id = pilot.VantageID
 	}
-	if g.flatJourney == nil {
+	if g.journey == nil {
 		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-		g.flatJourney = transition.NewRunner(pilot.NewScheduler(rng), pilot.NewRandomDestination(search.AllFractalTypes, rng))
-		g.flatURLPilot = id
+		g.journey = transition.NewRunner(pilot.NewScheduler(rng), cameraDestination{flat: pilot.NewRandomDestination(search.AllFractalTypes, rng)})
+		g.urlPilot = id
 	}
-	if id != g.flatPilot {
+	if id != g.activePilot {
 		var active pilot.Pilot = pilot.Manual()
 		switch id {
 		case pilot.AutoZoomID:
@@ -54,28 +62,33 @@ func (g *Game) tickFlatJourney() {
 			a.SetDirection(g.config.PilotDirection)
 			active = a
 		case pilot.VantageID:
-			active = pilot.NewVantage(pilot.VantageOptions{SceneDuration: g.config.PilotSceneTicks, Discover: flatSeeker{g}.FindInterestingPoint})
+			opts := pilot.VantageOptions{SceneDuration: g.config.PilotSceneTicks, Discover: flatSeeker{g}.FindInterestingPoint}
+			if g.fractalType < 2 {
+				opts.Viewpoints = spatialViewpoints()
+				opts.Discover = nil
+			}
+			active = pilot.NewVantage(opts)
 		}
-		g.flatJourney.Activate(active)
+		g.journey.Activate(active)
 		schedule := active.TransitionSchedule()
-		if g.config.TransitionSchedule != nil && id == g.flatURLPilot {
+		if g.config.TransitionSchedule != nil && id == g.urlPilot {
 			schedule = *g.config.TransitionSchedule
 		}
-		if g.flatOverride != nil {
-			schedule = *g.flatOverride
+		if g.sessionSchedule != nil {
+			schedule = *g.sessionSchedule
 		}
-		g.flatSchedule = schedule
-		g.flatJourney.SetSchedule(schedule)
-		g.flatPilot = id
+		g.schedule = schedule
+		g.journey.SetSchedule(schedule)
+		g.activePilot = id
 	}
 	if g.cycleSchedule {
 		g.cycleSchedule = false
-		g.flatSchedule = pilot.NextPreset(g.flatSchedule)
-		g.flatOverride = new(g.flatSchedule)
-		g.flatJourney.SetSchedule(g.flatSchedule)
+		g.schedule = pilot.NextPreset(g.schedule)
+		g.sessionSchedule = new(g.schedule)
+		g.journey.SetSchedule(g.schedule)
 	}
 	cfg := g.getPersistenceConfig()
-	if a, ok := g.flatJourney.Active().(*pilot.AutoZoom); ok {
+	if a, ok := g.journey.Active().(*pilot.AutoZoom); ok {
 		if rate := g.autopilotSpeed; rate > 0 {
 			base := g.config.PilotSpeed
 			if base <= 0 {
@@ -85,25 +98,49 @@ func (g *Game) tickFlatJourney() {
 		}
 	}
 	view := pilot.View{FractalType: cfg.FractalType, CenterX: cfg.CenterX, CenterY: cfg.CenterY, Zoom: cfg.Zoom, MaxIter: cfg.MaxIter, JuliaCr: cfg.JuliaCr, JuliaCi: cfg.JuliaCi}
-	next, crossing := g.flatJourney.Tick(view)
+	if g.fractalType < 2 {
+		shape := g.power
+		if g.fractalType == 1 {
+			shape = g.boxScale
+		}
+		view = spatialView(g.fractalType, g.camX, g.camY, g.camZ, g.camPitch, g.camYaw, shape)
+		view.MaxIter = cfg.MaxIter
+	}
+	next, crossing := g.journey.Tick(view)
 	if crossing != nil && !crossing.Progress.Landed() {
-		g.flatCrossing = crossing
+		g.crossing = crossing
 	} else {
-		g.flatCrossing = nil
+		g.crossing = nil
 	}
 	if next != view {
-		g.applyFlatView(next)
+		g.applyJourneyView(next)
 	}
 }
 
-func (g *Game) applyFlatView(v pilot.View) {
+func (g *Game) applyJourneyView(v pilot.View) {
+	if c := v.Camera; c.Spatial {
+		if v.FractalType == persistence.FractalMandelbulb {
+			g.fractalType, g.power = 0, c.Shape
+		} else {
+			g.fractalType, g.boxScale = 1, c.Shape
+		}
+		radius := math.Sqrt(c.X*c.X + c.Y*c.Y + c.Z*c.Z)
+		if radius == 0 {
+			c.Z, radius = 1, 1
+		}
+		scale := 1 / (max(v.Zoom, 0.001) * radius)
+		g.camX, g.camY, g.camZ = c.X*scale, c.Y*scale, c.Z*scale
+		g.camPitch, g.camYaw = c.Pitch, c.Yaw
+		g.iterations = v.MaxIter
+		return
+	}
 	cfg := g.getPersistenceConfig()
 	cfg.FractalType, cfg.CenterX, cfg.CenterY, cfg.Zoom, cfg.MaxIter = v.FractalType, v.CenterX, v.CenterY, v.Zoom, v.MaxIter
 	g.applyPersistenceConfig(cfg)
 }
 
-func (g *Game) drawFlatCrossing(screen *ebiten.Image) {
-	c := g.flatCrossing
+func (g *Game) drawCrossing(screen *ebiten.Image) {
+	c := g.crossing
 	var effect transition.Effect = transition.Fade{}
 	switch c.Effect {
 	case transition.ZoomOutID:
@@ -119,14 +156,14 @@ func (g *Game) drawFlatCrossing(screen *ebiten.Image) {
 	// Drawing samples temporary camera states; never let them affect Update.
 	saved := *g
 	defer func() { layer := g.crossingLayer; *g = saved; g.crossingLayer = layer }()
-	g.applyFlatView(frame.Source)
+	g.applyJourneyView(frame.Source)
 	g.drawFractal(screen)
 	bounds := screen.Bounds()
 	if g.crossingLayer == nil || g.crossingLayer.Bounds() != bounds {
 		g.crossingLayer = ebiten.NewImage(bounds.Dx(), bounds.Dy())
 	}
 	g.crossingLayer.Clear()
-	g.applyFlatView(frame.Destination)
+	g.applyJourneyView(frame.Destination)
 	g.drawFractal(g.crossingLayer)
 	if frame.Star {
 		for y := 0; y < bounds.Dy(); y++ {
