@@ -23,20 +23,12 @@ import (
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/animation"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/color"
 	renderlib "github.com/qjcg/arcadia/exp/fractalis/internal/tui/render"
-	tuitransition "github.com/qjcg/arcadia/exp/fractalis/internal/tui/transition"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/web"
 )
 
 const (
 	// ASCII characters from sparse to dense
 	asciiChars = " .:-=+*#%@"
-
-	// Transition animation modes
-	TransitionNone         = persistence.TransitionNone
-	TransitionFade         = tuitransition.TransitionFade
-	TransitionZoomOutIn    = tuitransition.TransitionZoomOutIn
-	TransitionRotate       = tuitransition.TransitionRotate
-	TransitionBreakthrough = tuitransition.TransitionBreakthrough
 
 	// Fractal types
 	FractalMandelbrot    = persistence.FractalMandelbrot
@@ -328,79 +320,6 @@ func (m *model) loadBookmark(index int) {
 	applyParamsToModel(m, params)
 }
 
-// startFractalTransition initiates a transition to a new fractal type
-func (m *model) startFractalTransition() {
-	rng := rand.New(rand.New(rand.NewSource(time.Now().UnixNano())))
-
-	// Pick a random fractal type (different from current)
-	currentIndex := -1
-	for i, ft := range allFractalTypes {
-		if ft == m.config.FractalType {
-			currentIndex = i
-			break
-		}
-	}
-
-	// Find a different fractal type
-	targetIndex := currentIndex
-	for targetIndex == currentIndex {
-		targetIndex = rng.Intn(len(allFractalTypes))
-	}
-
-	m.animationState.Transition.Target = allFractalTypes[targetIndex]
-	m.animationState.Transition.Progress = 0.01 // Start slightly above 0 so animation triggers
-	m.animationState.Transition.ZoomStart = m.config.Zoom
-
-	// Initialize the appropriate transition based on mode
-	switch m.animationState.Transition.Mode {
-	case TransitionFade:
-		m.animationState.Transition.FadeTransition = tuitransition.NewFadeTransition(allFractalTypes)
-		m.animationState.Transition.FadeTransition.Start(m.config.FractalType)
-		m.animationState.Messages.RandomMsg = m.animationState.Transition.FadeTransition.GetMessage()
-	case TransitionZoomOutIn:
-		m.animationState.Transition.ZoomOutInTransition = tuitransition.NewZoomOutInTransition(allFractalTypes)
-		m.animationState.Transition.ZoomOutInTransition.Start(m.config.FractalType)
-		m.animationState.Messages.RandomMsg = m.animationState.Transition.ZoomOutInTransition.GetMessage()
-	case TransitionRotate:
-		m.animationState.Transition.RotateTransition = tuitransition.NewRotateTransition(allFractalTypes)
-		m.animationState.Transition.RotateTransition.Start(m.config.FractalType)
-		m.animationState.Messages.RandomMsg = m.animationState.Transition.RotateTransition.GetMessage()
-	case TransitionBreakthrough:
-		m.animationState.Transition.BreakthroughTransition = tuitransition.NewBreakthroughTransition(allFractalTypes)
-		m.animationState.Transition.BreakthroughTransition.Start(m.config.FractalType)
-		m.animationState.Messages.RandomMsg = m.animationState.Transition.BreakthroughTransition.GetMessage()
-	}
-	m.animationState.Messages.RandomTimer = 60
-}
-
-// resetToDefaultState resets the fractal configuration to default values for a given fractal type
-func (m *model) resetToDefaultState(fractalType string) {
-	m.config.Zoom = 1.0
-	// Reset iteration count to base value
-	if m.animationState.AutoPilot.BaseMaxIter > 0 {
-		m.config.MaxIter = m.animationState.AutoPilot.BaseMaxIter
-	} else {
-		m.config.MaxIter = animation.DefaultBaseIterations // Default base iterations
-	}
-	// Reset to default position for the fractal type
-	if fractalType == FractalJulia {
-		m.config.CenterX = 0.0
-		m.config.CenterY = 0.0
-		// Reset Julia parameters to defaults
-		m.config.JuliaCr = -0.7
-		m.config.JuliaCi = 0.27015
-	} else if fractalType == FractalBurningShip {
-		m.config.CenterX = -0.5
-		m.config.CenterY = -0.6
-	} else if fractalType == FractalNewton {
-		m.config.CenterX = 0.0
-		m.config.CenterY = 0.0
-	} else {
-		m.config.CenterX = -0.5
-		m.config.CenterY = 0.0
-	}
-}
-
 // applyRandom generates a completely random interesting view
 func (m *model) applyRandom() {
 	// Random color scheme
@@ -592,6 +511,9 @@ func (m *model) seam() *transition.Runner {
 		)
 		m.effects = transition.NewRegistry()
 		m.effects.Register(transition.FadeID, transition.Fade{})
+		m.effects.Register(transition.ZoomOutID, transition.ZoomOutIn{})
+		m.effects.Register(transition.RotateID, transition.Rotate{})
+		m.effects.Register(transition.BreakthroughID, transition.Breakthrough{})
 	}
 	return m.runner
 }
@@ -1464,11 +1386,6 @@ func (m model) renderFractal() string {
 	m.renderer.SetConfig(m.config)
 	m.renderer.SetColorMode(m.animationState.Color.ColorMode)
 	m.renderer.SetDynamicColor(m.animationState.Color.DynamicColor, m.animationState.Color.HueShift)
-	if m.animationState.Transition.Mode == TransitionBreakthrough {
-		m.renderer.SetBreakthroughTransition(m.animationState.Transition.BreakthroughTransition)
-	} else {
-		m.renderer.SetBreakthroughTransition(nil)
-	}
 
 	// Use the renderer (leverages caching and parallel computation)
 	return m.renderer.RenderFractal()
@@ -1906,8 +1823,6 @@ func main() {
 	// Run interactive TUI mode
 	animState := animation.NewAnimationState()
 	animState.AutoPilot.BaseMaxIter = config.MaxIter
-	animState.Transition.Mode = TransitionFade
-	animState.Transition.FadeTransition = tuitransition.NewFadeTransition(allFractalTypes)
 
 	// The Vantage pilot tours curated viewpoints, panning each scene
 	// toward a discovered interesting point.

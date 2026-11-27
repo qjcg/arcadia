@@ -9,7 +9,6 @@ import (
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/persistence"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/cache"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/color"
-	"github.com/qjcg/arcadia/exp/fractalis/internal/tui/transition"
 )
 
 // Renderer handles ASCII fractal rendering with caching and parallel computation
@@ -18,7 +17,6 @@ type Renderer struct {
 	colorMode        bool
 	dynamicColor     bool
 	hueShift         float64
-	breakthroughTr   *transition.Breakthrough
 	calculateFractal func(cr, ci float64, cfg persistence.Config) int
 	// Performance optimization
 	iterationCache *cache.IterationCache
@@ -49,11 +47,6 @@ func (r *Renderer) SetDynamicColor(enabled bool, hueShift float64) {
 // SetColorMode enables/disables colorized output
 func (r *Renderer) SetColorMode(enabled bool) {
 	r.colorMode = enabled
-}
-
-// SetBreakthroughTransition sets the breakthrough transition animator
-func (r *Renderer) SetBreakthroughTransition(tr *transition.Breakthrough) {
-	r.breakthroughTr = tr
 }
 
 // SetConfig updates the fractal configuration
@@ -153,10 +146,6 @@ func (r *Renderer) cellGrid(cfg persistence.Config) (grid [][]byte, colorGrid []
 		}
 	}
 
-	// Apply breakthrough transition overlay if active
-	if r.breakthroughTr != nil {
-		applyBreakthroughOverlay(grid, colorGrid, cfg.Width, cfg.Height, r.breakthroughTr)
-	}
 	return grid, colorGrid
 }
 
@@ -278,41 +267,4 @@ func GetChar(iter, maxIter int) byte {
 	}
 	idx := (iter * len(asciiChars)) / maxIter
 	return asciiChars[idx]
-}
-
-// applyBreakthroughOverlay applies the breakthrough transition visual effect
-func applyBreakthroughOverlay(grid [][]byte, colorGrid [][]string, width, height int, b *transition.Breakthrough) {
-	particles := b.GetParticles()
-	crackMap := b.GetCrackMap()
-
-	for _, p := range particles {
-		col := int(p.X * float64(width))
-		row := int(p.Y * float64(height))
-
-		if row >= 0 && row < height && col >= 0 && col < width {
-			if p.Opacity > 0.7 {
-				grid[row][col] = '#'
-				colorGrid[row][col] = "\033[90m"
-			} else if p.Opacity > 0.4 {
-				grid[row][col] = '%'
-				colorGrid[row][col] = "\033[37m"
-			} else {
-				grid[row][col] = '+'
-				colorGrid[row][col] = "\033[90m"
-			}
-		}
-	}
-
-	for coord := range crackMap {
-		var x, y float64
-		fmt.Sscanf(coord, "%f,%f", &x, &y)
-
-		col := int(x * float64(width))
-		row := int(y * float64(height))
-
-		if row >= 0 && row < height && col >= 0 && col < width {
-			grid[row][col] = '/'
-			colorGrid[row][col] = "\033[37m"
-		}
-	}
 }
