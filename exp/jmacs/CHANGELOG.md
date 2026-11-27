@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- d1b98b35 - Bump go deps
 - 47200d82 - drop go.mod replace directives to keep tools go-installable
 - 348b5218 - keep task update from breaking the build
 - 878b20c2 - Update deps

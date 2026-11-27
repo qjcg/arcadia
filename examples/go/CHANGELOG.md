@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- d1b98b35 - Bump go deps
+- 9386ccfc - Format cue files using v0.18.0
+- 6610a6f6 - Update deps
 - 0c2b8da9 - Update deps
 - 4f4e841f - Update deps
 - f52a5b46 - Update deps

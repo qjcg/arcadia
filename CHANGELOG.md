@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- dedc26cd - Bump golangci-lint and betterleaks
+- d1b98b35 - Bump go deps
+- 9386ccfc - Format cue files using v0.18.0
+- 6610a6f6 - Update deps
 - 40224fb5 - describe terebra as a superset of bash
 - b10c3c9d - record terebra as superset of mvdan/sh
 
