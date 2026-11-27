@@ -255,25 +255,6 @@ func (m *model) setURLSchedule(id pilot.ID, schedule pilot.Schedule, present boo
 	m.refreshSchedule()
 }
 
-func nextSchedule(current pilot.Schedule) pilot.Schedule {
-	ids := transition.EffectIDs()
-	presets := make([]pilot.Schedule, 0, len(ids)+3)
-	for _, id := range ids {
-		presets = append(presets, pilot.Schedule{Transitions: []string{id}, Traversal: pilot.Single})
-	}
-	presets = append(presets,
-		pilot.Schedule{Transitions: ids, Traversal: pilot.Sequential},
-		pilot.Schedule{Transitions: ids, Traversal: pilot.Random},
-		pilot.Schedule{},
-	)
-	for i, preset := range presets {
-		if persistence.ScheduleString(preset) == persistence.ScheduleString(current) {
-			return presets[(i+1)%len(presets)]
-		}
-	}
-	return presets[0]
-}
-
 // applyParamsToModel applies FractalURLParams to a model
 func applyParamsToModel(m *model, params persistence.FractalURLParams) {
 	m.config.FractalType = params.FractalType
@@ -960,7 +941,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		// Transition mode switching
 		case "T":
-			next := nextSchedule(m.schedule)
+			next := pilot.NextPreset(m.schedule)
 			m.sessionSchedule = &next
 			m.refreshSchedule()
 			m.animationState.Messages.RandomMsg = "Transition: " + persistence.ScheduleString(m.schedule)

@@ -75,16 +75,14 @@ type Game struct {
 	flatCrossing            *transition.Crossing
 	crossingLayer           *ebiten.Image
 	flatPilot, flatURLPilot pilot.ID
+	flatSchedule            pilot.Schedule
+	flatOverride            *pilot.Schedule
+	cycleSchedule           bool
 	autopilotEnabled        bool
 	autopilotTime           float64
 	autopilotSpeed          float64
 	autopilotRadius         float64
 	autopilotHeight         float64
-	autopilotTargetX        float64
-	autopilotTargetZ        float64
-	autopilotHasTarget      bool
-	autopilotPanProgress    float64
-	autopilotIterBase       int
 	calculator              *search.InterestCalculator
 
 	// Vantage state
@@ -164,36 +162,33 @@ func NewGame(config persistence.Config) *Game {
 	}
 
 	g := &Game{
-		config:               config,
-		width:                screenWidth,
-		height:               screenHeight,
-		camX:                 camX,
-		camY:                 camY,
-		camZ:                 camZ,
-		camPitch:             pitch,
-		camYaw:               yaw,
-		forwardSpeed:         0.15,
-		sideSpeed:            0.15,
-		rotSpeed:             3.0,
-		power:                power,
-		boxScale:             2.7, // Mandelbox scale
-		fractalType:          fType,
-		iterations:           32,
-		colorShift:           0.0,
-		startTime:            time.Now(),
-		autopilotEnabled:     config.AutoPilotEnabled,
-		autopilotTime:        0,
-		autopilotSpeed:       1.0,
-		autopilotRadius:      2.5,
-		autopilotHeight:      0.5,
-		autopilotIterBase:    config.MaxIter,
-		autopilotHasTarget:   false,
-		autopilotPanProgress: 0.0,
-		vantageEnabled:       config.VantageEnabled,
-		vantageSceneTime:     float64(config.VantageSceneDuration),
-		vantageVantages:      defaultVantagePoints(),
-		inpaintMode:          PaintModeNone,
-		outpaintMode:         PaintModeNone,
+		config:           config,
+		width:            screenWidth,
+		height:           screenHeight,
+		camX:             camX,
+		camY:             camY,
+		camZ:             camZ,
+		camPitch:         pitch,
+		camYaw:           yaw,
+		forwardSpeed:     0.15,
+		sideSpeed:        0.15,
+		rotSpeed:         3.0,
+		power:            power,
+		boxScale:         2.7, // Mandelbox scale
+		fractalType:      fType,
+		iterations:       32,
+		colorShift:       0.0,
+		startTime:        time.Now(),
+		autopilotEnabled: config.AutoPilotEnabled,
+		autopilotTime:    0,
+		autopilotSpeed:   1.0,
+		autopilotRadius:  2.5,
+		autopilotHeight:  0.5,
+		vantageEnabled:   config.VantageEnabled,
+		vantageSceneTime: float64(config.VantageSceneDuration),
+		vantageVantages:  defaultVantagePoints(),
+		inpaintMode:      PaintModeNone,
+		outpaintMode:     PaintModeNone,
 	}
 
 	g.calculator = search.NewInterestCalculator(func(cr, ci float64, cfg persistence.Config) float64 {

@@ -4,11 +4,8 @@ package ebiten
 
 import (
 	"math"
-	"math/rand"
-	"time"
 
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/persistence"
-	"github.com/qjcg/arcadia/exp/fractalis/internal/core/search"
 )
 
 // updateAutopilot moves the camera in an interesting pattern
@@ -69,87 +66,12 @@ func (g *Game) updateAutopilot() {
 
 		g.camYaw = targetYaw
 		g.camPitch = targetPitch
-	} else if g.fractalType >= 2 {
-		// 2D fractal autopilot: Intelligent zoom and interest-based panning
-		// Similar to TUI mode behavior
-
-		// 1. Zoom in
-		// In Ebiten, power is log2(zoom)
-		// Base zoom speed scaled by autopilotSpeed
-		zoomStep := 1.0 + (0.02 * g.autopilotSpeed)
-		g.power += math.Log2(zoomStep)
-
-		// 2. Adaptive iterations
-		zoom := math.Pow(2.0, g.power)
-		baseIter := g.autopilotIterBase
-		if baseIter == 0 {
-			baseIter = 50
-		}
-		logZoom10 := math.Log10(zoom)
-		if logZoom10 < 0 {
-			logZoom10 = 0
-		}
-		g.iterations = min(baseIter+int(logZoom10*20.0), 1000)
-
-		// 3. Target management
-		cfg := g.getPersistenceConfig()
-		shouldFindNewTarget := false
-		if !g.autopilotHasTarget {
-			shouldFindNewTarget = true
-		} else if g.autopilotPanProgress >= 1.0 {
-			shouldFindNewTarget = true
-		} else if g.autopilotPanProgress > 0.8 && g.calculator.IsViewUniform(cfg) {
-			shouldFindNewTarget = true
-		}
-
-		if shouldFindNewTarget {
-			newX, newZ := g.calculator.FindInterestingPoint(search.DescentSearchPasses(), cfg)
-			g.autopilotTargetX = newX
-			g.autopilotTargetZ = newZ
-			g.autopilotHasTarget = true
-			g.autopilotPanProgress = 0.0
-		}
-
-		// 4. Smooth pan toward target
-		if g.autopilotHasTarget && g.autopilotPanProgress < 1.0 {
-			deltaX := g.autopilotTargetX - g.camX
-			deltaZ := g.autopilotTargetZ - g.camZ
-
-			// Pan rate scaled by autopilotSpeed
-			panRate := 0.04 * g.autopilotSpeed
-			g.camX += deltaX * panRate
-			g.camZ += deltaZ * panRate
-
-			// Update progress
-			viewSize := 3.5 / zoom
-			threshold := (viewSize / 1000.0) * (viewSize / 1000.0)
-			distSq := deltaX*deltaX + deltaZ*deltaZ
-
-			if distSq < threshold {
-				g.autopilotPanProgress = 1.0
-			} else {
-				g.autopilotPanProgress += 0.015 * g.autopilotSpeed
-			}
-		}
-
-		// 5. Check if we hit maximum zoom and should transition (similar to TUI mode)
-		// Increased threshold to 46.0 (approx 70 trillion zoom) using emulated double precision
-		if g.power > 46.0 {
-			// Pick a random 2D fractal type (2-10) different from current
-			rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-			next := g.fractalType
-			for next == g.fractalType {
-				next = 2 + rng.Intn(9) // 2 to 10
-			}
-			g.switchToFractal(next)
-		}
 	}
 }
 
-// switchToFractal resets the game state for a new fractal type
 func (g *Game) switchToFractal(fractalType int) {
 	g.fractalType = fractalType
-	g.autopilotHasTarget = false
+	g.flatPilot = ""
 
 	// Set default positions based on fractal type
 	if g.fractalType >= 2 {

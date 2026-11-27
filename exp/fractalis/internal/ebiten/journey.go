@@ -61,8 +61,18 @@ func (g *Game) tickFlatJourney() {
 		if g.config.TransitionSchedule != nil && id == g.flatURLPilot {
 			schedule = *g.config.TransitionSchedule
 		}
+		if g.flatOverride != nil {
+			schedule = *g.flatOverride
+		}
+		g.flatSchedule = schedule
 		g.flatJourney.SetSchedule(schedule)
 		g.flatPilot = id
+	}
+	if g.cycleSchedule {
+		g.cycleSchedule = false
+		g.flatSchedule = pilot.NextPreset(g.flatSchedule)
+		g.flatOverride = new(g.flatSchedule)
+		g.flatJourney.SetSchedule(g.flatSchedule)
 	}
 	cfg := g.getPersistenceConfig()
 	if a, ok := g.flatJourney.Active().(*pilot.AutoZoom); ok {

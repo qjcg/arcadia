@@ -60,14 +60,14 @@ func (g *Game) handleInput() bool {
 		g.fractalType = 0 // Mandelbulb
 		g.camX, g.camY, g.camZ = 0.0, 1.5, 6.0
 		g.camPitch, g.camYaw = 0.0, 3.14159
-		g.autopilotHasTarget = false
+		g.flatPilot = ""
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyF2) {
 		g.fractalType = 1 // Mandelbox
 		g.camX, g.camY, g.camZ = 5.0, 2.0, 5.0
 		g.camPitch, g.camYaw = -0.3, 3.927
 		g.boxScale = 2.7
-		g.autopilotHasTarget = false
+		g.flatPilot = ""
 	}
 
 	// Parameter adjustment
@@ -213,8 +213,7 @@ func (g *Game) handleInput() bool {
 		g.autopilotEnabled = !g.autopilotEnabled
 		if g.autopilotEnabled {
 			g.autopilotTime = 0
-			g.autopilotHasTarget = false
-			g.autopilotPanProgress = 0.0
+			g.flatPilot = ""
 		}
 	}
 
@@ -237,6 +236,10 @@ func (g *Game) handleInput() bool {
 				g.vantageInitialized = false
 			}
 		}
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyT) {
+		g.cycleSchedule = true
 	}
 
 	// Toggle fullscreen on F
