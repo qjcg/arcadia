@@ -19,7 +19,7 @@ package grafana
 		//# imagePullSecrets:
 		//#   - myRegistryKeySecretName
 		//#
-		imagePullSecrets: []
+		imagePullSecrets:    []
 		defaultStorageClass: ""
 		storageClass:        ""
 		//# Security parameters
@@ -435,9 +435,9 @@ package grafana
 		podSecurityContext: {
 			enabled:             true
 			fsGroupChangePolicy: "Always"
-			sysctls: []
-			supplementalGroups: []
-			fsGroup: 1001
+			sysctls:             []
+			supplementalGroups:  []
+			fsGroup:             1001
 		}
 		//# Configure Container Security Context
 		//# ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
@@ -453,15 +453,15 @@ package grafana
 		//# @param grafana.containerSecurityContext.seccompProfile.type Set container's Security Context seccomp profile
 		//#
 		containerSecurityContext: {
-			enabled: true
-			seLinuxOptions: {}
+			enabled:                  true
+			seLinuxOptions:           {}
 			runAsUser:                1001
 			runAsGroup:               1001
 			runAsNonRoot:             true
 			privileged:               false
 			readOnlyRootFilesystem:   true
 			allowPrivilegeEscalation: false
-			capabilities: drop: ["ALL"]
+			capabilities: drop:   ["ALL"]
 			seccompProfile: type: "RuntimeDefault"
 		}
 		//# Grafana containers' resource requests and limits
@@ -660,12 +660,12 @@ package grafana
 		//#   set, choosing the default provisioner.  (gp2 on AWS, standard on
 		//#   GKE, AWS & OpenStack)
 		//#
-		storageClass: ""
-		annotations: {}
+		storageClass:  ""
+		annotations:   {}
 		existingClaim: ""
 		accessMode:    "ReadWriteOnce"
-		accessModes: []
-		size: "10Gi"
+		accessModes:   []
+		size:          "10Gi"
 	}
 
 	//# @param serviceAccount.create Specifies whether a ServiceAccount should be created
@@ -674,9 +674,9 @@ package grafana
 	//# @param serviceAccount.automountServiceAccountToken Automount service account token for the application controller service account
 	//# @section Traffic exposure parameters
 	serviceAccount: {
-		create: true
-		name:   ""
-		annotations: {}
+		create:                       true
+		name:                         ""
+		annotations:                  {}
 		automountServiceAccountToken: false
 	}
 
@@ -803,7 +803,7 @@ package grafana
 		//# @param networkPolicy.ingressNSMatchLabels [object] Labels to match to allow traffic from other namespaces. Ignored if `networkPolicy.allowExternal` is true.
 		//# @param networkPolicy.ingressNSPodMatchLabels [object] Pod labels to match to allow traffic from other namespaces. Ignored if `networkPolicy.allowExternal` is true.
 		//#
-		ingressNSMatchLabels: {}
+		ingressNSMatchLabels:    {}
 		ingressNSPodMatchLabels: {}
 	}
 	//# Configure the ingress resource that allows you to access the
@@ -1060,7 +1060,7 @@ package grafana
 		//#
 		containerSecurityContext: {
 			seLinuxOptions: {}
-			runAsUser: 0
+			runAsUser:      0
 		}
 	}
 

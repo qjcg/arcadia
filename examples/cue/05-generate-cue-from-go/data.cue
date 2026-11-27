@@ -4,7 +4,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 )
 
-deployments: [Name=string]: {
+deployments: [string]~(Name): {
 	appsv1.#Deployment
 
 	apiVersion: "apps/v1"

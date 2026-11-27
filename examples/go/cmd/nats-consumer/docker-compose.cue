@@ -16,11 +16,11 @@ _defaultNATSClusterOpts: [
 _defaultNATSEntrypoint: list.Concat([["nats-server", "-js"], defaultNATSClusterOpts])
 
 #NATS: {
-	image: "synadia/nats-server:\(tagNATSServer)"
+	image:      "synadia/nats-server:\(tagNATSServer)"
 	entrypoint: *_defaultNATSEntrypoint | [...string]
 
 	depends_on?: [...string]
-	ports?: [...string]
+	ports?:      [...string]
 }
 
 services: {
@@ -34,7 +34,7 @@ services: {
 		image:       "natsio/nats-box:\(tagNATSBox)"
 		command:     "sleep infinity"
 		working_dir: "/work"
-		volumes: ["./backup:/work/backup:ro"]
+		volumes:     ["./backup:/work/backup:ro"]
 		environment: NATS_URL: "nats://nats:4222/"
 	}
 

@@ -548,9 +548,9 @@ close({
 		// List of extra privileged entitlements to grant to the build
 		// process.
 		entitlements?: [...string]
-		args?:   #list_or_dict
-		ssh?:    #list_or_dict
-		labels?: #list_or_dict
+		args?:         #list_or_dict
+		ssh?:          #list_or_dict
+		labels?:       #list_or_dict
 
 		// List of sources the image builder should use for cache
 		// resolution
@@ -592,7 +592,7 @@ close({
 		secrets?:    #service_config_or_secret
 
 		// Additional tags to apply to the built image.
-		tags?: [...string]
+		tags?:    [...string]
 		ulimits?: #ulimits
 
 		// Platforms to build for, e.g., 'linux/amd64', 'linux/arm64', or
@@ -693,24 +693,25 @@ close({
 	// service will wait for the dependency to be ready before
 	// starting.
 	depends_on?: matchN(1, [#list_of_strings, close({
-		{[=~"^[a-zA-Z0-9._-]+$"]: close({
-			// Whether to restart dependent services when this service is
-			// restarted.
-			restart?: bool | string
+		{
+			[=~"^[a-zA-Z0-9._-]+$"]: close({
+				// Whether to restart dependent services when this service is
+				// restarted.
+				restart?: bool | string
 
-			// Whether the dependency is required for the dependent service to
-			// start.
-			required?: bool
+				// Whether the dependency is required for the dependent service to
+				// start.
+				required?: bool
 
-			// Condition to wait for. 'service_started' waits until the
-			// service has started, 'service_healthy' waits until the service
-			// is healthy (as defined by its healthcheck),
-			// 'service_completed_successfully' waits until the service has
-			// completed successfully.
-			condition!: "service_started" | "service_healthy" | "service_completed_successfully"
+				// Condition to wait for. 'service_started' waits until the
+				// service has started, 'service_healthy' waits until the service
+				// is healthy (as defined by its healthcheck),
+				// 'service_completed_successfully' waits until the service has
+				// completed successfully.
+				condition!: "service_started" | "service_healthy" | "service_completed_successfully"
 
-			{[=~"^x-" & !~"^(restart|required|condition)$"]: _}
-		})
+				{[=~"^x-" & !~"^(restart|required|condition)$"]: _}
+			})
 		}
 	})])
 	device_cgroup_rules?: #list_of_strings
@@ -732,7 +733,7 @@ close({
 
 	// Custom DNS options to be passed to the container's DNS
 	// resolver.
-	dns_opt?: list.UniqueItems() & [...string]
+	dns_opt?:    list.UniqueItems() & [...string]
 	dns_search?: #string_or_list
 
 	// Custom domain name to use for the service container.
@@ -774,12 +775,12 @@ close({
 	// Link to services started outside this Compose application.
 	// Specify services as <service_name>:<alias>.
 	external_links?: list.UniqueItems() & [...string]
-	extra_hosts?: #extra_hosts
-	gpus?:        #gpus
+	extra_hosts?:    #extra_hosts
+	gpus?:           #gpus
 
 	// Add additional groups which user inside the container should be
 	// member of.
-	group_add?: list.UniqueItems() & [...number | string]
+	group_add?:   list.UniqueItems() & [...number | string]
 	healthcheck?: #healthcheck
 
 	// Define a custom hostname for the service container.
@@ -848,15 +849,16 @@ close({
 	// AI Models to use, referencing entries under the top-level
 	// models key.
 	models?: matchN(1, [#list_of_strings, {
-		{[=~"^[a-zA-Z0-9._-]+$"]: close({
-			// Environment variable set to AI model endpoint.
-			endpoint_var?: string
+		{
+			[=~"^[a-zA-Z0-9._-]+$"]: close({
+				// Environment variable set to AI model endpoint.
+				endpoint_var?: string
 
-			// Environment variable set to AI model name.
-			model_var?: string
+				// Environment variable set to AI model name.
+				model_var?: string
 
-			{[=~"^x-" & !~"^(endpoint_var|model_var)$"]: _}
-		})
+				{[=~"^x-" & !~"^(endpoint_var|model_var)$"]: _}
+			})
 		}
 		...
 	}])
@@ -865,35 +867,37 @@ close({
 	// networks key. Can be a list of network names or a mapping of
 	// network name to network configuration.
 	networks?: matchN(1, [#list_of_strings, close({
-		{[=~"^[a-zA-Z0-9._-]+$"]: matchN(1, [close({
-			aliases?: #list_of_strings
+		{
+			[=~"^[a-zA-Z0-9._-]+$"]: matchN(1, [close({
+				aliases?: #list_of_strings
 
-			// Interface network name used to connect to network
-			interface_name?: string
+				// Interface network name used to connect to network
+				interface_name?: string
 
-			// Specify a static IPv4 address for this service on this network.
-			ipv4_address?: string
+				// Specify a static IPv4 address for this service on this network.
+				ipv4_address?: string
 
-			// Specify a static IPv6 address for this service on this network.
-			ipv6_address?: string, link_local_ips?: #list_of_strings
+				// Specify a static IPv6 address for this service on this network.
+				ipv6_address?:   string
+				link_local_ips?: #list_of_strings
 
-			// Specify a MAC address for this service on this network.
-			mac_address?: string
+				// Specify a MAC address for this service on this network.
+				mac_address?: string
 
-			// Driver options for this network.
-			driver_opts?: {
-				{[=~"^.+$"]: number | string}
-				...
-			}
+				// Driver options for this network.
+				driver_opts?: {
+					{[=~"^.+$"]: number | string}
+					...
+				}
 
-			// Specify the priority for the network connection.
-			priority?: number
+				// Specify the priority for the network connection.
+				priority?: number
 
-			// Specify the gateway priority for the network connection.
-			gw_priority?: number
+				// Specify the gateway priority for the network connection.
+				gw_priority?: number
 
-			{[=~"^x-" & !~"^(aliases|interface_name|ipv4_address|ipv6_address|link_local_ips|mac_address|driver_opts|priority|gw_priority)$"]: _}
-		}), null])
+				{[=~"^x-" & !~"^(aliases|interface_name|ipv4_address|ipv6_address|link_local_ips|mac_address|driver_opts|priority|gw_priority)$"]: _}
+			}), null])
 		}
 	})])
 
@@ -1158,17 +1162,18 @@ close({
 // Container ulimit options, controlling resource limits for
 // processes inside the container.
 #ulimits: {
-	{[=~"^[a-z]+$"]: matchN(1, [int | string, close({
-		// Hard limit for the ulimit type. This is the maximum allowed
-		// value.
-		hard!: int | string
+	{
+		[=~"^[a-z]+$"]: matchN(1, [int | string, close({
+			// Hard limit for the ulimit type. This is the maximum allowed
+			// value.
+			hard!: int | string
 
-		// Soft limit for the ulimit type. This is the value that's
-		// actually enforced.
-		soft!: int | string
+			// Soft limit for the ulimit type. This is the value that's
+			// actually enforced.
+			soft!: int | string
 
-		{[=~"^x-" & !~"^(hard|soft)$"]: _}
-	})])
+			{[=~"^x-" & !~"^(hard|soft)$"]: _}
+		})])
 	}
 	...
 }
