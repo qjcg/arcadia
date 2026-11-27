@@ -7,7 +7,6 @@ shopt: [globstar]
 vars:
   V_GOLANGCILINT: v2.15.0
   V_BETTERLEAKS: v2.0.0-rc.15
-  V_TRIVY: v0.74.0
 
 tasks:
   default:
@@ -77,11 +76,6 @@ tasks:
       - check:policy
       #- lint:editorconfig
 
-  lint:full:
-    deps:
-      - lint
-      - lint:trivy
-
   # FIXME: Intermittant failures, can be flaky.
   lint:check-links:
     cmd: go tool xurls {{.CLI_ARGS | default "**/*.md"}} | grep -Ev '{{.EXCLUDE}}' | sort -u | go tool xurls -fix >/dev/null
@@ -112,14 +106,6 @@ tasks:
   lint:go:vet: go vet work
 
   lint:typstyle: typstyle --check .
-
-  lint:trivy:
-    desc: Run trivy secret scan.
-    cmds:
-      - go run github.com/aquasecurity/trivy/cmd/trivy@{{.V_TRIVY}} fs --exit-code 1 --scanners secret .
-    env:
-      GOTOOLCHAIN: go1.26.3
-      GOEXPERIMENT: jsonv2
 
   lint:betterleaks:
     desc: Scan commits in HEAD that are not in origin/main for secrets.

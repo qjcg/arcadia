@@ -72,9 +72,6 @@ pre-push:
             run: go tool task lint:govulncheck
             glob: *gofiles
 
-          - name: 'trivy (scanners: secret)'
-            run: go tool task lint:trivy
-
     - name: linters
       group:
         parallel: true
