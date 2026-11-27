@@ -1806,9 +1806,23 @@ func main() {
 	// Check which engine to use
 	if config.Engine == persistence.EngineEbiten {
 		// Apply flags to config for Ebiten
-		config.AutoPilotEnabled = *autopilot || urlPilot == pilot.AutoZoomID
-		config.VantageEnabled = *vantage || urlPilot == pilot.VantageID
+		id := urlPilot
+		if *autopilot {
+			id = pilot.AutoZoomID
+		}
+		if *vantage {
+			id = pilot.VantageID
+			urlSceneDuration = vantageSceneDuration * 20
+		}
+		config.AutoPilotEnabled = id == pilot.AutoZoomID
+		config.VantageEnabled = id == pilot.VantageID
+		config.PilotSpeed = urlPilotSpeed
+		config.PilotDirection = urlPilotDirection
+		config.PilotSceneTicks = urlSceneDuration
 		config.VantageSceneDuration = vantageSceneDuration
+		if urlScheduleSet && id == urlPilot {
+			config.TransitionSchedule = &urlSchedule
+		}
 
 		// Run Ebiten engine (compiled in only with -tags ebiten)
 		if err := runEbitenEngine(config); err != nil {

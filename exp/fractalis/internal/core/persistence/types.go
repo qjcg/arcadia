@@ -1,5 +1,7 @@
 package persistence
 
+import "github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
+
 // URLMode represents the type of fractal URL
 type URLMode string
 
@@ -28,6 +30,10 @@ type Config struct {
 	VantageEnabled       bool
 	VantageSceneDuration int
 	AutoPilotEnabled     bool
+	PilotSpeed           float64
+	PilotDirection       pilot.Direction
+	PilotSceneTicks      int
+	TransitionSchedule   *pilot.Schedule
 	Fullscreen           bool
 }
 

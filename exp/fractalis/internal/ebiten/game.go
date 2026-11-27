@@ -11,7 +11,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/fractal"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/persistence"
+	"github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
 	"github.com/qjcg/arcadia/exp/fractalis/internal/core/search"
+	"github.com/qjcg/arcadia/exp/fractalis/internal/core/transition"
 )
 
 const (
@@ -69,17 +71,21 @@ type Game struct {
 	colorShift  float64
 
 	// Autopilot state
-	autopilotEnabled     bool
-	autopilotTime        float64
-	autopilotSpeed       float64
-	autopilotRadius      float64
-	autopilotHeight      float64
-	autopilotTargetX     float64
-	autopilotTargetZ     float64
-	autopilotHasTarget   bool
-	autopilotPanProgress float64
-	autopilotIterBase    int
-	calculator           *search.InterestCalculator
+	flatJourney             *transition.Runner
+	flatCrossing            *transition.Crossing
+	crossingLayer           *ebiten.Image
+	flatPilot, flatURLPilot pilot.ID
+	autopilotEnabled        bool
+	autopilotTime           float64
+	autopilotSpeed          float64
+	autopilotRadius         float64
+	autopilotHeight         float64
+	autopilotTargetX        float64
+	autopilotTargetZ        float64
+	autopilotHasTarget      bool
+	autopilotPanProgress    float64
+	autopilotIterBase       int
+	calculator              *search.InterestCalculator
 
 	// Vantage state
 	vantageEnabled     bool
@@ -211,13 +217,11 @@ func (g *Game) Update() error {
 		return ebiten.Termination
 	}
 
-	// Update autopilot mode
-	if g.autopilotEnabled {
+	if g.fractalType >= 2 {
+		g.tickFlatJourney()
+	} else if g.autopilotEnabled {
 		g.updateAutopilot()
-	}
-
-	// Update vantage mode
-	if g.vantageEnabled {
+	} else if g.vantageEnabled {
 		g.updateVantage()
 	}
 
@@ -234,7 +238,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		return
 	}
 
-	g.drawFractal(screen)
+	if g.flatCrossing == nil {
+		g.drawFractal(screen)
+	} else {
+		g.drawFlatCrossing(screen)
+	}
 	g.drawUI(screen)
 }
 
@@ -254,7 +262,7 @@ func splitFloat64(f float64) [2]float32 {
 // drawFractal renders the shader
 func (g *Game) drawFractal(screen *ebiten.Image) {
 	zoom := 1.0
-	if g.power > 0.0 {
+	if g.fractalType >= 2 || g.power > 0.0 {
 		zoom = math.Pow(2.0, g.power)
 	}
 	invZoom := 1.0 / zoom // Base zoom
