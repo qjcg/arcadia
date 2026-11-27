@@ -21,7 +21,7 @@ tasks:
   install:
     deps: [build]
     cmds:
-      - cp {{.BIN}} $GOBIN
+      - cp -f {{.BIN}} $GOBIN
 
   run:
     desc: Run the terebra REPL
