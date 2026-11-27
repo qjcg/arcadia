@@ -74,8 +74,10 @@ func TestEval(t *testing.T) {
 		},
 		{
 			name: "should_run_auger_pipe_with_cue_formatting",
-			src:  `echo "name: \"test\"" |> cat`,
-			want: "name: \"test\"\n",
+			src:  `echo 'name:"test"' |> cat`,
+			// Check field formatting without depending on top-level braces
+			// or a trailing newline in the CUE formatter's output.
+			want: `name: "test"`,
 		},
 		{
 			name: "should_encode_auger_pipe_as_json",

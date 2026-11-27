@@ -61,7 +61,12 @@ type fuzzyModel struct {
 	width    int
 	height   int
 	done     bool
-	result   string
+	result   fuzzySelection
+}
+
+type fuzzySelection struct {
+	line    string
+	execute bool
 }
 
 type filteredEntry struct {
@@ -84,41 +89,40 @@ func (m fuzzyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyPressMsg:
-		switch msg.Code {
-		case tea.KeyEscape:
+		switch msg.Keystroke() {
+		case "esc", "ctrl+g":
 			m.done = true
-			m.result = ""
 			return m, tea.Quit
 
-		case tea.KeyEnter:
+		case "enter", "tab":
 			m.done = true
 			if len(m.filtered) > 0 && m.selected >= 0 && m.selected < len(m.filtered) {
-				m.result = m.filtered[m.selected].entry
+				m.result = fuzzySelection{line: m.filtered[m.selected].entry, execute: msg.Keystroke() == "enter"}
 			}
 			return m, tea.Quit
 
-		case tea.KeyUp:
+		case "up", "ctrl+p":
 			if m.selected > 0 {
 				m.selected--
 			}
 			return m, nil
 
-		case tea.KeyDown:
+		case "down", "ctrl+n":
 			if m.selected < len(m.filtered)-1 {
 				m.selected++
 			}
 			return m, nil
 
-		case tea.KeyHome:
+		case "home":
 			m.query.SetValue("")
 			m.query.SetCursor(0)
 			return m.filter()
 
-		case tea.KeyEnd:
+		case "end":
 			m.query.SetCursor(len(m.query.Value()))
 			return m, nil
 
-		case tea.KeyBackspace:
+		case "backspace":
 			// Let textinput handle it
 			var cmd tea.Cmd
 			m.query, cmd = m.query.Update(msg)
@@ -141,7 +145,6 @@ func (m fuzzyModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.InterruptMsg:
 		m.done = true
-		m.result = ""
 		return m, tea.Quit
 	}
 
@@ -321,12 +324,12 @@ func newFuzzySearchModel(entries []string) fuzzyModel {
 }
 
 // runFuzzySearch launches the bubbletea TUI fuzzy search with the given history entries.
-// Returns the selected entry, or empty string if cancelled.
-func (s *Shell) runFuzzySearch() string {
+// Returns the selected entry and whether to execute it immediately.
+func (s *Shell) runFuzzySearch() fuzzySelection {
 	entries := s.readHistory()
 	if len(entries) == 0 {
 		fmt.Fprint(s.Stderr, "\n(fuzzy-search): no history entries\n")
-		return ""
+		return fuzzySelection{}
 	}
 
 	m := newFuzzySearchModel(entries)
@@ -335,7 +338,7 @@ func (s *Shell) runFuzzySearch() string {
 	result, err := p.Run()
 	if err != nil {
 		// Ignore ErrInterrupted (user pressed Ctrl+C)
-		return ""
+		return fuzzySelection{}
 	}
 
 	fm := result.(fuzzyModel)

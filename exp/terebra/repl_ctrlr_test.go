@@ -50,6 +50,17 @@ func startReplWithHome(t *testing.T, home string) *repl {
 }
 
 func TestReplCtrlRFuzzySearch(t *testing.T) {
+	for _, tc := range []struct{ name, key string }{
+		{"enter executes", "\r"},
+		{"tab recalls", "\t"},
+		{"ctrl-g cancels", "\x07"},
+	} {
+		t.Run(tc.name, func(t *testing.T) { testReplCtrlR(t, tc.key) })
+	}
+}
+
+func testReplCtrlR(t *testing.T, key string) {
+	t.Helper()
 	home := t.TempDir()
 	marker := filepath.Join(home, "ctrlr_marker")
 	hist := "touch " + marker + "\necho OTHER_BETA\n"
@@ -69,11 +80,28 @@ func TestReplCtrlRFuzzySearch(t *testing.T) {
 		t.Fatalf("fuzzy search UI did not appear; output: %q", r.snapshot())
 	}
 
-	r.send("ctrlr_marker")
-	time.Sleep(300 * time.Millisecond)
-	r.send("\r") // select
-	time.Sleep(300 * time.Millisecond)
-	r.send("\r") // execute
+	start := len(r.snapshot())
+	r.send("ctrlr_marker" + key)
+	if key != "\r" {
+		deadline := time.Now().Add(5 * time.Second)
+		for !strings.Contains(string(r.snapshot()[start:]), "trb:") {
+			if time.Now().After(deadline) {
+				t.Fatalf("did not return to prompt: %q", r.snapshot())
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		if _, err := os.Stat(marker); !os.IsNotExist(err) {
+			t.Fatalf("command ran without Enter: %v", err)
+		}
+		if key == "\x07" {
+			r.send("echo CANCELLED-OK\r")
+			if !r.waitFor("\nCANCELLED-OK\r\n", 5*time.Second) {
+				t.Fatalf("cancel did not leave a clean prompt: %q", r.snapshot())
+			}
+			return
+		}
+		r.send("\r")
+	}
 
 	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {

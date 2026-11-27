@@ -32,8 +32,9 @@ expansion semantics come from mvdan/sh. Everything that is not bash is
 terebra's own — auger pipes, `drill`/`cue`, and the REPL experience.
 
 ### Core Shell
-- REPL with readline (history, search, editing, persistent history, fuzzy Ctrl+R
-  search)
+- REPL with readline and persistent history. Ctrl+R opens full-screen fuzzy
+  search: Ctrl+N/Ctrl+P or the arrow keys move down/up, Enter runs the selected
+  command, Tab loads it for editing, and Ctrl+G or Escape cancels.
 - Built-in commands: `cd`, `pwd`, `echo`, `exit`, `help`, `type`,
   `export`, `unset`, `set`, `readonly`, `alias`, `unalias`, `history`,
   `source`, `jobs`, `fg`, `bg`, `drill`, `cue`, `plugin`, `state` —

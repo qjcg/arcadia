@@ -98,7 +98,7 @@ func (s *Shell) Repl() error {
 		return fmt.Errorf("readline: %v", err)
 	}
 	s.rl = rl
-	defer rl.Close()
+	defer func() { rl.Close() }()
 
 	s.loadRc()
 
@@ -145,17 +145,23 @@ func (s *Shell) Repl() error {
 					s.rl = newRL
 					rl = newRL
 
-					if result != "" {
-						rl.Operation.SetBuffer(result)
+					if !result.execute || result.line == "" {
+						if result.line != "" {
+							rl.Operation.SetBuffer(result.line)
+						}
+						continue
 					}
-					continue
+					line = result.line
+					_ = rl.SaveHistory(line)
+				} else {
+					fmt.Fprintln(s.Stdout)
+					s.closeStdinPipe()
+					return nil
 				}
-				fmt.Fprintln(s.Stdout)
+			} else {
 				s.closeStdinPipe()
-				return nil
+				return err
 			}
-			s.closeStdinPipe()
-			return err
 		}
 
 		if buf.Len() > 0 {

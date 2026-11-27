@@ -44,16 +44,18 @@ func TestFuzzySearchModelIsFocused(t *testing.T) {
 
 func TestFuzzyUpdateEscape(t *testing.T) {
 	m := newFuzzyModel([]string{"a", "b"}, "")
-	nm, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
-	fm := nm.(fuzzyModel)
-	if !fm.done {
-		t.Fatal("expected done after escape")
-	}
-	if fm.result != "" {
-		t.Fatalf("expected empty result, got %q", fm.result)
-	}
-	if cmd == nil {
-		t.Fatal("expected quit command")
+	for _, key := range []tea.KeyPressMsg{{Code: tea.KeyEscape}, {Code: 'g', Mod: tea.ModCtrl}} {
+		nm, cmd := m.Update(key)
+		fm := nm.(fuzzyModel)
+		if !fm.done {
+			t.Fatal("expected done after escape")
+		}
+		if fm.result != (fuzzySelection{}) {
+			t.Fatalf("expected empty result, got %+v", fm.result)
+		}
+		if cmd == nil {
+			t.Fatal("expected quit command")
+		}
 	}
 }
 
@@ -64,8 +66,8 @@ func TestFuzzyUpdateEnterSelects(t *testing.T) {
 	if !fm.done {
 		t.Fatal("expected done after enter")
 	}
-	if fm.result != "alpha" {
-		t.Fatalf("expected 'alpha', got %q", fm.result)
+	if fm.result != (fuzzySelection{line: "alpha", execute: true}) {
+		t.Fatalf("expected alpha to execute, got %+v", fm.result)
 	}
 	if cmd == nil {
 		t.Fatal("expected quit command")
@@ -79,8 +81,24 @@ func TestFuzzyUpdateEnterNoResults(t *testing.T) {
 	if !fm.done {
 		t.Fatal("expected done")
 	}
-	if fm.result != "" {
-		t.Fatalf("expected empty result with no matches, got %q", fm.result)
+	if fm.result != (fuzzySelection{}) {
+		t.Fatalf("expected empty result with no matches, got %+v", fm.result)
+	}
+}
+
+func TestFuzzyUpdateCtrlNavigationAndTab(t *testing.T) {
+	m := newFuzzyModel([]string{"alpha", "beta", "gamma"}, "a")
+	for _, key := range []rune{'n', 'n', 'p'} {
+		next, _ := m.Update(tea.KeyPressMsg{Code: key, Mod: tea.ModCtrl})
+		m = next.(fuzzyModel)
+	}
+	if m.query.Value() != "a" || m.selected != 1 {
+		t.Fatalf("navigation changed query or selected wrong row: %q, %d", m.query.Value(), m.selected)
+	}
+	next, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
+	m = next.(fuzzyModel)
+	if !m.done || cmd == nil || m.result != (fuzzySelection{line: "beta"}) {
+		t.Fatalf("Tab should exit with beta for editing, got %+v", m.result)
 	}
 }
 
