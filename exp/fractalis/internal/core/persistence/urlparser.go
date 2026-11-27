@@ -259,10 +259,8 @@ func ConfigToFractalURL(config Config, activePilot pilot.ID, speed float64, dire
 		queryParams.Set("color_theme", config.ColorScheme)
 	}
 
-	// Transition schedule
-	if !schedule.Empty() {
-		queryParams.Set("transition", ScheduleString(schedule))
-	}
+	// An explicit none must override nonempty pilot defaults on reload.
+	queryParams.Set("transition", ScheduleString(schedule))
 
 	// Engine
 	if config.Engine != "" && config.Engine != EngineBubbleTea {
@@ -312,9 +310,7 @@ func RandomToFractalURL(colorTheme string, activePilot pilot.ID, speed float64, 
 		queryParams.Set("color_theme", colorTheme)
 	}
 
-	if !schedule.Empty() {
-		queryParams.Set("transition", ScheduleString(schedule))
-	}
+	queryParams.Set("transition", ScheduleString(schedule))
 
 	if activePilot != "" {
 		queryParams.Set("pilot", string(activePilot))

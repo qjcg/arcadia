@@ -127,7 +127,9 @@ func searchDelta(v View) float64 {
 	return max(delta, 1e-14)
 }
 
-// TransitionSchedule returns the Auto-zoom pilot's transition
-// schedule. It stays empty until a scheduler executes schedules, so
-// the engine keeps clamping at boundaries.
-func (a *AutoZoom) TransitionSchedule() Schedule { return Schedule{} }
+// TransitionSchedule returns the Auto-zoom pilot's default: every
+// registered effect with random traversal — the journey plays a
+// different transition at each boundary crossing.
+func (a *AutoZoom) TransitionSchedule() Schedule {
+	return Schedule{Transitions: AllEffectIDs(), Traversal: Random}
+}

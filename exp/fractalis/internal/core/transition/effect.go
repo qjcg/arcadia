@@ -2,20 +2,18 @@ package transition
 
 import "github.com/qjcg/arcadia/exp/fractalis/internal/core/pilot"
 
-// Registered effect IDs. These are the v1 vocabulary: the schedule
-// grammar and the effect registry both key on them.
+// Effect IDs. The v1 vocabulary lives with the Schedule in the pilot
+// package — schedules name these; the effect registry keys on them.
 const (
-	FadeID         = "fade"
-	ZoomOutID      = "zoomout"
-	RotateID       = "rotate"
-	BreakthroughID = "breakthrough"
-	StarWipeID     = "starwipe"
+	FadeID         = pilot.FadeID
+	ZoomOutID      = pilot.ZoomOutID
+	RotateID       = pilot.RotateID
+	BreakthroughID = pilot.BreakthroughID
+	StarWipeID     = pilot.StarWipeID
 )
 
 // EffectIDs returns every effect ID in the v1 vocabulary.
-func EffectIDs() []string {
-	return []string{FadeID, ZoomOutID, RotateID, BreakthroughID, StarWipeID}
-}
+func EffectIDs() []string { return pilot.AllEffectIDs() }
 
 // Effect renders a crossing from a source view to a destination view
 // over the shared progress model. Frontends render the frames; effects

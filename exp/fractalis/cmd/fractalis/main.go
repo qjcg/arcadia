@@ -90,9 +90,11 @@ type model struct {
 	// Transition runner: boundary arrivals, schedules, crossings
 	runner *transition.Runner
 	// Effect registry for rendering crossing frames
-	effects *transition.Registry
-	// Effective transition schedule (URL-seeded; presets land in #7)
-	schedule pilot.Schedule
+	effects          *transition.Registry
+	schedule         pilot.Schedule
+	urlSchedule      *pilot.Schedule
+	urlSchedulePilot pilot.ID
+	sessionSchedule  *pilot.Schedule
 	// Crossing in flight, if any
 	crossing *transition.Crossing
 	// The registered pilot currently driving the view
@@ -238,6 +240,46 @@ func (m *model) selectPilot(id pilot.ID) {
 	default:
 		m.seam().Activate(pilot.Manual())
 	}
+	m.refreshSchedule()
+}
+
+func (m *model) refreshSchedule() {
+	m.schedule = m.seam().Active().TransitionSchedule()
+	if m.urlSchedule != nil && m.urlSchedulePilot == m.activePilot() {
+		m.schedule = *m.urlSchedule
+	}
+	if m.sessionSchedule != nil {
+		m.schedule = *m.sessionSchedule
+	}
+	m.seam().SetSchedule(m.schedule)
+}
+
+func (m *model) setURLSchedule(id pilot.ID, schedule pilot.Schedule, present bool) {
+	m.urlSchedule = nil
+	if present {
+		m.urlSchedule = &schedule
+		m.urlSchedulePilot = id
+	}
+	m.refreshSchedule()
+}
+
+func nextSchedule(current pilot.Schedule) pilot.Schedule {
+	ids := transition.EffectIDs()
+	presets := make([]pilot.Schedule, 0, len(ids)+3)
+	for _, id := range ids {
+		presets = append(presets, pilot.Schedule{Transitions: []string{id}, Traversal: pilot.Single})
+	}
+	presets = append(presets,
+		pilot.Schedule{Transitions: ids, Traversal: pilot.Sequential},
+		pilot.Schedule{Transitions: ids, Traversal: pilot.Random},
+		pilot.Schedule{},
+	)
+	for i, preset := range presets {
+		if persistence.ScheduleString(preset) == persistence.ScheduleString(current) {
+			return presets[(i+1)%len(presets)]
+		}
+	}
+	return presets[0]
 }
 
 // applyParamsToModel applies FractalURLParams to a model
@@ -260,10 +302,7 @@ func applyParamsToModel(m *model, params persistence.FractalURLParams) {
 	}
 
 	m.animationState.Color.DynamicColor = params.DynamicColorEnabled
-	if params.ScheduleSet {
-		m.schedule = params.Schedule
-		m.seam().SetSchedule(m.schedule)
-	}
+	m.setURLSchedule(params.Pilot, params.Schedule, params.ScheduleSet)
 
 	m.animationState.AutoPilot.BaseMaxIter = params.MaxIter
 }
@@ -998,21 +1037,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		// Transition mode switching
 		case "T":
-			// Cycle through transition modes
-			m.animationState.Transition.Mode = (m.animationState.Transition.Mode + 1) % 5
-			if m.animationState.Transition.Mode == 0 {
-				m.animationState.Messages.RandomMsg = "Transition: None"
-			} else if m.animationState.Transition.Mode == 1 {
-				m.animationState.Messages.RandomMsg = "Transition: Fade"
-			} else if m.animationState.Transition.Mode == 2 {
-				m.animationState.Messages.RandomMsg = "Transition: Zoom Out/In"
-			} else if m.animationState.Transition.Mode == 3 {
-				m.animationState.Messages.RandomMsg = "Transition: Rotate"
-			} else if m.animationState.Transition.Mode == 4 {
-				m.animationState.Messages.RandomMsg = "Transition: Breakthrough"
-			}
+			next := nextSchedule(m.schedule)
+			m.sessionSchedule = &next
+			m.refreshSchedule()
+			m.animationState.Messages.RandomMsg = "Transition: " + persistence.ScheduleString(m.schedule)
 			m.animationState.Messages.RandomTimer = 30
-			return m, nil
+			return m, tickCmd()
 
 		// Dynamic color mode toggle
 		case "C":
@@ -1916,10 +1946,7 @@ func main() {
 		m.autoZoomPilot().SetSpeed(urlPilotSpeed)
 		m.autoZoomPilot().SetDirection(urlPilotDirection)
 		m.animationState.Color.DynamicColor = urlDynamicColor
-		if urlScheduleSet {
-			m.schedule = urlSchedule
-			m.seam().SetSchedule(urlSchedule)
-		}
+		m.setURLSchedule(urlPilot, urlSchedule, urlScheduleSet)
 	}
 
 	// Apply CLI autopilot flag if provided
