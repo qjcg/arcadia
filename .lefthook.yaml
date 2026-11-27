@@ -72,6 +72,9 @@ pre-push:
             run: go tool task lint:govulncheck
             glob: *gofiles
 
+          - name: betterleaks
+            run: go tool task lint:betterleaks
+
     - name: linters
       group:
         parallel: true

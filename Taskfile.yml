@@ -68,6 +68,7 @@ tasks:
     deps:
       - lint:golangci-lint
       - lint:govulncheck
+      - lint:betterleaks
       - lint:gofumpt
       - lint:cuefmt
       - lint:go:fix
