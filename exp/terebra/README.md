@@ -33,8 +33,10 @@ terebra's own — auger pipes, `drill`/`cue`, and the REPL experience.
 
 ### Core Shell
 - REPL with readline and persistent history. Ctrl+R opens full-screen fuzzy
-  search: Ctrl+N/Ctrl+P or the arrow keys move down/up, Enter runs the selected
-  command, Tab loads it for editing, and Ctrl+G or Escape cancels.
+  search: Ctrl+N/Ctrl+P or the arrow keys move down/up. Ctrl+Shift+, jumps to
+  the first result and Ctrl+Shift+. jumps to the last in terminals that report
+  those chords. Enter runs the selected command, Tab loads it for editing, and
+  Ctrl+G or Escape cancels.
 - Built-in commands: `cd`, `pwd`, `echo`, `exit`, `help`, `type`,
   `export`, `unset`, `set`, `readonly`, `alias`, `unalias`, `history`,
   `source`, `jobs`, `fg`, `bg`, `drill`, `cue`, `plugin`, `state` —
