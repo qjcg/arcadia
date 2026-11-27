@@ -2,10 +2,7 @@ module github.com/qjcg/arcadia
 
 go 1.27.4
 
-require (
-	github.com/rogpeppe/go-internal v1.16.1-0.20261005065351-38c169d642f5
-	github.com/yuin/goldmark v1.8.7
-)
+require github.com/rogpeppe/go-internal v1.16.1-0.20261005065351-38c169d642f5
 
 require (
 	al.essio.dev/pkg/shellescape v1.6.1 // indirect
@@ -378,6 +375,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20261013231157-39c47d93efba // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
+	github.com/yuin/goldmark v1.8.7 // indirect
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
 	github.com/zalando/go-keyring v0.2.8 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect

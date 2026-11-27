@@ -16,6 +16,7 @@ use (
 	./exp/goast
 	./exp/horeb
 	./exp/jmacs
+	./exp/linkcheck
 	./exp/mnemosyne
 	./exp/mtlcam
 	./exp/pangrams

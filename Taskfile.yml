@@ -79,11 +79,11 @@ tasks:
 
   lint:check-links:
     desc: Validate local Markdown links and anchors without network access
-    cmd: go run ./internal/linkcheck -- {{.CLI_ARGS}}
+    cmd: go run ./exp/linkcheck -- {{.CLI_ARGS}}
 
   lint:check-links:external:
     desc: Audit external Markdown links (network required)
-    cmd: go run ./internal/linkcheck -external -- {{.CLI_ARGS}}
+    cmd: go run ./exp/linkcheck -external -- {{.CLI_ARGS}}
 
   lint:golangci-lint:
     cmd: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.V_GOLANGCILINT}} run
