@@ -514,6 +514,7 @@ func (m *model) seam() *transition.Runner {
 		m.effects.Register(transition.ZoomOutID, transition.ZoomOutIn{})
 		m.effects.Register(transition.RotateID, transition.Rotate{})
 		m.effects.Register(transition.BreakthroughID, transition.Breakthrough{})
+		m.effects.Register(transition.StarWipeID, transition.StarWipe{})
 	}
 	return m.runner
 }
@@ -1402,6 +1403,12 @@ func (m model) renderCrossing(c transition.Crossing) string {
 		}
 	}
 	frame := effect.Frame(c.Source, c.Destination, c.Progress)
+	if frame.Star {
+		return m.renderer.RenderReveal(m.configForView(frame.Source), m.configForView(frame.Destination), frame.Mix,
+			func(row, col, width, height int) float64 {
+				return transition.StarThreshold((float64(col)+0.5)/float64(width), (float64(row)+0.5)/float64(height))
+			})
+	}
 	return m.renderer.RenderCrossfade(
 		m.configForView(frame.Source),
 		m.configForView(frame.Destination),

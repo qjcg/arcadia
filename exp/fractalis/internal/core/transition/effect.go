@@ -32,7 +32,8 @@ type Frame struct {
 	Destination pilot.View
 	// Mix in [0,1] splits the frame between the two views: 0 shows
 	// only the source, 1 only the destination.
-	Mix float64
+	Mix  float64
+	Star bool // Reveal through an expanding star rather than a dissolve.
 }
 
 // Registry maps effect IDs to effect implementations.

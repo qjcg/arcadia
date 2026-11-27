@@ -79,8 +79,24 @@ func (r *Renderer) RenderFractal() string {
 // mix (0 = all source, 1 = all destination), picking per cell
 // against a fixed dither so the dissolve is stable as mix grows.
 func (r *Renderer) RenderCrossfade(src, dst persistence.Config, mix float64) string {
+	return r.RenderReveal(src, dst, mix, func(row, col, _, _ int) float64 { return cellDither(row, col) })
+}
+
+// RenderReveal composites two views using a per-cell reveal threshold.
+func (r *Renderer) RenderReveal(src, dst persistence.Config, mix float64, threshold func(row, col, width, height int) float64) string {
+	if mix <= 0 {
+		grid, colors := r.cellGrid(src)
+		return r.cellString(grid, colors, src)
+	}
+	if mix >= 1 {
+		grid, colors := r.cellGrid(dst)
+		return r.cellString(grid, colors, dst)
+	}
 	srcGrid, srcColors := r.cellGrid(src)
 	dstGrid, dstColors := r.cellGrid(dst)
+	if len(srcGrid) == 0 {
+		return ""
+	}
 
 	height := len(srcGrid)
 	width := len(srcGrid[0])
@@ -90,7 +106,7 @@ func (r *Renderer) RenderCrossfade(src, dst persistence.Config, mix float64) str
 		grid[row] = make([]byte, width)
 		colorGrid[row] = make([]string, width)
 		for col := range width {
-			if cellDither(row, col) < mix {
+			if threshold(row, col, width, height) < mix {
 				grid[row][col] = dstGrid[row][col]
 				colorGrid[row][col] = dstColors[row][col]
 			} else {
