@@ -83,8 +83,8 @@ package resource
 
 #enumFormat:
 	#DecimalExponent |
-	#BinarySI |
-	#DecimalSI
+		#BinarySI |
+		#DecimalSI
 
 #DecimalExponent: #Format & "DecimalExponent"
 #BinarySI:        #Format & "BinarySI"

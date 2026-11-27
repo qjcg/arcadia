@@ -20,7 +20,7 @@ package intstr
 
 #enumType:
 	#Int |
-	#String
+		#String
 
 #values_Type: {
 	Int:    #Int

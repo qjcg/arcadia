@@ -11,11 +11,11 @@ package types
 
 #enumPatchType:
 	#JSONPatchType |
-	#MergePatchType |
-	#StrategicMergePatchType |
-	#ApplyPatchType |
-	#ApplyYAMLPatchType |
-	#ApplyCBORPatchType
+		#MergePatchType |
+		#StrategicMergePatchType |
+		#ApplyPatchType |
+		#ApplyYAMLPatchType |
+		#ApplyCBORPatchType
 
 #JSONPatchType:           #PatchType & "application/json-patch+json"
 #MergePatchType:          #PatchType & "application/merge-patch+json"

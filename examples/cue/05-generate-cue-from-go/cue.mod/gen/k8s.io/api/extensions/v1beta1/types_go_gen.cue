@@ -176,7 +176,7 @@ import (
 
 #enumDeploymentStrategyType:
 	#RecreateDeploymentStrategyType |
-	#RollingUpdateDeploymentStrategyType
+		#RollingUpdateDeploymentStrategyType
 
 // Kill all existing pods before creating new ones.
 #RecreateDeploymentStrategyType: #DeploymentStrategyType & "Recreate"
@@ -267,8 +267,8 @@ import (
 
 #enumDeploymentConditionType:
 	#DeploymentAvailable |
-	#DeploymentProgressing |
-	#DeploymentReplicaFailure
+		#DeploymentProgressing |
+		#DeploymentReplicaFailure
 
 // Available means the deployment is available, ie. at least the minimum available
 // replicas required are up and running for at least minReadySeconds.
@@ -339,7 +339,7 @@ import (
 
 #enumDaemonSetUpdateStrategyType:
 	#RollingUpdateDaemonSetStrategyType |
-	#OnDeleteDaemonSetStrategyType
+		#OnDeleteDaemonSetStrategyType
 
 // Replace the old daemons by new ones using rolling update i.e replace them on each node one after the other.
 #RollingUpdateDaemonSetStrategyType: #DaemonSetUpdateStrategyType & "RollingUpdate"
@@ -768,8 +768,8 @@ import (
 
 #enumPathType:
 	#PathTypeExact |
-	#PathTypePrefix |
-	#PathTypeImplementationSpecific
+		#PathTypePrefix |
+		#PathTypeImplementationSpecific
 
 // PathTypeExact matches the URL path exactly and with case sensitivity.
 #PathTypeExact: #PathType & "Exact"
@@ -1005,7 +1005,7 @@ import (
 
 #enumPolicyType:
 	#PolicyTypeIngress |
-	#PolicyTypeEgress
+		#PolicyTypeEgress
 
 // PolicyTypeIngress is a NetworkPolicy that affects ingress traffic on selected pods
 #PolicyTypeIngress: #PolicyType & "Ingress"

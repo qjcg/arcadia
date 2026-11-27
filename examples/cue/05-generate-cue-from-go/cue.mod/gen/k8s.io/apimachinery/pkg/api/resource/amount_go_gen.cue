@@ -11,14 +11,14 @@ package resource
 
 #enumScale:
 	#Nano |
-	#Micro |
-	#Milli |
-	#Kilo |
-	#Mega |
-	#Giga |
-	#Tera |
-	#Peta |
-	#Exa
+		#Micro |
+		#Milli |
+		#Kilo |
+		#Mega |
+		#Giga |
+		#Tera |
+		#Peta |
+		#Exa
 
 #values_Scale: {
 	Nano:  #Nano

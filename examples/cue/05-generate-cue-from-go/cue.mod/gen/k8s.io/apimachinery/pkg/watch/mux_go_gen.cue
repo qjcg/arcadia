@@ -10,7 +10,7 @@ package watch
 
 #enumFullChannelBehavior:
 	#WaitIfChannelFull |
-	#DropIfChannelFull
+		#DropIfChannelFull
 
 #values_FullChannelBehavior: {
 	WaitIfChannelFull: #WaitIfChannelFull

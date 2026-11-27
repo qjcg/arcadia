@@ -49,7 +49,7 @@ import (
 
 #enumPodManagementPolicyType:
 	#OrderedReadyPodManagement |
-	#ParallelPodManagement
+		#ParallelPodManagement
 
 // OrderedReadyPodManagement will create pods in strictly increasing order on
 // scale up and strictly decreasing order on scale down, progressing only when
@@ -83,7 +83,7 @@ import (
 
 #enumStatefulSetUpdateStrategyType:
 	#RollingUpdateStatefulSetStrategyType |
-	#OnDeleteStatefulSetStrategyType
+		#OnDeleteStatefulSetStrategyType
 
 // RollingUpdateStatefulSetStrategyType indicates that update will be
 // applied to all Pods in the StatefulSet with respect to the StatefulSet
@@ -126,7 +126,7 @@ import (
 
 #enumPersistentVolumeClaimRetentionPolicyType:
 	#RetainPersistentVolumeClaimRetentionPolicyType |
-	#DeletePersistentVolumeClaimRetentionPolicyType
+		#DeletePersistentVolumeClaimRetentionPolicyType
 
 // RetainPersistentVolumeClaimRetentionPolicyType is the default
 // PersistentVolumeClaimRetentionPolicy and specifies that
@@ -431,7 +431,7 @@ import (
 
 #enumDeploymentStrategyType:
 	#RecreateDeploymentStrategyType |
-	#RollingUpdateDeploymentStrategyType
+		#RollingUpdateDeploymentStrategyType
 
 // Kill all existing pods before creating new ones.
 #RecreateDeploymentStrategyType: #DeploymentStrategyType & "Recreate"
@@ -522,8 +522,8 @@ import (
 
 #enumDeploymentConditionType:
 	#DeploymentAvailable |
-	#DeploymentProgressing |
-	#DeploymentReplicaFailure
+		#DeploymentProgressing |
+		#DeploymentReplicaFailure
 
 // Available means the deployment is available, ie. at least the minimum available
 // replicas required are up and running for at least minReadySeconds.
@@ -592,7 +592,7 @@ import (
 
 #enumDaemonSetUpdateStrategyType:
 	#RollingUpdateDaemonSetStrategyType |
-	#OnDeleteDaemonSetStrategyType
+		#OnDeleteDaemonSetStrategyType
 
 // Replace the old daemons by new ones using rolling update i.e replace them on each node one after the other.
 #RollingUpdateDaemonSetStrategyType: #DaemonSetUpdateStrategyType & "RollingUpdate"

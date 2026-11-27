@@ -14,10 +14,10 @@ import "k8s.io/apimachinery/pkg/runtime"
 
 #enumEventType:
 	#Added |
-	#Modified |
-	#Deleted |
-	#Bookmark |
-	#Error
+		#Modified |
+		#Deleted |
+		#Bookmark |
+		#Error
 
 #Added:    #EventType & "ADDED"
 #Modified: #EventType & "MODIFIED"

@@ -431,7 +431,7 @@ import (
 
 #enumResourceVersionMatch:
 	#ResourceVersionMatchNotOlderThan |
-	#ResourceVersionMatchExact
+		#ResourceVersionMatchExact
 
 // ResourceVersionMatchNotOlderThan matches data at least as new as the provided
 // resourceVersion.
@@ -460,8 +460,8 @@ import (
 
 #enumDeletionPropagation:
 	#DeletePropagationOrphan |
-	#DeletePropagationBackground |
-	#DeletePropagationForeground
+		#DeletePropagationBackground |
+		#DeletePropagationForeground
 
 // Orphans the dependents.
 #DeletePropagationOrphan: #DeletionPropagation & "Orphan"
@@ -811,25 +811,25 @@ import (
 
 #enumStatusReason:
 	#StatusReasonUnknown |
-	#StatusReasonUnauthorized |
-	#StatusReasonForbidden |
-	#StatusReasonNotFound |
-	#StatusReasonAlreadyExists |
-	#StatusReasonConflict |
-	#StatusReasonGone |
-	#StatusReasonInvalid |
-	#StatusReasonServerTimeout |
-	#StatusReasonStoreReadError |
-	#StatusReasonTimeout |
-	#StatusReasonTooManyRequests |
-	#StatusReasonBadRequest |
-	#StatusReasonMethodNotAllowed |
-	#StatusReasonNotAcceptable |
-	#StatusReasonRequestEntityTooLarge |
-	#StatusReasonUnsupportedMediaType |
-	#StatusReasonInternalError |
-	#StatusReasonExpired |
-	#StatusReasonServiceUnavailable
+		#StatusReasonUnauthorized |
+		#StatusReasonForbidden |
+		#StatusReasonNotFound |
+		#StatusReasonAlreadyExists |
+		#StatusReasonConflict |
+		#StatusReasonGone |
+		#StatusReasonInvalid |
+		#StatusReasonServerTimeout |
+		#StatusReasonStoreReadError |
+		#StatusReasonTimeout |
+		#StatusReasonTooManyRequests |
+		#StatusReasonBadRequest |
+		#StatusReasonMethodNotAllowed |
+		#StatusReasonNotAcceptable |
+		#StatusReasonRequestEntityTooLarge |
+		#StatusReasonUnsupportedMediaType |
+		#StatusReasonInternalError |
+		#StatusReasonExpired |
+		#StatusReasonServiceUnavailable
 
 // StatusReasonUnknown means the server has declined to indicate a specific reason.
 // The details field may contain other information about this error.
@@ -1024,18 +1024,18 @@ import (
 
 #enumCauseType:
 	#CauseTypeFieldValueNotFound |
-	#CauseTypeFieldValueRequired |
-	#CauseTypeFieldValueDuplicate |
-	#CauseTypeFieldValueInvalid |
-	#CauseTypeFieldValueNotSupported |
-	#CauseTypeForbidden |
-	#CauseTypeTooLong |
-	#CauseTypeTooMany |
-	#CauseTypeInternal |
-	#CauseTypeTypeInvalid |
-	#CauseTypeUnexpectedServerResponse |
-	#CauseTypeFieldManagerConflict |
-	#CauseTypeResourceVersionTooLarge
+		#CauseTypeFieldValueRequired |
+		#CauseTypeFieldValueDuplicate |
+		#CauseTypeFieldValueInvalid |
+		#CauseTypeFieldValueNotSupported |
+		#CauseTypeForbidden |
+		#CauseTypeTooLong |
+		#CauseTypeTooMany |
+		#CauseTypeInternal |
+		#CauseTypeTypeInvalid |
+		#CauseTypeUnexpectedServerResponse |
+		#CauseTypeFieldManagerConflict |
+		#CauseTypeResourceVersionTooLarge
 
 // CauseTypeFieldValueNotFound is used to report failure to find a requested value
 // (e.g. looking up an ID).
@@ -1308,9 +1308,9 @@ import (
 
 #enumLabelSelectorOperator:
 	#LabelSelectorOpIn |
-	#LabelSelectorOpNotIn |
-	#LabelSelectorOpExists |
-	#LabelSelectorOpDoesNotExist
+		#LabelSelectorOpNotIn |
+		#LabelSelectorOpExists |
+		#LabelSelectorOpDoesNotExist
 
 #LabelSelectorOpIn:           #LabelSelectorOperator & "In"
 #LabelSelectorOpNotIn:        #LabelSelectorOperator & "NotIn"
@@ -1341,9 +1341,9 @@ import (
 
 #enumFieldSelectorOperator:
 	#FieldSelectorOpIn |
-	#FieldSelectorOpNotIn |
-	#FieldSelectorOpExists |
-	#FieldSelectorOpDoesNotExist
+		#FieldSelectorOpNotIn |
+		#FieldSelectorOpExists |
+		#FieldSelectorOpDoesNotExist
 
 #FieldSelectorOpIn:           #FieldSelectorOperator & "In"
 #FieldSelectorOpNotIn:        #FieldSelectorOperator & "NotIn"
@@ -1397,7 +1397,7 @@ import (
 
 #enumManagedFieldsOperationType:
 	#ManagedFieldsOperationApply |
-	#ManagedFieldsOperationUpdate
+		#ManagedFieldsOperationUpdate
 
 #ManagedFieldsOperationApply:  #ManagedFieldsOperationType & "Apply"
 #ManagedFieldsOperationUpdate: #ManagedFieldsOperationType & "Update"
@@ -1526,8 +1526,8 @@ import (
 
 #enumConditionStatus:
 	#ConditionTrue |
-	#ConditionFalse |
-	#ConditionUnknown
+		#ConditionFalse |
+		#ConditionUnknown
 
 #ConditionTrue:    #ConditionStatus & "True"
 #ConditionFalse:   #ConditionStatus & "False"
@@ -1538,8 +1538,8 @@ import (
 
 #enumIncludeObjectPolicy:
 	#IncludeNone |
-	#IncludeMetadata |
-	#IncludeObject
+		#IncludeMetadata |
+		#IncludeObject
 
 // IncludeNone returns no object.
 #IncludeNone: #IncludeObjectPolicy & "None"

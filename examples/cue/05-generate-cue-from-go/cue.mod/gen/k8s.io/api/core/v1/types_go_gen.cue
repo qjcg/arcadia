@@ -491,8 +491,8 @@ import (
 
 #enumPersistentVolumeReclaimPolicy:
 	#PersistentVolumeReclaimRecycle |
-	#PersistentVolumeReclaimDelete |
-	#PersistentVolumeReclaimRetain
+		#PersistentVolumeReclaimDelete |
+		#PersistentVolumeReclaimRetain
 
 // PersistentVolumeReclaimRecycle means the volume will be recycled back into the pool of unbound persistent volumes on release from its claim.
 // The volume plugin must support Recycling.
@@ -512,7 +512,7 @@ import (
 
 #enumPersistentVolumeMode:
 	#PersistentVolumeBlock |
-	#PersistentVolumeFilesystem
+		#PersistentVolumeFilesystem
 
 // PersistentVolumeBlock means the volume will not be formatted with a filesystem and will remain a raw block device.
 #PersistentVolumeBlock: #PersistentVolumeMode & "Block"
@@ -713,11 +713,11 @@ import (
 
 #enumPersistentVolumeClaimConditionType:
 	#PersistentVolumeClaimResizing |
-	#PersistentVolumeClaimFileSystemResizePending |
-	#PersistentVolumeClaimControllerResizeError |
-	#PersistentVolumeClaimNodeResizeError |
-	#PersistentVolumeClaimVolumeModifyVolumeError |
-	#PersistentVolumeClaimVolumeModifyingVolume
+		#PersistentVolumeClaimFileSystemResizePending |
+		#PersistentVolumeClaimControllerResizeError |
+		#PersistentVolumeClaimNodeResizeError |
+		#PersistentVolumeClaimVolumeModifyVolumeError |
+		#PersistentVolumeClaimVolumeModifyingVolume
 
 // PersistentVolumeClaimResizing - a user trigger resize of pvc has been started
 #PersistentVolumeClaimResizing: #PersistentVolumeClaimConditionType & "Resizing"
@@ -745,10 +745,10 @@ import (
 
 #enumClaimResourceStatus:
 	#PersistentVolumeClaimControllerResizeInProgress |
-	#PersistentVolumeClaimControllerResizeInfeasible |
-	#PersistentVolumeClaimNodeResizePending |
-	#PersistentVolumeClaimNodeResizeInProgress |
-	#PersistentVolumeClaimNodeResizeInfeasible
+		#PersistentVolumeClaimControllerResizeInfeasible |
+		#PersistentVolumeClaimNodeResizePending |
+		#PersistentVolumeClaimNodeResizeInProgress |
+		#PersistentVolumeClaimNodeResizeInfeasible
 
 // State set when resize controller starts resizing the volume in control-plane.
 #PersistentVolumeClaimControllerResizeInProgress: #ClaimResourceStatus & "ControllerResizeInProgress"
@@ -775,8 +775,8 @@ import (
 
 #enumPersistentVolumeClaimModifyVolumeStatus:
 	#PersistentVolumeClaimModifyVolumePending |
-	#PersistentVolumeClaimModifyVolumeInProgress |
-	#PersistentVolumeClaimModifyVolumeInfeasible
+		#PersistentVolumeClaimModifyVolumeInProgress |
+		#PersistentVolumeClaimModifyVolumeInfeasible
 
 // Pending indicates that the PersistentVolumeClaim cannot be modified due to unmet requirements, such as
 // the specified VolumeAttributesClass not existing
@@ -946,9 +946,9 @@ import (
 
 #enumPersistentVolumeAccessMode:
 	#ReadWriteOnce |
-	#ReadOnlyMany |
-	#ReadWriteMany |
-	#ReadWriteOncePod
+		#ReadOnlyMany |
+		#ReadWriteMany |
+		#ReadWriteOncePod
 
 // can be mounted in read/write mode to exactly 1 host
 #ReadWriteOnce: #PersistentVolumeAccessMode & "ReadWriteOnce"
@@ -968,10 +968,10 @@ import (
 
 #enumPersistentVolumePhase:
 	#VolumePending |
-	#VolumeAvailable |
-	#VolumeBound |
-	#VolumeReleased |
-	#VolumeFailed
+		#VolumeAvailable |
+		#VolumeBound |
+		#VolumeReleased |
+		#VolumeFailed
 
 // used for PersistentVolumes that are not available
 #VolumePending: #PersistentVolumePhase & "Pending"
@@ -996,8 +996,8 @@ import (
 
 #enumPersistentVolumeClaimPhase:
 	#ClaimPending |
-	#ClaimBound |
-	#ClaimLost
+		#ClaimBound |
+		#ClaimLost
 
 // used for PersistentVolumeClaims that are not yet bound
 #ClaimPending: #PersistentVolumeClaimPhase & "Pending"
@@ -1015,13 +1015,13 @@ import (
 
 #enumHostPathType:
 	#HostPathUnset |
-	#HostPathDirectoryOrCreate |
-	#HostPathDirectory |
-	#HostPathFileOrCreate |
-	#HostPathFile |
-	#HostPathSocket |
-	#HostPathCharDev |
-	#HostPathBlockDev
+		#HostPathDirectoryOrCreate |
+		#HostPathDirectory |
+		#HostPathFileOrCreate |
+		#HostPathFile |
+		#HostPathSocket |
+		#HostPathCharDev |
+		#HostPathBlockDev
 
 // For backwards compatible, leave it empty if unset
 #HostPathUnset: #HostPathType & ""
@@ -1391,9 +1391,9 @@ import (
 
 #enumStorageMedium:
 	#StorageMediumDefault |
-	#StorageMediumMemory |
-	#StorageMediumHugePages |
-	#StorageMediumHugePagesPrefix
+		#StorageMediumMemory |
+		#StorageMediumHugePages |
+		#StorageMediumHugePagesPrefix
 
 #StorageMediumDefault:         #StorageMedium & ""
 #StorageMediumMemory:          #StorageMedium & "Memory"
@@ -1406,8 +1406,8 @@ import (
 
 #enumProtocol:
 	#ProtocolTCP |
-	#ProtocolUDP |
-	#ProtocolSCTP
+		#ProtocolUDP |
+		#ProtocolSCTP
 
 // ProtocolTCP is the TCP protocol.
 #ProtocolTCP: #Protocol & "TCP"
@@ -1898,16 +1898,16 @@ import (
 
 #enumAzureDataDiskCachingMode:
 	#AzureDataDiskCachingNone |
-	#AzureDataDiskCachingReadOnly |
-	#AzureDataDiskCachingReadWrite
+		#AzureDataDiskCachingReadOnly |
+		#AzureDataDiskCachingReadWrite
 
 // +enum
 #AzureDataDiskKind: string // #enumAzureDataDiskKind
 
 #enumAzureDataDiskKind:
 	#AzureSharedBlobDisk |
-	#AzureDedicatedBlobDisk |
-	#AzureManagedDisk
+		#AzureDedicatedBlobDisk |
+		#AzureManagedDisk
 
 #AzureDataDiskCachingNone:      #AzureDataDiskCachingMode & "None"
 #AzureDataDiskCachingReadOnly:  #AzureDataDiskCachingMode & "ReadOnly"
@@ -2683,8 +2683,8 @@ import (
 
 #enumMountPropagationMode:
 	#MountPropagationNone |
-	#MountPropagationHostToContainer |
-	#MountPropagationBidirectional
+		#MountPropagationHostToContainer |
+		#MountPropagationBidirectional
 
 // MountPropagationNone means that the volume in a container will
 // not receive new mounts from the host or other containers, and filesystems
@@ -2713,8 +2713,8 @@ import (
 
 #enumRecursiveReadOnlyMode:
 	#RecursiveReadOnlyDisabled |
-	#RecursiveReadOnlyIfPossible |
-	#RecursiveReadOnlyEnabled
+		#RecursiveReadOnlyIfPossible |
+		#RecursiveReadOnlyEnabled
 
 // RecursiveReadOnlyDisabled disables recursive-readonly mode.
 #RecursiveReadOnlyDisabled: #RecursiveReadOnlyMode & "Disabled"
@@ -2952,7 +2952,7 @@ import (
 
 #enumURIScheme:
 	#URISchemeHTTP |
-	#URISchemeHTTPS
+		#URISchemeHTTPS
 
 // URISchemeHTTP means that the scheme used will be http://
 #URISchemeHTTP: #URIScheme & "HTTP"
@@ -3055,8 +3055,8 @@ import (
 
 #enumPullPolicy:
 	#PullAlways |
-	#PullNever |
-	#PullIfNotPresent
+		#PullNever |
+		#PullIfNotPresent
 
 // PullAlways means that kubelet always attempts to pull the latest image. Container will fail If the pull fails.
 #PullAlways: #PullPolicy & "Always"
@@ -3072,7 +3072,7 @@ import (
 
 #enumResourceResizeRestartPolicy:
 	#NotRequired |
-	#RestartContainer
+		#RestartContainer
 
 // 'NotRequired' means Kubernetes will try to resize the container
 // without restarting it, if possible. Kubernetes may however choose to
@@ -3103,7 +3103,7 @@ import (
 
 #enumPreemptionPolicy:
 	#PreemptLowerPriority |
-	#PreemptNever
+		#PreemptNever
 
 // PreemptLowerPriority means that pod can preempt other pods with lower priority.
 #PreemptLowerPriority: #PreemptionPolicy & "PreemptLowerPriority"
@@ -3117,7 +3117,7 @@ import (
 
 #enumTerminationMessagePolicy:
 	#TerminationMessageReadFile |
-	#TerminationMessageFallbackToLogsOnError
+		#TerminationMessageFallbackToLogsOnError
 
 // TerminationMessageReadFile is the default behavior and will set the container status message to
 // the contents of the container's terminationMessagePath when the container exits.
@@ -3483,70 +3483,70 @@ import (
 
 #enumSignal:
 	#SIGABRT |
-	#SIGALRM |
-	#SIGBUS |
-	#SIGCHLD |
-	#SIGCLD |
-	#SIGCONT |
-	#SIGFPE |
-	#SIGHUP |
-	#SIGILL |
-	#SIGINT |
-	#SIGIO |
-	#SIGIOT |
-	#SIGKILL |
-	#SIGPIPE |
-	#SIGPOLL |
-	#SIGPROF |
-	#SIGPWR |
-	#SIGQUIT |
-	#SIGSEGV |
-	#SIGSTKFLT |
-	#SIGSTOP |
-	#SIGSYS |
-	#SIGTERM |
-	#SIGTRAP |
-	#SIGTSTP |
-	#SIGTTIN |
-	#SIGTTOU |
-	#SIGURG |
-	#SIGUSR1 |
-	#SIGUSR2 |
-	#SIGVTALRM |
-	#SIGWINCH |
-	#SIGXCPU |
-	#SIGXFSZ |
-	#SIGRTMIN |
-	#SIGRTMINPLUS1 |
-	#SIGRTMINPLUS2 |
-	#SIGRTMINPLUS3 |
-	#SIGRTMINPLUS4 |
-	#SIGRTMINPLUS5 |
-	#SIGRTMINPLUS6 |
-	#SIGRTMINPLUS7 |
-	#SIGRTMINPLUS8 |
-	#SIGRTMINPLUS9 |
-	#SIGRTMINPLUS10 |
-	#SIGRTMINPLUS11 |
-	#SIGRTMINPLUS12 |
-	#SIGRTMINPLUS13 |
-	#SIGRTMINPLUS14 |
-	#SIGRTMINPLUS15 |
-	#SIGRTMAXMINUS14 |
-	#SIGRTMAXMINUS13 |
-	#SIGRTMAXMINUS12 |
-	#SIGRTMAXMINUS11 |
-	#SIGRTMAXMINUS10 |
-	#SIGRTMAXMINUS9 |
-	#SIGRTMAXMINUS8 |
-	#SIGRTMAXMINUS7 |
-	#SIGRTMAXMINUS6 |
-	#SIGRTMAXMINUS5 |
-	#SIGRTMAXMINUS4 |
-	#SIGRTMAXMINUS3 |
-	#SIGRTMAXMINUS2 |
-	#SIGRTMAXMINUS1 |
-	#SIGRTMAX
+		#SIGALRM |
+		#SIGBUS |
+		#SIGCHLD |
+		#SIGCLD |
+		#SIGCONT |
+		#SIGFPE |
+		#SIGHUP |
+		#SIGILL |
+		#SIGINT |
+		#SIGIO |
+		#SIGIOT |
+		#SIGKILL |
+		#SIGPIPE |
+		#SIGPOLL |
+		#SIGPROF |
+		#SIGPWR |
+		#SIGQUIT |
+		#SIGSEGV |
+		#SIGSTKFLT |
+		#SIGSTOP |
+		#SIGSYS |
+		#SIGTERM |
+		#SIGTRAP |
+		#SIGTSTP |
+		#SIGTTIN |
+		#SIGTTOU |
+		#SIGURG |
+		#SIGUSR1 |
+		#SIGUSR2 |
+		#SIGVTALRM |
+		#SIGWINCH |
+		#SIGXCPU |
+		#SIGXFSZ |
+		#SIGRTMIN |
+		#SIGRTMINPLUS1 |
+		#SIGRTMINPLUS2 |
+		#SIGRTMINPLUS3 |
+		#SIGRTMINPLUS4 |
+		#SIGRTMINPLUS5 |
+		#SIGRTMINPLUS6 |
+		#SIGRTMINPLUS7 |
+		#SIGRTMINPLUS8 |
+		#SIGRTMINPLUS9 |
+		#SIGRTMINPLUS10 |
+		#SIGRTMINPLUS11 |
+		#SIGRTMINPLUS12 |
+		#SIGRTMINPLUS13 |
+		#SIGRTMINPLUS14 |
+		#SIGRTMINPLUS15 |
+		#SIGRTMAXMINUS14 |
+		#SIGRTMAXMINUS13 |
+		#SIGRTMAXMINUS12 |
+		#SIGRTMAXMINUS11 |
+		#SIGRTMAXMINUS10 |
+		#SIGRTMAXMINUS9 |
+		#SIGRTMAXMINUS8 |
+		#SIGRTMAXMINUS7 |
+		#SIGRTMAXMINUS6 |
+		#SIGRTMAXMINUS5 |
+		#SIGRTMAXMINUS4 |
+		#SIGRTMAXMINUS3 |
+		#SIGRTMAXMINUS2 |
+		#SIGRTMAXMINUS1 |
+		#SIGRTMAX
 
 #SIGABRT:         #Signal & "SIGABRT"
 #SIGALRM:         #Signal & "SIGALRM"
@@ -3648,8 +3648,8 @@ import (
 
 #enumConditionStatus:
 	#ConditionTrue |
-	#ConditionFalse |
-	#ConditionUnknown
+		#ConditionFalse |
+		#ConditionUnknown
 
 #ConditionTrue:    #ConditionStatus & "True"
 #ConditionFalse:   #ConditionStatus & "False"
@@ -3844,8 +3844,8 @@ import (
 
 #enumResourceHealthStatus:
 	#ResourceHealthStatusHealthy |
-	#ResourceHealthStatusUnhealthy |
-	#ResourceHealthStatusUnknown
+		#ResourceHealthStatusUnhealthy |
+		#ResourceHealthStatusUnknown
 
 #ResourceHealthStatusHealthy:   #ResourceHealthStatus & "Healthy"
 #ResourceHealthStatusUnhealthy: #ResourceHealthStatus & "Unhealthy"
@@ -3909,10 +3909,10 @@ import (
 
 #enumPodPhase:
 	#PodPending |
-	#PodRunning |
-	#PodSucceeded |
-	#PodFailed |
-	#PodUnknown
+		#PodRunning |
+		#PodSucceeded |
+		#PodFailed |
+		#PodUnknown
 
 // PodPending means the pod has been accepted by the system, but one or more of the containers
 // has not been started. This includes time before being bound to a node, as well as time spent
@@ -3941,13 +3941,13 @@ import (
 
 #enumPodConditionType:
 	#ContainersReady |
-	#PodInitialized |
-	#PodReady |
-	#PodScheduled |
-	#DisruptionTarget |
-	#PodReadyToStartContainers |
-	#PodResizePending |
-	#PodResizeInProgress
+		#PodInitialized |
+		#PodReady |
+		#PodScheduled |
+		#DisruptionTarget |
+		#PodReadyToStartContainers |
+		#PodResizePending |
+		#PodResizeInProgress
 
 // ContainersReady indicates whether all containers in the pod are ready.
 #ContainersReady: #PodConditionType & "ContainersReady"
@@ -4054,8 +4054,8 @@ import (
 
 #enumPodResizeStatus:
 	#PodResizeStatusInProgress |
-	#PodResizeStatusDeferred |
-	#PodResizeStatusInfeasible
+		#PodResizeStatusDeferred |
+		#PodResizeStatusInfeasible
 
 // Pod resources resize has been accepted by node and is being actuated.
 #PodResizeStatusInProgress: #PodResizeStatus & "InProgress"
@@ -4095,8 +4095,8 @@ import (
 
 #enumRestartPolicy:
 	#RestartPolicyAlways |
-	#RestartPolicyOnFailure |
-	#RestartPolicyNever
+		#RestartPolicyOnFailure |
+		#RestartPolicyNever
 
 #RestartPolicyAlways:    #RestartPolicy & "Always"
 #RestartPolicyOnFailure: #RestartPolicy & "OnFailure"
@@ -4108,8 +4108,8 @@ import (
 
 #enumContainerRestartPolicy:
 	#ContainerRestartPolicyAlways |
-	#ContainerRestartPolicyNever |
-	#ContainerRestartPolicyOnFailure
+		#ContainerRestartPolicyNever |
+		#ContainerRestartPolicyOnFailure
 
 #ContainerRestartPolicyAlways:    #ContainerRestartPolicy & "Always"
 #ContainerRestartPolicyNever:     #ContainerRestartPolicy & "Never"
@@ -4163,7 +4163,7 @@ import (
 
 #enumContainerRestartRuleOnExitCodesOperator:
 	#ContainerRestartRuleOnExitCodesOpIn |
-	#ContainerRestartRuleOnExitCodesOpNotIn
+		#ContainerRestartRuleOnExitCodesOpNotIn
 
 #ContainerRestartRuleOnExitCodesOpIn:    #ContainerRestartRuleOnExitCodesOperator & "In"
 #ContainerRestartRuleOnExitCodesOpNotIn: #ContainerRestartRuleOnExitCodesOperator & "NotIn"
@@ -4174,9 +4174,9 @@ import (
 
 #enumDNSPolicy:
 	#DNSClusterFirstWithHostNet |
-	#DNSClusterFirst |
-	#DNSDefault |
-	#DNSNone
+		#DNSClusterFirst |
+		#DNSDefault |
+		#DNSNone
 
 // DNSClusterFirstWithHostNet indicates that the pod should use cluster DNS
 // first, if it is available, then fall back on the default
@@ -4254,11 +4254,11 @@ import (
 
 #enumNodeSelectorOperator:
 	#NodeSelectorOpIn |
-	#NodeSelectorOpNotIn |
-	#NodeSelectorOpExists |
-	#NodeSelectorOpDoesNotExist |
-	#NodeSelectorOpGt |
-	#NodeSelectorOpLt
+		#NodeSelectorOpNotIn |
+		#NodeSelectorOpExists |
+		#NodeSelectorOpDoesNotExist |
+		#NodeSelectorOpGt |
+		#NodeSelectorOpLt
 
 #NodeSelectorOpIn:           #NodeSelectorOperator & "In"
 #NodeSelectorOpNotIn:        #NodeSelectorOperator & "NotIn"
@@ -4492,8 +4492,8 @@ import (
 
 #enumTaintEffect:
 	#TaintEffectNoSchedule |
-	#TaintEffectPreferNoSchedule |
-	#TaintEffectNoExecute
+		#TaintEffectPreferNoSchedule |
+		#TaintEffectNoExecute
 
 // Do not allow new pods to schedule onto the node unless they tolerate the taint,
 // but allow all pods submitted to Kubelet without going through the scheduler
@@ -4549,7 +4549,7 @@ import (
 
 #enumTolerationOperator:
 	#TolerationOpExists |
-	#TolerationOpEqual
+		#TolerationOpEqual
 
 #TolerationOpExists: #TolerationOperator & "Exists"
 #TolerationOpEqual:  #TolerationOperator & "Equal"
@@ -5028,7 +5028,7 @@ import (
 
 #enumOSName:
 	#Linux |
-	#Windows
+		#Windows
 
 #Linux:   #OSName & "linux"
 #Windows: #OSName & "windows"
@@ -5054,7 +5054,7 @@ import (
 
 #enumUnsatisfiableConstraintAction:
 	#DoNotSchedule |
-	#ScheduleAnyway
+		#ScheduleAnyway
 
 // DoNotSchedule instructs the scheduler not to schedule the pod
 // when constraints are not satisfied.
@@ -5070,7 +5070,7 @@ import (
 
 #enumNodeInclusionPolicy:
 	#NodeInclusionPolicyIgnore |
-	#NodeInclusionPolicyHonor
+		#NodeInclusionPolicyHonor
 
 // NodeInclusionPolicyIgnore means ignore this scheduling directive when calculating pod topology spread skew.
 #NodeInclusionPolicyIgnore: #NodeInclusionPolicy & "Ignore"
@@ -5224,7 +5224,7 @@ import (
 
 #enumPodFSGroupChangePolicy:
 	#FSGroupChangeOnRootMismatch |
-	#FSGroupChangeAlways
+		#FSGroupChangeAlways
 
 // FSGroupChangeOnRootMismatch indicates that volume's ownership and permissions will be changed
 // only when permission and ownership of root directory does not match with expected
@@ -5244,7 +5244,7 @@ import (
 
 #enumSupplementalGroupsPolicy:
 	#SupplementalGroupsPolicyMerge |
-	#SupplementalGroupsPolicyStrict
+		#SupplementalGroupsPolicyStrict
 
 // SupplementalGroupsPolicyMerge means that the container's provided
 // SupplementalGroups and FsGroup (specified in SecurityContext) will be
@@ -5262,7 +5262,7 @@ import (
 
 #enumPodSELinuxChangePolicy:
 	#SELinuxChangePolicyRecursive |
-	#SELinuxChangePolicyMountOption
+		#SELinuxChangePolicyMountOption
 
 // Recursive relabeling of all Pod volumes by the container runtime.
 // This may be slow for large volumes, but allows mixing privileged and unprivileged Pods sharing the same volume on the same node.
@@ -5441,8 +5441,8 @@ import (
 
 #enumSeccompProfileType:
 	#SeccompProfileTypeUnconfined |
-	#SeccompProfileTypeRuntimeDefault |
-	#SeccompProfileTypeLocalhost
+		#SeccompProfileTypeRuntimeDefault |
+		#SeccompProfileTypeLocalhost
 
 // SeccompProfileTypeUnconfined indicates no seccomp profile is applied (A.K.A. unconfined).
 #SeccompProfileTypeUnconfined: #SeccompProfileType & "Unconfined"
@@ -5478,8 +5478,8 @@ import (
 
 #enumAppArmorProfileType:
 	#AppArmorProfileTypeUnconfined |
-	#AppArmorProfileTypeRuntimeDefault |
-	#AppArmorProfileTypeLocalhost
+		#AppArmorProfileTypeRuntimeDefault |
+		#AppArmorProfileTypeLocalhost
 
 // AppArmorProfileTypeUnconfined indicates that no AppArmor profile should be enforced.
 #AppArmorProfileTypeUnconfined: #AppArmorProfileType & "Unconfined"
@@ -5497,8 +5497,8 @@ import (
 
 #enumPodQOSClass:
 	#PodQOSGuaranteed |
-	#PodQOSBurstable |
-	#PodQOSBestEffort
+		#PodQOSBurstable |
+		#PodQOSBestEffort
 
 // PodQOSGuaranteed is the Guaranteed qos class.
 #PodQOSGuaranteed: #PodQOSClass & "Guaranteed"
@@ -6172,7 +6172,7 @@ import (
 
 #enumServiceAffinity:
 	#ServiceAffinityClientIP |
-	#ServiceAffinityNone
+		#ServiceAffinityNone
 
 // ServiceAffinityClientIP is the Client IP based.
 #ServiceAffinityClientIP: #ServiceAffinity & "ClientIP"
@@ -6204,9 +6204,9 @@ import (
 
 #enumServiceType:
 	#ServiceTypeClusterIP |
-	#ServiceTypeNodePort |
-	#ServiceTypeLoadBalancer |
-	#ServiceTypeExternalName
+		#ServiceTypeNodePort |
+		#ServiceTypeLoadBalancer |
+		#ServiceTypeExternalName
 
 // ServiceTypeClusterIP means a service will only be accessible inside the
 // cluster, via the cluster IP.
@@ -6233,7 +6233,7 @@ import (
 
 #enumServiceInternalTrafficPolicy:
 	#ServiceInternalTrafficPolicyCluster |
-	#ServiceInternalTrafficPolicyLocal
+		#ServiceInternalTrafficPolicyLocal
 
 // ServiceInternalTrafficPolicyCluster routes traffic to all endpoints.
 #ServiceInternalTrafficPolicyCluster: #ServiceInternalTrafficPolicy & "Cluster"
@@ -6254,9 +6254,9 @@ import (
 
 #enumServiceExternalTrafficPolicy:
 	#ServiceExternalTrafficPolicyCluster |
-	#ServiceExternalTrafficPolicyLocal |
-	#ServiceExternalTrafficPolicyTypeLocal |
-	#ServiceExternalTrafficPolicyTypeCluster
+		#ServiceExternalTrafficPolicyLocal |
+		#ServiceExternalTrafficPolicyTypeLocal |
+		#ServiceExternalTrafficPolicyTypeCluster
 
 // ServiceExternalTrafficPolicyCluster routes traffic to all endpoints.
 #ServiceExternalTrafficPolicyCluster: #ServiceExternalTrafficPolicy & "Cluster"
@@ -6364,8 +6364,8 @@ import (
 
 #enumIPFamily:
 	#IPv4Protocol |
-	#IPv6Protocol |
-	#IPFamilyUnknown
+		#IPv6Protocol |
+		#IPFamilyUnknown
 
 // IPv4Protocol indicates that this IP is IPv4 protocol
 #IPv4Protocol: #IPFamily & "IPv4"
@@ -6382,8 +6382,8 @@ import (
 
 #enumIPFamilyPolicy:
 	#IPFamilyPolicySingleStack |
-	#IPFamilyPolicyPreferDualStack |
-	#IPFamilyPolicyRequireDualStack
+		#IPFamilyPolicyPreferDualStack |
+		#IPFamilyPolicyRequireDualStack
 
 // IPFamilyPolicySingleStack indicates that this service is required to have a single IPFamily.
 // The IPFamily assigned is based on the default IPFamily used by the cluster
@@ -7324,8 +7324,8 @@ import (
 
 #enumNodePhase:
 	#NodePending |
-	#NodeRunning |
-	#NodeTerminated
+		#NodeRunning |
+		#NodeTerminated
 
 // NodePending means the node has been created/added by the system, but not configured.
 #NodePending: #NodePhase & "Pending"
@@ -7340,10 +7340,10 @@ import (
 
 #enumNodeConditionType:
 	#NodeReady |
-	#NodeMemoryPressure |
-	#NodeDiskPressure |
-	#NodePIDPressure |
-	#NodeNetworkUnavailable
+		#NodeMemoryPressure |
+		#NodeDiskPressure |
+		#NodePIDPressure |
+		#NodeNetworkUnavailable
 
 // NodeReady means kubelet is healthy and ready to accept pods.
 #NodeReady: #NodeConditionType & "Ready"
@@ -7389,10 +7389,10 @@ import (
 
 #enumNodeAddressType:
 	#NodeHostName |
-	#NodeInternalIP |
-	#NodeExternalIP |
-	#NodeInternalDNS |
-	#NodeExternalDNS
+		#NodeInternalIP |
+		#NodeExternalIP |
+		#NodeInternalDNS |
+		#NodeExternalDNS
 
 // NodeHostName identifies a name of the node. Although every node can be assumed
 // to have a NodeAddress of this type, its exact syntax and semantics are not
@@ -7447,25 +7447,25 @@ import (
 
 #enumResourceName:
 	#ResourceCPU |
-	#ResourceMemory |
-	#ResourceStorage |
-	#ResourceEphemeralStorage |
-	#ResourcePods |
-	#ResourceServices |
-	#ResourceReplicationControllers |
-	#ResourceQuotas |
-	#ResourceSecrets |
-	#ResourceConfigMaps |
-	#ResourcePersistentVolumeClaims |
-	#ResourceServicesNodePorts |
-	#ResourceServicesLoadBalancers |
-	#ResourceRequestsCPU |
-	#ResourceRequestsMemory |
-	#ResourceRequestsStorage |
-	#ResourceRequestsEphemeralStorage |
-	#ResourceLimitsCPU |
-	#ResourceLimitsMemory |
-	#ResourceLimitsEphemeralStorage
+		#ResourceMemory |
+		#ResourceStorage |
+		#ResourceEphemeralStorage |
+		#ResourcePods |
+		#ResourceServices |
+		#ResourceReplicationControllers |
+		#ResourceQuotas |
+		#ResourceSecrets |
+		#ResourceConfigMaps |
+		#ResourcePersistentVolumeClaims |
+		#ResourceServicesNodePorts |
+		#ResourceServicesLoadBalancers |
+		#ResourceRequestsCPU |
+		#ResourceRequestsMemory |
+		#ResourceRequestsStorage |
+		#ResourceRequestsEphemeralStorage |
+		#ResourceLimitsCPU |
+		#ResourceLimitsMemory |
+		#ResourceLimitsEphemeralStorage
 
 // CPU, in cores. (500m = .5 cores)
 #ResourceCPU: #ResourceName & "cpu"
@@ -7565,7 +7565,7 @@ import (
 
 #enumNamespacePhase:
 	#NamespaceActive |
-	#NamespaceTerminating
+		#NamespaceTerminating
 
 // NamespaceActive means the namespace is available for use in the system
 #NamespaceActive: #NamespacePhase & "Active"
@@ -7581,10 +7581,10 @@ import (
 
 #enumNamespaceConditionType:
 	#NamespaceDeletionDiscoveryFailure |
-	#NamespaceDeletionContentFailure |
-	#NamespaceDeletionGVParsingFailure |
-	#NamespaceContentRemaining |
-	#NamespaceFinalizersRemaining
+		#NamespaceDeletionContentFailure |
+		#NamespaceDeletionGVParsingFailure |
+		#NamespaceContentRemaining |
+		#NamespaceFinalizersRemaining
 
 // NamespaceDeletionDiscoveryFailure contains information about namespace deleter errors during resource discovery.
 #NamespaceDeletionDiscoveryFailure: #NamespaceConditionType & "NamespaceDeletionDiscoveryFailure"
@@ -8117,8 +8117,8 @@ import (
 
 #enumLimitType:
 	#LimitTypePod |
-	#LimitTypeContainer |
-	#LimitTypePersistentVolumeClaim
+		#LimitTypeContainer |
+		#LimitTypePersistentVolumeClaim
 
 // Limit that applies to all pods in a namespace
 #LimitTypePod: #LimitType & "Pod"
@@ -8255,12 +8255,12 @@ import (
 
 #enumResourceQuotaScope:
 	#ResourceQuotaScopeTerminating |
-	#ResourceQuotaScopeNotTerminating |
-	#ResourceQuotaScopeBestEffort |
-	#ResourceQuotaScopeNotBestEffort |
-	#ResourceQuotaScopePriorityClass |
-	#ResourceQuotaScopeCrossNamespacePodAffinity |
-	#ResourceQuotaScopeVolumeAttributesClass
+		#ResourceQuotaScopeNotTerminating |
+		#ResourceQuotaScopeBestEffort |
+		#ResourceQuotaScopeNotBestEffort |
+		#ResourceQuotaScopePriorityClass |
+		#ResourceQuotaScopeCrossNamespacePodAffinity |
+		#ResourceQuotaScopeVolumeAttributesClass
 
 // Match all pod objects where spec.activeDeadlineSeconds >=0
 #ResourceQuotaScopeTerminating: #ResourceQuotaScope & "Terminating"
@@ -8339,9 +8339,9 @@ import (
 
 #enumScopeSelectorOperator:
 	#ScopeSelectorOpIn |
-	#ScopeSelectorOpNotIn |
-	#ScopeSelectorOpExists |
-	#ScopeSelectorOpDoesNotExist
+		#ScopeSelectorOpNotIn |
+		#ScopeSelectorOpExists |
+		#ScopeSelectorOpDoesNotExist
 
 #ScopeSelectorOpIn:           #ScopeSelectorOperator & "In"
 #ScopeSelectorOpNotIn:        #ScopeSelectorOperator & "NotIn"
@@ -8438,13 +8438,13 @@ import (
 
 #enumSecretType:
 	#SecretTypeOpaque |
-	#SecretTypeServiceAccountToken |
-	#SecretTypeDockercfg |
-	#SecretTypeDockerConfigJson |
-	#SecretTypeBasicAuth |
-	#SecretTypeSSHAuth |
-	#SecretTypeTLS |
-	#SecretTypeBootstrapToken
+		#SecretTypeServiceAccountToken |
+		#SecretTypeDockercfg |
+		#SecretTypeDockerConfigJson |
+		#SecretTypeBasicAuth |
+		#SecretTypeSSHAuth |
+		#SecretTypeTLS |
+		#SecretTypeBootstrapToken
 
 // SecretTypeOpaque is the default. Arbitrary user-defined data
 #SecretTypeOpaque: #SecretType & "Opaque"
@@ -8815,7 +8815,7 @@ import (
 
 #enumProcMountType:
 	#DefaultProcMount |
-	#UnmaskedProcMount
+		#UnmaskedProcMount
 
 // DefaultProcMount uses the container runtime defaults for readonly and masked
 // paths for /proc.  Most container runtimes mask certain paths in /proc to avoid
@@ -8984,7 +8984,7 @@ import (
 
 #enumLoadBalancerIPMode:
 	#LoadBalancerIPModeVIP |
-	#LoadBalancerIPModeProxy
+		#LoadBalancerIPModeProxy
 
 // LoadBalancerIPModeVIP indicates that traffic is delivered to the node with
 // the destination set to the load-balancer's IP and port.
