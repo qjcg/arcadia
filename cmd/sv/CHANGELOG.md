@@ -5,12 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [v1.3.2] - 2026-11-27
 
 ### Changed
-- d1b98b35 - Bump go deps
-- 4f4e841f - Update deps
-- 3e477efd - Bump deps
+- d1b98b3 - Bump go deps
+- 4f4e841 - Update deps
+- 3e477ef - Bump deps
+
+### Fixed
+- 1dffab2 - separate local link lint from external audits
 
 ## [v1.3.1] - 2026-09-29
 

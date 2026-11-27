@@ -5,29 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [v0.1.4] - 2026-11-27
 
 ### Changed
-- d1b98b35 - Bump go deps
-- 6610a6f6 - Update deps
-- 4f4e841f - Update deps
-- e0df6f5f - Bump deps
-- 3e477efd - Bump deps
-- 1305b2c9 - Update deps
-- 348b5218 - keep task update from breaking the build
-- 878b20c2 - Update deps
-- 53b49e27 - Update deps
-- d4208456 - Bump deps
-- 51f343c6 - Bump go deps
-- 453a8cfc - Update go deps
-- dafb1370 - Update deps
-- 79771f93 - Update all changelogs
-- ae73b3c2 - Update all the changelogs
-- c48959a8 - Update all changelogs
-- 6731ec0a - Update all changelogs
-- 7cb48abd - Add changelogs for all modules via `sv changelog -aw`
-- 49cce786 - Update deps
-- a8cd3eec - Update go deps
+- d1b98b3 - Bump go deps
+- 6610a6f - Update deps
+- 4f4e841 - Update deps
+- e0df6f5 - Bump deps
+- 3e477ef - Bump deps
+- 1305b2c - Update deps
+- 348b521 - keep task update from breaking the build
+- 878b20c - Update deps
+- 53b49e2 - Update deps
+- d420845 - Bump deps
+- 51f343c - Bump go deps
+- 453a8cf - Update go deps
+- dafb137 - Update deps
+- 79771f9 - Update all changelogs
+- ae73b3c - Update all the changelogs
+- c48959a - Update all changelogs
+- 6731ec0 - Update all changelogs
+- 7cb48ab - Add changelogs for all modules via `sv changelog -aw`
+- 49cce78 - Update deps
+- a8cd3ee - Update go deps
+
+### Fixed
+- 1dffab2 - separate local link lint from external audits
 
 ## [v0.1.3] - 2026-06-15
 

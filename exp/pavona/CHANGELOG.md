@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 
 ### Changed
+- 239b9077 - remove Trivy secret scan
 - d1b98b35 - Bump go deps
 - 6610a6f6 - Update deps
 - 4f4e841f - Update deps
