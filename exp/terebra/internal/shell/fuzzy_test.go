@@ -108,14 +108,14 @@ func TestFilterEntriesCapsAtMaxResults(t *testing.T) {
 }
 
 func TestHighlightMatchEmptyQuery(t *testing.T) {
-	got := highlightMatch("hello", "")
+	got := highlightMatch("hello", "", dimStyle)
 	if got != "hello" {
 		t.Fatalf("expected unchanged entry, got %q", got)
 	}
 }
 
 func TestHighlightMatch(t *testing.T) {
-	got := highlightMatch("hello", "ho")
+	got := highlightMatch("hello", "ho", dimStyle)
 	// Styled output should be longer than plain due to ANSI codes
 	if len(got) <= len("hello") {
 		t.Fatalf("expected styled output longer than plain, got %q", got)
@@ -123,7 +123,7 @@ func TestHighlightMatch(t *testing.T) {
 }
 
 func TestHighlightMatchNoMatch(t *testing.T) {
-	got := highlightMatch("hello", "xyz")
+	got := highlightMatch("hello", "xyz", dimStyle)
 	if got != "hello" {
 		t.Fatalf("expected unchanged entry, got %q", got)
 	}

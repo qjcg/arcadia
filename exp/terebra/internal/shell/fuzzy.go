@@ -3,48 +3,51 @@ package shell
 import (
 	"fmt"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // fuzzyMatch checks if all chars of query appear in s in order (case-insensitive).
 // Returns a score: higher is better. Consecutive matches and match-at-word-start get bonuses.
 func fuzzyMatch(s, query string) (bool, int) {
-	s = strings.ToLower(s)
-	ql := strings.ToLower(query)
-	if ql == "" {
-		return true, 0
-	}
+	return scanFuzzyMatch(s, query, nil)
+}
 
-	si := 0
+// scanFuzzyMatch reports the byte spans of the same subsequence it scores.
+func scanFuzzyMatch(s, query string, match func(start, end int)) (bool, int) {
 	score := 0
-	prevMatched := false
-	for _, qc := range ql {
-		found := false
-		for si < len(s) {
-			sc := rune(s[si])
-			si++
-			if sc == qc {
-				found = true
-				// Bonus for consecutive matches
-				if prevMatched {
-					score += 5
-				}
-				// Bonus for match at word start
-				if si == 1 || (si > 1 && (s[si-2] == ' ' || s[si-2] == '-' || s[si-2] == '_' || s[si-2] == '/')) {
-					score += 10
-				}
-				prevMatched = true
-				score++
-				break
+	consecutive, wordStart := false, true
+	for i, r := range s {
+		if query == "" {
+			break
+		}
+		q, size := utf8.DecodeRuneInString(query)
+		if unicode.ToLower(r) != unicode.ToLower(q) {
+			consecutive = false
+		} else {
+			if consecutive {
+				score += 5
 			}
-			prevMatched = false
+			if wordStart {
+				score += 10
+			}
+			score++
+			consecutive = true
+			if match != nil {
+				_, width := utf8.DecodeRuneInString(s[i:])
+				match(i, i+width)
+			}
+			query = query[size:]
 		}
-		if !found {
-			return false, 0
-		}
+		wordStart = r == ' ' || r == '-' || r == '_' || r == '/'
+	}
+	if query != "" {
+		return false, 0
 	}
 	return true, score
 }
@@ -215,23 +218,17 @@ func (m fuzzyModel) View() tea.View {
 	}
 
 	for i := start; i < end; i++ {
-		entry := m.filtered[i].entry
-
-		// Truncate to width
-		if len(entry) > m.width-4 {
-			entry = entry[:m.width-4] + "..."
-		}
-
-		// Highlight the matching characters in the query
+		base, marker := dimStyle, "  "
 		if i == m.selected {
-			disp := highlightMatch(entry, m.query.Value())
-			b.WriteString(selectedStyle.Render(disp))
-			b.WriteByte('\n')
-		} else {
-			disp := highlightMatch(entry, m.query.Value())
-			b.WriteString(dimStyle.Render(disp))
-			b.WriteByte('\n')
+			base, marker = selectedStyle, "> "
 		}
+		row := base.Render(marker) + highlightMatch(m.filtered[i].entry, m.query.Value(), base)
+		tail := "…"
+		if m.width < 3 {
+			tail = ""
+		}
+		b.WriteString(ansi.Truncate(row, max(m.width, 0), tail))
+		b.WriteByte('\n')
 	}
 
 	// Pad remaining lines
@@ -252,46 +249,28 @@ func (m fuzzyModel) View() tea.View {
 	return v
 }
 
-// highlightMatch returns a string with matching characters styled.
-func highlightMatch(entry, query string) string {
-	if query == "" {
-		return entry
-	}
-
-	ql := strings.ToLower(query)
-	el := strings.ToLower(entry)
-
+// Style each span directly so match resets cannot cancel the row background.
+func highlightMatch(entry, query string, base lipgloss.Style) string {
 	var b strings.Builder
-	ei := 0
-	for _, qc := range ql {
-		for ei < len(el) {
-			rc := rune(el[ei])
-			if rc == qc {
-				b.WriteString(highlightStyle.Render(string(entry[ei])))
-				ei++
-				break
-			}
-			b.WriteByte(entry[ei])
-			ei++
-		}
-	}
-	// Write remaining characters
-	for ei < len(entry) {
-		b.WriteByte(entry[ei])
-		ei++
-	}
+	last := 0
+	highlighted := matchStyle(base)
+	scanFuzzyMatch(entry, query, func(start, end int) {
+		b.WriteString(base.Render(entry[last:start]))
+		b.WriteString(highlighted.Render(entry[start:end]))
+		last = end
+	})
+	b.WriteString(base.Render(entry[last:]))
 	return b.String()
 }
 
+func matchStyle(base lipgloss.Style) lipgloss.Style {
+	return base.Foreground(lipgloss.Color("212")).Bold(true).Underline(true)
+}
+
 var (
-	highlightStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("212"))
-	dimStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240"))
-	selectedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("212")).
-			Background(lipgloss.Color("236"))
-	inputStyle = lipgloss.NewStyle().
+	dimStyle      = lipgloss.NewStyle()
+	selectedStyle = lipgloss.NewStyle().Reverse(true)
+	inputStyle    = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("212"))
 )
 

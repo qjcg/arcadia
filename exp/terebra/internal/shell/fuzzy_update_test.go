@@ -220,3 +220,26 @@ func TestFuzzyViewTruncatesLongEntries(t *testing.T) {
 		t.Fatal("expected long entry to be truncated")
 	}
 }
+
+func TestFuzzyViewHighlightsAfterTyping(t *testing.T) {
+	m := newFuzzyModel([]string{"Écho X", "Édit X"}, "")
+	for _, r := range "éx" {
+		next, _ := m.Update(keyPress(r))
+		m = next.(fuzzyModel)
+	}
+	rows := strings.Split(m.View().Content, "\n")
+	for i, row := range rows[:2] {
+		base := dimStyle
+		if i == 0 {
+			base = selectedStyle
+			if !strings.Contains(row, base.Render("> ")) {
+				t.Fatalf("missing selection marker: %q", row)
+			}
+		}
+		for _, match := range []string{"É", "X"} {
+			if !strings.Contains(row, matchStyle(base).Render(match)) {
+				t.Errorf("row %d: missing styled match %q in %q", i, match, row)
+			}
+		}
+	}
+}
